@@ -164,3 +164,17 @@ Verificación:
 - `npm run typecheck` pasó sin errores.
 - `npm run lint` pasó sin warnings ni errores.
 - `npm test` pasó: 3 archivos, 22 tests.
+
+### Ampliación de tests unitarios
+
+Se agregaron tests unitarios para cubrir flujos críticos sin depender de DOM/jsdom:
+
+- `tests/unit/modules/sales/cart-store.test.ts`: agregar productos, incrementar cantidad, eliminar por cantidad cero, descuentos, pagos y limpieza del carrito.
+- `tests/unit/modules/products/product-form-schema.test.ts`: validación de categoría y formulario de producto.
+- `tests/unit/modules/sales/sale-dto.test.ts`: DTO de creación y anulación de ventas.
+- `tests/unit/modules/cash-register/cash-register-dto.test.ts`: DTOs de apertura, movimiento y cierre de caja.
+
+Verificación posterior:
+- `npm run typecheck` pasó sin errores.
+- `npm run lint` pasó sin warnings ni errores.
+- `npm test` pasó: 7 archivos, 46 tests.
