@@ -12,12 +12,12 @@ export interface InventoryMovement {
   id: string
   tiendaId: TiendaId
   productId: string
-  type: InventoryMovementType
-  quantity: number
-  previousStock: number
-  newStock: number
-  reason: string | null
-  referenceId: string | null
+  tipo: InventoryMovementType
+  cantidad: number
+  costoUnitario: number | null
+  motivo: string | null
+  referenciaTipo: string | null
+  referenciaId: string | null
   createdBy: UserId
   createdAt: Date
 }

@@ -1,4 +1,4 @@
-import type { CashSessionStatus, PaymentMethod, TiendaId, UserId } from '@/shared/types'
+import type { CashMovementType, CashSessionStatus, TiendaId, UserId } from '@/shared/types'
 
 export interface CashSession {
   id: string
@@ -6,10 +6,11 @@ export interface CashSession {
   openedBy: UserId
   closedBy: UserId | null
   status: CashSessionStatus
-  openingBalance: number
-  expectedBalance: number
-  actualBalance: number | null
+  openingAmount: number
+  expectedCashAmount: number | null
+  actualCashAmount: number | null
   difference: number | null
+  notasCierre: string | null
   openedAt: Date
   closedAt: Date | null
 }
@@ -17,11 +18,9 @@ export interface CashSession {
 export interface CashMovement {
   id: string
   cashSessionId: string
-  tiendaId: TiendaId
-  type: 'ingreso' | 'egreso'
+  tipo: CashMovementType
   amount: number
-  method: PaymentMethod
-  description: string
+  motivo: string
   createdBy: UserId
   createdAt: Date
 }
