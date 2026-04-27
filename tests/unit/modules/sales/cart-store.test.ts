@@ -99,4 +99,15 @@ describe('useCartStore', () => {
     expect(state.payments).toHaveLength(0)
     expect(state.totals.total).toBe(0)
   })
+
+  it('removePayment y clearPayments actualizan pagos', () => {
+    useCartStore.getState().addPayment({ metodo: 'cash', amount: 10000 })
+    useCartStore.getState().addPayment({ metodo: 'card', amount: 20000 })
+
+    useCartStore.getState().removePayment(0)
+    expect(useCartStore.getState().payments).toEqual([{ metodo: 'card', amount: 20000 }])
+
+    useCartStore.getState().clearPayments()
+    expect(useCartStore.getState().payments).toHaveLength(0)
+  })
 })

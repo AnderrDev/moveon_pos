@@ -178,3 +178,27 @@ Verificación posterior:
 - `npm run typecheck` pasó sin errores.
 - `npm run lint` pasó sin warnings ni errores.
 - `npm test` pasó: 7 archivos, 46 tests.
+
+### Umbral de cobertura 90%
+
+Se configuró cobertura con Vitest/V8 y umbrales mínimos del 90% para la capa core testeable en Node:
+
+- DTOs de aplicación.
+- Servicios de dominio.
+- Formularios y mappers puros.
+- Store de carrito.
+- Validaciones y helpers compartidos.
+
+Se excluyen de este umbral inicial componentes React, hooks con DOM, Server Actions y repositorios Supabase porque requieren una estrategia separada con jsdom/mocks o tests de integración.
+
+Archivos agregados:
+- `tests/unit/modules/auth/login-form.test.ts`
+- `tests/unit/modules/inventory/inventory-dto.test.ts`
+- `tests/unit/modules/products/product-dto.test.ts`
+- `tests/unit/modules/products/product-form-mapper.test.ts`
+- `tests/unit/shared/forms/form-error-resolver.test.ts`
+
+Verificación:
+- `npm run test:coverage` pasó: statements 99.76%, branches 95.27%, functions 100%, lines 99.76%.
+- `npm run typecheck` pasó sin errores.
+- `npm run lint` pasó sin warnings ni errores.
