@@ -1,39 +1,46 @@
-import type { SaleStatus, PaymentMethod, TiendaId, UserId, IvaRate } from '@/shared/types'
+import type { BillingStatus, PaymentMethod, SaleStatus, TiendaId, UserId } from '@/shared/types'
 
 export interface SaleItem {
   id: string
   saleId: string
   productId: string
-  productName: string
+  productoNombre: string
+  productoSku: string | null
   quantity: number
   unitPrice: number
-  discount: number
-  ivaTasa: IvaRate
-  subtotal: number
-  ivaAmount: number
+  discountAmount: number
+  taxRate: number
+  taxAmount: number
   total: number
 }
 
 export interface Payment {
-  method: PaymentMethod
+  id: string
+  saleId: string
+  metodo: PaymentMethod
   amount: number
+  referencia: string | null
+  createdAt: Date
 }
 
 export interface Sale {
   id: string
   tiendaId: TiendaId
   cashSessionId: string
-  customerId: string | null
+  saleNumber: string
+  clienteId: string | null
+  cashierId: UserId
   status: SaleStatus
+  billingStatus: BillingStatus
+  billingDocumentId: string | null
   items: SaleItem[]
   payments: Payment[]
   subtotal: number
-  totalDiscount: number
-  totalIva: number
+  discountTotal: number
+  taxTotal: number
   total: number
   change: number
   idempotencyKey: string
-  createdBy: UserId
   voidedBy: UserId | null
   voidedAt: Date | null
   voidedReason: string | null
