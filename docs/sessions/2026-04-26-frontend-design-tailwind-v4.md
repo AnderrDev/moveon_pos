@@ -116,3 +116,25 @@ Fecha de revisión: 2026-04-26.
 - `npm test` pasó: 3 archivos, 22 tests.
 - El documento `docs/sessions/ESTADO-PROYECTO-2026-04-26.md` está parcialmente desactualizado: ya existen `/clientes`, `/reportes`, descuento por ítem en carrito, historial de ventas, anulación desde UI y número real de venta en el modal de éxito.
 - Riesgo operativo pendiente: el repo mantiene muchos cambios sin commit y muchos archivos nuevos sin trackear; conviene ordenar el estado git antes de seguir implementando.
+
+### Limpieza de worktree y commits
+
+Se ordenó el trabajo acumulado en commits temáticos:
+
+1. `chore: add agent workflow docs`
+2. `feat: add shared UI foundation`
+3. `feat: wire Supabase auth schema`
+4. `feat: implement product catalog`
+5. `feat: implement inventory and cash register`
+6. `feat: implement POS sales flow`
+7. `feat: add customers and daily reports`
+8. `test: cover sales and form helpers`
+
+Verificación posterior:
+- `npm run typecheck` pasó sin errores.
+- `npm run lint` pasó sin warnings ni errores.
+- `npm test` pasó: 3 archivos, 22 tests.
+
+Notas:
+- `pnpm` sigue sin estar disponible en este entorno, por eso se usó `npm` para verificar.
+- `package-lock.json` y `/forms.md` quedaron ignorados como artefactos locales ajenos al estándar del repo.
