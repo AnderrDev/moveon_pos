@@ -13,7 +13,7 @@ export const createProductSchema = z.object({
   costo: z.number().nonnegative().optional(),
   ivaTasa: ivaRateSchema,
   stockMinimo: z.number().int().nonnegative().default(0),
-  activo: z.boolean().default(true),
+  isActive: z.boolean().default(true),
 })
 
 export type CreateProductDto = z.infer<typeof createProductSchema>

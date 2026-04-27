@@ -13,7 +13,7 @@ export interface Product {
   costo: number | null
   ivaTasa: IvaRate
   stockMinimo: number
-  activo: boolean
+  isActive: boolean
   createdAt: Date
   updatedAt: Date
 }
@@ -23,7 +23,7 @@ export interface Categoria {
   tiendaId: TiendaId
   nombre: string
   orden: number
-  activo: boolean
+  isActive: boolean
   createdAt: Date
   updatedAt: Date
 }
