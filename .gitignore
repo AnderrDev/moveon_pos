@@ -1,8 +1,12 @@
+# MCP config (contains secrets)
+.mcp.json
+
 # dependencies
 /node_modules
 /.pnp
 .pnp.js
 .yarn/install-state.gz
+package-lock.json
 
 # testing
 /coverage
@@ -17,6 +21,7 @@
 # misc
 .DS_Store
 *.pem
+/forms.md
 
 # debug
 npm-debug.log*

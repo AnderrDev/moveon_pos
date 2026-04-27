@@ -1,0 +1,16 @@
+{
+  "enabledMcpjsonServers": ["supabase"],
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "TODAY=$(date +%Y-%m-%d); SESSIONS_DIR=\"docs/sessions\"; if ls \"$SESSIONS_DIR\"/${TODAY}-*.md 2>/dev/null | grep -q .; then exit 0; fi; echo \"{\\\"hookSpecificOutput\\\": {\\\"hookEventName\\\": \\\"UserPromptSubmit\\\", \\\"additionalContext\\\": \\\"[RECORDATORIO DE SESIÓN] No existe un spec de sesión para hoy ($TODAY). Antes de hacer cualquier cosa, crea docs/sessions/$TODAY-<tema>.md copiando docs/sessions/_TEMPLATE.md y completa metadatos y objetivo.\\\"}}\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

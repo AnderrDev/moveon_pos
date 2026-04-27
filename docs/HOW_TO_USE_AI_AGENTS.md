@@ -79,7 +79,27 @@ Si te dice que no está en scope: **no la construyas todavía**, agrégala al ba
 
 ---
 
-## 9. Banderas rojas (cuando un agente está fuera de control)
+## 9. Sistema de specs de sesión
+
+Cada sesión de trabajo debe producir un spec en `/docs/sessions/`.
+
+**Al inicio de sesión — dile al agente:**
+
+> Al comenzar esta sesión, copia `docs/sessions/_TEMPLATE.md` como `docs/sessions/YYYY-MM-DD-<tema>.md`. Completa los metadatos y el objetivo. Antes de escribir código, lee el spec de la sesión anterior más reciente para entender en qué punto quedamos.
+
+**Al final de sesión — dile al agente:**
+
+> Antes de terminar, actualiza el spec de sesión de hoy en `docs/sessions/` con: los archivos que creaste o modificaste, las decisiones que tomaste, los bloqueos que encontraste y los próximos pasos concretos.
+
+**Por qué es importante:**
+- Permite retomar el trabajo exactamente donde se dejó.
+- Dos agentes distintos (Claude y Codex) pueden leer el mismo historial.
+- Evita que el agente "reinvente" decisiones ya tomadas.
+- Sirve como bitácora de proyecto sin esfuerzo manual.
+
+---
+
+## 10. Banderas rojas (cuando un agente está fuera de control)
 
 - Está instalando dependencias no justificadas.
 - Está creando archivos fuera de la estructura definida en `docs/02-architecture.md`.
