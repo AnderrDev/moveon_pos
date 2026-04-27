@@ -12,6 +12,7 @@ import {
   SubmitButton,
   FormError,
 } from '@/shared/components/forms'
+import { useActionFeedback } from '@/shared/hooks/use-action-feedback'
 import { useProductForm } from '../hooks/use-product-form'
 import type { Product, Categoria } from '../domain/entities/product.entity'
 import type { SelectOption } from '@/shared/components/forms'
@@ -44,11 +45,19 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 }
 
 export function ProductFormDialog({ open, onClose, product, categorias }: ProductFormDialogProps) {
-  const { form, formAction, isPending, serverError, isEditMode, reset } = useProductForm({ product })
+  const { form, formAction, isPending, serverError, message, isEditMode, reset } = useProductForm({ product })
 
   useEffect(() => {
     if (open) reset(product)
   }, [open, product, reset])
+
+  useActionFeedback({
+    state: { error: serverError, message },
+    pending: isPending,
+    onSuccess: onClose,
+    successMessage: isEditMode ? 'Producto actualizado correctamente' : 'Producto creado correctamente',
+    showErrorToast: true,
+  })
 
   const categoriaOptions: SelectOption[] = [
     { value: '', label: 'Sin categoría' },
@@ -63,6 +72,7 @@ export function ProductFormDialog({ open, onClose, product, categorias }: Produc
       onClose={onClose}
       title={isEditMode ? 'Editar producto' : 'Nuevo producto'}
       className="max-w-2xl"
+      isBusy={isPending}
     >
       <form action={formAction} className="space-y-6">
 
@@ -173,7 +183,7 @@ export function ProductFormDialog({ open, onClose, product, categorias }: Produc
 
         {/* Footer */}
         <div className="flex justify-end gap-3 border-t pt-4">
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
             Cancelar
           </Button>
           <SubmitButton isLoading={isPending} loadingText="Guardando…">

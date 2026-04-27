@@ -1,10 +1,11 @@
 'use client'
 
-import { useActionState, useEffect, useRef } from 'react'
+import { useActionState } from 'react'
 import { adjustStockAction } from '../application/actions/inventory.actions'
 import { Dialog } from '@/shared/components/ui/Dialog'
 import { Button } from '@/shared/components/ui/Button'
 import { SubmitButton } from '@/shared/components/forms/SubmitButton'
+import { useActionFeedback } from '@/shared/hooks/use-action-feedback'
 import { cn } from '@/shared/lib/utils'
 import type { Product } from '@/modules/products/domain/entities/product.entity'
 
@@ -24,15 +25,17 @@ const inputCls = cn(
 
 export function AdjustStockDialog({ product, currentStock, onClose }: Props) {
   const [state, action, pending] = useActionState(adjustStockAction, INITIAL)
-  const prevPending = useRef(false)
 
-  useEffect(() => {
-    if (prevPending.current && !pending && !state.error) onClose()
-    prevPending.current = pending
-  }, [pending, state.error, onClose])
+  useActionFeedback({
+    state,
+    pending,
+    onSuccess: onClose,
+    successMessage: 'Ajuste de stock guardado',
+    showErrorToast: true,
+  })
 
   return (
-    <Dialog open onClose={onClose} title={`Ajustar stock — ${product.nombre}`}>
+    <Dialog open onClose={onClose} title={`Ajustar stock — ${product.nombre}`} isBusy={pending}>
       <form action={action} className="space-y-4">
         <input type="hidden" name="productId" value={product.id} />
 
@@ -80,8 +83,8 @@ export function AdjustStockDialog({ product, currentStock, onClose }: Props) {
         )}
 
         <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-          <SubmitButton>Guardar ajuste</SubmitButton>
+          <Button type="button" variant="outline" onClick={onClose} disabled={pending}>Cancelar</Button>
+          <SubmitButton isLoading={pending} loadingText="Guardando…">Guardar ajuste</SubmitButton>
         </div>
       </form>
     </Dialog>

@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from 'react'
 import { getDailyReportAction, type DailyReport } from '../application/actions/daily-report.action'
+import { Button } from '@/shared/components/ui/Button'
+import { Skeleton } from '@/shared/components/feedback/Skeleton'
 
 function formatCOP(v: number) {
   return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(v)
@@ -40,12 +42,14 @@ export function DailyReportView({ initialReport, initialDate }: Props) {
             const d = new Date(date); d.setDate(d.getDate() - 1)
             handleDateChange(toDateInput(d))
           }}
-          className="rounded-lg border px-3 py-2 text-sm hover:bg-muted transition-colors"
+          className="rounded-lg border px-3 py-2 text-sm hover:bg-muted transition-colors disabled:opacity-50"
+          disabled={isPending}
         >←</button>
         <input
           type="date"
           value={date}
           onChange={(e) => handleDateChange(e.target.value)}
+          disabled={isPending}
           className="rounded-lg border border-input bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
         <button
@@ -54,23 +58,26 @@ export function DailyReportView({ initialReport, initialDate }: Props) {
             if (d <= new Date()) handleDateChange(toDateInput(d))
           }}
           className="rounded-lg border px-3 py-2 text-sm hover:bg-muted transition-colors disabled:opacity-50"
-          disabled={date >= toDateInput(new Date())}
+          disabled={isPending || date >= toDateInput(new Date())}
         >→</button>
-        {isPending && <span className="text-sm text-muted-foreground">Cargando…</span>}
+        {isPending && <span className="text-sm text-muted-foreground">Actualizando reporte…</span>}
 
-        <button
+        <Button
+          variant="outline"
           onClick={() => window.print()}
-          className="ml-auto flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium hover:bg-muted transition-colors print:hidden"
+          className="ml-auto print:hidden"
         >
           <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4" aria-hidden>
             <path d="M4 6V2h8v4M4 12H2V7h12v5h-2" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
             <rect x="4" y="10" width="8" height="4" rx="0.5" stroke="currentColor" strokeWidth="1.25"/>
           </svg>
           Imprimir
-        </button>
+        </Button>
       </div>
 
-      {!report ? (
+      {isPending ? (
+        <ReportContentSkeleton />
+      ) : !report ? (
         <div className="rounded-xl border border-dashed bg-card py-16 text-center">
           <p className="text-sm text-muted-foreground">Sin datos para esta fecha</p>
         </div>
@@ -192,6 +199,34 @@ export function DailyReportView({ initialReport, initialDate }: Props) {
           )}
         </>
       )}
+    </div>
+  )
+}
+
+function ReportContentSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div key={index} className="rounded-xl border bg-card p-5 shadow-sm">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="mt-3 h-7 w-28" />
+            <Skeleton className="mt-2 h-3 w-20" />
+          </div>
+        ))}
+      </div>
+      <div className="grid gap-6 lg:grid-cols-2">
+        {Array.from({ length: 2 }).map((_, index) => (
+          <div key={index} className="rounded-xl border bg-card p-5 shadow-sm">
+            <Skeleton className="h-4 w-44" />
+            <div className="mt-5 space-y-3">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-11/12" />
+              <Skeleton className="h-4 w-10/12" />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

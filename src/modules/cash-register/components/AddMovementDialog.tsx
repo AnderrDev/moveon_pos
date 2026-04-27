@@ -1,10 +1,11 @@
 'use client'
 
-import { useActionState, useEffect, useRef, useState } from 'react'
+import { useActionState, useState } from 'react'
 import { addCashMovementAction } from '../application/actions/cash-register.actions'
 import { Dialog } from '@/shared/components/ui/Dialog'
 import { Button } from '@/shared/components/ui/Button'
 import { SubmitButton } from '@/shared/components/forms/SubmitButton'
+import { useActionFeedback } from '@/shared/hooks/use-action-feedback'
 import { cn } from '@/shared/lib/utils'
 
 interface Props { sessionId: string }
@@ -23,18 +24,20 @@ export function AddMovementDialog({ sessionId }: Props) {
   const [tipo, setTipo] = useState<MovType>('cash_in')
   const boundAction = addCashMovementAction.bind(null, sessionId)
   const [state, action, pending] = useActionState(boundAction, INITIAL)
-  const prevPending = useRef(false)
 
-  useEffect(() => {
-    if (prevPending.current && !pending && !state.error) setOpen(false)
-    prevPending.current = pending
-  }, [pending, state.error])
+  useActionFeedback({
+    state,
+    pending,
+    onSuccess: () => setOpen(false),
+    successMessage: 'Movimiento registrado',
+    showErrorToast: true,
+  })
 
   return (
     <>
       <Button variant="outline" onClick={() => setOpen(true)}>+ Movimiento</Button>
 
-      <Dialog open={open} onClose={() => setOpen(false)} title="Registrar movimiento">
+      <Dialog open={open} onClose={() => setOpen(false)} title="Registrar movimiento" isBusy={pending}>
         <form action={action} className="space-y-4">
           <input type="hidden" name="tipo" value={tipo} />
 
@@ -82,8 +85,8 @@ export function AddMovementDialog({ sessionId }: Props) {
           )}
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <SubmitButton>Registrar</SubmitButton>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={pending}>Cancelar</Button>
+            <SubmitButton isLoading={pending} loadingText="Registrando…">Registrar</SubmitButton>
           </div>
         </form>
       </Dialog>

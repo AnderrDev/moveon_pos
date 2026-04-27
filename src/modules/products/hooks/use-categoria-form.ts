@@ -49,6 +49,7 @@ export function useCategoriaForm({ categoria }: UseCategoriaFormOptions = {}) {
     formAction,
     isPending,
     serverError: actionState.error,
+    message: actionState.message,
     isEditMode,
     reset,
   }

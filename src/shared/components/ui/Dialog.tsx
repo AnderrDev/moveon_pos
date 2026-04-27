@@ -11,15 +11,16 @@ interface DialogProps {
   description?: string
   children: React.ReactNode
   className?: string
+  isBusy?: boolean
 }
 
-export function Dialog({ open, onClose, title, description, children, className }: DialogProps) {
+export function Dialog({ open, onClose, title, description, children, className, isBusy = false }: DialogProps) {
   useEffect(() => {
     if (!open) return
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape' && !isBusy) onClose() }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [open, onClose])
+  }, [open, onClose, isBusy])
 
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : ''
@@ -33,7 +34,7 @@ export function Dialog({ open, onClose, title, description, children, className 
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
-        onClick={onClose}
+        onClick={() => { if (!isBusy) onClose() }}
         aria-hidden
       />
 
@@ -50,7 +51,9 @@ export function Dialog({ open, onClose, title, description, children, className 
         )}
       >
         {/* Orange top accent */}
-        <div className="h-1 w-full bg-primary" />
+        <div className="h-1 w-full overflow-hidden bg-primary/25">
+          <div className={cn('h-full bg-primary', isBusy && 'animate-pulse')} />
+        </div>
 
         {/* Header */}
         <div className="flex items-start justify-between border-b px-6 pt-5 pb-4">
@@ -64,6 +67,7 @@ export function Dialog({ open, onClose, title, description, children, className 
           </div>
           <button
             onClick={onClose}
+            disabled={isBusy}
             className="ml-4 flex-shrink-0 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             aria-label="Cerrar"
           >

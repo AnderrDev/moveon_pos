@@ -5,8 +5,13 @@ import { z } from 'zod'
 import { getAuthContext } from '@/shared/lib/auth-context'
 import { SupabaseClienteRepository } from '../../infrastructure/repositories/supabase-cliente.repository'
 
-export type ClienteActionState = { error: string | null }
-const OK: ClienteActionState = { error: null }
+export type ClienteActionState = {
+  status?: 'idle' | 'success' | 'error'
+  message?: string
+  error: string | null
+}
+const OK = (message: string): ClienteActionState => ({ status: 'success', message, error: null })
+const FAIL = (error: string): ClienteActionState => ({ status: 'error', error })
 
 const clienteSchema = z.object({
   nombre:          z.string().trim().min(2, 'El nombre debe tener al menos 2 caracteres').max(120),
@@ -21,7 +26,7 @@ export async function createClienteAction(
   formData: FormData,
 ): Promise<ClienteActionState> {
   const auth = await getAuthContext()
-  if (!auth) return { error: 'No autenticado' }
+  if (!auth) return FAIL('No autenticado')
 
   const parsed = clienteSchema.safeParse({
     nombre:          formData.get('nombre'),
@@ -30,7 +35,7 @@ export async function createClienteAction(
     email:           formData.get('email'),
     telefono:        formData.get('telefono'),
   })
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Datos inválidos' }
+  if (!parsed.success) return FAIL(parsed.error.errors[0]?.message ?? 'Datos inválidos')
 
   const repo   = new SupabaseClienteRepository()
   const result = await repo.create({
@@ -44,13 +49,13 @@ export async function createClienteAction(
 
   if (!result.ok) {
     if (result.error.message.includes('ux_clientes_documento')) {
-      return { error: 'Ya existe un cliente con ese documento' }
+      return FAIL('Ya existe un cliente con ese documento')
     }
-    return { error: 'No se pudo crear el cliente' }
+    return FAIL('No se pudo crear el cliente')
   }
 
   revalidatePath('/clientes')
-  return OK
+  return OK('Cliente creado correctamente')
 }
 
 export async function updateClienteAction(
@@ -59,7 +64,7 @@ export async function updateClienteAction(
   formData: FormData,
 ): Promise<ClienteActionState> {
   const auth = await getAuthContext()
-  if (!auth) return { error: 'No autenticado' }
+  if (!auth) return FAIL('No autenticado')
 
   const parsed = clienteSchema.safeParse({
     nombre:          formData.get('nombre'),
@@ -68,7 +73,7 @@ export async function updateClienteAction(
     email:           formData.get('email'),
     telefono:        formData.get('telefono'),
   })
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Datos inválidos' }
+  if (!parsed.success) return FAIL(parsed.error.errors[0]?.message ?? 'Datos inválidos')
 
   const repo   = new SupabaseClienteRepository()
   const result = await repo.update(id, auth.tiendaId, {
@@ -81,24 +86,24 @@ export async function updateClienteAction(
 
   if (!result.ok) {
     if (result.error.message.includes('ux_clientes_documento')) {
-      return { error: 'Ya existe un cliente con ese documento' }
+      return FAIL('Ya existe un cliente con ese documento')
     }
-    return { error: 'No se pudo actualizar el cliente' }
+    return FAIL('No se pudo actualizar el cliente')
   }
 
   revalidatePath('/clientes')
-  return OK
+  return OK('Cliente actualizado correctamente')
 }
 
 export async function deleteClienteAction(id: string): Promise<ClienteActionState> {
   const auth = await getAuthContext()
-  if (!auth) return { error: 'No autenticado' }
+  if (!auth) return FAIL('No autenticado')
 
   const repo   = new SupabaseClienteRepository()
   const result = await repo.delete(id, auth.tiendaId)
 
-  if (!result.ok) return { error: 'No se pudo eliminar el cliente' }
+  if (!result.ok) return FAIL('No se pudo eliminar el cliente')
 
   revalidatePath('/clientes')
-  return OK
+  return OK('Cliente eliminado')
 }

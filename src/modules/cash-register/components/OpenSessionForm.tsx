@@ -3,6 +3,7 @@
 import { useActionState } from 'react'
 import { openSessionAction } from '../application/actions/cash-register.actions'
 import { SubmitButton } from '@/shared/components/forms/SubmitButton'
+import { useActionFeedback } from '@/shared/hooks/use-action-feedback'
 import { cn } from '@/shared/lib/utils'
 
 const INITIAL = { error: null }
@@ -14,7 +15,14 @@ const inputCls = cn(
 )
 
 export function OpenSessionForm() {
-  const [state, action] = useActionState(openSessionAction, INITIAL)
+  const [state, action, pending] = useActionState(openSessionAction, INITIAL)
+
+  useActionFeedback({
+    state,
+    pending,
+    successMessage: 'Caja abierta correctamente',
+    showErrorToast: true,
+  })
 
   return (
     <div className="mx-auto max-w-md">
@@ -54,7 +62,9 @@ export function OpenSessionForm() {
             </p>
           )}
 
-          <SubmitButton className="w-full">Abrir caja</SubmitButton>
+          <SubmitButton className="w-full" isLoading={pending} loadingText="Abriendo caja…">
+            Abrir caja
+          </SubmitButton>
         </form>
       </div>
     </div>

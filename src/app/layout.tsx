@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { DM_Sans, Syne } from 'next/font/google'
+import { ToastProvider } from '@/shared/components/feedback/ToastProvider'
 import './globals.css'
 
 const dmSans = DM_Sans({
@@ -23,7 +24,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className={`${dmSans.variable} ${syne.variable}`}>
-      <body>{children}</body>
+      <body>
+        <ToastProvider>{children}</ToastProvider>
+      </body>
     </html>
   )
 }

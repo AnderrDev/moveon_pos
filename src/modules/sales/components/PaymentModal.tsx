@@ -92,7 +92,7 @@ export function PaymentModal({ open, onClose, cashSessionId, onSuccess }: Props)
   }
 
   return (
-    <Dialog open={open} onClose={handleClose} title="Cobrar venta">
+    <Dialog open={open} onClose={handleClose} title="Cobrar venta" isBusy={isPending}>
       <div className="space-y-5">
         {/* Resumen */}
         <div className="rounded-xl bg-muted/50 px-4 py-3">
@@ -198,10 +198,12 @@ export function PaymentModal({ open, onClose, cashSessionId, onSuccess }: Props)
           <Button variant="outline" onClick={handleClose} disabled={isPending}>Cancelar</Button>
           <Button
             onClick={handleConfirm}
-            disabled={!canConfirm || isPending}
+            disabled={!canConfirm}
+            isLoading={isPending}
+            loadingText="Procesando…"
             className={cn(!canConfirm && 'opacity-50 cursor-not-allowed')}
           >
-            {isPending ? 'Procesando…' : `Confirmar venta · ${formatCOP(totals.total)}`}
+            Confirmar venta · {formatCOP(totals.total)}
           </Button>
         </div>
       </div>

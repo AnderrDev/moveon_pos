@@ -48,6 +48,7 @@ export function useProductForm({ product, onSuccess: _onSuccess }: UseProductFor
     formAction,
     isPending,
     serverError: actionState.error,
+    message: actionState.message,
     isEditMode,
     reset,
   }

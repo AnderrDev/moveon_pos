@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { Dialog } from '@/shared/components/ui/Dialog'
 import { Button } from '@/shared/components/ui/Button'
 import { FormInput, SubmitButton, FormError } from '@/shared/components/forms'
+import { useActionFeedback } from '@/shared/hooks/use-action-feedback'
 import { useCategoriaForm } from '../hooks/use-categoria-form'
 import type { Categoria } from '../domain/entities/product.entity'
 
@@ -15,7 +16,7 @@ interface CategoriaFormDialogProps {
 }
 
 export function CategoriaFormDialog({ open, onClose, categoria }: CategoriaFormDialogProps) {
-  const { form, formAction, isPending, serverError, isEditMode, reset } = useCategoriaForm({
+  const { form, formAction, isPending, serverError, message, isEditMode, reset } = useCategoriaForm({
     categoria,
   })
 
@@ -24,13 +25,13 @@ export function CategoriaFormDialog({ open, onClose, categoria }: CategoriaFormD
     if (open) reset(categoria)
   }, [open, categoria, reset])
 
-  // Cerrar al guardar con éxito
-  const prevError = serverError
-  useEffect(() => {
-    if (!isPending && prevError === null && form.formState.isSubmitSuccessful) {
-      onClose()
-    }
-  }, [isPending, prevError, form.formState.isSubmitSuccessful, onClose])
+  useActionFeedback({
+    state: { error: serverError, message },
+    pending: isPending,
+    onSuccess: onClose,
+    successMessage: isEditMode ? 'Categoría actualizada correctamente' : 'Categoría creada correctamente',
+    showErrorToast: true,
+  })
 
   return (
     <Dialog
@@ -38,6 +39,7 @@ export function CategoriaFormDialog({ open, onClose, categoria }: CategoriaFormD
       onClose={onClose}
       title={isEditMode ? 'Editar categoría' : 'Nueva categoría'}
       description="Las categorías ayudan a organizar el catálogo en el punto de venta."
+      isBusy={isPending}
     >
       <form action={formAction} className="space-y-5">
         <FormInput
@@ -52,7 +54,7 @@ export function CategoriaFormDialog({ open, onClose, categoria }: CategoriaFormD
         {serverError && <FormError message={serverError} />}
 
         <div className="flex justify-end gap-3 border-t pt-4">
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
             Cancelar
           </Button>
           <SubmitButton isLoading={isPending} loadingText="Guardando…">

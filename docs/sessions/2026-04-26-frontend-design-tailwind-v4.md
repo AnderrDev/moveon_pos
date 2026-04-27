@@ -138,3 +138,29 @@ Verificación posterior:
 Notas:
 - `pnpm` sigue sin estar disponible en este entorno, por eso se usó `npm` para verificar.
 - `package-lock.json` y `/forms.md` quedaron ignorados como artefactos locales ajenos al estándar del repo.
+
+### Implementación de feedback UI
+
+Se agregó un patrón compartido para loaders y avisos de resultado:
+
+- `ToastProvider` global en `src/app/layout.tsx`.
+- Componentes compartidos `Spinner`, `Skeleton`, `PageSkeleton`, `TableSkeleton`.
+- Hook `useActionFeedback` para cerrar modales y disparar toasts después de Server Actions.
+- `Button` soporta `isLoading` y `loadingText`.
+- `Dialog` soporta `isBusy` para bloquear cierre por backdrop/Escape durante submits.
+- `SubmitButton` reutiliza el spinner compartido.
+- `loading.tsx` por rutas principales del área app.
+
+Flujos cubiertos:
+- Productos y categorías: guardar cierra modal, muestra toast de éxito y mantiene error inline/toast si falla.
+- Activar/desactivar productos/categorías: loader en botón y toast de resultado.
+- Inventario: registrar entrada y ajustar stock con loader, cierre automático y toast.
+- Caja: abrir, registrar movimiento y cerrar caja con loader/toast.
+- Clientes: crear/editar/eliminar con loader, cierre automático y toast.
+- POS: cobro bloquea el modal mientras procesa; anulación de venta muestra toast.
+- Reportes: cambio de fecha muestra skeleton parcial y deshabilita controles mientras carga.
+
+Verificación:
+- `npm run typecheck` pasó sin errores.
+- `npm run lint` pasó sin warnings ni errores.
+- `npm test` pasó: 3 archivos, 22 tests.

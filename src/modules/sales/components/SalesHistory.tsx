@@ -3,6 +3,7 @@
 import { useState, useEffect, useTransition, useCallback } from 'react'
 import { listSessionSalesAction, type SessionSaleRow } from '../application/actions/list-session-sales.action'
 import { voidSaleAction } from '../application/actions/sale.actions'
+import { useToast } from '@/shared/components/feedback/ToastProvider'
 import { cn } from '@/shared/lib/utils'
 
 function formatCOP(v: number) {
@@ -29,6 +30,7 @@ export function SalesHistory({ cashSessionId, refreshTrigger }: Props) {
   const [voidReason, setVoidReason] = useState('')
   const [voidError, setVoidError]   = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const toast = useToast()
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -52,8 +54,9 @@ export function SalesHistory({ cashSessionId, refreshTrigger }: Props) {
     formData.set('voidedReason', voidReason)
     startTransition(async () => {
       const result = await voidSaleAction({ error: null }, formData)
-      if (result.error) { setVoidError(result.error); return }
+      if (result.error) { setVoidError(result.error); toast.error(result.error); return }
       setVoidTarget(null)
+      toast.success(result.message ?? 'Venta anulada')
       load()
     })
   }

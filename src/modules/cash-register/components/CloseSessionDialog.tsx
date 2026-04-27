@@ -1,10 +1,11 @@
 'use client'
 
-import { useActionState, useEffect, useRef, useState } from 'react'
+import { useActionState, useState } from 'react'
 import { closeSessionAction } from '../application/actions/cash-register.actions'
 import { Dialog } from '@/shared/components/ui/Dialog'
 import { Button } from '@/shared/components/ui/Button'
 import { SubmitButton } from '@/shared/components/forms/SubmitButton'
+import { useActionFeedback } from '@/shared/hooks/use-action-feedback'
 import { cn } from '@/shared/lib/utils'
 
 interface Props {
@@ -28,18 +29,20 @@ export function CloseSessionDialog({ sessionId, expectedAmount }: Props) {
   const [open, setOpen] = useState(false)
   const boundAction = closeSessionAction.bind(null, sessionId)
   const [state, action, pending] = useActionState(boundAction, INITIAL)
-  const prevPending = useRef(false)
 
-  useEffect(() => {
-    if (prevPending.current && !pending && !state.error) setOpen(false)
-    prevPending.current = pending
-  }, [pending, state.error])
+  useActionFeedback({
+    state,
+    pending,
+    onSuccess: () => setOpen(false),
+    successMessage: 'Caja cerrada correctamente',
+    showErrorToast: true,
+  })
 
   return (
     <>
       <Button variant="destructive" onClick={() => setOpen(true)}>Cerrar caja</Button>
 
-      <Dialog open={open} onClose={() => setOpen(false)} title="Cerrar caja">
+      <Dialog open={open} onClose={() => setOpen(false)} title="Cerrar caja" isBusy={pending}>
         <form action={action} className="space-y-4">
           <div className="rounded-lg bg-muted/60 px-4 py-3 text-sm">
             <span className="text-muted-foreground">Efectivo esperado:</span>{' '}
@@ -69,8 +72,8 @@ export function CloseSessionDialog({ sessionId, expectedAmount }: Props) {
           )}
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <SubmitButton variant="destructive">Confirmar cierre</SubmitButton>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={pending}>Cancelar</Button>
+            <SubmitButton variant="destructive" isLoading={pending} loadingText="Cerrando…">Confirmar cierre</SubmitButton>
           </div>
         </form>
       </Dialog>

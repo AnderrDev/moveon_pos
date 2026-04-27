@@ -1,10 +1,11 @@
 'use client'
 
-import { useActionState, useEffect, useRef, useState } from 'react'
+import { useActionState, useState } from 'react'
 import { registerEntryAction } from '../application/actions/inventory.actions'
 import { Dialog } from '@/shared/components/ui/Dialog'
 import { Button } from '@/shared/components/ui/Button'
 import { SubmitButton } from '@/shared/components/forms/SubmitButton'
+import { useActionFeedback } from '@/shared/hooks/use-action-feedback'
 import { cn } from '@/shared/lib/utils'
 import type { Product } from '@/modules/products/domain/entities/product.entity'
 
@@ -18,18 +19,20 @@ const isDev = process.env.NODE_ENV === 'development'
 export function RegisterEntryDialog({ products }: Props) {
   const [open, setOpen] = useState(false)
   const [state, action, pending] = useActionState(registerEntryAction, INITIAL)
-  const prevPending = useRef(false)
 
-  useEffect(() => {
-    if (prevPending.current && !pending && !state.error) setOpen(false)
-    prevPending.current = pending
-  }, [pending, state.error])
+  useActionFeedback({
+    state,
+    pending,
+    onSuccess: () => setOpen(false),
+    successMessage: 'Entrada de mercancía registrada',
+    showErrorToast: true,
+  })
 
   return (
     <>
       <Button onClick={() => setOpen(true)}>+ Registrar entrada</Button>
 
-      <Dialog open={open} onClose={() => setOpen(false)} title="Registrar entrada de mercancía">
+      <Dialog open={open} onClose={() => setOpen(false)} title="Registrar entrada de mercancía" isBusy={pending}>
         <form action={action} className="space-y-4">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-foreground">
@@ -95,8 +98,8 @@ export function RegisterEntryDialog({ products }: Props) {
           )}
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <SubmitButton>Registrar entrada</SubmitButton>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={pending}>Cancelar</Button>
+            <SubmitButton isLoading={pending} loadingText="Registrando…">Registrar entrada</SubmitButton>
           </div>
         </form>
       </Dialog>

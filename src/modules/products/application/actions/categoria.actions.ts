@@ -10,8 +10,13 @@ import { createCategoriaSchema, updateCategoriaSchema } from '../dtos/categoria.
 // llegar aquí, y la seguridad se garantiza con RLS en Supabase.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-export type ActionState = { error: string | null }
-const OK: ActionState = { error: null }
+export type ActionState = {
+  status?: 'idle' | 'success' | 'error'
+  message?: string
+  error: string | null
+}
+const OK = (message: string): ActionState => ({ status: 'success', message, error: null })
+const FAIL = (error: string): ActionState => ({ status: 'error', error })
 
 // ── Crear ─────────────────────────────────────────────────────────────────────
 
@@ -20,10 +25,10 @@ export async function createCategoriaAction(
   formData: FormData,
 ): Promise<ActionState> {
   const auth = await getAuthContext()
-  if (!auth) return { error: 'No autenticado' }
+  if (!auth) return FAIL('No autenticado')
 
   const parsed = createCategoriaSchema.safeParse({ nombre: formData.get('nombre') })
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Datos inválidos' }
+  if (!parsed.success) return FAIL(parsed.error.errors[0]?.message ?? 'Datos inválidos')
 
   const supabase = await createClient()
   const { error } = await (supabase as any)
@@ -31,12 +36,12 @@ export async function createCategoriaAction(
     .insert({ tienda_id: auth.tiendaId, nombre: parsed.data.nombre, orden: 0 })
 
   if (error) {
-    if (error.code === '23505') return { error: 'Ya existe una categoría con ese nombre' }
-    return { error: 'No se pudo crear la categoría' }
+    if (error.code === '23505') return FAIL('Ya existe una categoría con ese nombre')
+    return FAIL('No se pudo crear la categoría')
   }
 
   revalidatePath('/productos/categorias')
-  return OK
+  return OK('Categoría creada correctamente')
 }
 
 // ── Actualizar ────────────────────────────────────────────────────────────────
@@ -47,10 +52,10 @@ export async function updateCategoriaAction(
   formData: FormData,
 ): Promise<ActionState> {
   const auth = await getAuthContext()
-  if (!auth) return { error: 'No autenticado' }
+  if (!auth) return FAIL('No autenticado')
 
   const parsed = updateCategoriaSchema.safeParse({ nombre: formData.get('nombre') })
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Datos inválidos' }
+  if (!parsed.success) return FAIL(parsed.error.errors[0]?.message ?? 'Datos inválidos')
 
   const supabase = await createClient()
   const { error } = await (supabase as any)
@@ -60,19 +65,19 @@ export async function updateCategoriaAction(
     .eq('tienda_id', auth.tiendaId)
 
   if (error) {
-    if (error.code === '23505') return { error: 'Ya existe una categoría con ese nombre' }
-    return { error: 'No se pudo actualizar la categoría' }
+    if (error.code === '23505') return FAIL('Ya existe una categoría con ese nombre')
+    return FAIL('No se pudo actualizar la categoría')
   }
 
   revalidatePath('/productos/categorias')
-  return OK
+  return OK('Categoría actualizada correctamente')
 }
 
 // ── Desactivar ────────────────────────────────────────────────────────────────
 
 export async function deactivateCategoriaAction(id: string): Promise<ActionState> {
   const auth = await getAuthContext()
-  if (!auth) return { error: 'No autenticado' }
+  if (!auth) return FAIL('No autenticado')
 
   const supabase = await createClient()
   const { error } = await (supabase as any)
@@ -81,17 +86,17 @@ export async function deactivateCategoriaAction(id: string): Promise<ActionState
     .eq('id', id)
     .eq('tienda_id', auth.tiendaId)
 
-  if (error) return { error: 'No se pudo desactivar la categoría' }
+  if (error) return FAIL('No se pudo desactivar la categoría')
 
   revalidatePath('/productos/categorias')
-  return OK
+  return OK('Categoría desactivada')
 }
 
 // ── Reactivar ─────────────────────────────────────────────────────────────────
 
 export async function activateCategoriaAction(id: string): Promise<ActionState> {
   const auth = await getAuthContext()
-  if (!auth) return { error: 'No autenticado' }
+  if (!auth) return FAIL('No autenticado')
 
   const supabase = await createClient()
   const { error } = await (supabase as any)
@@ -100,8 +105,8 @@ export async function activateCategoriaAction(id: string): Promise<ActionState> 
     .eq('id', id)
     .eq('tienda_id', auth.tiendaId)
 
-  if (error) return { error: 'No se pudo activar la categoría' }
+  if (error) return FAIL('No se pudo activar la categoría')
 
   revalidatePath('/productos/categorias')
-  return OK
+  return OK('Categoría activada')
 }

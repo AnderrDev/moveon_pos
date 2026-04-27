@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect, useRef } from 'react'
+import { useActionState } from 'react'
 import {
   createClienteAction,
   updateClienteAction,
@@ -9,6 +9,7 @@ import {
 import { Dialog } from '@/shared/components/ui/Dialog'
 import { Button } from '@/shared/components/ui/Button'
 import { SubmitButton } from '@/shared/components/forms/SubmitButton'
+import { useActionFeedback } from '@/shared/hooks/use-action-feedback'
 import { cn } from '@/shared/lib/utils'
 import type { Cliente } from '../domain/entities/cliente.entity'
 
@@ -30,18 +31,21 @@ export function ClienteFormDialog({ open, onClose, cliente }: Props) {
   const isEdit     = !!cliente
   const action     = isEdit ? updateClienteAction.bind(null, cliente.id) : createClienteAction
   const [state, formAction, pending] = useActionState(action, INITIAL)
-  const prevPending = useRef(false)
 
-  useEffect(() => {
-    if (prevPending.current && !pending && !state.error) onClose()
-    prevPending.current = pending
-  }, [pending, state.error, onClose])
+  useActionFeedback({
+    state,
+    pending,
+    onSuccess: onClose,
+    successMessage: isEdit ? 'Cliente actualizado correctamente' : 'Cliente creado correctamente',
+    showErrorToast: true,
+  })
 
   return (
     <Dialog
       open={open}
       onClose={onClose}
       title={isEdit ? 'Editar cliente' : 'Nuevo cliente'}
+      isBusy={pending}
     >
       <form action={formAction} className="space-y-4">
         <div>
@@ -112,7 +116,7 @@ export function ClienteFormDialog({ open, onClose, cliente }: Props) {
         )}
 
         <div className="flex justify-end gap-3 border-t pt-4">
-          <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button type="button" variant="outline" onClick={onClose} disabled={pending}>Cancelar</Button>
           <SubmitButton isLoading={pending}>
             {isEdit ? 'Guardar cambios' : 'Crear cliente'}
           </SubmitButton>

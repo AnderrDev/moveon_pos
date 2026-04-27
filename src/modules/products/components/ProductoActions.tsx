@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { Pencil, ToggleRight, ToggleLeft } from 'lucide-react'
 import { Button } from '@/shared/components/ui/Button'
+import { useToast } from '@/shared/components/feedback/ToastProvider'
 import { ProductFormDialog } from './ProductFormDialog'
 import { toggleProductActiveAction } from '../application/actions/product.actions'
 import type { Product, Categoria } from '../domain/entities/product.entity'
@@ -15,10 +16,13 @@ interface ProductoActionsProps {
 export function ProductoActions({ product, categorias }: ProductoActionsProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const toast = useToast()
 
   const toggle = () => {
     startTransition(async () => {
-      await toggleProductActiveAction(product.id, !product.isActive)
+      const result = await toggleProductActiveAction(product.id, !product.isActive)
+      if (result.error) toast.error(result.error)
+      else toast.success(result.message ?? 'Producto actualizado')
     })
   }
 
@@ -32,7 +36,7 @@ export function ProductoActions({ product, categorias }: ProductoActionsProps) {
           variant="ghost"
           size="icon-sm"
           onClick={toggle}
-          disabled={isPending}
+          isLoading={isPending}
           title={product.isActive ? 'Desactivar' : 'Activar'}
           className={product.isActive ? 'text-muted-foreground' : 'text-green-600'}
         >

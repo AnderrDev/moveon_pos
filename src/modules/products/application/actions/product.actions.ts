@@ -11,8 +11,13 @@ import type { CreateProductDto, UpdateProductDto } from '../dtos/product.dto'
 // llegar aquí, y la seguridad se garantiza con RLS en Supabase.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-export type ProductActionState = { error: string | null }
-const OK: ProductActionState = { error: null }
+export type ProductActionState = {
+  status?: 'idle' | 'success' | 'error'
+  message?: string
+  error: string | null
+}
+const OK = (message: string): ProductActionState => ({ status: 'success', message, error: null })
+const FAIL = (error: string): ProductActionState => ({ status: 'error', error })
 
 // ── Crear ─────────────────────────────────────────────────────────────────────
 
@@ -21,7 +26,7 @@ export async function createProductAction(
   formData: FormData,
 ): Promise<ProductActionState> {
   const auth = await getAuthContext()
-  if (!auth) return { error: 'No autenticado' }
+  if (!auth) return FAIL('No autenticado')
 
   const raw: CreateProductDto = {
     tiendaId:     auth.tiendaId,
@@ -39,7 +44,7 @@ export async function createProductAction(
   }
 
   const parsed = createProductSchema.safeParse(raw)
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Datos inválidos' }
+  if (!parsed.success) return FAIL(parsed.error.errors[0]?.message ?? 'Datos inválidos')
 
   const supabase = await createClient()
   const db = supabase as any
@@ -65,10 +70,10 @@ export async function createProductAction(
 
   if (error) {
     if (error.code === '23505') {
-      if (error.message.includes('sku'))           return { error: 'El SKU ya existe en esta tienda' }
-      if (error.message.includes('codigo_barras')) return { error: 'El código de barras ya existe en esta tienda' }
+      if (error.message.includes('sku'))           return FAIL('El SKU ya existe en esta tienda')
+      if (error.message.includes('codigo_barras')) return FAIL('El código de barras ya existe en esta tienda')
     }
-    return { error: 'No se pudo crear el producto' }
+    return FAIL('No se pudo crear el producto')
   }
 
   // RN-P02: Auditar precio al crear
@@ -84,7 +89,7 @@ export async function createProductAction(
   }
 
   revalidatePath('/productos')
-  return OK
+  return OK('Producto creado correctamente')
 }
 
 // ── Actualizar ────────────────────────────────────────────────────────────────
@@ -96,7 +101,7 @@ export async function updateProductAction(
   formData: FormData,
 ): Promise<ProductActionState> {
   const auth = await getAuthContext()
-  if (!auth) return { error: 'No autenticado' }
+  if (!auth) return FAIL('No autenticado')
 
   const raw: UpdateProductDto = {
     nombre:       String(formData.get('nombre') ?? ''),
@@ -113,7 +118,7 @@ export async function updateProductAction(
   }
 
   const parsed = updateProductSchema.safeParse(raw)
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Datos inválidos' }
+  if (!parsed.success) return FAIL(parsed.error.errors[0]?.message ?? 'Datos inválidos')
 
   const supabase = await createClient()
   const db = supabase as any
@@ -138,10 +143,10 @@ export async function updateProductAction(
 
   if (error) {
     if (error.code === '23505') {
-      if (error.message.includes('sku'))           return { error: 'El SKU ya existe en esta tienda' }
-      if (error.message.includes('codigo_barras')) return { error: 'El código de barras ya existe en esta tienda' }
+      if (error.message.includes('sku'))           return FAIL('El SKU ya existe en esta tienda')
+      if (error.message.includes('codigo_barras')) return FAIL('El código de barras ya existe en esta tienda')
     }
-    return { error: 'No se pudo actualizar el producto' }
+    return FAIL('No se pudo actualizar el producto')
   }
 
   // RN-P02: Auditar cambio de precio
@@ -157,7 +162,7 @@ export async function updateProductAction(
   }
 
   revalidatePath('/productos')
-  return OK
+  return OK('Producto actualizado correctamente')
 }
 
 // ── Activar / Desactivar ──────────────────────────────────────────────────────
@@ -167,7 +172,7 @@ export async function toggleProductActiveAction(
   isActive: boolean,
 ): Promise<ProductActionState> {
   const auth = await getAuthContext()
-  if (!auth) return { error: 'No autenticado' }
+  if (!auth) return FAIL('No autenticado')
 
   const supabase = await createClient()
   const { error } = await (supabase as any)
@@ -176,8 +181,8 @@ export async function toggleProductActiveAction(
     .eq('id', id)
     .eq('tienda_id', auth.tiendaId)
 
-  if (error) return { error: 'No se pudo actualizar el producto' }
+  if (error) return FAIL('No se pudo actualizar el producto')
 
   revalidatePath('/productos')
-  return OK
+  return OK(isActive ? 'Producto activado' : 'Producto desactivado')
 }

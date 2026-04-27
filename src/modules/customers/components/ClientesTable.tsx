@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { ClienteFormDialog } from './ClienteFormDialog'
 import { deleteClienteAction } from '../application/actions/cliente.actions'
 import { Button } from '@/shared/components/ui/Button'
+import { useToast } from '@/shared/components/feedback/ToastProvider'
 import type { Cliente } from '../domain/entities/cliente.entity'
 
 interface Props { clientes: Cliente[] }
@@ -14,13 +15,15 @@ export function ClientesTable({ clientes }: Props) {
   const [deleteTarget, setDeleteTarget] = useState<Cliente | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [isPending, startTransition]  = useTransition()
+  const toast = useToast()
 
   function handleDelete() {
     if (!deleteTarget) return
     startTransition(async () => {
       const result = await deleteClienteAction(deleteTarget.id)
-      if (result.error) { setDeleteError(result.error); return }
+      if (result.error) { setDeleteError(result.error); toast.error(result.error); return }
       setDeleteTarget(null)
+      toast.success(result.message ?? 'Cliente eliminado')
     })
   }
 
@@ -87,7 +90,7 @@ export function ClientesTable({ clientes }: Props) {
       {/* Confirm delete */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setDeleteTarget(null)} />
+          <div className="absolute inset-0 bg-black/50" onClick={() => { if (!isPending) setDeleteTarget(null) }} />
           <div className="relative z-10 w-full max-w-sm rounded-2xl bg-card p-6 shadow-2xl ring-1 ring-border/60">
             <h3 className="font-display text-lg font-bold">Eliminar cliente</h3>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -95,9 +98,9 @@ export function ClientesTable({ clientes }: Props) {
             </p>
             {deleteError && <p className="mt-2 text-sm text-destructive">{deleteError}</p>}
             <div className="mt-5 flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => setDeleteTarget(null)}>Cancelar</Button>
-              <Button variant="destructive" className="flex-1" disabled={isPending} onClick={handleDelete}>
-                {isPending ? 'Eliminando…' : 'Eliminar'}
+              <Button variant="outline" className="flex-1" onClick={() => setDeleteTarget(null)} disabled={isPending}>Cancelar</Button>
+              <Button variant="destructive" className="flex-1" isLoading={isPending} loadingText="Eliminando…" onClick={handleDelete}>
+                Eliminar
               </Button>
             </div>
           </div>

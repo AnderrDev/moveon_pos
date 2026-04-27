@@ -5,8 +5,13 @@ import { getAuthContext } from '@/shared/lib/auth-context'
 import { SupabaseInventoryRepository } from '../../infrastructure/repositories/supabase-inventory.repository'
 import { registerEntrySchema, adjustStockSchema } from '../dtos/inventory.dto'
 
-export type InventoryActionState = { error: string | null }
-const OK: InventoryActionState = { error: null }
+export type InventoryActionState = {
+  status?: 'idle' | 'success' | 'error'
+  message?: string
+  error: string | null
+}
+const OK = (message: string): InventoryActionState => ({ status: 'success', message, error: null })
+const FAIL = (error: string): InventoryActionState => ({ status: 'error', error })
 
 // ── Registrar entrada de mercancía ─────────────────────────────────────────────
 
@@ -15,7 +20,7 @@ export async function registerEntryAction(
   formData: FormData,
 ): Promise<InventoryActionState> {
   const auth = await getAuthContext()
-  if (!auth) return { error: 'No autenticado' }
+  if (!auth) return FAIL('No autenticado')
 
   const parsed = registerEntrySchema.safeParse({
     productId:     formData.get('productId'),
@@ -23,7 +28,7 @@ export async function registerEntryAction(
     costoUnitario: formData.get('costoUnitario') ? Number(formData.get('costoUnitario')) : undefined,
     motivo:        (formData.get('motivo') as string) || undefined,
   })
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Datos inválidos' }
+  if (!parsed.success) return FAIL(parsed.error.errors[0]?.message ?? 'Datos inválidos')
 
   const repo = new SupabaseInventoryRepository()
   const result = await repo.registerEntry({
@@ -35,10 +40,10 @@ export async function registerEntryAction(
     createdBy:     auth.userId,
   })
 
-  if (!result.ok) return { error: result.error.message }
+  if (!result.ok) return FAIL(result.error.message)
 
   revalidatePath('/inventario')
-  return OK
+  return OK('Entrada de mercancía registrada')
 }
 
 // ── Ajuste manual de stock ─────────────────────────────────────────────────────
@@ -48,14 +53,14 @@ export async function adjustStockAction(
   formData: FormData,
 ): Promise<InventoryActionState> {
   const auth = await getAuthContext()
-  if (!auth) return { error: 'No autenticado' }
+  if (!auth) return FAIL('No autenticado')
 
   const parsed = adjustStockSchema.safeParse({
     productId:     formData.get('productId'),
     cantidadDelta: Number(formData.get('cantidadDelta')),
     motivo:        formData.get('motivo'),
   })
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Datos inválidos' }
+  if (!parsed.success) return FAIL(parsed.error.errors[0]?.message ?? 'Datos inválidos')
 
   const repo = new SupabaseInventoryRepository()
   const result = await repo.adjustStock({
@@ -66,8 +71,8 @@ export async function adjustStockAction(
     createdBy:     auth.userId,
   })
 
-  if (!result.ok) return { error: result.error.message }
+  if (!result.ok) return FAIL(result.error.message)
 
   revalidatePath('/inventario')
-  return OK
+  return OK('Ajuste de stock guardado')
 }

@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { Pencil, ToggleLeft, ToggleRight } from 'lucide-react'
 import { Button } from '@/shared/components/ui/Button'
+import { useToast } from '@/shared/components/feedback/ToastProvider'
 import { CategoriaFormDialog } from './CategoriaFormDialog'
 import {
   deactivateCategoriaAction,
@@ -17,11 +18,14 @@ interface CategoriaActionsProps {
 export function CategoriaActions({ categoria }: CategoriaActionsProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const toast = useToast()
 
   const toggleActive = () => {
     startTransition(async () => {
       const action = categoria.isActive ? deactivateCategoriaAction : activateCategoriaAction
-      await action(categoria.id)
+      const result = await action(categoria.id)
+      if (result.error) toast.error(result.error)
+      else toast.success(result.message ?? 'Categoría actualizada')
     })
   }
 
@@ -41,7 +45,7 @@ export function CategoriaActions({ categoria }: CategoriaActionsProps) {
           variant="ghost"
           size="icon-sm"
           onClick={toggleActive}
-          disabled={isPending}
+          isLoading={isPending}
           title={categoria.isActive ? 'Desactivar' : 'Activar'}
           className={categoria.isActive ? 'text-muted-foreground' : 'text-green-600'}
         >

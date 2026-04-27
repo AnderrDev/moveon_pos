@@ -8,25 +8,38 @@ import { SupabaseInventoryRepository } from '@/modules/inventory/infrastructure/
 import { createSaleSchema, voidSaleSchema } from '../dtos/sale.dto'
 import type { CreateSaleDto } from '../dtos/sale.dto'
 
-export type SaleActionState = { error: string | null; saleId?: string; saleNumber?: string }
-const OK = (saleId: string, saleNumber: string): SaleActionState => ({ error: null, saleId, saleNumber })
+export type SaleActionState = {
+  status?: 'idle' | 'success' | 'error'
+  message?: string
+  error: string | null
+  saleId?: string
+  saleNumber?: string
+}
+const OK = (saleId: string, saleNumber: string, message: string): SaleActionState => ({
+  status: 'success',
+  message,
+  error: null,
+  saleId,
+  saleNumber,
+})
+const FAIL = (error: string): SaleActionState => ({ status: 'error', error })
 
 // ── Crear venta ────────────────────────────────────────────────────────────────
 
 export async function createSaleAction(dto: CreateSaleDto): Promise<SaleActionState> {
   const auth = await getAuthContext()
-  if (!auth) return { error: 'No autenticado' }
+  if (!auth) return FAIL('No autenticado')
 
   const parsed = createSaleSchema.safeParse(dto)
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Datos inválidos' }
+  if (!parsed.success) return FAIL(parsed.error.errors[0]?.message ?? 'Datos inválidos')
 
   // Verificar sesión de caja abierta
   const cashRepo    = new SupabaseCashRegisterRepository()
   const sessionRes  = await cashRepo.getOpenSession(auth.tiendaId)
-  if (!sessionRes.ok) return { error: sessionRes.error.message }
-  if (!sessionRes.value) return { error: 'No hay caja abierta. Abre la caja antes de vender.' }
+  if (!sessionRes.ok) return FAIL(sessionRes.error.message)
+  if (!sessionRes.value) return FAIL('No hay caja abierta. Abre la caja antes de vender.')
   if (sessionRes.value.id !== parsed.data.cashSessionId) {
-    return { error: 'La sesión de caja no coincide con la caja activa.' }
+    return FAIL('La sesión de caja no coincide con la caja activa.')
   }
 
   // Verificar stock suficiente para cada ítem
@@ -34,7 +47,7 @@ export async function createSaleAction(dto: CreateSaleDto): Promise<SaleActionSt
   for (const item of parsed.data.items) {
     const stockRes = await invRepo.getStock(item.productId, auth.tiendaId)
     if (stockRes.ok && stockRes.value < item.quantity) {
-      return { error: `Stock insuficiente para "${item.productoNombre}" (disponible: ${stockRes.value})` }
+      return FAIL(`Stock insuficiente para "${item.productoNombre}" (disponible: ${stockRes.value})`)
     }
   }
 
@@ -61,11 +74,11 @@ export async function createSaleAction(dto: CreateSaleDto): Promise<SaleActionSt
     idempotencyKey: parsed.data.idempotencyKey,
   })
 
-  if (!result.ok) return { error: result.error.message }
+  if (!result.ok) return FAIL(result.error.message)
 
   revalidatePath('/pos')
   revalidatePath('/inventario')
-  return OK(result.value.id, saleNumber)
+  return OK(result.value.id, saleNumber, 'Venta completada')
 }
 
 // ── Anular venta ───────────────────────────────────────────────────────────────
@@ -75,14 +88,14 @@ export async function voidSaleAction(
   formData: FormData,
 ): Promise<SaleActionState> {
   const auth = await getAuthContext()
-  if (!auth) return { error: 'No autenticado' }
-  if (auth.rol !== 'admin') return { error: 'Solo el admin puede anular ventas' }
+  if (!auth) return FAIL('No autenticado')
+  if (auth.rol !== 'admin') return FAIL('Solo el admin puede anular ventas')
 
   const parsed = voidSaleSchema.safeParse({
     saleId:       formData.get('saleId'),
     voidedReason: formData.get('voidedReason'),
   })
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Datos inválidos' }
+  if (!parsed.success) return FAIL(parsed.error.errors[0]?.message ?? 'Datos inválidos')
 
   const repo   = new SupabaseSaleRepository()
   const result = await repo.void({
@@ -92,9 +105,9 @@ export async function voidSaleAction(
     voidedReason: parsed.data.voidedReason,
   })
 
-  if (!result.ok) return { error: result.error.message }
+  if (!result.ok) return FAIL(result.error.message)
 
   revalidatePath('/pos')
   revalidatePath('/inventario')
-  return { error: null, saleId: result.value.id }
+  return { status: 'success', message: 'Venta anulada', error: null, saleId: result.value.id }
 }
