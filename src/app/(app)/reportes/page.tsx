@@ -1,11 +1,30 @@
-/**
- * Reportes — Sprint 4 (HU-23 a HU-27)
- */
-export default function ReportesPage() {
+import { redirect } from 'next/navigation'
+import { getAuthContext } from '@/shared/lib/auth-context'
+import { getDailyReportAction } from '@/modules/reports/application/actions/daily-report.action'
+import { DailyReportView } from '@/modules/reports/components/DailyReportView'
+import { PageHeader } from '@/shared/components/layout/PageHeader'
+
+export default async function ReportesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string }>
+}) {
+  const auth = await getAuthContext()
+  if (!auth) redirect('/login')
+
+  const { date: dateParam } = await searchParams
+  const today   = new Date().toISOString().slice(0, 10)
+  const dateStr = dateParam ?? today
+
+  const report = await getDailyReportAction(dateStr)
+
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4">Reportes</h1>
-      <p className="text-muted-foreground">Implementar en Sprint 4.</p>
-    </div>
+    <>
+      <PageHeader
+        title="Reportes"
+        description="Analiza el rendimiento diario de tu tienda"
+      />
+      <DailyReportView initialReport={report} initialDate={dateStr} />
+    </>
   )
 }
