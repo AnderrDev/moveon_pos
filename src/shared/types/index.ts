@@ -7,7 +7,7 @@ export interface UserTienda {
   userId: UserId
   tiendaId: TiendaId
   role: Role
-  active: boolean
+  isActive: boolean
 }
 
 export interface AuditFields {
@@ -22,8 +22,28 @@ export type ProductType = 'simple' | 'prepared' | 'ingredient'
 
 export type SaleStatus = 'completed' | 'voided'
 
-export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'other'
+export type BillingStatus =
+  | 'not_required'
+  | 'pending'
+  | 'sent'
+  | 'accepted'
+  | 'rejected'
+  | 'failed'
+
+export type BillingDocStatus =
+  | 'pending'
+  | 'sent'
+  | 'accepted'
+  | 'rejected'
+  | 'cancelled'
+  | 'failed'
+
+export type BillingDocType = 'invoice' | 'pos_document' | 'credit_note'
+
+export type PaymentMethod = 'cash' | 'card' | 'nequi' | 'daviplata' | 'transfer' | 'other'
 
 export type CashSessionStatus = 'open' | 'closed'
 
-export type InventoryMovementType = 'entrada' | 'salida' | 'ajuste' | 'venta' | 'anulacion'
+export type CashMovementType = 'cash_in' | 'cash_out' | 'expense' | 'correction'
+
+export type InventoryMovementType = 'entry' | 'sale_exit' | 'adjustment' | 'void_return'

@@ -1,22 +1,29 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { DM_Sans, Syne } from 'next/font/google'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'] })
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  variable: '--body-font',
+  display: 'swap',
+})
+
+const syne = Syne({
+  subsets: ['latin'],
+  weight: ['600', '700', '800'],
+  variable: '--heading-font',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'MOVEONAPP POS',
   description: 'Sistema de Punto de Venta para tienda de suplementos',
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es">
-      <body className={inter.className}>{children}</body>
+    <html lang="es" className={`${dmSans.variable} ${syne.variable}`}>
+      <body>{children}</body>
     </html>
   )
 }
