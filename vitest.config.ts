@@ -13,9 +13,12 @@ export default defineConfig({
       reportsDirectory: './coverage',
       include: [
         'src/modules/**/application/dtos/**/*.ts',
+        'src/modules/**/application/use-cases/**/*.ts',
         'src/modules/**/domain/services/**/*.ts',
         'src/modules/**/forms/**/*.ts',
         'src/modules/**/store/**/*.ts',
+        'src/shared/lib/format.ts',
+        'src/shared/lib/payment-methods.ts',
         'src/shared/forms/**/*.ts',
         'src/shared/result.ts',
         'src/shared/validations/**/*.ts',
