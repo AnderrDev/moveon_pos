@@ -10,7 +10,7 @@
 | Sprint | Preparación producción |
 | Agente | Codex |
 | HUs trabajadas | N/A — guía operativa |
-| Estado | Completada |
+| Estado | Actualizada |
 
 ---
 
@@ -24,9 +24,14 @@ Definir el procedimiento para desplegar MOVEONAPP POS en Vercel con variables de
 
 ### 2.1 Archivos creados
 - `docs/sessions/2026-04-28-deploy-vercel.md` — registro de la sesión.
+- `vercel.json` — configuración explícita para Vercel con Next.js, pnpm y build command.
+- `.vercelignore` — exclusiones de archivos locales/secrets/cache para el deploy.
+- `pnpm-lock.yaml` — lockfile requerido para instalaciones reproducibles con pnpm.
 
 ### 2.2 Archivos modificados
-- No se modificó código de aplicación.
+- `next.config.ts` — `typedRoutes` movido a la opción estable de Next 15.
+- `package.json` — agregado `engines.node >=20.19.0` para Vercel/desarrollo local.
+- `.env.example` — notas de variables mínimas para Vercel.
 
 ### 2.3 Archivos eliminados
 - (si aplica)
@@ -39,6 +44,7 @@ Definir el procedimiento para desplegar MOVEONAPP POS en Vercel con variables de
 |---|---|---|
 | Usar despliegue Git en Vercel como camino principal | CLI manual como único flujo | Git da preview por PR/commit y producción automática desde la rama principal. |
 | No subir `SUPABASE_DB_URL` a Vercel salvo necesidad explícita | Copiar todas las variables locales | La URL directa de DB solo se usa para migraciones locales/operativas, no por la app en runtime. |
+| Mantener Node como `>=20.19.0` en vez de fijar `22.x` | Forzar Node 22 exacto | Vercel soporta Node moderno y el entorno local actual usa Node 20.19.6; para desarrollo no conviene bloquear por una versión exacta. |
 
 ---
 
@@ -50,7 +56,11 @@ Definir el procedimiento para desplegar MOVEONAPP POS en Vercel con variables de
 
 ## 5. Tests
 
-- No se ejecutaron tests; solo se revisó configuración y variables requeridas.
+- `corepack pnpm install --frozen-lockfile` — OK.
+- `corepack pnpm typecheck` — OK.
+- `corepack pnpm lint` — OK, con aviso de deprecación de `next lint`.
+- `corepack pnpm test` — OK, 16 archivos / 112 tests.
+- `corepack pnpm build` — OK.
 
 ---
 
@@ -58,13 +68,14 @@ Definir el procedimiento para desplegar MOVEONAPP POS en Vercel con variables de
 
 - [ ] Falta conectar el repositorio real a Vercel si aún no está importado.
 - [ ] Falta definir dominio final y configurar `NEXT_PUBLIC_APP_URL` de producción.
+- [ ] Si aparece `Your project's URL and Key are required to create a Supabase client`, revisar que Vercel tenga `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` configuradas para el ambiente exacto del deploy (Preview o Production).
 
 ---
 
 ## 7. Próximos pasos
 
 1. Commit y push del árbol actual antes del deploy por Git.
-2. Configurar variables de entorno en Vercel.
+2. Configurar variables de entorno en Vercel para Preview y Production.
 3. Ejecutar primer preview y revisar `/login`, `/pos`, `/caja`, `/reportes`.
 4. Promover a producción y configurar dominio.
 
@@ -75,7 +86,7 @@ Definir el procedimiento para desplegar MOVEONAPP POS en Vercel con variables de
 Variables requeridas por la app:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` cuando se usen acciones server-side con service role.
 - `NEXT_PUBLIC_APP_URL`
 - `NEXT_PUBLIC_APP_NAME`
 - feature flags `NEXT_PUBLIC_FEATURE_*` si se usan.

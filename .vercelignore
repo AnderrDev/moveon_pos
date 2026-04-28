@@ -1,0 +1,14 @@
+.env*
+!.env.example
+
+.next
+node_modules
+coverage
+
+*.tsbuildinfo
+package-lock.json
+
+forms.md
+
+supabase/.branches
+supabase/.temp
