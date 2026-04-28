@@ -3,6 +3,8 @@ import {
   calculateCartItem,
   calculateCartTotals,
   calculateChange,
+  validateDiscountAuthorization,
+  validatePaymentsForSale,
 } from '@/modules/sales/domain/services/sale-calculator'
 
 describe('calculateCartItem', () => {
@@ -89,5 +91,46 @@ describe('calculateChange', () => {
 
   it('devuelve 0 cuando se paga de menos (no negativo)', () => {
     expect(calculateChange(20000, 43000)).toBe(0)
+  })
+})
+
+describe('validatePaymentsForSale', () => {
+  it('acepta pago exacto', () => {
+    expect(validatePaymentsForSale([{ metodo: 'card', amount: 50000 }], 50000)).toBeNull()
+  })
+
+  it('rechaza pagos por debajo del total', () => {
+    expect(validatePaymentsForSale([{ metodo: 'cash', amount: 40000 }], 50000)).toBe(
+      'La suma de pagos no cubre el total de la venta',
+    )
+  })
+
+  it('acepta cambio cuando el excedente viene de efectivo', () => {
+    expect(validatePaymentsForSale([
+      { metodo: 'card', amount: 30000 },
+      { metodo: 'cash', amount: 25000 },
+    ], 50000)).toBeNull()
+  })
+
+  it('rechaza cambio generado por pago no efectivo', () => {
+    expect(validatePaymentsForSale([{ metodo: 'card', amount: 55000 }], 50000)).toBe(
+      'El cambio solo puede generarse desde pagos en efectivo',
+    )
+  })
+})
+
+describe('validateDiscountAuthorization', () => {
+  it('permite descuento de cajero hasta 10%', () => {
+    expect(validateDiscountAuthorization('cajero', 100000, 10000)).toBeNull()
+  })
+
+  it('rechaza descuento de cajero mayor al 10%', () => {
+    expect(validateDiscountAuthorization('cajero', 100000, 10001)).toBe(
+      'Descuentos mayores al 10% requieren aprobación de admin',
+    )
+  })
+
+  it('permite descuento de admin por encima del umbral', () => {
+    expect(validateDiscountAuthorization('admin', 100000, 50000)).toBeNull()
   })
 })

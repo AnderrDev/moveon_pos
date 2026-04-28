@@ -27,6 +27,7 @@ export async function createProductAction(
 ): Promise<ProductActionState> {
   const auth = await getAuthContext()
   if (!auth) return FAIL('No autenticado')
+  if (auth.rol !== 'admin') return FAIL('Solo el admin puede crear productos')
 
   const raw: CreateProductDto = {
     tiendaId:     auth.tiendaId,
@@ -102,6 +103,7 @@ export async function updateProductAction(
 ): Promise<ProductActionState> {
   const auth = await getAuthContext()
   if (!auth) return FAIL('No autenticado')
+  if (auth.rol !== 'admin') return FAIL('Solo el admin puede actualizar productos')
 
   const raw: UpdateProductDto = {
     nombre:       String(formData.get('nombre') ?? ''),
@@ -173,6 +175,7 @@ export async function toggleProductActiveAction(
 ): Promise<ProductActionState> {
   const auth = await getAuthContext()
   if (!auth) return FAIL('No autenticado')
+  if (auth.rol !== 'admin') return FAIL('Solo el admin puede activar o desactivar productos')
 
   const supabase = await createClient()
   const { error } = await (supabase as any)

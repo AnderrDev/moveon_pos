@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { getAuthContext } from '@/shared/lib/auth-context'
 import { SupabaseInventoryRepository } from '../../infrastructure/repositories/supabase-inventory.repository'
 import { registerEntrySchema, adjustStockSchema } from '../dtos/inventory.dto'
+import type { InventoryMovement } from '../../domain/entities/inventory.entity'
 
 export type InventoryActionState = {
   status?: 'idle' | 'success' | 'error'
@@ -21,6 +22,7 @@ export async function registerEntryAction(
 ): Promise<InventoryActionState> {
   const auth = await getAuthContext()
   if (!auth) return FAIL('No autenticado')
+  if (auth.rol !== 'admin') return FAIL('Solo el admin puede registrar entradas de inventario')
 
   const parsed = registerEntrySchema.safeParse({
     productId:     formData.get('productId'),
@@ -54,6 +56,7 @@ export async function adjustStockAction(
 ): Promise<InventoryActionState> {
   const auth = await getAuthContext()
   if (!auth) return FAIL('No autenticado')
+  if (auth.rol !== 'admin') return FAIL('Solo el admin puede ajustar inventario')
 
   const parsed = adjustStockSchema.safeParse({
     productId:     formData.get('productId'),
@@ -75,4 +78,15 @@ export async function adjustStockAction(
 
   revalidatePath('/inventario')
   return OK('Ajuste de stock guardado')
+}
+
+// ── Kardex on-demand ───────────────────────────────────────────────────────────
+
+export async function getKardexAction(productId: string): Promise<InventoryMovement[]> {
+  const auth = await getAuthContext()
+  if (!auth) return []
+
+  const repo = new SupabaseInventoryRepository()
+  const result = await repo.getKardex(productId, auth.tiendaId, 50)
+  return result.ok ? result.value : []
 }

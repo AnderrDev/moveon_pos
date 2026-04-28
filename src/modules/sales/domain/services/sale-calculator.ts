@@ -1,4 +1,5 @@
 import type { IvaRate } from '@/shared/types'
+import type { PaymentMethod, Role } from '@/shared/types'
 
 export interface CartItemInput {
   productId: string
@@ -49,4 +50,42 @@ export function calculateCartTotals(items: CartItemCalculated[]): CartTotals {
 
 export function calculateChange(totalPaid: number, saleTotal: number): number {
   return Math.max(0, totalPaid - saleTotal)
+}
+
+export interface PaymentValidationInput {
+  metodo: PaymentMethod
+  amount: number
+}
+
+export function validatePaymentsForSale(
+  payments: PaymentValidationInput[],
+  saleTotal: number,
+): string | null {
+  const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0)
+  const cashPaid = payments.reduce((sum, p) => {
+    return p.metodo === 'cash' ? sum + p.amount : sum
+  }, 0)
+  const nonCashPaid = totalPaid - cashPaid
+  const change = calculateChange(totalPaid, saleTotal)
+
+  if (totalPaid < saleTotal) return 'La suma de pagos no cubre el total de la venta'
+  if (nonCashPaid > saleTotal || change > cashPaid) {
+    return 'El cambio solo puede generarse desde pagos en efectivo'
+  }
+
+  return null
+}
+
+export function validateDiscountAuthorization(
+  role: Role,
+  subtotal: number,
+  discountTotal: number,
+  threshold = 0.1,
+): string | null {
+  if (role === 'admin') return null
+  if (discountTotal > Math.round(subtotal * threshold)) {
+    return 'Descuentos mayores al 10% requieren aprobación de admin'
+  }
+
+  return null
 }

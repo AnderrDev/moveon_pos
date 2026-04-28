@@ -5,6 +5,7 @@ import type { TiendaId } from '@/shared/types'
 import type { CashSession, CashMovement } from '../../domain/entities/cash-session.entity'
 import type {
   CashRegisterRepository,
+  CashSessionPaymentBreakdown,
   OpenSessionParams,
   AddMovementParams,
   CloseSessionParams,
@@ -113,19 +114,62 @@ export class SupabaseCashRegisterRepository implements CashRegisterRepository {
     return ok((data ?? []).map(rowToCashMovement))
   }
 
+  async getCashPaymentsTotal(sessionId: string, tiendaId: TiendaId): Promise<Result<number>> {
+    const breakdownResult = await this.getPaymentBreakdown(sessionId, tiendaId)
+    if (!breakdownResult.ok) return err(breakdownResult.error)
+
+    return ok(breakdownResult.value.find((p) => p.metodo === 'cash')?.total ?? 0)
+  }
+
+  async getPaymentBreakdown(
+    sessionId: string,
+    tiendaId: TiendaId,
+  ): Promise<Result<CashSessionPaymentBreakdown[]>> {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('sales')
+      .select('payments(metodo, amount)')
+      .eq('cash_session_id', sessionId)
+      .eq('tienda_id', tiendaId)
+      .eq('status', 'completed')
+      .returns<Array<{ payments?: Array<{ metodo: string; amount: number }> }>>()
+
+    if (error) return err(new Error(error.message))
+
+    const payMap = new Map<string, { count: number; total: number }>()
+    for (const sale of data ?? []) {
+      for (const payment of sale.payments ?? []) {
+        const cur = payMap.get(payment.metodo) ?? { count: 0, total: 0 }
+        payMap.set(payment.metodo, {
+          count: cur.count + 1,
+          total: cur.total + Number(payment.amount),
+        })
+      }
+    }
+
+    return ok(Array.from(payMap.entries())
+      .map(([metodo, value]) => ({ metodo, ...value }))
+      .sort((a, b) => b.total - a.total))
+  }
+
   async closeSession(params: CloseSessionParams): Promise<Result<CashSession>> {
     const supabase = await createClient()
 
-    // Calcula expected_cash_amount como suma de movimientos + apertura
-    const { data: movs } = await supabase
+    const { data: movs, error: movErr } = await supabase
       .from('cash_movements')
       .select('tipo, amount')
       .eq('cash_session_id', params.sessionId)
       .returns<Array<{ tipo: string; amount: number }>>()
 
+    if (movErr) return err(new Error(movErr.message))
+
     const sessionResult = await this.getSessionById(params.sessionId, params.tiendaId)
     if (!sessionResult.ok) return err(sessionResult.error)
     if (!sessionResult.value) return err(new Error('Sesión no encontrada'))
+    if (sessionResult.value.status !== 'open') return err(new Error('La caja ya está cerrada'))
+
+    const cashPaymentsResult = await this.getCashPaymentsTotal(params.sessionId, params.tiendaId)
+    if (!cashPaymentsResult.ok) return err(cashPaymentsResult.error)
 
     const session = sessionResult.value
     const movTotal = (movs ?? []).reduce((sum, m) => {
@@ -133,8 +177,12 @@ export class SupabaseCashRegisterRepository implements CashRegisterRepository {
       return m.tipo === 'cash_in' ? sum + amt : sum - amt
     }, 0)
 
-    const expected = session.openingAmount + movTotal
-    const difference = params.actualCashAmount - expected
+    const expected = session.openingAmount + cashPaymentsResult.value + movTotal
+    const difference = expected - params.actualCashAmount
+
+    if (Math.abs(difference) > 5000 && !params.notasCierre?.trim()) {
+      return err(new Error('Diferencias mayores a $5.000 requieren nota de cierre'))
+    }
 
     const { data, error } = await (supabase as any)
       .from('cash_sessions')
@@ -149,6 +197,7 @@ export class SupabaseCashRegisterRepository implements CashRegisterRepository {
       })
       .eq('id', params.sessionId)
       .eq('tienda_id', params.tiendaId)
+      .eq('status', 'open')
       .select(SESSION_COLS)
       .single()
 

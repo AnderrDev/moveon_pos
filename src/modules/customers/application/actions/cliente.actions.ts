@@ -98,6 +98,7 @@ export async function updateClienteAction(
 export async function deleteClienteAction(id: string): Promise<ClienteActionState> {
   const auth = await getAuthContext()
   if (!auth) return FAIL('No autenticado')
+  if (auth.rol !== 'admin') return FAIL('Solo el administrador puede eliminar clientes')
 
   const repo   = new SupabaseClienteRepository()
   const result = await repo.delete(id, auth.tiendaId)

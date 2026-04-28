@@ -7,6 +7,15 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
 
 export type PaymentBreakdown = { metodo: string; count: number; total: number }
 export type TopProduct = { productId: string; nombre: string; qty: number; total: number }
+export type SaleDetail = {
+  id: string
+  saleNumber: string
+  createdAt: string
+  status: string
+  total: number
+  itemCount: number
+  payments: { metodo: string; amount: number }[]
+}
 
 export type DailyReport = {
   date: string
@@ -18,6 +27,7 @@ export type DailyReport = {
   avgVenta: number
   paymentBreakdown: PaymentBreakdown[]
   topProducts: TopProduct[]
+  salesDetail: SaleDetail[]
   sessions: { id: string; openedAt: string; closedAt: string | null; expectedAmount: number }[]
 }
 
@@ -79,6 +89,18 @@ export async function getDailyReportAction(dateStr: string): Promise<DailyReport
     .sort((a, b) => b.qty - a.qty)
     .slice(0, 5)
 
+  const salesDetail: SaleDetail[] = [...allSales]
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .map((s) => ({
+      id:         s.id,
+      saleNumber: s.saleNumber,
+      createdAt:  s.createdAt.toISOString(),
+      status:     s.status,
+      total:      s.total,
+      itemCount:  s.items.reduce((acc, i) => acc + i.quantity, 0),
+      payments:   s.payments.map((p) => ({ metodo: p.metodo, amount: p.amount })),
+    }))
+
   return {
     date: dateStr,
     totalVentas,
@@ -89,6 +111,7 @@ export async function getDailyReportAction(dateStr: string): Promise<DailyReport
     avgVenta,
     paymentBreakdown,
     topProducts,
+    salesDetail,
     sessions: sessions.map((s) => ({
       id:             s.id,
       openedAt:       s.openedAt.toISOString(),

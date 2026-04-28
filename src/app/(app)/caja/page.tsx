@@ -5,6 +5,7 @@ import { PageHeader } from '@/shared/components/layout/PageHeader'
 import { OpenSessionForm } from '@/modules/cash-register/components/OpenSessionForm'
 import { SessionSummary } from '@/modules/cash-register/components/SessionSummary'
 import { Badge } from '@/shared/components/ui/Badge'
+import { formatCurrency, formatShortDate, formatTime } from '@/shared/lib/format'
 
 export default async function CajaPage() {
   const auth = await getAuthContext()
@@ -21,9 +22,14 @@ export default async function CajaPage() {
   const recentSessions = sessionsResult.ok   ? sessionsResult.value   : []
 
   let movements: import('@/modules/cash-register/domain/entities/cash-session.entity').CashMovement[] = []
+  let paymentBreakdown: import('@/modules/cash-register/domain/repositories/cash-register.repository').CashSessionPaymentBreakdown[] = []
   if (openSession) {
-    const movResult = await repo.listMovements(openSession.id)
+    const [movResult, paymentBreakdownResult] = await Promise.all([
+      repo.listMovements(openSession.id),
+      repo.getPaymentBreakdown(openSession.id, auth.tiendaId),
+    ])
     if (movResult.ok) movements = movResult.value
+    if (paymentBreakdownResult.ok) paymentBreakdown = paymentBreakdownResult.value
   }
 
   return (
@@ -38,7 +44,11 @@ export default async function CajaPage() {
       </PageHeader>
 
       {openSession ? (
-        <SessionSummary session={openSession} movements={movements ?? []} />
+        <SessionSummary
+          session={openSession}
+          movements={movements ?? []}
+          paymentBreakdown={paymentBreakdown}
+        />
       ) : (
         <div className="space-y-8">
           <OpenSessionForm />
@@ -67,28 +77,27 @@ export default async function CajaPage() {
                         return (
                           <tr key={s.id} className="hover:bg-muted/30 transition-colors">
                             <td className="px-5 py-3 text-xs text-muted-foreground">
-                              {s.openedAt.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}{' '}
-                              {s.openedAt.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+                              {formatShortDate(s.openedAt)} {formatTime(s.openedAt)}
                             </td>
                             <td className="px-5 py-3 text-xs text-muted-foreground">
                               {s.closedAt
-                                ? `${s.closedAt.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })} ${s.closedAt.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}`
+                                ? `${formatShortDate(s.closedAt)} ${formatTime(s.closedAt)}`
                                 : '—'}
                             </td>
                             <td className="px-5 py-3 text-right font-mono tabular-nums">
                               {s.expectedCashAmount !== null
-                                ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(s.expectedCashAmount)
+                                ? formatCurrency(s.expectedCashAmount)
                                 : '—'}
                             </td>
                             <td className="px-5 py-3 text-right font-mono tabular-nums">
                               {s.actualCashAmount !== null
-                                ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(s.actualCashAmount)
+                                ? formatCurrency(s.actualCashAmount)
                                 : '—'}
                             </td>
-                            <td className={`px-5 py-3 text-right font-mono font-semibold tabular-nums ${diff < 0 ? 'text-destructive' : diff > 0 ? 'text-green-600' : 'text-muted-foreground'}`}>
+                            <td className={`px-5 py-3 text-right font-mono font-semibold tabular-nums ${diff > 0 ? 'text-destructive' : diff < 0 ? 'text-green-600' : 'text-muted-foreground'}`}>
                               {diff === 0
                                 ? '±$0'
-                                : new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(diff)}
+                                : formatCurrency(diff)}
                             </td>
                           </tr>
                         )

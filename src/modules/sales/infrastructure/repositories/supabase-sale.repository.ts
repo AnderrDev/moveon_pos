@@ -20,89 +20,39 @@ const PAY_COLS  = 'id, sale_id, metodo, amount, referencia, created_at'
 export class SupabaseSaleRepository implements SaleRepository {
   async create(input: CreateSaleInput): Promise<Result<Sale>> {
     const supabase = await createClient()
-    const db = supabase as any
 
-    // 1. Insertar venta
-    const { data: saleRow, error: saleErr } = await db
-      .from('sales')
-      .insert({
-        tienda_id:       input.tiendaId,
-        cash_session_id: input.cashSessionId,
-        sale_number:     input.saleNumber,
-        cashier_id:      input.cashierId,
-        cliente_id:      input.clienteId ?? null,
-        subtotal:        input.subtotal,
-        discount_total:  input.discountTotal,
-        tax_total:       input.taxTotal,
-        total:           input.total,
-        idempotency_key: input.idempotencyKey,
-      })
-      .select(SALE_COLS)
-      .single()
+    const { data: saleId, error } = await (supabase as any).rpc('create_sale_atomic', {
+      p_tienda_id:       input.tiendaId,
+      p_cash_session_id: input.cashSessionId,
+      p_sale_number:     input.saleNumber,
+      p_cashier_id:      input.cashierId,
+      p_cliente_id:      input.clienteId ?? null,
+      p_subtotal:        input.subtotal,
+      p_discount_total:  input.discountTotal,
+      p_tax_total:       input.taxTotal,
+      p_total:           input.total,
+      p_idempotency_key: input.idempotencyKey,
+      p_items: input.items.map((item) => ({
+        producto_id:     item.productId,
+        producto_nombre: item.productoNombre,
+        producto_sku:    item.productoSku ?? null,
+        quantity:        item.quantity,
+        unit_price:      item.unitPrice,
+        discount_amount: item.discountAmount,
+        tax_rate:        item.taxRate,
+        tax_amount:      item.taxAmount,
+        total:           item.total,
+      })),
+      p_payments: input.payments.map((p) => ({
+        metodo:     p.metodo,
+        amount:     p.amount,
+        referencia: p.referencia ?? null,
+      })),
+    })
 
-    if (saleErr) {
-      // Idempotencia: si ya existe con esa key, devolver la venta existente
-      if (saleErr.code === '23505' && saleErr.message.includes('idempotency')) {
-        return this.findByIdempotencyKey(input.idempotencyKey, input.tiendaId)
-      }
-      return err(new Error(saleErr.message))
-    }
+    if (error) return err(new Error(error.message))
 
-    const saleId = (saleRow as SaleRow).id
-
-    // 2. Insertar ítems
-    const itemsInsert = input.items.map((item) => ({
-      sale_id:         saleId,
-      producto_id:     item.productId,
-      producto_nombre: item.productoNombre,
-      producto_sku:    item.productoSku ?? null,
-      quantity:        item.quantity,
-      unit_price:      item.unitPrice,
-      discount_amount: item.discountAmount,
-      tax_rate:        item.taxRate,
-      tax_amount:      item.taxAmount,
-      total:           item.total,
-    }))
-
-    const { error: itemsErr } = await db
-      .from('sale_items')
-      .insert(itemsInsert)
-
-    if (itemsErr) return err(new Error(itemsErr.message))
-
-    // 3. Insertar pagos
-    const paymentsInsert = input.payments.map((p) => ({
-      sale_id:    saleId,
-      metodo:     p.metodo,
-      amount:     p.amount,
-      referencia: p.referencia ?? null,
-    }))
-
-    const { error: payErr } = await db
-      .from('payments')
-      .insert(paymentsInsert)
-
-    if (payErr) return err(new Error(payErr.message))
-
-    // 4. Crear movimientos de inventario (sale_exit)
-    const invInsert = input.items.map((item) => ({
-      tienda_id:      input.tiendaId,
-      producto_id:    item.productId,
-      tipo:           'sale_exit',
-      cantidad:       -item.quantity,
-      referencia_tipo: 'sale',
-      referencia_id:  saleId,
-      created_by:     input.cashierId,
-    }))
-
-    const { error: invErr } = await db
-      .from('inventory_movements')
-      .insert(invInsert)
-
-    if (invErr) return err(new Error(invErr.message))
-
-    // 5. Leer venta completa con ítems y pagos
-    const full = await this.findById(saleId, input.tiendaId)
+    const full = await this.findById(saleId as string, input.tiendaId)
     if (!full.ok) return err(full.error)
     if (!full.value) return err(new Error('Venta creada pero no encontrada'))
     return ok(full.value)
@@ -157,40 +107,18 @@ export class SupabaseSaleRepository implements SaleRepository {
 
   async void(input: VoidSaleInput): Promise<Result<Sale>> {
     const supabase = await createClient()
-    const { data, error } = await (supabase as any)
-      .from('sales')
-      .update({
-        status:        'voided',
-        voided_by:     input.voidedBy,
-        voided_at:     new Date().toISOString(),
-        voided_reason: input.voidedReason,
-      })
-      .eq('id', input.saleId)
-      .eq('tienda_id', input.tiendaId)
-      .eq('status', 'completed')
-      .select(`${SALE_COLS}, sale_items(${ITEM_COLS}), payments(${PAY_COLS})`)
-      .single()
-
+    const { data: saleId, error } = await (supabase as any).rpc('void_sale_atomic', {
+      p_sale_id:       input.saleId,
+      p_tienda_id:     input.tiendaId,
+      p_voided_by:     input.voidedBy,
+      p_voided_reason: input.voidedReason,
+    })
     if (error) return err(new Error(error.message))
 
-    // Revertir movimientos de inventario (void_return)
-    const db = supabase as any
-    const itemsResult = await this.findById(input.saleId, input.tiendaId)
-    if (itemsResult.ok && itemsResult.value) {
-      const returnInsert = itemsResult.value.items.map((item) => ({
-        tienda_id:      input.tiendaId,
-        producto_id:    item.productId,
-        tipo:           'void_return',
-        cantidad:       item.quantity,
-        referencia_tipo: 'sale',
-        referencia_id:  input.saleId,
-        created_by:     input.voidedBy,
-        motivo:         input.voidedReason,
-      }))
-      await db.from('inventory_movements').insert(returnInsert)
-    }
-
-    return ok(rowToSale(data as SaleRow))
+    const full = await this.findById(saleId as string, input.tiendaId)
+    if (!full.ok) return err(full.error)
+    if (!full.value) return err(new Error('Venta anulada pero no encontrada'))
+    return ok(full.value)
   }
 
   private async findByIdempotencyKey(key: string, tiendaId: TiendaId): Promise<Result<Sale>> {

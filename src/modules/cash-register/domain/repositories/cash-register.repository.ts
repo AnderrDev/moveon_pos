@@ -2,6 +2,12 @@ import type { Result } from '@/shared/result'
 import type { TiendaId, UserId, CashMovementType } from '@/shared/types'
 import type { CashSession, CashMovement } from '../entities/cash-session.entity'
 
+export interface CashSessionPaymentBreakdown {
+  metodo: string
+  count: number
+  total: number
+}
+
 export interface OpenSessionParams {
   tiendaId: TiendaId
   openedBy: UserId
@@ -31,5 +37,7 @@ export interface CashRegisterRepository {
   openSession(params: OpenSessionParams): Promise<Result<CashSession>>
   addMovement(params: AddMovementParams): Promise<Result<CashMovement>>
   listMovements(sessionId: string): Promise<Result<CashMovement[]>>
+  getCashPaymentsTotal(sessionId: string, tiendaId: TiendaId): Promise<Result<number>>
+  getPaymentBreakdown(sessionId: string, tiendaId: TiendaId): Promise<Result<CashSessionPaymentBreakdown[]>>
   closeSession(params: CloseSessionParams): Promise<Result<CashSession>>
 }
