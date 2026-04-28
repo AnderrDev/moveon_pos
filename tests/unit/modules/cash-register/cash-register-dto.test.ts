@@ -49,7 +49,29 @@ describe('closeSessionSchema', () => {
     expect(closeSessionSchema.safeParse({ actualCashAmount: 50000 }).success).toBe(true)
   })
 
+  it('acepta cierre con confirmacion por medios de pago', () => {
+    const result = closeSessionSchema.safeParse({
+      actualCashAmount:      50000,
+      actualCardAmount:      30000,
+      actualNequiAmount:     20000,
+      actualDaviplataAmount: 10000,
+      actualTransferAmount:  40000,
+      actualOtherAmount:     0,
+    })
+
+    expect(result.success).toBe(true)
+  })
+
   it('rechaza conteo negativo', () => {
     expect(closeSessionSchema.safeParse({ actualCashAmount: -1000 }).success).toBe(false)
+  })
+
+  it('rechaza confirmaciones digitales negativas', () => {
+    const result = closeSessionSchema.safeParse({
+      actualCashAmount: 50000,
+      actualCardAmount: -1,
+    })
+
+    expect(result.success).toBe(false)
   })
 })

@@ -145,3 +145,25 @@ Se revisó la implementación contra `/docs/01-mvp-scope.md`, `/docs/03-data-mod
   - `corepack pnpm lint` pasa sin warnings ni errores.
   - `corepack pnpm test` pasa con 16 archivos y 109 tests.
   - `corepack pnpm test:coverage` pasa: statements 99.83%, branches 92.73%, functions 100%, lines 99.83%.
+
+### Mejora de cierre total de caja
+
+- Decisión: el cierre de caja ahora controla el total de ventas del turno por todos los medios de pago, no solo efectivo.
+- Se mantiene el arqueo de efectivo físico como control separado: apertura + ventas cash + movimientos contra efectivo contado.
+- Se agregaron columnas en `cash_sessions` para cierre total:
+  - `expected_sales_amount`
+  - `actual_sales_amount`
+  - `sales_difference`
+  - `payment_closure`
+- Se creó la migración `supabase/migrations/20260428_001_add_total_sales_closure.sql`.
+- Base remota: aplicada `20260428_001_add_total_sales_closure.sql` y recargado schema cache de PostgREST.
+- `CloseSessionDialog` ahora muestra ventas esperadas, ventas confirmadas, diferencia total y diferencia de efectivo físico.
+- El cierre solicita confirmación por medios no efectivo: tarjeta, Nequi, Daviplata, transferencia y otros.
+- `/caja` ahora lista últimas sesiones con ventas esperadas, confirmado, diferencia de ventas y diferencia de efectivo.
+- `/reportes` ahora prioriza total vendido, efectivo de ventas, otros medios, distribución porcentual por método y estado de cierres.
+- Documentación actualizada en `docs/01-mvp-scope.md`, `docs/modules/cash-register.md` y `docs/modules/reports.md`.
+- Validación posterior:
+  - `corepack pnpm typecheck` pasa.
+  - `corepack pnpm lint` pasa sin warnings ni errores.
+  - `corepack pnpm test` pasa con 16 archivos y 112 tests.
+  - `corepack pnpm test:coverage` pasa: statements 99.83%, branches 92.73%, functions 100%, lines 99.83%.

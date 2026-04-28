@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getPaymentMethodLabel, PAYMENT_METHOD_OPTIONS } from '@/shared/lib/payment-methods'
+import { getPaymentMethodLabel, PAYMENT_METHOD_CLOSURE_OPTIONS, PAYMENT_METHOD_OPTIONS } from '@/shared/lib/payment-methods'
 
 describe('payment methods', () => {
   it('devuelve labels conocidos', () => {
@@ -18,6 +18,17 @@ describe('payment methods', () => {
       'nequi',
       'daviplata',
       'transfer',
+    ])
+  })
+
+  it('incluye otros medios en cierre de caja', () => {
+    expect(PAYMENT_METHOD_CLOSURE_OPTIONS.map((o) => o.value)).toEqual([
+      'cash',
+      'card',
+      'nequi',
+      'daviplata',
+      'transfer',
+      'other',
     ])
   })
 })

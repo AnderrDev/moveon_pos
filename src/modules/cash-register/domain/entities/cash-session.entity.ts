@@ -10,6 +10,10 @@ export interface CashSession {
   expectedCashAmount: number | null
   actualCashAmount: number | null
   difference: number | null
+  expectedSalesAmount: number | null
+  actualSalesAmount: number | null
+  salesDifference: number | null
+  paymentClosure: unknown | null
   notasCierre: string | null
   openedAt: Date
   closedAt: Date | null

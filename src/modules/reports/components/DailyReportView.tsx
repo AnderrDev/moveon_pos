@@ -21,6 +21,11 @@ function paymentSummary(payments: { metodo: string; amount: number }[]) {
     .join(' · ')
 }
 
+function diffTone(value: number | null) {
+  if (!value) return 'text-muted-foreground'
+  return value > 0 ? 'text-destructive' : 'text-green-600'
+}
+
 interface Props { initialReport: DailyReport | null; initialDate: string }
 
 export function DailyReportView({ initialReport, initialDate }: Props) {
@@ -90,36 +95,75 @@ export function DailyReportView({ initialReport, initialDate }: Props) {
             const cashTotal = report.paymentBreakdown.find((p) => p.metodo === 'cash')?.total ?? 0
             const digitalBreakdown = report.paymentBreakdown.filter((p) => p.metodo !== 'cash')
             const digitalTotal = digitalBreakdown.reduce((sum, p) => sum + p.total, 0)
+            const closedSessions = report.sessions.filter((session) => session.closedAt)
+            const pendingCloseTotal = report.sessions
+              .filter((session) => !session.closedAt)
+              .reduce((sum, session) => sum + session.expectedSalesAmount, 0)
 
             return (
-              <div className="grid gap-4 lg:grid-cols-[1fr_2fr]">
-                <div className="rounded-xl border bg-card p-5 shadow-sm">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Efectivo en caja</p>
-                  <p className="mt-2 font-display text-3xl font-bold tabular-nums text-foreground">{formatCOP(cashTotal)}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Solo pagos en efectivo de ventas completadas</p>
+              <div className="space-y-4">
+                <div className="grid gap-4 lg:grid-cols-[1.25fr_1fr_1fr]">
+                  <div className="rounded-xl border bg-card p-5 shadow-sm">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total vendido</p>
+                    <p className="mt-2 font-display text-3xl font-bold tabular-nums text-foreground">{formatCOP(report.totalVentas)}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {report.countVentas} venta{report.countVentas !== 1 ? 's' : ''} completada{report.countVentas !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border bg-card p-5 shadow-sm">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Efectivo ventas</p>
+                    <p className="mt-2 font-display text-2xl font-bold tabular-nums text-foreground">{formatCOP(cashTotal)}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">No incluye base ni movimientos</p>
+                  </div>
+                  <div className="rounded-xl border bg-card p-5 shadow-sm">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Otros medios</p>
+                    <p className="mt-2 font-display text-2xl font-bold tabular-nums text-foreground">{formatCOP(digitalTotal)}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Tarjeta, Nequi, Daviplata y transferencias</p>
+                  </div>
                 </div>
 
-                <div className="rounded-xl border bg-card shadow-sm">
-                  <div className="flex items-center justify-between border-b px-5 py-4">
-                    <div>
-                      <h3 className="font-display text-sm font-bold">Otros medios confirmados</h3>
-                      <p className="mt-0.5 text-xs text-muted-foreground">Conciliación manual por hora, valor y método</p>
+                <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+                  <div className="rounded-xl border bg-card shadow-sm">
+                    <div className="flex items-center justify-between border-b px-5 py-4">
+                      <div>
+                        <h3 className="font-display text-sm font-bold">Distribución de pagos</h3>
+                        <p className="mt-0.5 text-xs text-muted-foreground">Participación de cada medio sobre ventas completadas</p>
+                      </div>
+                      <p className="font-display text-xl font-bold tabular-nums text-foreground">{formatCOP(report.totalVentas)}</p>
                     </div>
-                    <p className="font-display text-2xl font-bold tabular-nums text-foreground">{formatCOP(digitalTotal)}</p>
+                    <div className="divide-y">
+                      {report.paymentBreakdown.length === 0 ? (
+                        <p className="px-5 py-5 text-sm text-muted-foreground">Sin pagos registrados</p>
+                      ) : report.paymentBreakdown.map((payment) => {
+                        const share = report.totalVentas > 0 ? Math.round((payment.total / report.totalVentas) * 100) : 0
+                        return (
+                          <div key={payment.metodo} className="px-5 py-3">
+                            <div className="flex items-center justify-between gap-4">
+                              <div>
+                                <p className="text-sm font-medium">{paymentLabel(payment.metodo)}</p>
+                                <p className="text-xs text-muted-foreground">{payment.count} pago{payment.count !== 1 ? 's' : ''} · {share}%</p>
+                              </div>
+                              <p className="font-mono text-sm font-semibold tabular-nums">{formatCOP(payment.total)}</p>
+                            </div>
+                            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+                              <div className="h-full rounded-full bg-primary" style={{ width: `${share}%` }} />
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
-                  {digitalBreakdown.length === 0 ? (
-                    <p className="px-5 py-5 text-sm text-muted-foreground">Sin pagos digitales registrados</p>
-                  ) : (
-                    <div className="grid divide-y sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
-                      {digitalBreakdown.map((p) => (
-                        <div key={p.metodo} className="px-5 py-4">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{paymentLabel(p.metodo)}</p>
-                          <p className="mt-1 text-lg font-bold tabular-nums text-foreground">{formatCOP(p.total)}</p>
-                          <p className="text-xs text-muted-foreground">{p.count} pago{p.count !== 1 ? 's' : ''}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+
+                  <div className="rounded-xl border bg-card p-5 shadow-sm">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cierres de caja</p>
+                    <p className="mt-2 font-display text-2xl font-bold tabular-nums text-foreground">{closedSessions.length}/{report.sessions.length}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">turnos cerrados del día</p>
+                    {pendingCloseTotal > 0 && (
+                      <div className="mt-4 rounded-lg bg-amber-500/10 px-3 py-2">
+                        <p className="text-xs font-medium text-amber-700">Pendiente por cerrar: {formatCOP(pendingCloseTotal)}</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )
@@ -131,7 +175,7 @@ export function DailyReportView({ initialReport, initialDate }: Props) {
               { label: 'Total ventas',   value: formatCOP(report.totalVentas), sub: `${report.countVentas} transacción${report.countVentas !== 1 ? 'es' : ''}` },
               { label: 'Promedio',        value: formatCOP(report.avgVenta),    sub: 'por venta' },
               { label: 'IVA generado',    value: formatCOP(report.taxTotal),    sub: 'incluido en total' },
-              { label: 'Descuentos',      value: formatCOP(report.discountTotal), sub: report.countAnuladas > 0 ? `${report.countAnuladas} anulada${report.countAnuladas !== 1 ? 's' : ''}` : 'sin anulaciones' },
+              { label: 'Base antes de IVA', value: formatCOP(report.subtotalVentas), sub: report.discountTotal > 0 ? `${formatCOP(report.discountTotal)} en descuentos` : 'sin descuentos' },
             ].map((kpi) => (
               <div key={kpi.label} className="rounded-xl border bg-card p-5 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{kpi.label}</p>
@@ -264,7 +308,10 @@ export function DailyReportView({ initialReport, initialDate }: Props) {
                   <tr className="border-b bg-muted/40">
                     <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Apertura</th>
                     <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cierre</th>
-                    <th className="px-5 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Efectivo esperado</th>
+                    <th className="px-5 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ventas esperadas</th>
+                    <th className="px-5 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Confirmado</th>
+                    <th className="px-5 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Dif. ventas</th>
+                    <th className="px-5 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Dif. efectivo</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -274,7 +321,16 @@ export function DailyReportView({ initialReport, initialDate }: Props) {
                       <td className="px-5 py-3 tabular-nums text-muted-foreground">
                         {s.closedAt ? formatTime(s.closedAt) : <span className="text-green-600 font-medium">Abierta</span>}
                       </td>
-                      <td className="px-5 py-3 text-right font-semibold tabular-nums">{formatCOP(s.expectedAmount)}</td>
+                      <td className="px-5 py-3 text-right font-semibold tabular-nums">{formatCOP(s.expectedSalesAmount)}</td>
+                      <td className="px-5 py-3 text-right font-semibold tabular-nums">
+                        {s.actualSalesAmount !== null ? formatCOP(s.actualSalesAmount) : '—'}
+                      </td>
+                      <td className={`px-5 py-3 text-right font-semibold tabular-nums ${diffTone(s.salesDifference)}`}>
+                        {s.salesDifference !== null ? formatCOP(s.salesDifference) : '—'}
+                      </td>
+                      <td className={`px-5 py-3 text-right font-semibold tabular-nums ${diffTone(s.cashDifference)}`}>
+                        {s.cashDifference !== null ? formatCOP(s.cashDifference) : '—'}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

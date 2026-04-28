@@ -51,7 +51,7 @@
 - Apertura de caja con base inicial.
 - Una caja abierta por usuario a la vez.
 - Registro de ingresos y egresos manuales (con motivo).
-- Cierre de caja: efectivo esperado vs. real, diferencia auto-calculada.
+- Cierre de caja: ventas esperadas vs. confirmadas por método de pago, y efectivo físico esperado vs. contado.
 - Reporte de cierre imprimible.
 
 ### M7. Tickets internos

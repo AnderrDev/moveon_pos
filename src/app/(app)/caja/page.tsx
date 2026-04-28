@@ -64,16 +64,18 @@ export default async function CajaPage() {
                     <tr className="border-b bg-muted/50">
                       <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Apertura</th>
                       <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cierre</th>
-                      <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Efectivo esperado</th>
-                      <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Contado</th>
-                      <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Diferencia</th>
+                      <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ventas esperadas</th>
+                      <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Confirmado</th>
+                      <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Dif. ventas</th>
+                      <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Dif. efectivo</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
                     {recentSessions
                       .filter((s) => s.status === 'closed')
                       .map((s) => {
-                        const diff = s.difference ?? 0
+                        const salesDiff = s.salesDifference ?? 0
+                        const cashDiff = s.difference ?? 0
                         return (
                           <tr key={s.id} className="hover:bg-muted/30 transition-colors">
                             <td className="px-5 py-3 text-xs text-muted-foreground">
@@ -85,19 +87,24 @@ export default async function CajaPage() {
                                 : '—'}
                             </td>
                             <td className="px-5 py-3 text-right font-mono tabular-nums">
-                              {s.expectedCashAmount !== null
-                                ? formatCurrency(s.expectedCashAmount)
+                              {s.expectedSalesAmount !== null
+                                ? formatCurrency(s.expectedSalesAmount)
                                 : '—'}
                             </td>
                             <td className="px-5 py-3 text-right font-mono tabular-nums">
-                              {s.actualCashAmount !== null
-                                ? formatCurrency(s.actualCashAmount)
+                              {s.actualSalesAmount !== null
+                                ? formatCurrency(s.actualSalesAmount)
                                 : '—'}
                             </td>
-                            <td className={`px-5 py-3 text-right font-mono font-semibold tabular-nums ${diff > 0 ? 'text-destructive' : diff < 0 ? 'text-green-600' : 'text-muted-foreground'}`}>
-                              {diff === 0
+                            <td className={`px-5 py-3 text-right font-mono font-semibold tabular-nums ${salesDiff > 0 ? 'text-destructive' : salesDiff < 0 ? 'text-green-600' : 'text-muted-foreground'}`}>
+                              {salesDiff === 0
                                 ? '±$0'
-                                : formatCurrency(diff)}
+                                : formatCurrency(salesDiff)}
+                            </td>
+                            <td className={`px-5 py-3 text-right font-mono font-semibold tabular-nums ${cashDiff > 0 ? 'text-destructive' : cashDiff < 0 ? 'text-green-600' : 'text-muted-foreground'}`}>
+                              {cashDiff === 0
+                                ? '±$0'
+                                : formatCurrency(cashDiff)}
                             </td>
                           </tr>
                         )

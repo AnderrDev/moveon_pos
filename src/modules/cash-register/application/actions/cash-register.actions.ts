@@ -89,8 +89,13 @@ export async function closeSessionAction(
   if (!auth) return FAIL('No autenticado')
 
   const parsed = closeSessionSchema.safeParse({
-    actualCashAmount: Number(formData.get('actualCashAmount')),
-    notasCierre:      (formData.get('notasCierre') as string) || undefined,
+    actualCashAmount:      Number(formData.get('actualCashAmount')),
+    actualCardAmount:      Number(formData.get('actualCardAmount')),
+    actualNequiAmount:     Number(formData.get('actualNequiAmount')),
+    actualDaviplataAmount: Number(formData.get('actualDaviplataAmount')),
+    actualTransferAmount:  Number(formData.get('actualTransferAmount')),
+    actualOtherAmount:     Number(formData.get('actualOtherAmount')),
+    notasCierre:           (formData.get('notasCierre') as string) || undefined,
   })
   if (!parsed.success) return FAIL(parsed.error.errors[0]?.message ?? 'Datos inválidos')
 
@@ -100,6 +105,13 @@ export async function closeSessionAction(
     tiendaId:         auth.tiendaId,
     closedBy:         auth.userId,
     actualCashAmount: parsed.data.actualCashAmount,
+    actualPayments:   [
+      { metodo: 'card',      total: parsed.data.actualCardAmount },
+      { metodo: 'nequi',     total: parsed.data.actualNequiAmount },
+      { metodo: 'daviplata', total: parsed.data.actualDaviplataAmount },
+      { metodo: 'transfer',  total: parsed.data.actualTransferAmount },
+      { metodo: 'other',     total: parsed.data.actualOtherAmount },
+    ],
     notasCierre:      parsed.data.notasCierre,
   })
 

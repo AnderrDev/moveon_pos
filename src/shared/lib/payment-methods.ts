@@ -17,6 +17,11 @@ export const PAYMENT_METHOD_OPTIONS: { value: PaymentMethod; label: string }[] =
   { value: 'transfer',  label: PAYMENT_METHOD_LABELS.transfer },
 ]
 
+export const PAYMENT_METHOD_CLOSURE_OPTIONS: { value: PaymentMethod; label: string }[] = [
+  ...PAYMENT_METHOD_OPTIONS,
+  { value: 'other', label: PAYMENT_METHOD_LABELS.other },
+]
+
 export function getPaymentMethodLabel(metodo: string): string {
   return PAYMENT_METHOD_LABELS[metodo as PaymentMethod] ?? metodo
 }

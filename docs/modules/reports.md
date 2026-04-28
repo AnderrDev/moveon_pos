@@ -6,7 +6,7 @@ Lecturas agregadas para el negocio. **No tiene reglas de escritura.** Solo consu
 ## Reportes MVP v1.0
 1. Ventas del día — totales, por método, por cajero.
 2. Detalle de ventas con filtros de fecha.
-3. Cierre de caja imprimible.
+3. Cierre de caja imprimible con ventas esperadas/confirmadas, diferencia total y diferencia de efectivo físico.
 4. Stock actual con bajo stock destacado.
 
 ## Implementación

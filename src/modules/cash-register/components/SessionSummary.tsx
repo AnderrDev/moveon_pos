@@ -11,7 +11,8 @@ function printCashReport(
   session: CashSession,
   movements: CashMovement[],
   paymentBreakdown: CashSessionPaymentBreakdown[],
-  expected: number,
+  expectedCashInDrawer: number,
+  expectedSalesTotal: number,
 ) {
   const now     = new Date().toLocaleString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
   const opened  = session.openedAt.toLocaleString('es-CO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
@@ -47,12 +48,14 @@ function printCashReport(
       <tr><td>Apertura</td><td style="text-align:right">${opened}</td></tr>
       <tr><td>Monto inicial</td><td style="text-align:right">${formatCOP(session.openingAmount)}</td></tr>
       <tr><td>Ventas efectivo</td><td style="text-align:right">${formatCOP(cashPaymentsTotal)}</td></tr>
+      <tr><td>Ventas otros medios</td><td style="text-align:right">${formatCOP(paymentBreakdown.filter((p) => p.metodo !== 'cash').reduce((s, p) => s + p.total, 0))}</td></tr>
       <tr><td>Ingresos</td><td style="text-align:right;color:#16a34a">+${formatCOP(ingresos)}</td></tr>
       <tr><td>Egresos</td><td style="text-align:right;color:#dc2626">-${formatCOP(egresos)}</td></tr>
     </table>
     <div style="border-top:1px solid #000;margin:6px 0"></div>
     <table style="width:100%;font-size:13px;font-weight:800;border-collapse:collapse">
-      <tr><td>EFECTIVO ESPERADO</td><td style="text-align:right">${formatCOP(expected)}</td></tr>
+      <tr><td>TOTAL VENTAS ESPERADO</td><td style="text-align:right">${formatCOP(expectedSalesTotal)}</td></tr>
+      <tr><td>EFECTIVO FISICO ESPERADO</td><td style="text-align:right">${formatCOP(expectedCashInDrawer)}</td></tr>
     </table>
     ${movements.length > 0 ? `
       <div style="border-top:1px dashed #000;margin:8px 0"></div>
@@ -70,8 +73,9 @@ function printCashReport(
       </table>
     ` : ''}
     <div style="border-top:1px dashed #000;margin:8px 0;text-align:center;font-size:10px;color:#666">
+      Total confirmado: __________ <br/><br/>
       Efectivo contado: __________ <br/><br/>
-      Diferencia: __________
+      Diferencia ventas: __________
     </div>
   `
 
@@ -105,24 +109,26 @@ interface Props {
 export function SessionSummary({ session, movements, paymentBreakdown }: Props) {
   const ingresos  = movements.filter((m) => m.tipo === 'cash_in').reduce((s, m) => s + m.amount, 0)
   const egresos   = movements.filter((m) => m.tipo !== 'cash_in').reduce((s, m) => s + m.amount, 0)
+  const cashMovementNet = ingresos - egresos
   const cashPaymentsTotal = paymentBreakdown.find((p) => p.metodo === 'cash')?.total ?? 0
   const digitalPayments = paymentBreakdown.filter((p) => p.metodo !== 'cash')
   const digitalTotal = digitalPayments.reduce((sum, p) => sum + p.total, 0)
-  const expected  = session.openingAmount + cashPaymentsTotal + ingresos - egresos
+  const expectedCashInDrawer = session.openingAmount + cashPaymentsTotal + cashMovementNet
+  const expectedSalesTotal = cashPaymentsTotal + digitalTotal
 
   return (
     <div className="space-y-6">
       {/* Resumen de saldos */}
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          { label: 'Apertura',        value: session.openingAmount, neutral: true },
-          { label: 'Ventas efectivo', value: cashPaymentsTotal, positive: true },
-          { label: 'Ingresos',        value: ingresos,  positive: true },
-          { label: 'Egresos',         value: egresos,   negative: true },
-        ].map(({ label, value, positive, negative }) => (
+          { label: 'Total ventas',      value: expectedSalesTotal },
+          { label: 'Ventas efectivo',   value: cashPaymentsTotal, positive: true },
+          { label: 'Otros medios',      value: digitalTotal, positive: true },
+          { label: 'Efectivo físico',   value: expectedCashInDrawer },
+        ].map(({ label, value, positive }) => (
           <div key={label} className="rounded-xl border bg-card p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
-            <p className={`mt-1 font-display text-2xl font-bold tabular-nums ${positive ? 'text-green-600' : negative ? 'text-destructive' : 'text-foreground'}`}>
+            <p className={`mt-1 font-display text-2xl font-bold tabular-nums ${positive ? 'text-green-600' : 'text-foreground'}`}>
               {formatCOP(value)}
             </p>
           </div>
@@ -155,14 +161,17 @@ export function SessionSummary({ session, movements, paymentBreakdown }: Props) 
       {/* Saldo esperado + acciones */}
       <div className="flex items-center justify-between rounded-xl border bg-muted/40 px-5 py-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Efectivo esperado en caja</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cierre esperado del turno</p>
           <p className="mt-0.5 font-display text-3xl font-bold tabular-nums text-foreground">
-            {formatCOP(expected)}
+            {formatCOP(expectedSalesTotal)}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Efectivo físico esperado: {formatCOP(expectedCashInDrawer)}
           </p>
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => printCashReport(session, movements, paymentBreakdown, expected)}
+            onClick={() => printCashReport(session, movements, paymentBreakdown, expectedCashInDrawer, expectedSalesTotal)}
             className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium hover:bg-muted transition-colors"
           >
             <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5" aria-hidden>
@@ -172,7 +181,14 @@ export function SessionSummary({ session, movements, paymentBreakdown }: Props) 
             Imprimir
           </button>
           <AddMovementDialog sessionId={session.id} />
-          <CloseSessionDialog sessionId={session.id} expectedAmount={expected} />
+          <CloseSessionDialog
+            sessionId={session.id}
+            openingAmount={session.openingAmount}
+            cashMovementNet={cashMovementNet}
+            expectedCashAmount={expectedCashInDrawer}
+            expectedSalesAmount={expectedSalesTotal}
+            paymentBreakdown={paymentBreakdown}
+          />
         </div>
       </div>
 

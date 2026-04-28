@@ -1,7 +1,7 @@
 import { createClient } from '@/infrastructure/supabase/server'
 import { ok, err } from '@/shared/result'
 import type { Result } from '@/shared/result'
-import type { TiendaId } from '@/shared/types'
+import type { PaymentMethod, TiendaId } from '@/shared/types'
 import type { CashSession, CashMovement } from '../../domain/entities/cash-session.entity'
 import type {
   CashRegisterRepository,
@@ -20,8 +20,22 @@ import {
 // @supabase/ssr v0.5 no resuelve los tipos Insert/Update a través de createServerClient.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const SESSION_COLS = 'id, tienda_id, opened_by, closed_by, status, opening_amount, expected_cash_amount, actual_cash_amount, difference, notas_cierre, opened_at, closed_at'
+const SESSION_COLS = 'id, tienda_id, opened_by, closed_by, status, opening_amount, expected_cash_amount, actual_cash_amount, difference, expected_sales_amount, actual_sales_amount, sales_difference, payment_closure, notas_cierre, opened_at, closed_at'
 const MOV_COLS    = 'id, cash_session_id, tipo, amount, motivo, created_by, created_at'
+
+const PAYMENT_METHODS: PaymentMethod[] = ['cash', 'card', 'nequi', 'daviplata', 'transfer', 'other']
+
+function normalizePaymentBreakdown(
+  breakdown: CashSessionPaymentBreakdown[],
+): CashSessionPaymentBreakdown[] {
+  const byMethod = new Map(breakdown.map((payment) => [payment.metodo, payment]))
+
+  return PAYMENT_METHODS.map((metodo) => ({
+    metodo,
+    count: byMethod.get(metodo)?.count ?? 0,
+    total: byMethod.get(metodo)?.total ?? 0,
+  }))
+}
 
 export class SupabaseCashRegisterRepository implements CashRegisterRepository {
   async getOpenSession(tiendaId: TiendaId): Promise<Result<CashSession | null>> {
@@ -168,8 +182,8 @@ export class SupabaseCashRegisterRepository implements CashRegisterRepository {
     if (!sessionResult.value) return err(new Error('Sesión no encontrada'))
     if (sessionResult.value.status !== 'open') return err(new Error('La caja ya está cerrada'))
 
-    const cashPaymentsResult = await this.getCashPaymentsTotal(params.sessionId, params.tiendaId)
-    if (!cashPaymentsResult.ok) return err(cashPaymentsResult.error)
+    const paymentBreakdownResult = await this.getPaymentBreakdown(params.sessionId, params.tiendaId)
+    if (!paymentBreakdownResult.ok) return err(paymentBreakdownResult.error)
 
     const session = sessionResult.value
     const movTotal = (movs ?? []).reduce((sum, m) => {
@@ -177,10 +191,26 @@ export class SupabaseCashRegisterRepository implements CashRegisterRepository {
       return m.tipo === 'cash_in' ? sum + amt : sum - amt
     }, 0)
 
-    const expected = session.openingAmount + cashPaymentsResult.value + movTotal
-    const difference = expected - params.actualCashAmount
+    const expectedPayments = normalizePaymentBreakdown(paymentBreakdownResult.value)
+    const expectedCashSales = expectedPayments.find((p) => p.metodo === 'cash')?.total ?? 0
+    const expectedSalesAmount = expectedPayments.reduce((sum, p) => sum + p.total, 0)
+    const expectedCashInDrawer = session.openingAmount + expectedCashSales + movTotal
+    const cashDifference = expectedCashInDrawer - params.actualCashAmount
 
-    if (Math.abs(difference) > 5000 && !params.notasCierre?.trim()) {
+    const actualByMethod = new Map<PaymentMethod, number>()
+    for (const payment of params.actualPayments) {
+      actualByMethod.set(payment.metodo, payment.total)
+    }
+
+    const actualCashSales = params.actualCashAmount - session.openingAmount - movTotal
+    const actualPayments = PAYMENT_METHODS.map((metodo) => ({
+      metodo,
+      total: metodo === 'cash' ? actualCashSales : actualByMethod.get(metodo) ?? 0,
+    }))
+    const actualSalesAmount = actualPayments.reduce((sum, payment) => sum + payment.total, 0)
+    const salesDifference = expectedSalesAmount - actualSalesAmount
+
+    if ((Math.abs(cashDifference) > 5000 || Math.abs(salesDifference) > 5000) && !params.notasCierre?.trim()) {
       return err(new Error('Diferencias mayores a $5.000 requieren nota de cierre'))
     }
 
@@ -190,8 +220,15 @@ export class SupabaseCashRegisterRepository implements CashRegisterRepository {
         status:               'closed',
         closed_by:            params.closedBy,
         actual_cash_amount:   params.actualCashAmount,
-        expected_cash_amount: expected,
-        difference,
+        expected_cash_amount: expectedCashInDrawer,
+        difference:           cashDifference,
+        expected_sales_amount: expectedSalesAmount,
+        actual_sales_amount:   actualSalesAmount,
+        sales_difference:      salesDifference,
+        payment_closure:       {
+          expected: expectedPayments,
+          actual:   actualPayments,
+        },
         notas_cierre:         params.notasCierre ?? null,
         closed_at:            new Date().toISOString(),
       })

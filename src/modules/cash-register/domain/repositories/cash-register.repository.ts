@@ -1,10 +1,15 @@
 import type { Result } from '@/shared/result'
-import type { TiendaId, UserId, CashMovementType } from '@/shared/types'
+import type { TiendaId, UserId, CashMovementType, PaymentMethod } from '@/shared/types'
 import type { CashSession, CashMovement } from '../entities/cash-session.entity'
 
 export interface CashSessionPaymentBreakdown {
   metodo: string
   count: number
+  total: number
+}
+
+export interface CashSessionActualPayment {
+  metodo: PaymentMethod
   total: number
 }
 
@@ -27,6 +32,7 @@ export interface CloseSessionParams {
   tiendaId: TiendaId
   closedBy: UserId
   actualCashAmount: number
+  actualPayments: CashSessionActualPayment[]
   notasCierre?: string
 }
 

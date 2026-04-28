@@ -22,13 +22,24 @@ export type DailyReport = {
   totalVentas: number
   countVentas: number
   countAnuladas: number
+  subtotalVentas: number
   taxTotal: number
   discountTotal: number
   avgVenta: number
   paymentBreakdown: PaymentBreakdown[]
   topProducts: TopProduct[]
   salesDetail: SaleDetail[]
-  sessions: { id: string; openedAt: string; closedAt: string | null; expectedAmount: number }[]
+  sessions: {
+    id: string
+    openedAt: string
+    closedAt: string | null
+    expectedSalesAmount: number
+    actualSalesAmount: number | null
+    salesDifference: number | null
+    expectedCashAmount: number
+    actualCashAmount: number | null
+    cashDifference: number | null
+  }[]
 }
 
 export async function getDailyReportAction(dateStr: string): Promise<DailyReport | null> {
@@ -56,6 +67,7 @@ export async function getDailyReportAction(dateStr: string): Promise<DailyReport
 
   // Totales
   const totalVentas   = completed.reduce((s, v) => s + v.total, 0)
+  const subtotalVentas = completed.reduce((s, v) => s + v.subtotal, 0)
   const taxTotal      = completed.reduce((s, v) => s + v.taxTotal, 0)
   const discountTotal = completed.reduce((s, v) => s + v.discountTotal, 0)
   const avgVenta      = completed.length > 0 ? Math.round(totalVentas / completed.length) : 0
@@ -106,6 +118,7 @@ export async function getDailyReportAction(dateStr: string): Promise<DailyReport
     totalVentas,
     countVentas:   completed.length,
     countAnuladas: voided.length,
+    subtotalVentas,
     taxTotal,
     discountTotal,
     avgVenta,
@@ -113,10 +126,15 @@ export async function getDailyReportAction(dateStr: string): Promise<DailyReport
     topProducts,
     salesDetail,
     sessions: sessions.map((s) => ({
-      id:             s.id,
-      openedAt:       s.openedAt.toISOString(),
-      closedAt:       s.closedAt?.toISOString() ?? null,
-      expectedAmount: s.expectedCashAmount ?? 0,
+      id:                  s.id,
+      openedAt:            s.openedAt.toISOString(),
+      closedAt:            s.closedAt?.toISOString() ?? null,
+      expectedSalesAmount: s.expectedSalesAmount ?? 0,
+      actualSalesAmount:   s.actualSalesAmount,
+      salesDifference:     s.salesDifference,
+      expectedCashAmount:  s.expectedCashAmount ?? 0,
+      actualCashAmount:    s.actualCashAmount,
+      cashDifference:      s.difference,
     })),
   }
 }
