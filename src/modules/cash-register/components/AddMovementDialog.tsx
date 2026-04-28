@@ -67,17 +67,17 @@ export function AddMovementDialog({ sessionId }: Props) {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">
+            <label htmlFor="mov-amount" className="mb-1.5 block text-sm font-medium text-foreground">
               Monto <span className="text-destructive">*</span>
             </label>
-            <input name="amount" type="number" min="1" step="1" placeholder="0" defaultValue={isDev ? '10000' : undefined} required className={inputCls} />
+            <input id="mov-amount" name="amount" type="number" inputMode="numeric" min="1" step="1" placeholder="0" defaultValue={isDev ? '10000' : undefined} required className={inputCls} />
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">
+            <label htmlFor="mov-motivo" className="mb-1.5 block text-sm font-medium text-foreground">
               Motivo <span className="text-destructive">*</span>
             </label>
-            <input name="motivo" type="text" placeholder="Ej. Compra de bolsas, vuelto cliente" defaultValue={isDev ? 'Prueba movimiento' : undefined} required minLength={3} maxLength={200} className={inputCls} />
+            <input id="mov-motivo" name="motivo" type="text" placeholder="Ej. Compra de bolsas, vuelto cliente" defaultValue={isDev ? 'Prueba movimiento' : undefined} required minLength={3} maxLength={200} className={inputCls} />
           </div>
 
           {state.error && (

@@ -1,30 +1,22 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useEffect, useTransition, useRef } from 'react'
 import { useCartStore } from '../store/cart.store'
 import { createSaleAction } from '../application/actions/sale.actions'
+import { listClientesAction, type ClienteOption } from '@/modules/customers/application/actions/list-clientes.action'
 import { Dialog } from '@/shared/components/ui/Dialog'
 import { Button } from '@/shared/components/ui/Button'
 import { cn } from '@/shared/lib/utils'
+import { formatCurrency as formatCOP } from '@/shared/lib/format'
+import { getPaymentMethodLabel, PAYMENT_METHOD_OPTIONS } from '@/shared/lib/payment-methods'
 import type { PaymentMethod } from '@/shared/types'
-
-function formatCOP(v: number) {
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(v)
-}
-
-const METODOS: { value: PaymentMethod; label: string }[] = [
-  { value: 'cash',      label: 'Efectivo' },
-  { value: 'card',      label: 'Tarjeta' },
-  { value: 'nequi',     label: 'Nequi' },
-  { value: 'daviplata', label: 'Daviplata' },
-  { value: 'transfer',  label: 'Transferencia' },
-]
+import type { TicketData } from './SaleSuccessModal'
 
 interface Props {
   open: boolean
   onClose: () => void
   cashSessionId: string
-  onSuccess: (saleId: string, saleNumber: string, change: number) => void
+  onSuccess: (saleId: string, saleNumber: string, change: number, ticketData: TicketData) => void
 }
 
 export function PaymentModal({ open, onClose, cashSessionId, onSuccess }: Props) {
@@ -34,6 +26,32 @@ export function PaymentModal({ open, onClose, cashSessionId, onSuccess }: Props)
   const [error, setError]   = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
+  /* ── Cliente opcional ─────────────────────────────────── */
+  const [allClientes, setAllClientes]           = useState<ClienteOption[]>([])
+  const [clienteQuery, setClienteQuery]         = useState('')
+  const [clienteDropOpen, setClienteDropOpen]   = useState(false)
+  const [selectedCliente, setSelectedCliente]   = useState<ClienteOption | null>(null)
+  const clienteRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (open && allClientes.length === 0) {
+      listClientesAction().then(setAllClientes)
+    }
+    if (!open) {
+      setClienteQuery('')
+      setSelectedCliente(null)
+      setClienteDropOpen(false)
+    }
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const filteredClientes = clienteQuery.trim().length >= 1
+    ? allClientes.filter((c) =>
+        c.nombre.toLowerCase().includes(clienteQuery.toLowerCase()) ||
+        (c.documento?.toLowerCase().includes(clienteQuery.toLowerCase()) ?? false)
+      ).slice(0, 6)
+    : []
+
+  /* ── Totales ──────────────────────────────────────────── */
   const paid      = totalPaid()
   const remaining = remainingAmount()
   const change    = paid > totals.total ? paid - totals.total : 0
@@ -52,6 +70,7 @@ export function PaymentModal({ open, onClose, cashSessionId, onSuccess }: Props)
 
     const dto = {
       cashSessionId,
+      clienteId: selectedCliente?.id,
       items: items.map((i) => ({
         productId:      i.productId,
         productoNombre: i.nombre,
@@ -63,7 +82,7 @@ export function PaymentModal({ open, onClose, cashSessionId, onSuccess }: Props)
         taxAmount:      i.taxAmount,
         total:          i.total,
       })),
-      payments: payments.map((p) => ({ metodo: p.metodo, amount: p.amount })),
+      payments:       payments.map((p) => ({ metodo: p.metodo, amount: p.amount })),
       subtotal:       totals.subtotal,
       discountTotal:  totals.discountTotal,
       taxTotal:       totals.taxTotal,
@@ -72,15 +91,28 @@ export function PaymentModal({ open, onClose, cashSessionId, onSuccess }: Props)
       idempotencyKey: `${cashSessionId}-${Date.now()}`,
     }
 
+    // Capturar datos del ticket antes de vaciar el carrito
+    const ticketData: TicketData = {
+      items:    items.map((i) => ({
+        nombre:         i.nombre,
+        sku:            i.sku,
+        quantity:       i.quantity,
+        unitPrice:      i.unitPrice,
+        discountAmount: i.discountAmount,
+        total:          i.total,
+        ivaTasa:        i.ivaTasa,
+      })),
+      payments:      payments.map((p) => ({ metodo: p.metodo, amount: p.amount })),
+      totals:        { ...totals },
+      clienteNombre: selectedCliente?.nombre ?? null,
+    }
+
     startTransition(async () => {
       const result = await createSaleAction(dto)
-      if (result.error) {
-        setError(result.error)
-        return
-      }
+      if (result.error) { setError(result.error); return }
       clearCart()
       clearPayments()
-      onSuccess(result.saleId!, result.saleNumber!, change)
+      onSuccess(result.saleId!, result.saleNumber!, change, ticketData)
     })
   }
 
@@ -94,7 +126,60 @@ export function PaymentModal({ open, onClose, cashSessionId, onSuccess }: Props)
   return (
     <Dialog open={open} onClose={handleClose} title="Cobrar venta" isBusy={isPending}>
       <div className="space-y-5">
-        {/* Resumen */}
+
+        {/* ── Cliente opcional ─────────────────────────── */}
+        <div ref={clienteRef} className="relative">
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Cliente <span className="font-normal normal-case">(opcional)</span>
+          </p>
+          {selectedCliente ? (
+            <div className="flex items-center justify-between rounded-lg border border-primary/40 bg-primary/5 px-3 py-2 text-sm">
+              <div>
+                <span className="font-medium text-foreground">{selectedCliente.nombre}</span>
+                {selectedCliente.documento && (
+                  <span className="ml-2 text-xs text-muted-foreground">{selectedCliente.documento}</span>
+                )}
+              </div>
+              <button
+                onClick={() => { setSelectedCliente(null); setClienteQuery('') }}
+                className="ml-2 text-muted-foreground hover:text-destructive"
+                aria-label="Quitar cliente"
+              >
+                <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5" aria-hidden>
+                  <path d="M2 2l12 12M14 2L2 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              </button>
+            </div>
+          ) : (
+            <>
+              <input
+                type="search"
+                value={clienteQuery}
+                onChange={(e) => { setClienteQuery(e.target.value); setClienteDropOpen(true) }}
+                onFocus={() => clienteQuery && setClienteDropOpen(true)}
+                onBlur={() => setTimeout(() => setClienteDropOpen(false), 150)}
+                placeholder="Buscar por nombre o documento…"
+                className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+              {clienteDropOpen && filteredClientes.length > 0 && (
+                <ul className="absolute z-50 mt-1 w-full overflow-hidden rounded-lg border bg-card shadow-lg">
+                  {filteredClientes.map((c) => (
+                    <li
+                      key={c.id}
+                      onMouseDown={() => { setSelectedCliente(c); setClienteQuery(''); setClienteDropOpen(false) }}
+                      className="flex cursor-pointer items-center justify-between px-3 py-2 text-sm hover:bg-muted"
+                    >
+                      <span className="font-medium">{c.nombre}</span>
+                      {c.documento && <span className="text-xs text-muted-foreground">{c.documento}</span>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* ── Resumen ─────────────────────────────────── */}
         <div className="rounded-xl bg-muted/50 px-4 py-3">
           <div className="flex justify-between text-sm text-muted-foreground">
             <span>Total venta</span>
@@ -103,7 +188,7 @@ export function PaymentModal({ open, onClose, cashSessionId, onSuccess }: Props)
           {paid > 0 && (
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>Pagado</span>
-              <span className="font-semibold text-green-600">{formatCOP(paid)}</span>
+              <span className="font-semibold text-emerald-600">{formatCOP(paid)}</span>
             </div>
           )}
           {remaining > 0 && (
@@ -120,12 +205,12 @@ export function PaymentModal({ open, onClose, cashSessionId, onSuccess }: Props)
           )}
         </div>
 
-        {/* Pagos registrados */}
+        {/* ── Pagos registrados ────────────────────────── */}
         {payments.length > 0 && (
           <div className="space-y-1.5">
             {payments.map((p, i) => (
               <div key={i} className="flex items-center justify-between rounded-lg border bg-background px-3 py-2 text-sm">
-                <span className="font-medium capitalize">{METODOS.find((m) => m.value === p.metodo)?.label ?? p.metodo}</span>
+                <span className="font-medium">{getPaymentMethodLabel(p.metodo)}</span>
                 <div className="flex items-center gap-3">
                   <span className="font-mono font-semibold tabular-nums">{formatCOP(p.amount)}</span>
                   <button onClick={() => removePayment(i)} className="text-muted-foreground hover:text-destructive">×</button>
@@ -135,11 +220,11 @@ export function PaymentModal({ open, onClose, cashSessionId, onSuccess }: Props)
           </div>
         )}
 
-        {/* Agregar pago */}
+        {/* ── Agregar pago ─────────────────────────────── */}
         <div className="space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Agregar pago</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Método de pago</p>
           <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-5">
-            {METODOS.map((m) => (
+            {PAYMENT_METHOD_OPTIONS.map((m) => (
               <button
                 key={m.value}
                 type="button"
@@ -147,7 +232,7 @@ export function PaymentModal({ open, onClose, cashSessionId, onSuccess }: Props)
                 className={cn(
                   'rounded-lg border py-2 text-xs font-medium transition-colors',
                   metodo === m.value
-                    ? 'border-primary bg-primary text-white'
+                    ? 'border-primary bg-primary text-primary-foreground'
                     : 'border-border bg-background hover:bg-muted',
                 )}
               >
@@ -169,23 +254,18 @@ export function PaymentModal({ open, onClose, cashSessionId, onSuccess }: Props)
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               )}
             />
-            <Button
-              variant="outline"
-              onClick={handleAddPayment}
-              disabled={!amount || parseInt(amount, 10) <= 0}
-            >
+            <Button variant="outline" onClick={handleAddPayment} disabled={!amount || parseInt(amount, 10) <= 0}>
               Agregar
             </Button>
           </div>
 
-          {/* Atajo: monto exacto */}
           {remaining > 0 && (
             <button
               type="button"
-              onClick={() => { setAmount(String(remaining)); }}
-              className="w-full rounded-lg border border-dashed py-2 text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+              onClick={() => setAmount(String(remaining))}
+              className="w-full rounded-lg border border-dashed py-2 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
             >
-              Agregar monto exacto: {formatCOP(remaining)}
+              Monto exacto: {formatCOP(remaining)}
             </button>
           )}
         </div>
@@ -203,7 +283,7 @@ export function PaymentModal({ open, onClose, cashSessionId, onSuccess }: Props)
             loadingText="Procesando…"
             className={cn(!canConfirm && 'opacity-50 cursor-not-allowed')}
           >
-            Confirmar venta · {formatCOP(totals.total)}
+            Confirmar · {formatCOP(totals.total)}
           </Button>
         </div>
       </div>

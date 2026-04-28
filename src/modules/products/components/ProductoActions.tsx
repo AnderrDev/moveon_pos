@@ -29,7 +29,7 @@ export function ProductoActions({ product, categorias }: ProductoActionsProps) {
   return (
     <>
       <div className="flex items-center gap-1">
-        <Button variant="ghost" size="icon-sm" onClick={() => setDialogOpen(true)} title="Editar">
+        <Button variant="ghost" size="icon-sm" onClick={() => setDialogOpen(true)} title="Editar" aria-label="Editar producto">
           <Pencil className="h-3.5 w-3.5" />
         </Button>
         <Button
@@ -38,6 +38,7 @@ export function ProductoActions({ product, categorias }: ProductoActionsProps) {
           onClick={toggle}
           isLoading={isPending}
           title={product.isActive ? 'Desactivar' : 'Activar'}
+          aria-label={product.isActive ? 'Desactivar producto' : 'Activar producto'}
           className={product.isActive ? 'text-muted-foreground' : 'text-green-600'}
         >
           {product.isActive

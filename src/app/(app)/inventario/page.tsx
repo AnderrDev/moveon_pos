@@ -5,7 +5,6 @@ import { SupabaseProductRepository } from '@/modules/products/infrastructure/rep
 import { PageHeader } from '@/shared/components/layout/PageHeader'
 import { RegisterEntryDialog } from '@/modules/inventory/components/RegisterEntryDialog'
 import { StockTable } from '@/modules/inventory/components/StockTable'
-import type { InventoryMovement } from '@/modules/inventory/domain/entities/inventory.entity'
 
 export default async function InventarioPage() {
   const auth = await getAuthContext()
@@ -22,24 +21,12 @@ export default async function InventarioPage() {
   const stockLevels = stockResult.ok  ? stockResult.value  : []
   const productos   = productosResult.ok ? productosResult.value : []
 
-  // Mapa productId → product
   const productMap = Object.fromEntries(productos.map((p) => [p.id, p]))
 
-  // Kardex de todos los productos (últimos 50 por producto)
-  const kardexMap: Record<string, InventoryMovement[]> = {}
-  await Promise.all(
-    stockLevels.map(async (sl) => {
-      const r = await invRepo.getKardex(sl.productId, auth.tiendaId, 50)
-      if (r.ok) kardexMap[sl.productId] = r.value
-    }),
-  )
-
-  // Combinar stock + product info para renderizar
   const rows = stockLevels
     .filter((sl) => productMap[sl.productId])
     .map((sl) => ({ stockLevel: sl, product: productMap[sl.productId] }))
     .sort((a, b) => {
-      // Primero los de stock bajo, luego alfabético
       if (a.stockLevel.isLow !== b.stockLevel.isLow) return a.stockLevel.isLow ? -1 : 1
       return a.product.nombre.localeCompare(b.product.nombre)
     })
@@ -79,7 +66,7 @@ export default async function InventarioPage() {
           </p>
         </div>
       ) : (
-        <StockTable rows={rows} kardexMap={kardexMap} />
+        <StockTable rows={rows} />
       )}
     </>
   )

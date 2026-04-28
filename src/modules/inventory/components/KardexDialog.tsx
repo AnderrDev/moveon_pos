@@ -1,7 +1,10 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Dialog } from '@/shared/components/ui/Dialog'
 import { Button } from '@/shared/components/ui/Button'
+import { formatShortDate, formatTime } from '@/shared/lib/format'
+import { getKardexAction } from '../application/actions/inventory.actions'
 import type { InventoryMovement } from '../domain/entities/inventory.entity'
 
 const TIPO_LABELS: Record<string, { label: string; color: string }> = {
@@ -12,15 +15,25 @@ const TIPO_LABELS: Record<string, { label: string; color: string }> = {
 }
 
 interface Props {
+  productId: string
   productNombre: string
-  movements: InventoryMovement[]
   onClose: () => void
 }
 
-export function KardexDialog({ productNombre, movements, onClose }: Props) {
+export function KardexDialog({ productId, productNombre, onClose }: Props) {
+  const [movements, setMovements] = useState<InventoryMovement[] | null>(null)
+
+  useEffect(() => {
+    getKardexAction(productId).then(setMovements)
+  }, [productId])
+
   return (
     <Dialog open onClose={onClose} title={`Kardex — ${productNombre}`}>
-      {movements.length === 0 ? (
+      {movements === null ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        </div>
+      ) : movements.length === 0 ? (
         <p className="py-8 text-center text-sm text-muted-foreground">Sin movimientos registrados.</p>
       ) : (
         <div className="max-h-[400px] overflow-y-auto">
@@ -39,9 +52,7 @@ export function KardexDialog({ productNombre, movements, onClose }: Props) {
                 return (
                   <tr key={m.id}>
                     <td className="py-2.5 text-xs text-muted-foreground">
-                      {m.createdAt.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}
-                      {' '}
-                      {m.createdAt.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+                      {formatShortDate(m.createdAt)} {formatTime(m.createdAt)}
                     </td>
                     <td className={`py-2.5 font-medium ${meta.color}`}>{meta.label}</td>
                     <td className={`py-2.5 text-right font-mono font-semibold tabular-nums ${m.cantidad > 0 ? 'text-green-600' : 'text-destructive'}`}>

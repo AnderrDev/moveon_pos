@@ -9,14 +9,7 @@ import { Badge } from '@/shared/components/ui/Badge'
 import { AddProductoButton } from '@/modules/products/components/AddProductoButton'
 import { ProductoActions } from '@/modules/products/components/ProductoActions'
 import { ProductsSubNav } from '@/modules/products/components/ProductsSubNav'
-
-function formatCOP(value: number) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    maximumFractionDigits: 0,
-  }).format(value)
-}
+import { formatCurrency as formatCOP } from '@/shared/lib/format'
 
 export default async function ProductosPage() {
   const auth = await getAuthContext()

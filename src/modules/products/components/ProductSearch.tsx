@@ -3,14 +3,7 @@
 import { useState, useEffect, useRef, useTransition } from 'react'
 import { searchProductsAction, type ProductSearchResult } from '../application/actions/search-products.action'
 import { cn } from '@/shared/lib/utils'
-
-function formatCOP(value: number) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    maximumFractionDigits: 0,
-  }).format(value)
-}
+import { formatCurrency as formatCOP } from '@/shared/lib/format'
 
 interface Props {
   onSelect: (product: ProductSearchResult) => void

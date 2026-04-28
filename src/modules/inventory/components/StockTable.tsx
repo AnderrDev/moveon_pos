@@ -6,7 +6,6 @@ import { Button } from '@/shared/components/ui/Button'
 import { AdjustStockDialog } from './AdjustStockDialog'
 import { KardexDialog } from './KardexDialog'
 import type { StockLevel } from '../domain/entities/inventory.entity'
-import type { InventoryMovement } from '../domain/entities/inventory.entity'
 import type { Product } from '@/modules/products/domain/entities/product.entity'
 
 interface StockRow {
@@ -16,10 +15,9 @@ interface StockRow {
 
 interface Props {
   rows: StockRow[]
-  kardexMap: Record<string, InventoryMovement[]>
 }
 
-export function StockTable({ rows, kardexMap }: Props) {
+export function StockTable({ rows }: Props) {
   const [adjustTarget, setAdjustTarget] = useState<StockRow | null>(null)
   const [kardexTarget, setKardexTarget] = useState<StockRow | null>(null)
 
@@ -96,8 +94,8 @@ export function StockTable({ rows, kardexMap }: Props) {
 
       {kardexTarget && (
         <KardexDialog
+          productId={kardexTarget.product.id}
           productNombre={kardexTarget.product.nombre}
-          movements={kardexMap[kardexTarget.product.id] ?? []}
           onClose={() => setKardexTarget(null)}
         />
       )}

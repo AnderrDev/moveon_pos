@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation'
 import { getAuthContext } from '@/shared/lib/auth-context'
 import { SupabaseCashRegisterRepository } from '@/modules/cash-register/infrastructure/repositories/supabase-cash-register.repository'
+import { SupabaseProductRepository } from '@/modules/products/infrastructure/repositories/supabase-product.repository'
+import { SupabaseCategoriaRepository } from '@/modules/products/infrastructure/repositories/supabase-categoria.repository'
 import { PosScreen } from '@/modules/sales/components/PosScreen'
 import { PageHeader } from '@/shared/components/layout/PageHeader'
 import { Badge } from '@/shared/components/ui/Badge'
@@ -9,9 +11,19 @@ export default async function PosPage() {
   const auth = await getAuthContext()
   if (!auth) redirect('/login')
 
-  const cashRepo      = new SupabaseCashRegisterRepository()
-  const sessionResult = await cashRepo.getOpenSession(auth.tiendaId)
-  const session       = sessionResult.ok ? sessionResult.value : null
+  const cashRepo     = new SupabaseCashRegisterRepository()
+  const productRepo  = new SupabaseProductRepository()
+  const categoriaRepo = new SupabaseCategoriaRepository()
+
+  const [sessionResult, productsResult, categoriasResult] = await Promise.all([
+    cashRepo.getOpenSession(auth.tiendaId),
+    productRepo.search({ tiendaId: auth.tiendaId, soloActivos: true, limit: 200 }),
+    categoriaRepo.findAll(auth.tiendaId),
+  ])
+
+  const session    = sessionResult.ok    ? sessionResult.value    : null
+  const productos  = productsResult.ok   ? productsResult.value   : []
+  const categorias = categoriasResult.ok ? categoriasResult.value : []
 
   if (!session) {
     return (
@@ -32,7 +44,7 @@ export default async function PosPage() {
           </p>
           <a
             href="/caja"
-            className="mt-4 inline-flex h-9 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:brightness-110"
+            className="mt-4 inline-flex h-9 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:brightness-110"
           >
             Ir a Caja
           </a>
@@ -41,12 +53,33 @@ export default async function PosPage() {
     )
   }
 
+  const initialProducts = productos.map((p) => ({
+    id:           p.id,
+    nombre:       p.nombre,
+    sku:          p.sku,
+    codigoBarras: p.codigoBarras,
+    precioVenta:  p.precioVenta,
+    ivaTasa:      p.ivaTasa,
+    categoriaId:  p.categoriaId,
+  }))
+
+  const categories = categorias
+    .filter((c) => c.isActive)
+    .map((c) => ({ id: c.id, nombre: c.nombre }))
+
   return (
     <>
-      <PageHeader title="Punto de Venta" description={`Turno abierto · Caja ${session.openingAmount.toLocaleString('es-CO')}`}>
+      <PageHeader
+        title="Punto de Venta"
+        description={`Turno abierto · Caja ${session.openingAmount.toLocaleString('es-CO')}`}
+      >
         <Badge variant="success">Caja abierta</Badge>
       </PageHeader>
-      <PosScreen cashSessionId={session.id} />
+      <PosScreen
+        cashSessionId={session.id}
+        initialProducts={initialProducts}
+        categories={categories}
+      />
     </>
   )
 }

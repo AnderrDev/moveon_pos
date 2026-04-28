@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { createClient } from '@/infrastructure/supabase/server'
 import type { Role } from '@/shared/types'
 
@@ -5,13 +6,11 @@ export interface AuthContext {
   userId: string
   tiendaId: string
   rol: Role
+  email: string | null
 }
 
-/**
- * Obtiene el contexto de autenticación para usar en Server Actions.
- * Devuelve null si el usuario no está autenticado o no tiene tienda activa.
- */
-export async function getAuthContext(): Promise<AuthContext | null> {
+// cache() deduplicates within a single RSC render tree (layout + page share one result)
+export const getAuthContext = cache(async (): Promise<AuthContext | null> => {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
@@ -30,5 +29,6 @@ export async function getAuthContext(): Promise<AuthContext | null> {
     userId:   user.id,
     tiendaId: data[0].tienda_id,
     rol:      data[0].rol as Role,
+    email:    user.email ?? null,
   }
-}
+})

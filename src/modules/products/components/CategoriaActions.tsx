@@ -37,6 +37,7 @@ export function CategoriaActions({ categoria }: CategoriaActionsProps) {
           size="icon-sm"
           onClick={() => setDialogOpen(true)}
           title="Editar"
+          aria-label="Editar categoría"
         >
           <Pencil className="h-3.5 w-3.5" />
         </Button>
@@ -47,6 +48,7 @@ export function CategoriaActions({ categoria }: CategoriaActionsProps) {
           onClick={toggleActive}
           isLoading={isPending}
           title={categoria.isActive ? 'Desactivar' : 'Activar'}
+          aria-label={categoria.isActive ? 'Desactivar categoría' : 'Activar categoría'}
           className={categoria.isActive ? 'text-muted-foreground' : 'text-green-600'}
         >
           {categoria.isActive

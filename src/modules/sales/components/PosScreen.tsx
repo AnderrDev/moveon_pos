@@ -1,33 +1,35 @@
 'use client'
 
 import { useState } from 'react'
-import { ProductSearch } from '@/modules/products/components/ProductSearch'
+import { ProductGrid, type PosProduct, type PosCategory } from './ProductGrid'
 import { CartPanel } from './CartPanel'
 import { PaymentModal } from './PaymentModal'
 import { SaleSuccessModal } from './SaleSuccessModal'
 import { SalesHistory } from './SalesHistory'
 import { useCartStore } from '../store/cart.store'
 import { cn } from '@/shared/lib/utils'
-import type { ProductSearchResult } from '@/modules/products/application/actions/search-products.action'
 import type { IvaRate } from '@/shared/types'
+import type { TicketData } from './SaleSuccessModal'
 
 interface Props {
   cashSessionId: string
+  initialProducts: PosProduct[]
+  categories: PosCategory[]
 }
 
 type PanelView = 'cart' | 'history'
 
-export function PosScreen({ cashSessionId }: Props) {
-  const [checkoutOpen, setCheckoutOpen]   = useState(false)
-  const [panelView, setPanelView]         = useState<PanelView>('cart')
+export function PosScreen({ cashSessionId, initialProducts, categories }: Props) {
+  const [checkoutOpen, setCheckoutOpen]     = useState(false)
+  const [panelView, setPanelView]           = useState<PanelView>('cart')
   const [historyRefresh, setHistoryRefresh] = useState(0)
-  const [successData, setSuccessData]     = useState<{
-    saleId: string; saleNumber: string; total: number; change: number
+  const [successData, setSuccessData]       = useState<{
+    saleId: string; saleNumber: string; total: number; change: number; ticketData: TicketData
   } | null>(null)
 
   const { addItem, items, totals } = useCartStore()
 
-  function handleProductSelect(product: ProductSearchResult) {
+  function handleProductSelect(product: PosProduct) {
     addItem({
       id:          product.id,
       nombre:      product.nombre,
@@ -35,13 +37,12 @@ export function PosScreen({ cashSessionId }: Props) {
       precioVenta: product.precioVenta,
       ivaTasa:     product.ivaTasa as IvaRate,
     })
-    // Asegurarse de que el carrito esté visible al agregar
     setPanelView('cart')
   }
 
-  function handleSaleSuccess(saleId: string, saleNumber: string, change: number) {
+  function handleSaleSuccess(saleId: string, saleNumber: string, change: number, ticketData: TicketData) {
     setCheckoutOpen(false)
-    setSuccessData({ saleId, saleNumber, total: totals.total, change })
+    setSuccessData({ saleId, saleNumber, total: totals.total, change, ticketData })
     setHistoryRefresh((n) => n + 1)
   }
 
@@ -52,47 +53,43 @@ export function PosScreen({ cashSessionId }: Props) {
 
   return (
     <div className="flex h-[calc(100vh-4rem)] gap-0">
-      {/* Panel izquierdo — búsqueda */}
-      <div className="flex flex-1 flex-col gap-4 overflow-hidden p-4 lg:p-6">
-        <ProductSearch
-          onSelect={handleProductSelect}
-          placeholder="Buscar producto por nombre, SKU o código de barras…"
-          autoFocus
-        />
 
-        <div className="flex flex-1 items-center justify-center">
-          {items.length === 0 ? (
-            <div className="text-center">
-              <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
-                <svg viewBox="0 0 24 24" fill="none" className="h-7 w-7 text-muted-foreground" aria-hidden>
-                  <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.75"/>
-                  <path d="M16.5 16.5L21 21" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"/>
-                </svg>
-              </div>
-              <p className="text-sm text-muted-foreground">Busca un producto para comenzar la venta</p>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              {items.length} ítem{items.length !== 1 ? 's' : ''} · Total{' '}
-              {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(totals.total)}
+      {/* ── Panel izquierdo — grid de productos ────────────── */}
+      <div className="flex flex-1 flex-col gap-0 overflow-hidden">
+        {/* Header strip */}
+        <div className="flex items-center justify-between border-b px-4 py-3 lg:px-6">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {initialProducts.length} producto{initialProducts.length !== 1 ? 's' : ''}
+          </p>
+          {items.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              {items.length} ítem{items.length !== 1 ? 's' : ''} en carrito
             </p>
           )}
         </div>
+
+        <div className="flex-1 overflow-hidden p-4 lg:p-5">
+          <ProductGrid
+            products={initialProducts}
+            categories={categories}
+            onSelect={handleProductSelect}
+          />
+        </div>
       </div>
 
-      {/* Panel derecho — carrito / historial con tabs */}
-      <aside className="flex w-80 flex-shrink-0 flex-col border-l bg-card">
+      {/* ── Panel derecho — carrito / historial ────────────── */}
+      <aside className="flex w-80 flex-shrink-0 flex-col border-l bg-card xl:w-96">
         {/* Tabs */}
         <div className="flex border-b">
           {(['cart', 'history'] as PanelView[]).map((view) => {
-            const label = view === 'cart' ? 'Carrito' : 'Historial'
+            const label    = view === 'cart' ? 'Carrito' : 'Historial'
             const isActive = panelView === view
             return (
               <button
                 key={view}
                 onClick={() => setPanelView(view)}
                 className={cn(
-                  'flex-1 px-3 py-3 text-xs font-semibold uppercase tracking-wide transition-colors',
+                  'flex flex-1 items-center justify-center gap-1.5 px-3 py-3 text-xs font-semibold uppercase tracking-wide transition-colors',
                   isActive
                     ? 'border-b-2 border-primary text-primary'
                     : 'text-muted-foreground hover:text-foreground',
@@ -100,7 +97,7 @@ export function PosScreen({ cashSessionId }: Props) {
               >
                 {label}
                 {view === 'cart' && items.length > 0 && (
-                  <span className="ml-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-white font-bold">
+                  <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
                     {items.length}
                   </span>
                 )}
@@ -118,7 +115,7 @@ export function PosScreen({ cashSessionId }: Props) {
         </div>
       </aside>
 
-      {/* Modal de pago */}
+      {/* Modales */}
       <PaymentModal
         open={checkoutOpen}
         onClose={() => setCheckoutOpen(false)}
@@ -126,13 +123,13 @@ export function PosScreen({ cashSessionId }: Props) {
         onSuccess={handleSaleSuccess}
       />
 
-      {/* Modal de éxito */}
       {successData && (
         <SaleSuccessModal
           open
           saleNumber={successData.saleNumber}
           total={successData.total}
           change={successData.change}
+          ticketData={successData.ticketData}
           onClose={handleSuccessClose}
         />
       )}

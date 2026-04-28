@@ -5,18 +5,8 @@ import { listSessionSalesAction, type SessionSaleRow } from '../application/acti
 import { voidSaleAction } from '../application/actions/sale.actions'
 import { useToast } from '@/shared/components/feedback/ToastProvider'
 import { cn } from '@/shared/lib/utils'
-
-function formatCOP(v: number) {
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(v)
-}
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
-}
-
-const METODO_LABEL: Record<string, string> = {
-  cash: 'Efectivo', card: 'Tarjeta', nequi: 'Nequi',
-  daviplata: 'Daviplata', transfer: 'Transferencia',
-}
+import { formatCurrency as formatCOP, formatTime } from '@/shared/lib/format'
+import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
 
 interface Props {
   cashSessionId: string
@@ -76,10 +66,10 @@ export function SalesHistory({ cashSessionId, refreshTrigger }: Props) {
             </p>
           )}
         </div>
-        <button onClick={load} className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors" title="Actualizar">
+        <button onClick={load} className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors" title="Actualizar" aria-label="Actualizar historial">
           <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5" aria-hidden>
-            <path d="M14 8A6 6 0 112 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-            <path d="M14 4v4h-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M2 8a6 6 0 1 0 6-6c-1.8 0-3.4.8-4.5 2L2 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M2 2.5v3.5h3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
       </div>
@@ -110,7 +100,7 @@ export function SalesHistory({ cashSessionId, refreshTrigger }: Props) {
                       )}
                     </div>
                     <p className="mt-0.5 text-[11px] text-muted-foreground">
-                      {formatTime(sale.createdAt)} · {sale.itemCount} ítem{sale.itemCount !== 1 ? 's' : ''} · {sale.payments.map((p) => METODO_LABEL[p.metodo] ?? p.metodo).join(', ')}
+                      {formatTime(sale.createdAt)} · {sale.itemCount} ítem{sale.itemCount !== 1 ? 's' : ''} · {sale.payments.map((p) => getPaymentMethodLabel(p.metodo)).join(', ')}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
@@ -118,7 +108,7 @@ export function SalesHistory({ cashSessionId, refreshTrigger }: Props) {
                     {sale.status === 'completed' && (
                       <button
                         onClick={() => handleVoid(sale)}
-                        className="rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                        className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                         title="Anular venta"
                       >
                         <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5" aria-hidden>

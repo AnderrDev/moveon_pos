@@ -7,14 +7,11 @@ import { Button } from '@/shared/components/ui/Button'
 import { SubmitButton } from '@/shared/components/forms/SubmitButton'
 import { useActionFeedback } from '@/shared/hooks/use-action-feedback'
 import { cn } from '@/shared/lib/utils'
+import { formatCurrency as formatCOP } from '@/shared/lib/format'
 
 interface Props {
   sessionId: string
   expectedAmount: number
-}
-
-function formatCOP(value: number) {
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value)
 }
 
 const INITIAL = { error: null }
@@ -50,15 +47,16 @@ export function CloseSessionDialog({ sessionId, expectedAmount }: Props) {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">
+            <label htmlFor="close-cash" className="mb-1.5 block text-sm font-medium text-foreground">
               Efectivo contado en caja <span className="text-destructive">*</span>
             </label>
-            <input name="actualCashAmount" type="number" min="0" step="1" placeholder="0" defaultValue={isDev ? String(expectedAmount) : undefined} required className={inputCls} />
+            <input id="close-cash" name="actualCashAmount" type="number" inputMode="numeric" min="0" step="1" placeholder="0" defaultValue={isDev ? String(expectedAmount) : undefined} required className={inputCls} />
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Notas de cierre (opcional)</label>
+            <label htmlFor="close-notes" className="mb-1.5 block text-sm font-medium text-foreground">Notas de cierre (opcional)</label>
             <textarea
+              id="close-notes"
               name="notasCierre"
               placeholder="Observaciones del turno…"
               rows={3}

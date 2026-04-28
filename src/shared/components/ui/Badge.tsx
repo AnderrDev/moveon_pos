@@ -8,9 +8,9 @@ interface BadgeProps {
 
 const variantClasses: Record<NonNullable<BadgeProps['variant']>, string> = {
   default:     'bg-secondary text-secondary-foreground',
-  success:     'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-  warning:     'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
-  destructive: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+  success:     'bg-emerald-500/15 text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-400/10 dark:text-emerald-400 dark:ring-emerald-400/20',
+  warning:     'bg-amber-500/15 text-amber-700 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-400/10 dark:text-amber-400 dark:ring-amber-400/20',
+  destructive: 'bg-red-500/15 text-red-700 ring-1 ring-inset ring-red-600/20 dark:bg-red-400/10 dark:text-red-400 dark:ring-red-400/20',
   outline:     'border border-border text-muted-foreground',
 }
 
