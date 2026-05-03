@@ -3,25 +3,23 @@
 
 # dependencies
 /node_modules
-/.pnp
-.pnp.js
-.yarn/install-state.gz
 package-lock.json
 
 # testing
 /coverage
+/playwright-report
+/test-results
 
-# next.js
-/.next/
-/out/
+# build
+/dist
+/.angular
 
-# production
-/build
+# Angular runtime config (generado por scripts/generate-runtime-config.mjs)
+apps/pos-angular/public/runtime-config.json
 
 # misc
 .DS_Store
 *.pem
-/forms.md
 
 # debug
 npm-debug.log*
@@ -32,12 +30,8 @@ yarn-error.log*
 .env*.local
 .env.local
 
-# vercel
-.vercel
-
 # typescript
 *.tsbuildinfo
-next-env.d.ts
 
 # supabase
 /supabase/.branches
