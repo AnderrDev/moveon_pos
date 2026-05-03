@@ -1,0 +1,78 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "newProjectRoot": "apps",
+  "projects": {
+    "pos-angular": {
+      "projectType": "application",
+      "root": "apps/pos-angular",
+      "sourceRoot": "apps/pos-angular/src",
+      "prefix": "mo",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:application",
+          "options": {
+            "outputPath": "dist/pos-angular",
+            "index": "apps/pos-angular/src/index.html",
+            "browser": "apps/pos-angular/src/main.ts",
+            "polyfills": ["zone.js"],
+            "tsConfig": "apps/pos-angular/tsconfig.app.json",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "apps/pos-angular/public",
+                "output": "/"
+              }
+            ],
+            "styles": ["apps/pos-angular/src/styles.css"],
+            "scripts": []
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "650kB",
+                  "maximumError": "1MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "8kB",
+                  "maximumError": "16kB"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "pos-angular:build:production"
+            },
+            "development": {
+              "buildTarget": "pos-angular:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "lint": {
+          "builder": "@angular-eslint/builder:lint",
+          "options": {
+            "lintFilePatterns": [
+              "apps/pos-angular/src/**/*.ts",
+              "apps/pos-angular/src/**/*.html"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

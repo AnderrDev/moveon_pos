@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
   createLoginFormDefaults,
   loginFormSchema,
@@ -25,21 +25,14 @@ describe('loginFormSchema', () => {
 })
 
 describe('createLoginFormDefaults', () => {
-  afterEach(() => {
-    vi.unstubAllEnvs()
+  it('devuelve campos vacíos por defecto', () => {
+    expect(createLoginFormDefaults()).toEqual({ email: '', password: '' })
   })
 
-  it('devuelve valores por defecto de login', () => {
-    const defaults = createLoginFormDefaults()
-    expect(defaults).toHaveProperty('email')
-    expect(defaults).toHaveProperty('password')
-  })
-
-  it('precarga credenciales en development', () => {
-    vi.stubEnv('NODE_ENV', 'development')
-    expect(createLoginFormDefaults()).toEqual({
-      email: 'admin@moveonpos.co',
-      password: 'Admin1234!',
+  it('respeta overrides parciales (útiles para presenters Angular en local)', () => {
+    expect(createLoginFormDefaults({ email: 'foo@bar.co' })).toEqual({
+      email: 'foo@bar.co',
+      password: '',
     })
   })
 })

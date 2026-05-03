@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
   categoriaFormSchema,
   createCategoriaFormDefaults,
@@ -22,17 +22,12 @@ describe('categoriaFormSchema', () => {
 })
 
 describe('createCategoriaFormDefaults', () => {
-  afterEach(() => {
-    vi.unstubAllEnvs()
+  it('devuelve nombre vacío por defecto', () => {
+    expect(createCategoriaFormDefaults()).toEqual({ nombre: '' })
   })
 
   it('permite sobreescribir valores iniciales', () => {
     expect(createCategoriaFormDefaults({ nombre: 'Snacks' })).toEqual({ nombre: 'Snacks' })
-  })
-
-  it('precarga categoría en development', () => {
-    vi.stubEnv('NODE_ENV', 'development')
-    expect(createCategoriaFormDefaults()).toEqual({ nombre: 'Proteínas' })
   })
 })
 
@@ -82,8 +77,17 @@ describe('productFormSchema', () => {
 })
 
 describe('createProductFormDefaults', () => {
-  afterEach(() => {
-    vi.unstubAllEnvs()
+  it('devuelve defaults limpios cuando no recibe iniciales', () => {
+    const defaults = createProductFormDefaults()
+    expect(defaults.nombre).toBe('')
+    expect(defaults.sku).toBe('')
+    expect(defaults.precioVenta).toBe(0)
+    expect(defaults.costo).toBeUndefined()
+    expect(defaults.ivaTasa).toBe(0)
+    expect(defaults.stockMinimo).toBe(0)
+    expect(defaults.tipo).toBe('simple')
+    expect(defaults.unidad).toBe('und')
+    expect(defaults.isActive).toBe(true)
   })
 
   it('mezcla valores iniciales con defaults', () => {
@@ -115,16 +119,5 @@ describe('createProductFormDefaults', () => {
     }
 
     expect(createProductFormDefaults(initial)).toEqual(initial)
-  })
-
-  it('precarga producto de ejemplo en development', () => {
-    vi.stubEnv('NODE_ENV', 'development')
-    const defaults = createProductFormDefaults()
-    expect(defaults.nombre).toBe('Whey Protein 1kg')
-    expect(defaults.sku).toBe('WH001')
-    expect(defaults.precioVenta).toBe(110000)
-    expect(defaults.costo).toBe(70000)
-    expect(defaults.ivaTasa).toBe(19)
-    expect(defaults.stockMinimo).toBe(2)
   })
 })
