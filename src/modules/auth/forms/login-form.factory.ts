@@ -9,9 +9,7 @@ export const loginFormSchema = z.object({
     .min(1, 'El correo es obligatorio')
     .email('Ingresa un correo electrónico válido'),
 
-  password: z
-    .string()
-    .min(6, 'La contraseña debe tener al menos 6 caracteres'),
+  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
 })
 
 // ── Tipos derivados ───────────────────────────────────────────────────────────
@@ -20,9 +18,11 @@ export type LoginFormValue = z.infer<typeof loginFormSchema>
 
 // ── Valores por defecto ───────────────────────────────────────────────────────
 
-export function createLoginFormDefaults(): LoginFormValue {
+export function createLoginFormDefaults(
+  initial: Partial<LoginFormValue> = {},
+): LoginFormValue {
   return {
-    email:    process.env.NODE_ENV === 'development' ? 'admin@moveonpos.co' : '',
-    password: process.env.NODE_ENV === 'development' ? 'Admin1234!' : '',
+    email: initial.email ?? '',
+    password: initial.password ?? '',
   }
 }

@@ -10,7 +10,8 @@ export const categoriaFormSchema = z.object({
 
 export type CategoriaFormValue = z.infer<typeof categoriaFormSchema>
 
-export function createCategoriaFormDefaults(initial?: Partial<CategoriaFormValue>): CategoriaFormValue {
-  const isDev = process.env.NODE_ENV === 'development'
-  return { nombre: initial?.nombre ?? (isDev ? 'Proteínas' : '') }
+export function createCategoriaFormDefaults(
+  initial: Partial<CategoriaFormValue> = {},
+): CategoriaFormValue {
+  return { nombre: initial.nombre ?? '' }
 }
