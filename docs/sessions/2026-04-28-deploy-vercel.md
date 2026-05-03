@@ -27,11 +27,14 @@ Definir el procedimiento para desplegar MOVEONAPP POS en Vercel con variables de
 - `vercel.json` — configuración explícita para Vercel con Next.js, pnpm y build command.
 - `.vercelignore` — exclusiones de archivos locales/secrets/cache para el deploy.
 - `pnpm-lock.yaml` — lockfile requerido para instalaciones reproducibles con pnpm.
+- `src/infrastructure/supabase/env.ts` — helper centralizado para validar variables de Supabase y aceptar fallbacks server-side.
+- `tests/unit/infrastructure/supabase-env.test.ts` — cobertura del helper de variables.
 
 ### 2.2 Archivos modificados
 - `next.config.ts` — `typedRoutes` movido a la opción estable de Next 15.
 - `package.json` — agregado `engines.node >=20.19.0` para Vercel/desarrollo local.
 - `.env.example` — notas de variables mínimas para Vercel.
+- `src/infrastructure/supabase/client.ts`, `server.ts`, `service-role.ts` y `src/middleware.ts` — uso del helper central de env.
 
 ### 2.3 Archivos eliminados
 - (si aplica)
@@ -45,6 +48,7 @@ Definir el procedimiento para desplegar MOVEONAPP POS en Vercel con variables de
 | Usar despliegue Git en Vercel como camino principal | CLI manual como único flujo | Git da preview por PR/commit y producción automática desde la rama principal. |
 | No subir `SUPABASE_DB_URL` a Vercel salvo necesidad explícita | Copiar todas las variables locales | La URL directa de DB solo se usa para migraciones locales/operativas, no por la app en runtime. |
 | Mantener Node como `>=20.19.0` en vez de fijar `22.x` | Forzar Node 22 exacto | Vercel soporta Node moderno y el entorno local actual usa Node 20.19.6; para desarrollo no conviene bloquear por una versión exacta. |
+| Aceptar `SUPABASE_URL`/`SUPABASE_ANON_KEY` como fallback server-side | Depender solo de `NEXT_PUBLIC_*` | Algunas integraciones/plugins pueden inyectar variables sin prefijo público; el middleware/server puede usarlas sin afectar seguridad. |
 
 ---
 
@@ -59,7 +63,7 @@ Definir el procedimiento para desplegar MOVEONAPP POS en Vercel con variables de
 - `corepack pnpm install --frozen-lockfile` — OK.
 - `corepack pnpm typecheck` — OK.
 - `corepack pnpm lint` — OK, con aviso de deprecación de `next lint`.
-- `corepack pnpm test` — OK, 16 archivos / 112 tests.
+- `corepack pnpm test` — OK, 17 archivos / 116 tests.
 - `corepack pnpm build` — OK.
 
 ---

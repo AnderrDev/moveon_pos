@@ -28,7 +28,7 @@ Al terminar la sesión, completa el spec con los cambios realizados, decisiones 
 
 ## 1. Contexto del proyecto
 
-**MOVEONAPP POS** — sistema POS para tienda física de suplementos y batidos en Colombia. Reemplaza Siigo. Stack: Next.js 15 + TypeScript + Supabase + Tailwind + shadcn/ui.
+**MOVEONAPP POS** — sistema POS para tienda física de suplementos y batidos en Colombia. Reemplaza Siigo. Stack único: **Angular 21 standalone + TypeScript + Tailwind CSS 4 + Supabase (PostgreSQL + Auth + RLS + RPC/Edge Functions)**. La app vive en `apps/pos-angular`. Next.js, React, RHF, Zustand y Vercel ya no forman parte del stack (sesión cleanup 2026-05-02).
 
 Antes de programar, lee:
 1. `/docs/00-vision.md`
@@ -44,27 +44,30 @@ Antes de programar, lee:
 ## 2. Reglas no negociables
 
 ### Arquitectura
-- Clean Architecture por módulos (`domain`, `application`, `infrastructure`).
-- Dominio en TypeScript puro, sin dependencias de frameworks.
-- Patrón Adapter para integraciones externas (facturación, impresión).
+- Clean Architecture por módulos (`domain`, `application`).
+- Dominio en TypeScript puro (vive en `src/modules/<feature>/domain`).
+- DTOs Zod y use-cases puros viven en `src/modules/<feature>/application/{dtos,use-cases}`.
+- Forms factory + mapper compartidos viven en `src/modules/<feature>/forms/`.
+- La capa de UI/orquestación Angular vive **únicamente** en `apps/pos-angular/src/app/**`.
+- Las escrituras críticas (ventas, cierres, anulaciones) se hacen vía RPC transaccional o Edge Function, **no** desde el componente.
 
 ### Datos
 - Toda tabla operativa lleva `tienda_id`.
 - Stock cambia solo vía `inventory_movements`.
 - Ventas se anulan, no se borran.
 - RLS activado en todas las tablas sensibles.
-- Service role solo en server-side.
+- Service role solo en Edge Functions o scripts locales — **nunca** en el bundle Angular.
 
 ### Código
 - TypeScript estricto, sin `any` injustificado.
-- Zod en todos los bordes.
-- Errores tipados.
-- Idempotencia en operaciones críticas.
-- Tests unitarios en dominio.
+- Zod en todos los bordes (presenter Angular antes de invocar servicios; servicios antes de invocar Supabase si construyen el payload).
+- Errores tipados con `Result<T, E>` para dominio; `throw` solo para errores técnicos (red, DB).
+- Idempotencia en operaciones críticas (clave generada al inicio del flujo, no por click).
+- Tests unitarios obligatorios en dominio, DTOs y use-cases. Tests Angular pendientes de setup (vitest+@analogjs o karma).
 
 ### Seguridad
-- Secretos solo en server.
-- Validación de permisos por rol en Server Actions.
+- Secretos nunca en el bundle Angular.
+- Validación de permisos por rol en cada servicio Angular sensible. No confiar solo en RLS.
 
 ---
 
@@ -79,7 +82,7 @@ Antes de programar, lee:
 
 ### Al implementar
 - Incrementos pequeños.
-- Sigue la estructura existente.
+- Sigue la estructura existente: `apps/pos-angular/src/app/features/<modulo>` para UI, `src/modules/<modulo>` para dominio + DTOs + use-cases + forms factory/mapper.
 - Tipos compartidos en `/src/shared/types/`.
 - Migrations versionadas en `/supabase/migrations/`.
 
@@ -92,7 +95,8 @@ Antes de programar, lee:
 ### Qué evitar
 - No instales dependencias sin justificación.
 - No introduzcas patrones nuevos sin ADR.
-- No mezcles SQL en componentes React.
+- No reintroduzcas Next, React, RHF, Zustand, Vercel ni shadcn.
+- No mezcles llamadas Supabase directamente en componentes Angular: van por servicios `@Injectable`.
 - No agregues funcionalidades fuera del MVP v1.0.
 - No crees componentes UI o formularios sin leer `/docs/standards/ui-components.md` y `/docs/standards/forms.md`.
 
@@ -101,12 +105,14 @@ Antes de programar, lee:
 ## 4. Comandos
 
 ```bash
-pnpm dev
-pnpm typecheck
-pnpm lint
-pnpm test
-pnpm db:migrate
-pnpm db:types
+pnpm dev          # ng serve pos-angular (http://localhost:4200)
+pnpm build        # ng build pos-angular
+pnpm typecheck    # tsc --noEmit + ng build dev
+pnpm lint         # ng lint pos-angular
+pnpm test         # vitest run (dominio, DTOs, use-cases, forms)
+pnpm test:e2e     # playwright (apunta a http://localhost:4200)
+pnpm db:migrate   # supabase migration up
+pnpm db:types     # regenera src/infrastructure/supabase/database.types.ts
 ```
 
 ---
@@ -114,9 +120,9 @@ pnpm db:types
 ## 5. Convenciones
 
 - Archivos: `kebab-case.ts`.
-- Componentes React: `PascalCase.tsx`.
+- Componentes Angular: `kebab-case.component.ts` con clase `PascalCase`. Selector `mo-<nombre>`.
 - DB: `snake_case`.
-- Imports absolutos desde `@/`.
+- Imports absolutos desde `@/` (apunta a `src/`) y `@angular-app/` (apunta a `apps/pos-angular/src/app`).
 - Código en inglés, UI y docs en español.
 
 ---
@@ -133,10 +139,10 @@ Los estándares están en `/docs/standards/`. Léelos antes de crear componentes
 | Patrones de diseño | `/docs/standards/design-patterns.md` |
 
 **Resumen crítico:**
-- Componentes reutilizables → `src/shared/components/`. CVA para variantes.
-- Formularios → React Hook Form + Zod. Un schema = fuente de verdad cliente y servidor.
-- Use-cases → función con deps inyectadas. Result para errores de dominio.
-- Repositories → interfaz en domain, implementación en infrastructure. Nunca exponer tipos de Supabase.
+- Componentes Angular reutilizables → `apps/pos-angular/src/app/shared/`. Standalone components.
+- Formularios → Angular Reactive Forms + Zod schema (factory en `src/modules/.../forms/`). Presenter en `apps/pos-angular/src/app/features/<modulo>/<feature>-form.presenter.ts`.
+- Use-cases → función con deps inyectadas. `Result` para errores de dominio.
+- Repositories → vivirán dentro de `apps/pos-angular/src/app/features/<modulo>/infrastructure/` cuando se porten; nunca exponer tipos crudos de Supabase a presenters/components.
 
 ## 7. Specs de sesión
 

@@ -10,8 +10,10 @@ Este archivo es la guía operativa para Claude Code cuando trabaje en este repos
 
 - **Negocio:** suplementos + batidos preparados.
 - **Volumen:** 50–100 ventas/día, 1 operador, 1 sede (multi-sede preparado en datos).
-- **Stack:** Next.js 15 (App Router) + TypeScript + Supabase (PostgreSQL + Auth + RLS + Edge Functions) + Tailwind + shadcn/ui.
-- **Despliegue:** Vercel (frontend) + Supabase (backend gestionado).
+- **Stack:** Angular 21 standalone PWA + TypeScript + Supabase (PostgreSQL + Auth + RLS + RPC/Edge Functions) + Tailwind CSS 4.
+- **Despliegue:** estático (Angular CLI) — el target de hosting se decidirá tras el cleanup de Vercel/Next (sesión `2026-05-02-cleanup-next-vercel`).
+
+> Next.js, React, RHF, Zustand, shadcn/ui y Vercel ya **no** son parte del stack — fueron retirados en el cleanup del 2026-05-02. Si encuentras referencias residuales, repórtalas y bórralas.
 
 Antes de programar, **lee siempre**:
 1. `/docs/00-vision.md` — qué intentamos resolver.
@@ -29,29 +31,29 @@ Antes de programar, **lee siempre**:
 Estos principios **no se discuten en cada tarea**. Si la solución que vas a proponer los rompe, busca otra solución.
 
 ### 2.1 Arquitectura
-- **Clean Architecture por módulos.** Cada módulo (`sales`, `inventory`, `billing`, etc.) tiene su propio dominio, casos de uso e infraestructura.
-- **El dominio no depende de Supabase, ni de Next.js, ni de proveedores externos.** El dominio es TypeScript puro.
-- **Patrón Adapter para integraciones externas** (facturación electrónica, impresión, pagos). Define interfaces en el dominio, implementaciones en infraestructura.
-- **Inyección de dependencias** vía argumentos de funciones o factories. No usamos contenedores DI complejos en MVP.
+- **Clean Architecture por módulos.** Cada módulo (`sales`, `inventory`, `billing`, etc.) tiene su propio dominio, DTOs y use-cases en `src/modules/<modulo>`. La UI/orquestación Angular vive en `apps/pos-angular/src/app/features/<modulo>`.
+- **El dominio no depende de Angular, ni de Supabase, ni de proveedores externos.** El dominio es TypeScript puro.
+- **Patrón Adapter para integraciones externas** (facturación electrónica, impresión, pagos). Define interfaces en el dominio, implementaciones en infraestructura Angular.
+- **Inyección de dependencias** vía argumentos de funciones / factories en use-cases puros, y vía Angular `@Injectable` + tokens en presenters/servicios.
 
 ### 2.2 Datos
 - **Toda tabla operativa lleva `tienda_id`** desde el día uno (multi-sede preparado).
 - **Stock NUNCA se modifica directamente.** Todo cambio pasa por `inventory_movements`.
 - **Las ventas no se borran físicamente.** Se anulan con auditoría (`status = 'voided'`, `voided_by`, `voided_at`, `voided_reason`).
 - **RLS activado en todas las tablas con datos del negocio.** Sin excepción.
-- **Service role solo se usa en Server Actions o Edge Functions**, nunca expuesto al cliente.
+- **Service role solo en Edge Functions o scripts locales.** Nunca empacar en el bundle Angular ni exponer al navegador.
 
 ### 2.3 Código
-- **TypeScript estricto.** `strict: true` en `tsconfig.json`. No usar `any` sin justificación documentada.
-- **Validación con Zod** en todos los bordes (entrada de Server Actions, respuestas de APIs externas, formularios).
-- **Errores tipados** con `Result<T, E>` o errores de dominio, no `throw` genéricos en lógica de negocio.
-- **Idempotencia** en operaciones críticas (crear venta, emitir factura, cerrar caja).
-- **Tests unitarios** obligatorios en lógica de dominio (sales, inventory, billing). Tests de integración para flujos críticos.
+- **TypeScript estricto.** `strict: true` en `tsconfig.angular.json`. No usar `any` sin justificación documentada.
+- **Validación con Zod** en todos los bordes (presenter Angular antes del submit, payload antes de invocar Supabase).
+- **Errores tipados** con `Result<T, E>` para dominio; `throw` solo para fallos técnicos (red, DB caída).
+- **Idempotencia** en operaciones críticas (crear venta, emitir factura, cerrar caja). La clave se genera al iniciar el flujo, no por cada click.
+- **Tests unitarios** obligatorios en lógica de dominio, DTOs y use-cases. Tests Angular pendientes de setup (vitest+@analogjs/vitest-angular o karma) — escribir tan pronto como exista.
 
 ### 2.4 Seguridad
-- Nunca poner secretos en cliente. Variables `NEXT_PUBLIC_*` solo para datos públicos.
-- Llaves de proveedor de facturación, service role, etc. → solo en server (Server Actions, Edge Functions).
-- Validar permisos por rol en cada Server Action sensible. No confiar solo en RLS.
+- Ningún secreto en cliente. La app Angular sólo recibe `SUPABASE_URL` y `SUPABASE_ANON_KEY`.
+- Llaves de proveedor de facturación, service role, etc. → solo Edge Functions o scripts CLI locales (`scripts/`).
+- Validar permisos por rol en cada servicio Angular sensible. No confiar solo en RLS.
 
 ---
 
@@ -67,22 +69,23 @@ Estos principios **no se discuten en cada tarea**. Si la solución que vas a pro
 
 ### 3.2 Al implementar
 - **Pequeños incrementos.** Una tarea = un PR mental. No mezcles refactors grandes con features nuevas.
-- **Sigue la estructura existente.** Si en `sales/` hay `domain/`, `application/`, `infrastructure/`, replica ese patrón en módulos nuevos.
+- **Sigue la estructura existente.** Dominio + DTOs + use-cases + forms factory/mapper en `src/modules/<modulo>`. UI Angular en `apps/pos-angular/src/app/features/<modulo>`.
 - **Usa los tipos compartidos en `/src/shared/types/`**. No redefinas entidades en cada módulo.
-- **Usa los componentes compartidos en `/src/shared/components/`**. No recrees UI que ya existe.
+- **Componentes reutilizables Angular** van en `apps/pos-angular/src/app/shared/` cuando se justifique.
 - **Migrations versionadas** en `/supabase/migrations/`. Nombres con timestamp.
 
 ### 3.3 Después de implementar
 - Ejecuta `pnpm typecheck` y `pnpm lint`.
-- Ejecuta los tests del módulo afectado.
+- Ejecuta los tests del módulo afectado (`pnpm test`).
 - Actualiza el archivo del módulo en `/docs/modules/` si cambió algo relevante.
 - Si tomaste una decisión arquitectónica, déjala como ADR.
 - **Actualiza el spec de sesión** en `/docs/sessions/` con lo que hiciste.
 
 ### 3.4 Qué NO hacer
+- No reintroduzcas Next, React, RHF, Zustand, shadcn ni Vercel — fueron retirados a propósito.
 - No instales dependencias sin justificación. Cada librería suma riesgo y costo.
-- No introduzcas patrones nuevos (Redux, RxJS, etc.) sin discutirlo en un ADR primero.
-- No mezcles SQL crudo en componentes de React. Toda llamada a datos pasa por la capa de aplicación del módulo.
+- No introduzcas patrones nuevos sin discutirlo en un ADR primero.
+- No mezcles SQL crudo en componentes Angular. Toda llamada a datos pasa por un servicio Angular `@Injectable`.
 - No agregues funcionalidades fuera del scope del MVP v1.0 (ver `/docs/01-mvp-scope.md`).
 - No crees componentes UI o formularios sin leer primero `/docs/standards/ui-components.md` y `/docs/standards/forms.md`.
 
@@ -91,14 +94,16 @@ Estos principios **no se discuten en cada tarea**. Si la solución que vas a pro
 ## 4. Comandos útiles
 
 ```bash
-pnpm dev              # Levantar Next.js en local
-pnpm typecheck        # Verificar tipos
-pnpm lint             # ESLint
-pnpm test             # Tests
-pnpm test:watch       # Tests en modo watch
-pnpm db:migrate       # Aplicar migrations a Supabase local
-pnpm db:reset         # Resetear DB local (cuidado en prod)
-pnpm db:types         # Regenerar tipos TS desde Supabase
+pnpm dev              # ng serve pos-angular (http://localhost:4200)
+pnpm build            # ng build pos-angular (producción)
+pnpm typecheck        # tsc --noEmit + ng build dev
+pnpm lint             # ng lint pos-angular
+pnpm test             # vitest run (dominio + DTOs + use-cases + forms)
+pnpm test:watch       # vitest en modo watch
+pnpm test:e2e         # playwright (apunta a http://localhost:4200)
+pnpm db:migrate       # aplicar migrations a Supabase local
+pnpm db:reset         # resetear DB local (cuidado en prod)
+pnpm db:types         # regenerar tipos TS desde Supabase
 ```
 
 ---
@@ -106,9 +111,9 @@ pnpm db:types         # Regenerar tipos TS desde Supabase
 ## 5. Convenciones de código
 
 - **Nombres de archivos:** `kebab-case.ts` (ej: `create-sale.use-case.ts`).
-- **Nombres de componentes React:** `PascalCase.tsx` (ej: `SaleCart.tsx`).
+- **Componentes Angular:** `kebab-case.component.ts` con clase `PascalCase`. Selector con prefijo `mo-` (ej: `mo-pos-page`).
 - **Nombres de tablas y columnas en DB:** `snake_case` (ej: `sale_items`, `created_at`).
-- **Imports absolutos** desde `@/` (configurado en `tsconfig.json`).
+- **Imports absolutos** desde `@/` (apunta a `src/`) y `@angular-app/` (apunta a `apps/pos-angular/src/app`).
 - **Idioma:** código en inglés, comentarios y mensajes de UI en español. Documentación interna en español.
 
 ---
@@ -141,7 +146,7 @@ Los estándares están en `/docs/standards/`. **Léelos antes de crear cualquier
 
 | Estándar | Archivo | Cuándo aplica |
 |---|---|---|
-| Componentes UI centralizados | `/docs/standards/ui-components.md` | Siempre que crees un componente React |
+| Componentes UI centralizados | `/docs/standards/ui-components.md` | Siempre que crees un componente Angular |
 | Formularios reactivos | `/docs/standards/forms.md` | Siempre que construyas un form |
 | Principios SOLID | `/docs/standards/solid-principles.md` | Al diseñar use-cases, repos, adapters |
 | Patrones de diseño | `/docs/standards/design-patterns.md` | Al elegir cómo estructurar lógica nueva |
@@ -149,20 +154,19 @@ Los estándares están en `/docs/standards/`. **Léelos antes de crear cualquier
 ### Resumen de reglas críticas
 
 **UI:**
-- Todo componente reutilizable va en `src/shared/components/`.
-- Usa CVA para variantes, `cn()` para clases condicionales.
-- No modifiques los archivos de shadcn directamente. Extiéndelos en `shared/components/ui/`.
+- Todo componente reutilizable Angular va en `apps/pos-angular/src/app/shared/`.
+- Standalone components con selector `mo-*`.
+- Tailwind v4 (`@import 'tailwindcss'` + `@theme` en CSS). Sin shadcn/Radix.
 
 **Formularios:**
-- Stack obligatorio: React Hook Form + Zod resolver.
-- El schema Zod del DTO es la única fuente de verdad de validación (cliente Y servidor).
-- Usa `FormInput`, `FormSelect`, `FormCurrencyInput` de `shared/components/forms/`.
-- La Server Action valida con `safeParse` del mismo schema del DTO.
+- Stack obligatorio: Angular Reactive Forms + schema Zod.
+- El schema Zod del DTO es la única fuente de verdad de validación.
+- Patrón 3 archivos: `factory.ts` + `mapper.ts` (en `src/modules/.../forms/`) + `presenter.ts` (en `apps/pos-angular/src/app/features/<modulo>/`).
 
 **Arquitectura:**
 - Domain → Application → Infrastructure (dirección de dependencias: de arriba hacia abajo).
-- Use-case = función con deps inyectadas como argumento.
-- Repository implementa interfaz de dominio; nunca expone tipos de Supabase al dominio.
+- Use-case = función con deps inyectadas como argumento (TS puro, sin Angular).
+- Repository: interfaz en `src/modules/.../domain/repositories/`, implementación Angular en `apps/pos-angular/src/app/features/<modulo>/infrastructure/`. Nunca expone tipos de Supabase al dominio.
 - Errores de dominio: `Result<T, E>`. Errores técnicos: `throw`.
 
 ---
