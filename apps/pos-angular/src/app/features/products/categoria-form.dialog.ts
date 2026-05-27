@@ -8,6 +8,7 @@ import {
   output,
   signal,
 } from '@angular/core'
+import { getErrorMessage } from '@/shared/lib/error-message'
 import { ReactiveFormsModule } from '@angular/forms'
 import { DialogComponent } from '../../shared/ui/dialog.component'
 import { ButtonComponent } from '../../shared/ui/button.component'
@@ -112,7 +113,7 @@ export class CategoriaFormDialog {
       this.saved.emit(result)
       this.closed.emit()
     } catch (error) {
-      this.presenter.setRootError(error instanceof Error ? error.message : 'Error al guardar')
+      this.presenter.setRootError(getErrorMessage(error, 'Error al guardar'))
     } finally {
       this.saving.set(false)
       this.presenter.form.enable({ emitEvent: false })

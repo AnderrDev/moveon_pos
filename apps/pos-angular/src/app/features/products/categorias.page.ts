@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import { getErrorMessage } from '@/shared/lib/error-message'
 import { RouterLink, RouterLinkActive } from '@angular/router'
 import { PageHeaderComponent } from '../../shared/layout/page-header.component'
 import { ButtonComponent } from '../../shared/ui/button.component'
@@ -6,6 +7,7 @@ import { BadgeComponent } from '../../shared/ui/badge.component'
 import { EmptyStateComponent } from '../../shared/feedback/empty-state.component'
 import { CategoriaFormDialog } from './categoria-form.dialog'
 import { ProductsRepository } from './products.repository'
+import { ProductsCacheStore } from './products-cache.store'
 import { SessionService } from '../../core/auth/session.service'
 import { ToastService } from '../../shared/feedback/toast.service'
 import type { Categoria } from '@/modules/products/domain/entities/product.entity'
@@ -112,10 +114,11 @@ import type { Categoria } from '@/modules/products/domain/entities/product.entit
 })
 export class CategoriasPage {
   private readonly repo = inject(ProductsRepository)
+  private readonly store = inject(ProductsCacheStore)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
 
-  readonly categorias = signal<Categoria[]>([])
+  readonly categorias = computed(() => this.store.categorias() ?? [])
   readonly loading = signal(true)
   readonly loadError = signal<string | null>(null)
   readonly dialogOpen = signal(false)
@@ -125,16 +128,15 @@ export class CategoriasPage {
     void this.load()
   }
 
-  async load(): Promise<void> {
+  async load(options: { force?: boolean } = {}): Promise<void> {
     this.loading.set(true)
     this.loadError.set(null)
     try {
       const auth = await this.session.getAuthContext()
       if (!auth) throw new Error('No autenticado')
-      const list = await this.repo.listCategorias(auth.tiendaId)
-      this.categorias.set(list)
+      await this.store.ensureCategorias(auth.tiendaId, { force: options.force })
     } catch (error) {
-      this.loadError.set(error instanceof Error ? error.message : 'Error al cargar')
+      this.loadError.set(getErrorMessage(error, 'Error al cargar'))
     } finally {
       this.loading.set(false)
     }
@@ -156,15 +158,7 @@ export class CategoriasPage {
   }
 
   onSaved(cat: Categoria): void {
-    const current = this.categorias()
-    const idx = current.findIndex((c) => c.id === cat.id)
-    if (idx >= 0) {
-      const next = [...current]
-      next[idx] = cat
-      this.categorias.set(next)
-    } else {
-      this.categorias.set([...current, cat])
-    }
+    this.store.upsertCategoria(cat)
   }
 
   async confirmDeactivate(cat: Categoria): Promise<void> {
@@ -174,11 +168,9 @@ export class CategoriasPage {
     try {
       await this.repo.deactivateCategoria(cat.id, auth.tiendaId)
       this.toast.success('Categoria desactivada')
-      this.categorias.set(
-        this.categorias().map((c) => (c.id === cat.id ? { ...c, isActive: false } : c)),
-      )
+      this.store.patchCategoria(cat.id, { isActive: false })
     } catch (error) {
-      this.toast.error(error instanceof Error ? error.message : 'No se pudo desactivar')
+      this.toast.error(getErrorMessage(error, 'No se pudo desactivar'))
     }
   }
 }

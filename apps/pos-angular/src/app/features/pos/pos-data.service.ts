@@ -1,23 +1,7 @@
 import { inject, Injectable } from '@angular/core'
+import { ProductsCacheStore } from '../products/products-cache.store'
 import { SupabaseClientService } from '../../core/supabase/supabase-client.service'
 import type { OpenCashSession, PosCategory, PosProduct } from './pos.types'
-import type { IvaRate } from '@/shared/types'
-
-interface ProductRow {
-  id: string
-  nombre: string
-  sku: string | null
-  codigo_barras: string | null
-  precio_venta: number
-  iva_tasa: number
-  categoria_id: string | null
-}
-
-interface CategoryRow {
-  id: string
-  nombre: string
-  is_active: boolean
-}
 
 interface CashSessionRow {
   id: string
@@ -27,43 +11,28 @@ interface CashSessionRow {
 @Injectable({ providedIn: 'root' })
 export class PosDataService {
   private readonly supabaseClient = inject(SupabaseClientService)
+  private readonly cache = inject(ProductsCacheStore)
 
-  async listProducts(): Promise<PosProduct[]> {
-    const { data, error } = await this.supabaseClient.supabase
-      .from('productos')
-      .select('id, nombre, sku, codigo_barras, precio_venta, iva_tasa, categoria_id')
-      .eq('is_active', true)
-      .order('nombre', { ascending: true })
-      .limit(200)
-      .returns<ProductRow[]>()
-
-    if (error) throw new Error(error.message)
-
-    return (data ?? []).map((row) => ({
-      id: row.id,
-      nombre: row.nombre,
-      sku: row.sku,
-      codigoBarras: row.codigo_barras,
-      precioVenta: row.precio_venta,
-      ivaTasa: row.iva_tasa as IvaRate,
-      categoriaId: row.categoria_id,
-    }))
+  async listProducts(tiendaId: string): Promise<PosProduct[]> {
+    const products = await this.cache.ensureProducts(tiendaId)
+    return products
+      .filter((p) => p.isActive)
+      .map((p) => ({
+        id: p.id,
+        nombre: p.nombre,
+        sku: p.sku,
+        codigoBarras: p.codigoBarras,
+        precioVenta: p.precioVenta,
+        ivaTasa: p.ivaTasa,
+        categoriaId: p.categoriaId,
+      }))
   }
 
-  async listCategories(): Promise<PosCategory[]> {
-    const { data, error } = await this.supabaseClient.supabase
-      .from('categorias')
-      .select('id, nombre, is_active')
-      .eq('is_active', true)
-      .order('nombre', { ascending: true })
-      .returns<CategoryRow[]>()
-
-    if (error) throw new Error(error.message)
-
-    return (data ?? []).map((row) => ({
-      id: row.id,
-      nombre: row.nombre,
-    }))
+  async listCategories(tiendaId: string): Promise<PosCategory[]> {
+    const categorias = await this.cache.ensureCategorias(tiendaId)
+    return categorias
+      .filter((c) => c.isActive)
+      .map((c) => ({ id: c.id, nombre: c.nombre }))
   }
 
   async getOpenCashSession(tiendaId: string): Promise<OpenCashSession | null> {

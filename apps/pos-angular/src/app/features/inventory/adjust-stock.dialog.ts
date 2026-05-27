@@ -7,6 +7,7 @@ import {
   output,
   signal,
 } from '@angular/core'
+import { getErrorMessage } from '@/shared/lib/error-message'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
 import { DialogComponent } from '../../shared/ui/dialog.component'
 import { ButtonComponent } from '../../shared/ui/button.component'
@@ -147,7 +148,7 @@ export class AdjustStockDialog {
       this.saved.emit()
       this.closed.emit()
     } catch (error) {
-      this.rootError.set(error instanceof Error ? error.message : 'Error al ajustar stock')
+      this.rootError.set(getErrorMessage(error, 'Error al ajustar stock'))
     } finally {
       this.saving.set(false)
       this.form.enable({ emitEvent: false })

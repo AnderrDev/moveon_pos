@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import { getErrorMessage } from '@/shared/lib/error-message'
 import { PageHeaderComponent } from '../../shared/layout/page-header.component'
 import { ButtonComponent } from '../../shared/ui/button.component'
 import { BadgeComponent } from '../../shared/ui/badge.component'
@@ -326,7 +327,7 @@ export class ReportesPage {
       this.daily.set(daily)
       this.stock.set(stock)
     } catch (error) {
-      this.loadError.set(error instanceof Error ? error.message : 'Error al cargar reporte')
+      this.loadError.set(getErrorMessage(error, 'Error al cargar reporte'))
     } finally {
       this.loading.set(false)
     }

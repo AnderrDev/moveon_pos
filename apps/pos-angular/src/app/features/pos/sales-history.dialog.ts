@@ -7,12 +7,14 @@ import {
   output,
   signal,
 } from '@angular/core'
+import { getErrorMessage } from '@/shared/lib/error-message'
 import { DialogComponent } from '../../shared/ui/dialog.component'
 import { ButtonComponent } from '../../shared/ui/button.component'
 import { BadgeComponent } from '../../shared/ui/badge.component'
 import { SalesRepository } from '../sales/sales.repository'
 import { SessionService } from '../../core/auth/session.service'
 import { ToastService } from '../../shared/feedback/toast.service'
+import { ReceiptPrintService } from './receipt-print.service'
 import { formatCurrency, formatTime } from '@/shared/lib/format'
 import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
 import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
@@ -76,11 +78,16 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
                     }
                   </td>
                   <td class="px-3 py-2 text-right">
-                    @if (sale.status === 'completed') {
-                      <mo-button size="sm" variant="ghost" (click)="confirmVoid(sale)"
-                        >Anular</mo-button
+                    <div class="flex justify-end gap-1">
+                      <mo-button size="sm" variant="ghost" (click)="reprint(sale)"
+                        >Reimprimir</mo-button
                       >
-                    }
+                      @if (sale.status === 'completed') {
+                        <mo-button size="sm" variant="ghost" (click)="confirmVoid(sale)"
+                          >Anular</mo-button
+                        >
+                      }
+                    </div>
                   </td>
                 </tr>
               }
@@ -95,6 +102,7 @@ export class SalesHistoryDialog {
   private readonly salesRepo = inject(SalesRepository)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
+  private readonly receiptPrint = inject(ReceiptPrintService)
 
   readonly open = input<boolean>(false)
   readonly cashSessionId = input<string | null>(null)
@@ -141,9 +149,17 @@ export class SalesHistoryDialog {
       if (!auth) throw new Error('No autenticado')
       this.sales.set(await this.salesRepo.listBySession(sid, auth.tiendaId))
     } catch (error) {
-      this.loadError.set(error instanceof Error ? error.message : 'Error al cargar')
+      this.loadError.set(getErrorMessage(error, 'Error al cargar'))
     } finally {
       this.loading.set(false)
+    }
+  }
+
+  async reprint(sale: Sale): Promise<void> {
+    try {
+      await this.receiptPrint.printSale(sale.id)
+    } catch (error) {
+      this.toast.error(getErrorMessage(error, 'No se pudo imprimir el ticket'))
     }
   }
 
@@ -160,7 +176,7 @@ export class SalesHistoryDialog {
       await this.load()
       this.changed.emit()
     } catch (error) {
-      this.toast.error(error instanceof Error ? error.message : 'No se pudo anular')
+      this.toast.error(getErrorMessage(error, 'No se pudo anular'))
     }
   }
 }

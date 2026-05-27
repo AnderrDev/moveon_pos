@@ -7,6 +7,7 @@ import {
   output,
   signal,
 } from '@angular/core'
+import { getErrorMessage } from '@/shared/lib/error-message'
 import { DialogComponent } from '../../shared/ui/dialog.component'
 import { BadgeComponent } from '../../shared/ui/badge.component'
 import { InventoryRepository } from './inventory.repository'
@@ -134,7 +135,7 @@ export class KardexDialog {
       const list = await this.repo.getKardex(productId, auth.tiendaId)
       this.movements.set(list)
     } catch (error) {
-      this.loadError.set(error instanceof Error ? error.message : 'Error al cargar kardex')
+      this.loadError.set(getErrorMessage(error, 'Error al cargar kardex'))
     } finally {
       this.loading.set(false)
     }

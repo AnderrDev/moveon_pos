@@ -214,43 +214,55 @@ export type Database = {
       cash_sessions: {
         Row: {
           actual_cash_amount: number | null
+          actual_sales_amount: number | null
           closed_at: string | null
           closed_by: string | null
           difference: number | null
           expected_cash_amount: number | null
+          expected_sales_amount: number | null
           id: string
           notas_cierre: string | null
           opened_at: string
           opened_by: string
           opening_amount: number
+          payment_closure: Json
+          sales_difference: number | null
           status: Database["public"]["Enums"]["cash_session_status"]
           tienda_id: string
         }
         Insert: {
           actual_cash_amount?: number | null
+          actual_sales_amount?: number | null
           closed_at?: string | null
           closed_by?: string | null
           difference?: number | null
           expected_cash_amount?: number | null
+          expected_sales_amount?: number | null
           id?: string
           notas_cierre?: string | null
           opened_at?: string
           opened_by: string
           opening_amount: number
+          payment_closure?: Json
+          sales_difference?: number | null
           status?: Database["public"]["Enums"]["cash_session_status"]
           tienda_id: string
         }
         Update: {
           actual_cash_amount?: number | null
+          actual_sales_amount?: number | null
           closed_at?: string | null
           closed_by?: string | null
           difference?: number | null
           expected_cash_amount?: number | null
+          expected_sales_amount?: number | null
           id?: string
           notas_cierre?: string | null
           opened_at?: string
           opened_by?: string
           opening_amount?: number
+          payment_closure?: Json
+          sales_difference?: number | null
           status?: Database["public"]["Enums"]["cash_session_status"]
           tienda_id?: string
         }
@@ -764,11 +776,48 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      close_cash_session_atomic: {
+        Args: {
+          p_actual_cash: number
+          p_actual_payments: Json
+          p_closed_by: string
+          p_notas_cierre?: string
+          p_session_id: string
+          p_tienda_id: string
+        }
+        Returns: string
+      }
+      create_sale_atomic: {
+        Args: {
+          p_cash_session_id: string
+          p_cashier_id: string
+          p_cliente_id: string
+          p_discount_total: number
+          p_idempotency_key: string
+          p_items: Json
+          p_payments: Json
+          p_sale_number: string
+          p_subtotal: number
+          p_tax_total: number
+          p_tienda_id: string
+          p_total: number
+        }
+        Returns: string
+      }
       get_stock: {
         Args: { p_producto_id: string; p_tienda_id: string }
         Returns: number
       }
       get_user_tiendas: { Args: never; Returns: string[] }
+      void_sale_atomic: {
+        Args: {
+          p_sale_id: string
+          p_tienda_id: string
+          p_voided_by: string
+          p_voided_reason: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       billing_doc_status:
@@ -809,137 +858,3 @@ export type Database = {
     }
   }
 }
-
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
-
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
-
-export type Tables<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
-    }
-    ? R
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
-    : never
-
-export type TablesInsert<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
-    : never
-
-export type TablesUpdate<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
-    }
-    ? U
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
-    : never
-
-export type Enums<
-  DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
-
-export type CompositeTypes<
-  PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
-
-export const Constants = {
-  public: {
-    Enums: {
-      billing_doc_status: ["pending", "sent", "accepted", "rejected", "cancelled", "failed"],
-      billing_doc_type: ["invoice", "pos_document", "credit_note"],
-      billing_status: ["not_required", "pending", "sent", "accepted", "rejected", "failed"],
-      cash_movement_type: ["cash_in", "cash_out", "expense", "correction"],
-      cash_session_status: ["open", "closed"],
-      inventory_movement_type: ["entry", "sale_exit", "adjustment", "void_return"],
-      payment_method: ["cash", "card", "nequi", "daviplata", "transfer", "other"],
-      product_type: ["simple", "prepared", "ingredient"],
-      sale_status: ["completed", "voided"],
-      user_role: ["admin", "cajero"],
-    },
-  },
-} as const

@@ -77,14 +77,10 @@ export class ReportsService {
     const dayEnd = new Date(date)
     dayEnd.setHours(23, 59, 59, 999)
 
-    const [sales, sessions] = await Promise.all([
+    const [sales, filteredSessions] = await Promise.all([
       this.salesRepo.listByDate(tiendaId, date),
-      this.cashRepo.listSessions(tiendaId, 50),
+      this.cashRepo.listSessionsByDateRange(tiendaId, dayStart, dayEnd),
     ])
-
-    const filteredSessions = sessions.filter(
-      (s) => s.openedAt >= dayStart && s.openedAt <= dayEnd,
-    )
 
     const completed = sales.filter((s) => s.status === 'completed')
     const voided = sales.filter((s) => s.status === 'voided')

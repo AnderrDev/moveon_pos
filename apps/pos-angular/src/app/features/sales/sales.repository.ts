@@ -20,6 +20,18 @@ interface RpcClient {
 export class SalesRepository {
   private readonly supabaseClient = inject(SupabaseClientService)
 
+  async findById(saleId: string, tiendaId: string): Promise<Sale | null> {
+    const { data, error } = await this.supabaseClient.supabase
+      .from('sales')
+      .select(`${SALE_COLS}, sale_items(${ITEM_COLS}), payments(${PAY_COLS})`)
+      .eq('id', saleId)
+      .eq('tienda_id', tiendaId)
+      .maybeSingle<SaleRow>()
+
+    if (error) throw new Error(error.message)
+    return data ? rowToSale(data) : null
+  }
+
   async listBySession(cashSessionId: string, tiendaId: string): Promise<Sale[]> {
     const { data, error } = await this.supabaseClient.supabase
       .from('sales')

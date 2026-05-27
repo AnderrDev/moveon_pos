@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import { getErrorMessage } from '@/shared/lib/error-message'
 import { PageHeaderComponent } from '../../shared/layout/page-header.component'
 import { ButtonComponent } from '../../shared/ui/button.component'
 import { EmptyStateComponent } from '../../shared/feedback/empty-state.component'
@@ -131,7 +132,7 @@ export class ClientesPage {
       if (!auth) throw new Error('No autenticado')
       this.clientes.set(await this.repo.list(auth.tiendaId))
     } catch (error) {
-      this.loadError.set(error instanceof Error ? error.message : 'Error al cargar')
+      this.loadError.set(getErrorMessage(error, 'Error al cargar'))
     } finally {
       this.loading.set(false)
     }
@@ -173,7 +174,7 @@ export class ClientesPage {
       this.toast.success('Cliente eliminado')
       this.clientes.set(this.clientes().filter((x) => x.id !== c.id))
     } catch (error) {
-      this.toast.error(error instanceof Error ? error.message : 'No se pudo eliminar')
+      this.toast.error(getErrorMessage(error, 'No se pudo eliminar'))
     }
   }
 }

@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import { getErrorMessage } from '@/shared/lib/error-message'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
 import { PageHeaderComponent } from '../../shared/layout/page-header.component'
 import { ButtonComponent } from '../../shared/ui/button.component'
@@ -279,7 +280,7 @@ export class CajaPage {
         this.breakdown.set(breakdown)
       }
     } catch (error) {
-      this.loadError.set(error instanceof Error ? error.message : 'Error al cargar caja')
+      this.loadError.set(getErrorMessage(error, 'Error al cargar caja'))
     } finally {
       this.loading.set(false)
     }
@@ -307,7 +308,7 @@ export class CajaPage {
       this.toast.success('Caja abierta')
       await this.load()
     } catch (error) {
-      this.openError.set(error instanceof Error ? error.message : 'No se pudo abrir caja')
+      this.openError.set(getErrorMessage(error, 'No se pudo abrir caja'))
     } finally {
       this.opening.set(false)
     }

@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import { getErrorMessage } from '@/shared/lib/error-message'
 import { RouterLink, RouterLinkActive } from '@angular/router'
 import { PageHeaderComponent } from '../../shared/layout/page-header.component'
 import { ButtonComponent } from '../../shared/ui/button.component'
@@ -6,10 +7,11 @@ import { BadgeComponent } from '../../shared/ui/badge.component'
 import { EmptyStateComponent } from '../../shared/feedback/empty-state.component'
 import { ProductFormDialog } from './product-form.dialog'
 import { ProductsRepository } from './products.repository'
+import { ProductsCacheStore } from './products-cache.store'
 import { SessionService } from '../../core/auth/session.service'
 import { ToastService } from '../../shared/feedback/toast.service'
 import { formatCurrency } from '@/shared/lib/format'
-import type { Categoria, Product } from '@/modules/products/domain/entities/product.entity'
+import type { Product } from '@/modules/products/domain/entities/product.entity'
 
 @Component({
   selector: 'mo-productos-page',
@@ -149,11 +151,12 @@ import type { Categoria, Product } from '@/modules/products/domain/entities/prod
 })
 export class ProductosPage {
   private readonly repo = inject(ProductsRepository)
+  private readonly store = inject(ProductsCacheStore)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
 
-  readonly products = signal<Product[]>([])
-  readonly categorias = signal<Categoria[]>([])
+  readonly products = computed(() => this.store.products() ?? [])
+  readonly categorias = computed(() => this.store.categorias() ?? [])
   readonly loading = signal(true)
   readonly loadError = signal<string | null>(null)
   readonly query = signal('')
@@ -162,8 +165,9 @@ export class ProductosPage {
 
   readonly filteredProducts = computed(() => {
     const q = this.query().trim().toLowerCase()
-    if (!q) return this.products()
-    return this.products().filter((p) =>
+    const list = this.products()
+    if (!q) return list
+    return list.filter((p) =>
       [p.nombre, p.sku ?? '', p.codigoBarras ?? '']
         .join(' ')
         .toLowerCase()
@@ -188,20 +192,18 @@ export class ProductosPage {
     this.query.set((event.target as HTMLInputElement).value)
   }
 
-  async load(): Promise<void> {
+  async load(options: { force?: boolean } = {}): Promise<void> {
     this.loading.set(true)
     this.loadError.set(null)
     try {
       const auth = await this.session.getAuthContext()
       if (!auth) throw new Error('No autenticado')
-      const [products, categorias] = await Promise.all([
-        this.repo.listProducts({ tiendaId: auth.tiendaId, soloActivos: false }),
-        this.repo.listCategorias(auth.tiendaId),
+      await Promise.all([
+        this.store.ensureProducts(auth.tiendaId, { force: options.force }),
+        this.store.ensureCategorias(auth.tiendaId, { force: options.force }),
       ])
-      this.products.set(products)
-      this.categorias.set(categorias)
     } catch (error) {
-      this.loadError.set(error instanceof Error ? error.message : 'Error al cargar productos')
+      this.loadError.set(getErrorMessage(error, 'Error al cargar productos'))
     } finally {
       this.loading.set(false)
     }
@@ -223,15 +225,7 @@ export class ProductosPage {
   }
 
   onSaved(product: Product): void {
-    const current = this.products()
-    const idx = current.findIndex((p) => p.id === product.id)
-    if (idx >= 0) {
-      const next = [...current]
-      next[idx] = product
-      this.products.set(next)
-    } else {
-      this.products.set([product, ...current])
-    }
+    this.store.upsertProduct(product)
   }
 
   async confirmDeactivate(product: Product): Promise<void> {
@@ -241,11 +235,9 @@ export class ProductosPage {
     try {
       await this.repo.deactivateProduct(product.id, auth.tiendaId)
       this.toast.success('Producto desactivado')
-      this.products.set(
-        this.products().map((p) => (p.id === product.id ? { ...p, isActive: false } : p)),
-      )
+      this.store.patchProduct(product.id, { isActive: false })
     } catch (error) {
-      this.toast.error(error instanceof Error ? error.message : 'No se pudo desactivar')
+      this.toast.error(getErrorMessage(error, 'No se pudo desactivar'))
     }
   }
 }

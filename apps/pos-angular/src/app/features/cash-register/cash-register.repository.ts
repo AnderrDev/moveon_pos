@@ -13,8 +13,6 @@ const SESSION_COLS =
   'id, tienda_id, opened_by, closed_by, status, opening_amount, expected_cash_amount, actual_cash_amount, difference, expected_sales_amount, actual_sales_amount, sales_difference, payment_closure, notas_cierre, opened_at, closed_at'
 const MOV_COLS = 'id, cash_session_id, tipo, amount, motivo, created_by, created_at'
 
-const PAYMENT_METHODS: PaymentMethod[] = ['cash', 'card', 'nequi', 'daviplata', 'transfer', 'other']
-
 export interface PaymentBreakdown {
   metodo: string
   count: number
@@ -51,27 +49,14 @@ interface UntypedClient {
         single<T>(): Promise<{ data: T | null; error: { message: string } | null }>
       }
     }
-    update(values: Record<string, unknown>): {
-      eq(col: string, value: unknown): {
-        eq(col: string, value: unknown): {
-          eq(col: string, value: unknown): {
-            select(cols: string): {
-              single<T>(): Promise<{ data: T | null; error: { message: string } | null }>
-            }
-          }
-        }
-      }
-    }
   }
 }
 
-function normalize(breakdown: PaymentBreakdown[]): PaymentBreakdown[] {
-  const map = new Map(breakdown.map((p) => [p.metodo, p]))
-  return PAYMENT_METHODS.map((metodo) => ({
-    metodo,
-    count: map.get(metodo)?.count ?? 0,
-    total: map.get(metodo)?.total ?? 0,
-  }))
+interface RpcClient {
+  rpc<T>(
+    fn: string,
+    args: Record<string, unknown>,
+  ): Promise<{ data: T | null; error: { message: string } | null }>
 }
 
 @Injectable({ providedIn: 'root' })
@@ -109,6 +94,23 @@ export class CashRegisterRepository {
       .eq('tienda_id', tiendaId)
       .order('opened_at', { ascending: false })
       .limit(limit)
+      .returns<CashSessionRow[]>()
+    if (error) throw new Error(error.message)
+    return (data ?? []).map(rowToCashSession)
+  }
+
+  async listSessionsByDateRange(
+    tiendaId: string,
+    start: Date,
+    end: Date,
+  ): Promise<CashSession[]> {
+    const { data, error } = await this.supabaseClient.supabase
+      .from('cash_sessions')
+      .select(SESSION_COLS)
+      .eq('tienda_id', tiendaId)
+      .gte('opened_at', start.toISOString())
+      .lte('opened_at', end.toISOString())
+      .order('opened_at', { ascending: false })
       .returns<CashSessionRow[]>()
     if (error) throw new Error(error.message)
     return (data ?? []).map(rowToCashSession)
@@ -188,73 +190,23 @@ export class CashRegisterRepository {
   }
 
   async closeSession(input: CloseSessionInput): Promise<CashSession> {
-    const supabase = this.supabaseClient.supabase
-
-    const { data: movs, error: movErr } = await supabase
-      .from('cash_movements')
-      .select('tipo, amount')
-      .eq('cash_session_id', input.sessionId)
-      .returns<{ tipo: string; amount: number }[]>()
-    if (movErr) throw new Error(movErr.message)
-
-    const session = await this.getSessionById(input.sessionId, input.tiendaId)
-    if (!session) throw new Error('Sesion no encontrada')
-    if (session.status !== 'open') throw new Error('La caja ya esta cerrada')
-
-    const breakdown = normalize(await this.getPaymentBreakdown(input.sessionId, input.tiendaId))
-    const expectedCashSales = breakdown.find((p) => p.metodo === 'cash')?.total ?? 0
-    const expectedSalesAmount = breakdown.reduce((sum, p) => sum + p.total, 0)
-
-    const movTotal = (movs ?? []).reduce((sum, m) => {
-      const amt = Number(m.amount)
-      return m.tipo === 'cash_in' ? sum + amt : sum - amt
-    }, 0)
-
-    const expectedCashInDrawer = session.openingAmount + expectedCashSales + movTotal
-    const cashDifference = expectedCashInDrawer - input.actualCashAmount
-
-    const actualByMethod = new Map<PaymentMethod, number>()
-    for (const payment of input.actualPayments) actualByMethod.set(payment.metodo, payment.total)
-
-    const actualCashSales = input.actualCashAmount - session.openingAmount - movTotal
-    const actualPayments = PAYMENT_METHODS.map((metodo) => ({
-      metodo,
-      total: metodo === 'cash' ? actualCashSales : actualByMethod.get(metodo) ?? 0,
-    }))
-    const actualSalesAmount = actualPayments.reduce((sum, payment) => sum + payment.total, 0)
-    const salesDifference = expectedSalesAmount - actualSalesAmount
-
-    if (
-      (Math.abs(cashDifference) > 5000 || Math.abs(salesDifference) > 5000) &&
-      !input.notasCierre?.trim()
-    ) {
-      throw new Error('Diferencias mayores a $5.000 requieren nota de cierre')
-    }
-
-    const client = supabase as unknown as UntypedClient
-    const { data, error } = await client
-      .from('cash_sessions')
-      .update({
-        status: 'closed',
-        closed_by: input.closedBy,
-        actual_cash_amount: input.actualCashAmount,
-        expected_cash_amount: expectedCashInDrawer,
-        difference: cashDifference,
-        expected_sales_amount: expectedSalesAmount,
-        actual_sales_amount: actualSalesAmount,
-        sales_difference: salesDifference,
-        payment_closure: { expected: breakdown, actual: actualPayments },
-        notas_cierre: input.notasCierre ?? null,
-        closed_at: new Date().toISOString(),
-      })
-      .eq('id', input.sessionId)
-      .eq('tienda_id', input.tiendaId)
-      .eq('status', 'open')
-      .select(SESSION_COLS)
-      .single<CashSessionRow>()
+    const rpc = this.supabaseClient.supabase as unknown as RpcClient
+    const { error } = await rpc.rpc<string>('close_cash_session_atomic', {
+      p_session_id: input.sessionId,
+      p_tienda_id: input.tiendaId,
+      p_closed_by: input.closedBy,
+      p_actual_cash: input.actualCashAmount,
+      p_actual_payments: input.actualPayments.map((p) => ({
+        metodo: p.metodo,
+        total: p.total,
+      })),
+      p_notas_cierre: input.notasCierre ?? null,
+    })
 
     if (error) throw new Error(error.message)
-    if (!data) throw new Error('Cierre sin respuesta')
-    return rowToCashSession(data)
+
+    const session = await this.getSessionById(input.sessionId, input.tiendaId)
+    if (!session) throw new Error('Cierre sin respuesta')
+    return session
   }
 }

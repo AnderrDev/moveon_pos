@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core'
-import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { createClient, processLock, SupabaseClient } from '@supabase/supabase-js'
 import { AppConfigService } from '../config/app-config.service'
 import type { Database } from '@/infrastructure/supabase/database.types'
 
@@ -16,6 +16,7 @@ export class SupabaseClientService {
           autoRefreshToken: true,
           persistSession: true,
           detectSessionInUrl: true,
+          lock: processLock,
         },
       })
     }

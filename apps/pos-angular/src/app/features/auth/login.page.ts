@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { ReactiveFormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
 import { SessionService } from '../../core/auth/session.service'
@@ -8,6 +8,7 @@ import { loginFormMapper } from '@/modules/auth/forms/login-form.mapper'
 @Component({
   selector: 'mo-login-page',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ReactiveFormsModule],
   providers: [LoginFormPresenter],
   template: `

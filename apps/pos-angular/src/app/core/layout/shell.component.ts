@@ -1,7 +1,8 @@
-import { Component, computed, inject } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router'
 import { SessionService } from '../auth/session.service'
 import { ToastHostComponent } from '../../shared/feedback/toast-host.component'
+import { ReceiptPrintHostComponent } from '../../features/pos/receipt-print-host.component'
 
 interface NavItem {
   label: string
@@ -12,7 +13,8 @@ interface NavItem {
 @Component({
   selector: 'mo-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, ToastHostComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, ToastHostComponent, ReceiptPrintHostComponent],
   template: `
     <div class="bg-background flex h-dvh flex-col overflow-hidden md:flex-row">
       <aside
@@ -100,6 +102,7 @@ interface NavItem {
     </div>
 
     <mo-toast-host />
+    <mo-receipt-print-host />
   `,
 })
 export class ShellComponent {

@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import { getErrorMessage } from '@/shared/lib/error-message'
 import { PageHeaderComponent } from '../../shared/layout/page-header.component'
 import { ButtonComponent } from '../../shared/ui/button.component'
 import { BadgeComponent } from '../../shared/ui/badge.component'
@@ -205,7 +206,7 @@ export class InventarioPage {
       this.products.set(products)
       this.stockLevels.set(stockLevels)
     } catch (error) {
-      this.loadError.set(error instanceof Error ? error.message : 'Error al cargar inventario')
+      this.loadError.set(getErrorMessage(error, 'Error al cargar inventario'))
     } finally {
       this.loading.set(false)
     }

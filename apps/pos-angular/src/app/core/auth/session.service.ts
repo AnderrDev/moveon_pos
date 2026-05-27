@@ -15,10 +15,18 @@ export class SessionService {
   private readonly supabaseClient = inject(SupabaseClientService)
   readonly user = signal<User | null>(null)
 
+  private contextCache: AngularAuthContext | null = null
+  private contextPromise: Promise<AngularAuthContext | null> | null = null
+
   constructor() {
     void this.refreshUser()
     this.supabaseClient.supabase.auth.onAuthStateChange((_event, session) => {
-      this.user.set(session?.user ?? null)
+      const nextUser = session?.user ?? null
+      const prevUserId = this.user()?.id ?? null
+      this.user.set(nextUser)
+      if ((nextUser?.id ?? null) !== prevUserId) {
+        this.invalidateContext()
+      }
     })
   }
 
@@ -26,11 +34,51 @@ export class SessionService {
     const {
       data: { session },
     } = await this.supabaseClient.supabase.auth.getSession()
-    this.user.set(session?.user ?? null)
+    const nextUser = session?.user ?? null
+    if ((this.user()?.id ?? null) !== (nextUser?.id ?? null)) {
+      this.user.set(nextUser)
+    }
     return session
   }
 
   async getAuthContext(): Promise<AngularAuthContext | null> {
+    if (this.contextCache) return this.contextCache
+    if (this.contextPromise) return this.contextPromise
+
+    this.contextPromise = this.loadAuthContext()
+    try {
+      const ctx = await this.contextPromise
+      this.contextCache = ctx
+      return ctx
+    } finally {
+      this.contextPromise = null
+    }
+  }
+
+  async signIn(email: string, password: string): Promise<{ error: AuthError | null }> {
+    const { error } = await this.supabaseClient.supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+    if (!error) {
+      this.invalidateContext()
+      await this.refreshUser()
+    }
+    return { error }
+  }
+
+  async signOut(): Promise<void> {
+    await this.supabaseClient.supabase.auth.signOut()
+    this.user.set(null)
+    this.invalidateContext()
+  }
+
+  private invalidateContext(): void {
+    this.contextCache = null
+    this.contextPromise = null
+  }
+
+  private async loadAuthContext(): Promise<AngularAuthContext | null> {
     const session = await this.getSession()
     const user = session?.user
     if (!user) return null
@@ -51,20 +99,6 @@ export class SessionService {
       rol: data[0].rol as Role,
       email: user.email ?? null,
     }
-  }
-
-  async signIn(email: string, password: string): Promise<{ error: AuthError | null }> {
-    const { error } = await this.supabaseClient.supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-    if (!error) await this.refreshUser()
-    return { error }
-  }
-
-  async signOut(): Promise<void> {
-    await this.supabaseClient.supabase.auth.signOut()
-    this.user.set(null)
   }
 
   private async refreshUser(): Promise<void> {
