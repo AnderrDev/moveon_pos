@@ -16,6 +16,8 @@ export default defineConfig({
         'src/modules/**/application/use-cases/**/*.ts',
         'src/modules/**/domain/services/**/*.ts',
         'src/modules/**/forms/**/*.ts',
+        'src/shared/cache/**/*.ts',
+        'src/shared/lib/error-message.ts',
         'src/shared/lib/format.ts',
         'src/shared/lib/payment-methods.ts',
         'src/shared/result.ts',
