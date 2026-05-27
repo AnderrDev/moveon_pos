@@ -1,4 +1,5 @@
-import { Component, computed, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import { getErrorMessage } from '@/shared/lib/error-message'
 import { formatCurrency } from '@/shared/lib/format'
 import { getPaymentMethodLabel, PAYMENT_METHOD_OPTIONS } from '@/shared/lib/payment-methods'
 import { validatePaymentsForSale } from '@/modules/sales/domain/services/sale-calculator'
@@ -8,12 +9,14 @@ import { ToastService } from '../../shared/feedback/toast.service'
 import { PosCartStore } from './pos-cart.store'
 import { PosDataService } from './pos-data.service'
 import { PosSaleService } from './pos-sale.service'
+import { ReceiptPrintService } from './receipt-print.service'
 import { SalesHistoryDialog } from './sales-history.dialog'
 import type { OpenCashSession, PosCategory, PosProduct } from './pos.types'
 
 @Component({
   selector: 'mo-pos-page',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [PosCartStore],
   imports: [SalesHistoryDialog],
   template: `
@@ -449,6 +452,7 @@ export class PosPage {
   private readonly sessionService = inject(SessionService)
   private readonly dataService = inject(PosDataService)
   private readonly saleService = inject(PosSaleService)
+  private readonly receiptPrint = inject(ReceiptPrintService)
   private readonly toast = inject(ToastService)
 
   readonly cart = inject(PosCartStore)
@@ -506,8 +510,8 @@ export class PosPage {
       if (!auth) throw new Error('No autenticado')
 
       const [products, categories, cashSession] = await Promise.all([
-        this.dataService.listProducts(),
-        this.dataService.listCategories(),
+        this.dataService.listProducts(auth.tiendaId),
+        this.dataService.listCategories(auth.tiendaId),
         this.dataService.getOpenCashSession(auth.tiendaId),
       ])
 
@@ -515,7 +519,7 @@ export class PosPage {
       this.categories.set(categories)
       this.cashSession.set(cashSession)
     } catch (error) {
-      this.loadError.set(error instanceof Error ? error.message : 'No se pudo cargar el POS')
+      this.loadError.set(getErrorMessage(error, 'No se pudo cargar el POS'))
     } finally {
       this.loading.set(false)
     }
@@ -607,7 +611,7 @@ export class PosPage {
     this.isSaving.set(true)
 
     try {
-      await this.saleService.createSale({
+      const result = await this.saleService.createSale({
         cashSessionId: cashSession.id,
         idempotencyKey: this.cart.idempotencyKey(),
         items: this.cart.items(),
@@ -616,14 +620,25 @@ export class PosPage {
         change: this.cart.change(),
       })
 
+      if (!result.ok) {
+        this.saleError.set(
+          result.error.kind === 'unauthenticated'
+            ? 'Sesion expirada'
+            : result.error.message,
+        )
+        return
+      }
+
       const change = this.cart.change()
+      const saleId = result.value.saleId
       this.cart.clearCart()
       this.checkoutOpen.set(false)
       this.toast.success(
         change > 0 ? `Venta completada · cambio ${formatCurrency(change)}` : 'Venta completada',
       )
+      void this.receiptPrint.printSale(saleId, { change })
     } catch (error) {
-      this.saleError.set(error instanceof Error ? error.message : 'No se pudo completar la venta')
+      this.saleError.set(getErrorMessage(error, 'No se pudo completar la venta'))
     } finally {
       this.isSaving.set(false)
     }
