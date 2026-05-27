@@ -43,6 +43,8 @@ const supabaseUrl =
 const supabaseAnonKey =
   env.SUPABASE_ANON_KEY || env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 const appName = env.APP_NAME || 'MOVEONAPP POS'
+const sentryDsn = env.SENTRY_DSN || ''
+const environment = env.APP_ENV || env.NODE_ENV || 'development'
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('[runtime-config] Faltan SUPABASE_URL / SUPABASE_ANON_KEY en .env.local')
@@ -50,6 +52,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
   process.exit(1)
 }
 
-const config = { supabaseUrl, supabaseAnonKey, appName }
+const config = { supabaseUrl, supabaseAnonKey, appName, environment }
+if (sentryDsn) config.sentryDsn = sentryDsn
+
 writeFileSync(OUTPUT, JSON.stringify(config, null, 2) + '\n')
 console.log(`[runtime-config] escrito en ${OUTPUT}`)

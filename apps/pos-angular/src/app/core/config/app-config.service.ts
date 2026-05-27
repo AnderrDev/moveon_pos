@@ -4,6 +4,8 @@ export interface RuntimeConfig {
   supabaseUrl: string
   supabaseAnonKey: string
   appName: string
+  sentryDsn?: string
+  environment: string
 }
 
 @Injectable({ providedIn: 'root' })
@@ -29,6 +31,8 @@ export class AppConfigService {
       supabaseUrl: parsed.supabaseUrl,
       supabaseAnonKey: parsed.supabaseAnonKey,
       appName: parsed.appName ?? 'MOVEONAPP POS',
+      sentryDsn: parsed.sentryDsn,
+      environment: parsed.environment ?? 'development',
     }
     return this.config
   }
