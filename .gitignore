@@ -9,6 +9,10 @@ package-lock.json
 /coverage
 /playwright-report
 /test-results
+/.playwright-mcp
+
+# Claude Code harness runtime files
+/.claude/scheduled_tasks.lock
 
 # build
 /dist
