@@ -11,7 +11,7 @@ import { CashRegisterRepository, type PaymentBreakdown } from './cash-register.r
 import { SessionService } from '../../core/auth/session.service'
 import { ToastService } from '../../shared/feedback/toast.service'
 import { AddMovementDialog } from './add-movement.dialog'
-import { CloseSessionDialog } from './close-session.dialog'
+import { CloseSessionDialog, type ExpectedByMethod } from './close-session.dialog'
 import { formatCurrency, formatTime, formatShortDate } from '@/shared/lib/format'
 import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
 import type {
@@ -187,6 +187,8 @@ import type {
     <mo-close-session-dialog
       [open]="closeOpen()"
       [cashSession]="openSession()"
+      [expectedByMethod]="expectedByMethod()"
+      [expectedCash]="expectedCashInDrawer()"
       (closed)="closeOpen.set(false)"
       (saved)="onClosed()"
     />
@@ -218,6 +220,9 @@ export class CajaPage {
     this.movements().reduce((sum, m) => sum + (m.tipo === 'cash_in' ? m.amount : -m.amount), 0),
   )
   readonly totalSales = computed(() => this.breakdown().reduce((sum, p) => sum + p.total, 0))
+  readonly expectedByMethod = computed<ExpectedByMethod[]>(() =>
+    this.breakdown().map((p) => ({ metodo: p.metodo, total: p.total })),
+  )
   readonly expectedCashInDrawer = computed(() => {
     const opening = this.openSession()?.openingAmount ?? 0
     const cashSales = this.breakdown().find((p) => p.metodo === 'cash')?.total ?? 0
