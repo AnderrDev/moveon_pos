@@ -3,6 +3,7 @@ import { getErrorMessage } from '@/shared/lib/error-message'
 import { formatCurrency } from '@/shared/lib/format'
 import { getPaymentMethodLabel, PAYMENT_METHOD_OPTIONS } from '@/shared/lib/payment-methods'
 import { validatePaymentsForSale } from '@/modules/sales/domain/services/sale-calculator'
+import { buildPaymentEntry, requiresReference } from '@/modules/sales/domain/services/sale-builder'
 import type { PaymentMethod } from '@/shared/types'
 import { SessionService } from '../../core/auth/session.service'
 import { ToastService } from '../../shared/feedback/toast.service'
@@ -413,8 +414,15 @@ import type { Cliente } from '@/modules/customers/domain/entities/cliente.entity
                   <div
                     class="bg-background flex items-center justify-between rounded-lg border px-3 py-2 text-sm"
                   >
-                    <span class="font-medium">{{ paymentLabel(payment.metodo) }}</span>
-                    <div class="flex items-center gap-3">
+                    <span class="min-w-0">
+                      <span class="block font-medium">{{ paymentLabel(payment.metodo) }}</span>
+                      @if (payment.referencia) {
+                        <span class="text-muted-foreground block truncate text-[11px]">
+                          Ref: {{ payment.referencia }}
+                        </span>
+                      }
+                    </span>
+                    <div class="flex shrink-0 items-center gap-3">
                       <span class="font-mono font-semibold tabular-nums">{{
                         money(payment.amount)
                       }}</span>
@@ -467,13 +475,23 @@ import type { Cliente } from '@/modules/customers/domain/entities/cliente.entity
                 @for (method of paymentMethods; track method.value) {
                   <button
                     type="button"
-                    (click)="paymentMethod.set(method.value)"
+                    (click)="selectPaymentMethod(method.value)"
                     [class]="paymentMethodClass(method.value)"
                   >
                     {{ method.label }}
                   </button>
                 }
               </div>
+
+              @if (showReference()) {
+                <input
+                  type="text"
+                  [value]="paymentReference()"
+                  (input)="setPaymentReference($event)"
+                  placeholder="Referencia (opcional)"
+                  class="border-input bg-card focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2"
+                />
+              }
 
               <div class="flex gap-2">
                 <input
@@ -496,7 +514,7 @@ import type { Cliente } from '@/modules/customers/domain/entities/cliente.entity
               @if (cart.remainingAmount() > 0) {
                 <button
                   type="button"
-                  (click)="paymentAmount.set(String(cart.remainingAmount()))"
+                  (click)="addExactPayment()"
                   class="text-muted-foreground hover:border-primary hover:text-primary w-full rounded-lg border border-dashed py-2 text-xs transition-colors"
                 >
                   Monto exacto: {{ money(cart.remainingAmount()) }}
@@ -570,6 +588,7 @@ export class PosPage {
   readonly checkoutOpen = signal(false)
   readonly paymentMethod = signal<PaymentMethod>('cash')
   readonly paymentAmount = signal('')
+  readonly paymentReference = signal<string>('')
   readonly saleError = signal<string | null>(null)
   readonly historyOpen = signal(false)
   readonly isSaving = signal(false)
@@ -603,6 +622,9 @@ export class PosPage {
       !paymentError
     )
   })
+
+  /** El campo "Referencia" solo aplica a métodos no-efectivo. */
+  readonly showReference = computed(() => requiresReference(this.paymentMethod()))
 
   constructor() {
     // El store marca el tope de stock; la página dispara el toast (ToastService
@@ -724,12 +746,25 @@ export class PosPage {
     this.checkoutOpen.set(false)
     this.cart.clearPayments()
     this.paymentAmount.set('')
+    this.paymentReference.set('')
     this.saleError.set(null)
   }
 
   setPaymentAmount(event: Event): void {
     const value = (event.target as HTMLInputElement).value.replace(/\D/g, '')
     this.paymentAmount.set(value)
+  }
+
+  setPaymentReference(event: Event): void {
+    this.paymentReference.set((event.target as HTMLInputElement).value)
+  }
+
+  selectPaymentMethod(method: PaymentMethod): void {
+    this.paymentMethod.set(method)
+    // El efectivo no lleva referencia: limpiamos cualquier valor previo.
+    if (!requiresReference(method)) {
+      this.paymentReference.set('')
+    }
   }
 
   paymentMethodClass(method: PaymentMethod): string {
@@ -744,10 +779,32 @@ export class PosPage {
 
   addPayment(): void {
     const amount = Number.parseInt(this.paymentAmount().replace(/\D/g, ''), 10)
-    if (!amount || amount <= 0) return
+    this.registerPayment(amount)
+  }
 
-    this.cart.addPayment({ metodo: this.paymentMethod(), amount })
-    this.paymentAmount.set('')
+  /** "Monto exacto": arma y agrega el faltante actual en un solo paso. */
+  addExactPayment(): void {
+    this.registerPayment(this.cart.remainingAmount())
+  }
+
+  /**
+   * Arma la entrada de pago con el helper de dominio (descarta referencia si es
+   * efectivo, normaliza vacíos, valida amount > 0) y la agrega al carrito. Tras
+   * agregar reprellena el input con el nuevo faltante y limpia la referencia.
+   */
+  private registerPayment(amount: number): void {
+    const entry = buildPaymentEntry({
+      metodo: this.paymentMethod(),
+      amount,
+      referencia: this.paymentReference(),
+    })
+    if (!entry) return
+
+    this.cart.addPayment(entry)
+    this.paymentReference.set('')
+
+    const remaining = this.cart.remainingAmount()
+    this.paymentAmount.set(remaining > 0 ? String(remaining) : '')
   }
 
   async confirmSale(): Promise<void> {
@@ -785,6 +842,9 @@ export class PosPage {
       const saleId = result.value.saleId
       this.cart.clearCart()
       this.globalDiscountInput.set('')
+      this.paymentAmount.set('')
+      this.paymentReference.set('')
+      this.paymentMethod.set('cash')
       this.checkoutOpen.set(false)
       this.toast.success(
         change > 0 ? `Venta completada · cambio ${formatCurrency(change)}` : 'Venta completada',
