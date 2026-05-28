@@ -3,7 +3,6 @@ import { z } from 'zod'
 import { SupabaseClientService } from '../../core/supabase/supabase-client.service'
 import { SessionService } from '../../core/auth/session.service'
 import { err, ok, type Result } from '@/shared/result'
-import { getErrorMessage } from '@/shared/lib/error-message'
 import { mapSaleError } from './sale-error-mapper'
 import type { PaymentEntry } from './pos.types'
 import type { PosCartItem } from './pos-cart.store'
@@ -130,10 +129,14 @@ export class PosSaleService {
     })
 
     if (error) {
-      // El RPC emite cadenas crudas (ej. 'Stock insuficiente'); el mapper las
-      // traduce a un mensaje legible y, para stock, reconstruye el detalle desde
-      // el carrito. El RPC sigue siendo la autoridad ante carreras de stock.
-      const rawMessage = getErrorMessage(error, 'Error al crear venta')
+      // postgrest-js (sin `.throwOnError()`) devuelve `error` como objeto plano
+      // `{ message, ... }`, NO una instancia de Error. Por eso se lee `error.message`
+      // directo en vez de `getErrorMessage` (que solo extrae de Error/string y
+      // descartaría el texto del RPC). El RPC emite cadenas crudas (ej. 'Stock
+      // insuficiente'); el mapper las traduce a un mensaje legible y, para stock,
+      // reconstruye el detalle desde el carrito. El RPC sigue siendo la autoridad
+      // ante carreras de stock.
+      const rawMessage = error.message?.trim() ? error.message : 'Error al crear venta'
       return err({ kind: 'remote', message: mapSaleError(rawMessage, input.items) })
     }
     if (!data) return err({ kind: 'remote', message: 'Venta creada sin id de respuesta' })

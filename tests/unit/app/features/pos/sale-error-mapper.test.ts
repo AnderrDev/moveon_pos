@@ -29,9 +29,19 @@ describe('mapSaleError', () => {
     expect(result).toBe('Stock insuficiente para completar la venta')
   })
 
-  it('pasa el mensaje de caja en español tal cual', () => {
+  it('mapea el mensaje de caja al copy accionable canónico', () => {
     const result = mapSaleError('No hay caja abierta para esta venta', [])
-    expect(result).toBe('No hay caja abierta para esta venta')
+    expect(result).toBe('No hay una caja abierta. Abre la caja antes de vender.')
+  })
+
+  it('mapea el mensaje de caja al copy canónico aunque venga con prefijo del driver', () => {
+    const result = mapSaleError('error: No hay caja abierta para esta venta', [])
+    expect(result).toBe('No hay una caja abierta. Abre la caja antes de vender.')
+  })
+
+  it('mapea el mensaje de caja al copy canónico sin importar mayúsc/minúsc', () => {
+    const result = mapSaleError('NO HAY CAJA ABIERTA PARA ESTA VENTA', [])
+    expect(result).toBe('No hay una caja abierta. Abre la caja antes de vender.')
   })
 
   it('pasa el mensaje de pagos en español tal cual', () => {

@@ -20,29 +20,49 @@ const GENERIC_MESSAGE = 'Error al crear venta'
 
 const INSUFFICIENT_STOCK_RAW = 'Stock insuficiente'
 
-// Cadenas que el RPC ya emite en español legible: se pasan tal cual.
-const PASSTHROUGH_MESSAGES = [
-  'No hay caja abierta para esta venta',
-  'La suma de pagos no cubre el total de la venta',
-  'El cambio solo puede generarse desde pagos en efectivo',
-  'Producto no disponible',
-] as const
+// Copy accionable de caja: el RPC emite 'No hay caja abierta para esta venta',
+// pero el usuario necesita saber qué hacer. Texto canónico único.
+const NO_OPEN_CASH_SESSION_MESSAGE = 'No hay una caja abierta. Abre la caja antes de vender.'
+
+/**
+ * Cadenas conocidas del RPC → texto canónico en español para el usuario.
+ * `raw` es lo que emite el RPC; `display` es el texto que ve el operador.
+ */
+const KNOWN_MESSAGES: readonly { raw: string; display: string }[] = [
+  { raw: 'No hay caja abierta para esta venta', display: NO_OPEN_CASH_SESSION_MESSAGE },
+  {
+    raw: 'La suma de pagos no cubre el total de la venta',
+    display: 'La suma de pagos no cubre el total de la venta',
+  },
+  {
+    raw: 'El cambio solo puede generarse desde pagos en efectivo',
+    display: 'El cambio solo puede generarse desde pagos en efectivo',
+  },
+  { raw: 'Producto no disponible', display: 'Producto no disponible' },
+]
 
 /**
  * Traduce el mensaje crudo del RPC a un mensaje para el usuario.
+ *
+ * El matching es case-insensitive y tolera prefijos del driver (ej. 'error: ...'),
+ * ya que postgrest-js puede anteponer texto al mensaje del RPC. Siempre devuelve el
+ * texto canónico en español, nunca el crudo.
  *
  * @param rawMessage mensaje tal cual lo devuelve Supabase/el RPC.
  * @param items ítems del carrito al momento del rechazo (para reconstruir stock).
  */
 export function mapSaleError(rawMessage: string, items: readonly SaleErrorCartItem[]): string {
-  const message = rawMessage.trim()
+  const message = rawMessage.trim().toLowerCase()
 
-  if (message.includes(INSUFFICIENT_STOCK_RAW)) {
+  // Stock primero: puede reconstruir un detalle más específico desde el carrito.
+  if (message.includes(INSUFFICIENT_STOCK_RAW.toLowerCase())) {
     return buildStockMessage(items)
   }
 
-  const passthrough = PASSTHROUGH_MESSAGES.find((candidate) => message.includes(candidate))
-  if (passthrough) return passthrough
+  const known = KNOWN_MESSAGES.find((candidate) =>
+    message.includes(candidate.raw.toLowerCase()),
+  )
+  if (known) return known.display
 
   return GENERIC_MESSAGE
 }
