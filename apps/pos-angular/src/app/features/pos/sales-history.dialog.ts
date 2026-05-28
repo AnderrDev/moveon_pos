@@ -17,6 +17,7 @@ import { SessionService } from '../../core/auth/session.service'
 import { canVoidSale } from '../../core/auth/role-policy'
 import { ToastService } from '../../shared/feedback/toast.service'
 import { ReceiptPrintService } from './receipt-print.service'
+import { VoidReasonDialog } from './void-reason.dialog'
 import { selectSessionSales } from './sales-history.session-filter'
 import { formatCurrency, formatTime } from '@/shared/lib/format'
 import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
@@ -26,7 +27,7 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
   selector: 'mo-sales-history-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DialogComponent, ButtonComponent, BadgeComponent],
+  imports: [DialogComponent, ButtonComponent, BadgeComponent, VoidReasonDialog],
   template: `
     <mo-dialog
       [open]="open()"
@@ -99,6 +100,13 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
         </div>
       }
     </mo-dialog>
+
+    <mo-void-reason-dialog
+      [open]="voidDialogOpen()"
+      [saleNumber]="voidTarget()?.saleNumber ?? null"
+      (closed)="voidDialogOpen.set(false)"
+      (confirmed)="onVoidConfirmed($event)"
+    />
   `,
 })
 export class SalesHistoryDialog {
@@ -116,6 +124,10 @@ export class SalesHistoryDialog {
   readonly loading = signal(false)
   readonly loadError = signal<string | null>(null)
 
+  /** Venta seleccionada para anular y visibilidad del dialog de motivo. */
+  readonly voidTarget = signal<Sale | null>(null)
+  readonly voidDialogOpen = signal(false)
+
   /** Solo admin puede anular ventas (defensa en cliente; RLS protege en servidor). */
   readonly canVoid = computed(() => canVoidSale(this.session.role()))
 
@@ -130,6 +142,9 @@ export class SalesHistoryDialog {
       if (!this.open() || !this.cashSessionId()) {
         this.sales.set([])
         this.loadError.set(null)
+        // No dejar el dialog de motivo colgado si se cierra el historial.
+        this.voidDialogOpen.set(false)
+        this.voidTarget.set(null)
         return
       }
       void this.load()
@@ -181,17 +196,25 @@ export class SalesHistoryDialog {
   }
 
   async confirmVoid(sale: Sale): Promise<void> {
-    // Defensa en profundidad: cortocircuitar si el rol no puede anular.
+    // Defensa en profundidad: cortocircuitar si el rol no puede anular ANTES de abrir.
     if (!canVoidSale(await this.session.getRole())) return
 
-    const reason = window.prompt(`Motivo para anular ${sale.saleNumber}:`)
-    if (!reason || reason.trim().length < 3) return
+    this.voidTarget.set(sale)
+    this.voidDialogOpen.set(true)
+  }
+
+  async onVoidConfirmed(reason: string): Promise<void> {
+    // Defensa en profundidad: re-verificar el rol antes de ejecutar la anulación.
+    if (!canVoidSale(await this.session.getRole())) return
+
+    const sale = this.voidTarget()
+    if (!sale) return
 
     const auth = await this.session.getAuthContext()
     if (!auth) return
 
     try {
-      await this.salesRepo.voidSale(sale.id, auth.tiendaId, reason.trim())
+      await this.salesRepo.voidSale(sale.id, auth.tiendaId, reason)
       this.toast.success(`Venta ${sale.saleNumber} anulada`)
       await this.load()
       this.changed.emit()
