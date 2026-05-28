@@ -77,3 +77,31 @@
 ## 7. Notas
 - Datos de prueba en staging: producto `TESTQA02`, ventas `V-000001` (anulada)/`V-000002` (cliente+desc.)/`V-000003`, usuario `cajero@moveonpos.co`, sesiones de caja (una del admin abierta).
 - El service role key y la contraseña de DB siguen en `.env.local`; recordatorio de rotarlos (quedaron expuestos en chat de sesiones previas).
+
+---
+
+## 8. PLAN-16 — Recuperación de contraseña (Supabase Auth) [añadido 2026-05-28]
+
+Implementado el flujo cliente-only de reset de contraseña (AUTH-05). Pipeline architect → developer.
+
+**Creado**
+- Forms TS puro: `src/modules/auth/forms/forgot-password-form.{factory,mapper}.ts`, `reset-password-form.{factory,mapper}.ts`.
+- Feature: `apps/pos-angular/src/app/features/auth/forgot-password.page.ts`, `reset-password.page.ts`, sus presenters, y `reset-password-error-mapper.ts`.
+- Tests: `tests/unit/modules/auth/forgot-password-form.test.ts`, `reset-password-form.test.ts`, `tests/unit/app/features/auth/reset-password-error-mapper.test.ts`.
+
+**Modificado**
+- `login.page.ts`: link "¿Olvidaste tu contraseña?" → `/recuperar-contrasena` (login intacto).
+- `app.routes.ts`: 2 rutas públicas hermanas de `login` (fuera del shell/authGuard).
+- `core/auth/session.service.ts`: `requestPasswordReset(email, redirectTo)` y `updatePassword(password)` (estilo `signIn`, devuelven `{ error }`).
+- `docs/modules/auth.md`: sección "Recuperación de contraseña (AUTH-05)" + config manual de Supabase.
+
+**Decisiones**
+- Mensaje de éxito SIEMPRE genérico tras `resetPasswordForEmail` (no enumeración); solo se informan 429 y red.
+- Páginas públicas usan feedback inline (no hay `mo-toast-host` fuera del shell); el toast del reset se ve al navegar a `/pos`.
+- `redirectTo` = `window.location.origin + '/restablecer-contrasena'` (no se añadió `appUrl` al RuntimeConfig).
+- Botón de submit nativo full-width (igual que `/login`) en vez de `mo-button` porque `mo-button` no se estira a ancho completo vía clases del host (desviación menor — ver reporte del developer).
+
+**Pendiente (config del usuario, NO aplicada)**
+- Supabase: Site URL, Redirect URLs allowlist con `<origin>/restablecer-contrasena` (incl. `localhost:4200`), plantilla "Reset Password".
+
+**Verificación:** `pnpm typecheck`, `pnpm lint`, `pnpm test` verdes.

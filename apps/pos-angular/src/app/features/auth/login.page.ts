@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { ReactiveFormsModule } from '@angular/forms'
-import { Router } from '@angular/router'
+import { Router, RouterLink } from '@angular/router'
 import { SessionService } from '../../core/auth/session.service'
 import { LoginFormPresenter } from './login-form.presenter'
 import { mapLoginError } from './login-error-mapper'
@@ -10,7 +10,7 @@ import { loginFormMapper } from '@/modules/auth/forms/login-form.mapper'
   selector: 'mo-login-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RouterLink],
   providers: [LoginFormPresenter],
   template: `
     <main class="bg-background flex min-h-dvh items-center justify-center px-4 py-10">
@@ -69,6 +69,13 @@ import { loginFormMapper } from '@/modules/auth/forms/login-form.mapper'
           >
             {{ isSubmitting() ? 'Ingresando...' : 'Ingresar' }}
           </button>
+
+          <a
+            routerLink="/recuperar-contrasena"
+            class="text-muted-foreground hover:text-primary block text-center text-sm font-semibold"
+          >
+            ¿Olvidaste tu contraseña?
+          </a>
         </form>
       </section>
     </main>

@@ -79,6 +79,34 @@ export class SessionService {
     return { error }
   }
 
+  /**
+   * Solicita el correo de restablecimiento de contraseña. Devuelve `{ error }`
+   * (mismo estilo que `signIn`) para que la página decida qué mostrar sin
+   * revelar la existencia del email.
+   */
+  async requestPasswordReset(
+    email: string,
+    redirectTo: string,
+  ): Promise<{ error: AuthError | null }> {
+    const { error } = await this.supabaseClient.supabase.auth.resetPasswordForEmail(email, {
+      redirectTo,
+    })
+    return { error }
+  }
+
+  /**
+   * Define la nueva contraseña del usuario en la sesión de recuperación activa.
+   * Devuelve `{ error }` (mismo estilo que `signIn`).
+   */
+  async updatePassword(password: string): Promise<{ error: AuthError | null }> {
+    const { error } = await this.supabaseClient.supabase.auth.updateUser({ password })
+    if (!error) {
+      this.invalidateContext()
+      await this.refreshUser()
+    }
+    return { error }
+  }
+
   async signOut(): Promise<void> {
     await this.supabaseClient.supabase.auth.signOut()
     this.user.set(null)

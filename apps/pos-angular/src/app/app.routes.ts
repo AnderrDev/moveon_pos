@@ -9,6 +9,16 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/login.page').then((m) => m.LoginPage),
   },
   {
+    path: 'recuperar-contrasena',
+    loadComponent: () =>
+      import('./features/auth/forgot-password.page').then((m) => m.ForgotPasswordPage),
+  },
+  {
+    path: 'restablecer-contrasena',
+    loadComponent: () =>
+      import('./features/auth/reset-password.page').then((m) => m.ResetPasswordPage),
+  },
+  {
     path: '',
     component: ShellComponent,
     canActivate: [authGuard],
