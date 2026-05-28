@@ -17,6 +17,7 @@ criterios de aceptación y esfuerzo estimado.
 | ID | Estado | Commit |
 |---|---|---|
 | PLAN-15 | ✅ Hecho (auditor PASS) | `aa8a166` |
+| PLAN-01 | ✅ Hecho (auditor PASS) — migración pendiente de aplicar al remoto | `(siguiente)` |
 
 
 ---
