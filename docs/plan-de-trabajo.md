@@ -20,6 +20,7 @@ criterios de aceptación y esfuerzo estimado.
 | PLAN-01 | ✅ Hecho (auditor PASS) — migración pendiente de aplicar al remoto | `0e14011` |
 | PLAN-05 | ✅ Hecho (auditor PASS) — pendiente QA manual del form en navegador | `778b03d` |
 | PLAN-02 | ✅ Hecho (auditor PASS) — umbral por rol RN-S09 queda como TODO | `4d54541` |
+| PLAN-06 | ✅ Hecho (auditor PASS) | `fda2c83` |
 
 
 ---
