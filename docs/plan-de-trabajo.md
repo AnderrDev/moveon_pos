@@ -12,6 +12,13 @@ criterios de aceptación y esfuerzo estimado.
 
 **Leyenda de esfuerzo:** S = ≤2 h · M = 0.5–1 día · L = 1–2 días.
 
+## Estado de ejecución (pipeline architect → developer → auditor)
+
+| ID | Estado | Commit |
+|---|---|---|
+| PLAN-15 | ✅ Hecho (auditor PASS) | `aa8a166` |
+
+
 ---
 
 ## Resumen ejecutivo
