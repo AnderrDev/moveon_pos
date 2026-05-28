@@ -3,6 +3,7 @@ import { ReactiveFormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
 import { SessionService } from '../../core/auth/session.service'
 import { LoginFormPresenter } from './login-form.presenter'
+import { mapLoginError } from './login-error-mapper'
 import { loginFormMapper } from '@/modules/auth/forms/login-form.mapper'
 
 @Component({
@@ -98,7 +99,7 @@ export class LoginPage {
     this.isSubmitting.set(false)
 
     if (error) {
-      this.presenter.setRootError(error.message)
+      this.presenter.setRootError(mapLoginError(error))
       return
     }
 
