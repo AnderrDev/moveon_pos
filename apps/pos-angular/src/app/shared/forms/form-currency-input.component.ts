@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { ControlContainer, FormGroupDirective, ReactiveFormsModule } from '@angular/forms'
-import { formatCurrency } from '@/shared/lib/format'
+import { clampCurrency, formatCurrency, parseCurrency } from '@/shared/lib/format'
 import { FieldWrapperComponent } from './field-wrapper.component'
 
 @Component({
@@ -24,6 +24,7 @@ import { FieldWrapperComponent } from './field-wrapper.component'
         (focus)="onFocus()"
         (blur)="onBlur()"
         (input)="onInput($event)"
+        (paste)="onPaste($event)"
         [class]="inputClasses()"
       />
     </mo-field-wrapper>
@@ -38,6 +39,7 @@ export class FormCurrencyInputComponent {
   readonly description = input<string | null>(null)
   readonly required = input<boolean>(false)
   readonly error = input<string | null>(null)
+  readonly min = input<number>(0)
   readonly max = input<number>(100_000_000)
 
   private readonly focused = signal(false)
@@ -71,8 +73,27 @@ export class FormCurrencyInputComponent {
   }
 
   onInput(event: Event): void {
-    const raw = (event.target as HTMLInputElement).value.replace(/\D/g, '')
-    const next = raw === '' ? 0 : Math.min(Number.parseInt(raw, 10), this.max())
+    this.commit((event.target as HTMLInputElement).value)
+  }
+
+  onPaste(event: ClipboardEvent): void {
+    // Tomar el portapapeles directamente evita depender del valor intermedio
+    // del DOM (que puede concatenar dígitos de forma frágil con el display
+    // formateado actual). Tras `preventDefault`, re-parseamos el texto pegado.
+    const pasted = event.clipboardData?.getData('text') ?? ''
+    if (pasted === '') return
+    event.preventDefault()
+    this.commit(pasted)
+  }
+
+  /**
+   * Re-parsea SIEMPRE el valor completo (DOM o portapapeles), lo normaliza a un
+   * entero con `parseCurrency` y lo restringe al rango `[min, max]`. El
+   * `display()` se reevalúa con el `control.value` ya normalizado, dejando el
+   * campo consistente sin importar la vía de entrada.
+   */
+  private commit(raw: string): void {
+    const next = clampCurrency(parseCurrency(raw), this.min(), this.max())
     this.control?.setValue(next)
     this.control?.markAsDirty()
   }
