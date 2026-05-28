@@ -36,8 +36,11 @@ export function calculateCartItem(item: CartItemInput): CartItemCalculated {
   return { ...item, subtotalBruto, descuentoTotal, baseImponible, taxAmount, total }
 }
 
-export function calculateCartTotals(items: CartItemCalculated[]): CartTotals {
-  return items.reduce<CartTotals>(
+export function calculateCartTotals(
+  items: CartItemCalculated[],
+  globalDiscount = 0,
+): CartTotals {
+  const itemTotals = items.reduce<CartTotals>(
     (acc, item) => ({
       subtotal:      acc.subtotal      + item.subtotalBruto,
       discountTotal: acc.discountTotal + item.descuentoTotal,
@@ -46,6 +49,27 @@ export function calculateCartTotals(items: CartItemCalculated[]): CartTotals {
     }),
     { subtotal: 0, discountTotal: 0, taxTotal: 0, total: 0 },
   )
+
+  return applyGlobalDiscount(itemTotals, globalDiscount)
+}
+
+/**
+ * Aplica un descuento global (en monto COP) como descuento comercial sobre el
+ * TOTAL post-IVA. NO se prorratea entre ítems para no alterar el IVA por ítem
+ * (`taxTotal` queda intacto). El monto efectivo se acota al total disponible,
+ * de modo que `total` nunca sea negativo, y se suma a `discountTotal` para que
+ * el ticket y los reportes reflejen el descuento completo (ítems + global).
+ */
+export function applyGlobalDiscount(totals: CartTotals, globalDiscount: number): CartTotals {
+  const effectiveDiscount = Math.max(0, Math.min(Math.round(globalDiscount), totals.total))
+  if (effectiveDiscount === 0) return totals
+
+  return {
+    subtotal:      totals.subtotal,
+    discountTotal: totals.discountTotal + effectiveDiscount,
+    taxTotal:      totals.taxTotal,
+    total:         totals.total - effectiveDiscount,
+  }
 }
 
 export function calculateChange(totalPaid: number, saleTotal: number): number {

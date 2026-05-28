@@ -11,14 +11,18 @@ import { PosDataService } from './pos-data.service'
 import { PosSaleService } from './pos-sale.service'
 import { ReceiptPrintService } from './receipt-print.service'
 import { SalesHistoryDialog } from './sales-history.dialog'
+import { CustomerPickerDialog } from './customer-picker.dialog'
+import { ItemDiscountDialog, type ItemDiscountResult } from './item-discount.dialog'
+import type { PosCartItem } from './pos-cart.store'
 import type { OpenCashSession, PosCategory, PosProduct } from './pos.types'
+import type { Cliente } from '@/modules/customers/domain/entities/cliente.entity'
 
 @Component({
   selector: 'mo-pos-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [PosCartStore],
-  imports: [SalesHistoryDialog],
+  imports: [SalesHistoryDialog, CustomerPickerDialog, ItemDiscountDialog],
   template: `
     <section class="flex h-full min-h-0 flex-col">
       <header
@@ -204,6 +208,37 @@ import type { OpenCashSession, PosCategory, PosProduct } from './pos.types'
               </div>
             } @else {
               <div class="flex h-full min-h-0 flex-col">
+                <div class="shrink-0 border-b px-4 py-2.5">
+                  @if (cart.clienteId()) {
+                    <div
+                      class="bg-primary/10 flex items-center justify-between gap-2 rounded-lg px-3 py-2"
+                    >
+                      <span class="min-w-0">
+                        <span class="text-muted-foreground block text-[10px] font-semibold tracking-wide uppercase">
+                          Cliente
+                        </span>
+                        <span class="block truncate text-sm font-semibold">{{
+                          cart.clienteNombre()
+                        }}</span>
+                      </span>
+                      <button
+                        type="button"
+                        (click)="cart.clearCliente()"
+                        class="text-muted-foreground hover:text-destructive shrink-0 text-xs font-semibold underline"
+                      >
+                        Quitar
+                      </button>
+                    </div>
+                  } @else {
+                    <button
+                      type="button"
+                      (click)="customerPickerOpen.set(true)"
+                      class="text-muted-foreground hover:border-primary hover:text-primary flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed py-2 text-xs font-semibold transition-colors"
+                    >
+                      + Asociar cliente
+                    </button>
+                  }
+                </div>
                 <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
                   <div class="divide-y">
                     @for (item of cart.items(); track item.key) {
@@ -253,6 +288,25 @@ import type { OpenCashSession, PosCategory, PosProduct } from './pos.types'
                               {{ money(item.unitPrice) }} × {{ item.quantity }}
                             </p>
                           </div>
+                        </div>
+
+                        <div class="mt-2 flex items-center justify-between gap-2">
+                          <button
+                            type="button"
+                            (click)="openItemDiscount(item)"
+                            class="text-muted-foreground hover:text-primary text-[11px] font-semibold underline"
+                          >
+                            @if (item.discountAmount > 0) {
+                              Editar descuento
+                            } @else {
+                              + Descuento
+                            }
+                          </button>
+                          @if (item.descuentoTotal > 0) {
+                            <span class="text-destructive text-[11px] font-medium tabular-nums">
+                              −{{ money(item.descuentoTotal) }}
+                            </span>
+                          }
                         </div>
                       </div>
                     }
@@ -320,6 +374,14 @@ import type { OpenCashSession, PosCategory, PosProduct } from './pos.types'
 
           <div class="min-h-0 space-y-4 overflow-y-auto p-4 sm:p-6">
             <div class="bg-muted/50 rounded-xl px-4 py-3">
+              @if (cart.totals().discountTotal > 0) {
+                <div class="flex justify-between text-sm">
+                  <span class="text-muted-foreground">Descuentos</span>
+                  <span class="text-destructive font-medium"
+                    >−{{ money(cart.totals().discountTotal) }}</span
+                  >
+                </div>
+              }
               <div class="flex justify-between text-sm">
                 <span class="text-muted-foreground">Total venta</span>
                 <span class="font-semibold">{{ money(cart.totals().total) }}</span>
@@ -367,6 +429,34 @@ import type { OpenCashSession, PosCategory, PosProduct } from './pos.types'
                 }
               </div>
             }
+
+            <div class="space-y-2">
+              <p class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+                Descuento global
+              </p>
+              <div class="flex gap-2">
+                <input
+                  type="text"
+                  inputmode="numeric"
+                  [value]="globalDiscountInput()"
+                  (input)="setGlobalDiscount($event)"
+                  placeholder="0"
+                  class="border-input bg-card focus:ring-ring h-10 min-w-0 flex-1 rounded-lg border px-3 text-sm tabular-nums outline-none focus:ring-2"
+                />
+                @if (cart.globalDiscount() > 0) {
+                  <button
+                    type="button"
+                    (click)="clearGlobalDiscount()"
+                    class="rounded-lg border px-4 text-xs font-semibold"
+                  >
+                    Quitar
+                  </button>
+                }
+              </div>
+              <p class="text-muted-foreground text-[11px]">
+                Monto en pesos descontado del total de la venta.
+              </p>
+            </div>
 
             <div class="space-y-3">
               <p class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
@@ -446,6 +536,19 @@ import type { OpenCashSession, PosCategory, PosProduct } from './pos.types'
       [cashSessionId]="cashSession()?.id ?? null"
       (closed)="historyOpen.set(false)"
     />
+
+    <mo-customer-picker-dialog
+      [open]="customerPickerOpen()"
+      (closed)="customerPickerOpen.set(false)"
+      (selected)="onCustomerSelected($event)"
+    />
+
+    <mo-item-discount-dialog
+      [open]="discountItem() !== null"
+      [item]="discountItem()"
+      (closed)="discountItem.set(null)"
+      (applied)="onItemDiscountApplied($event)"
+    />
   `,
 })
 export class PosPage {
@@ -469,6 +572,9 @@ export class PosPage {
   readonly saleError = signal<string | null>(null)
   readonly historyOpen = signal(false)
   readonly isSaving = signal(false)
+  readonly customerPickerOpen = signal(false)
+  readonly discountItem = signal<PosCartItem | null>(null)
+  readonly globalDiscountInput = signal('')
   readonly paymentMethods = PAYMENT_METHOD_OPTIONS
   readonly String = String
 
@@ -565,9 +671,35 @@ export class PosPage {
     this.cart.addItem(product)
   }
 
+  onCustomerSelected(cliente: Cliente): void {
+    this.cart.setCliente(cliente.id, cliente.nombre)
+  }
+
+  openItemDiscount(item: PosCartItem): void {
+    this.discountItem.set(item)
+  }
+
+  onItemDiscountApplied(result: ItemDiscountResult): void {
+    this.cart.updateDiscount(result.key, result.discountAmount)
+    this.discountItem.set(null)
+  }
+
+  setGlobalDiscount(event: Event): void {
+    const value = (event.target as HTMLInputElement).value.replace(/\D/g, '')
+    this.globalDiscountInput.set(value)
+    this.cart.setGlobalDiscount(value === '' ? 0 : Number.parseInt(value, 10))
+  }
+
+  clearGlobalDiscount(): void {
+    this.globalDiscountInput.set('')
+    this.cart.setGlobalDiscount(0)
+  }
+
   openCheckout(): void {
     this.saleError.set(null)
     this.checkoutOpen.set(true)
+    const currentGlobal = this.cart.globalDiscount()
+    this.globalDiscountInput.set(currentGlobal > 0 ? String(currentGlobal) : '')
     if (this.cart.remainingAmount() > 0) {
       this.paymentAmount.set(String(this.cart.remainingAmount()))
     }
@@ -607,6 +739,10 @@ export class PosPage {
     const cashSession = this.cashSession()
     if (!cashSession || !this.canConfirm()) return
 
+    // TODO PLAN-02/RN-S09: cuando exista el flujo de aprobación, validar aquí con
+    // validateDiscountAuthorization(session.role(), cart.totals().subtotal, cart.totals().discountTotal)
+    // antes de crear la venta. Por ahora el umbral por rol no se aplica en la UI.
+
     this.saleError.set(null)
     this.isSaving.set(true)
 
@@ -614,6 +750,7 @@ export class PosPage {
       const result = await this.saleService.createSale({
         cashSessionId: cashSession.id,
         idempotencyKey: this.cart.idempotencyKey(),
+        clienteId: this.cart.clienteId(),
         items: this.cart.items(),
         payments: this.cart.payments(),
         totals: this.cart.totals(),
@@ -632,6 +769,7 @@ export class PosPage {
       const change = this.cart.change()
       const saleId = result.value.saleId
       this.cart.clearCart()
+      this.globalDiscountInput.set('')
       this.checkoutOpen.set(false)
       this.toast.success(
         change > 0 ? `Venta completada · cambio ${formatCurrency(change)}` : 'Venta completada',

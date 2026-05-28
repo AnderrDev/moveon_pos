@@ -28,11 +28,19 @@ export class PosCartStore {
   private readonly itemsState = signal<PosCartItem[]>([])
   private readonly paymentsState = signal<PaymentEntry[]>([])
   private readonly idempotencyKeyState = signal<string>(generateIdempotencyKey())
+  private readonly clienteIdState = signal<string | null>(null)
+  private readonly clienteNombreState = signal<string | null>(null)
+  private readonly globalDiscountState = signal<number>(0)
 
   readonly items = this.itemsState.asReadonly()
   readonly payments = this.paymentsState.asReadonly()
   readonly idempotencyKey = this.idempotencyKeyState.asReadonly()
-  readonly totals = computed<CartTotals>(() => calculateCartTotals(this.itemsState()))
+  readonly clienteId = this.clienteIdState.asReadonly()
+  readonly clienteNombre = this.clienteNombreState.asReadonly()
+  readonly globalDiscount = this.globalDiscountState.asReadonly()
+  readonly totals = computed<CartTotals>(() =>
+    calculateCartTotals(this.itemsState(), this.globalDiscountState()),
+  )
   readonly totalPaid = computed(() =>
     this.paymentsState().reduce((sum, payment) => sum + payment.amount, 0),
   )
@@ -84,10 +92,28 @@ export class PosCartStore {
     )
   }
 
+  setCliente(clienteId: string, clienteNombre: string): void {
+    this.clienteIdState.set(clienteId)
+    this.clienteNombreState.set(clienteNombre)
+  }
+
+  clearCliente(): void {
+    this.clienteIdState.set(null)
+    this.clienteNombreState.set(null)
+  }
+
+  /** Descuento comercial global en monto COP sobre el total. Se acota a >= 0. */
+  setGlobalDiscount(amount: number): void {
+    this.globalDiscountState.set(Math.max(0, Math.round(amount)))
+  }
+
   clearCart(): void {
     this.itemsState.set([])
     this.paymentsState.set([])
     this.idempotencyKeyState.set(generateIdempotencyKey())
+    this.clienteIdState.set(null)
+    this.clienteNombreState.set(null)
+    this.globalDiscountState.set(0)
   }
 
   addPayment(payment: PaymentEntry): void {

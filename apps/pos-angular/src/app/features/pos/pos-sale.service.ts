@@ -11,6 +11,7 @@ import type { CartTotals } from '@/modules/sales/domain/services/sale-calculator
 export interface CreatePosSaleInput {
   cashSessionId: string
   idempotencyKey: string
+  clienteId: string | null
   items: PosCartItem[]
   payments: PaymentEntry[]
   totals: CartTotals
@@ -36,6 +37,7 @@ interface RpcClient {
 const rpcInputSchema = z.object({
   cashSessionId: z.string().uuid('Sesión de caja inválida'),
   idempotencyKey: z.string().min(1, 'idempotency_key faltante'),
+  clienteId: z.string().uuid('Cliente inválido').nullable(),
   items: z
     .array(
       z.object({
@@ -87,6 +89,7 @@ export class PosSaleService {
     const parsed = rpcInputSchema.safeParse({
       cashSessionId: input.cashSessionId,
       idempotencyKey: input.idempotencyKey,
+      clienteId: input.clienteId,
       items: input.items,
       payments: input.payments,
       totals: input.totals,
@@ -104,7 +107,7 @@ export class PosSaleService {
       p_cash_session_id: input.cashSessionId,
       p_sale_number: createSaleNumber(),
       p_cashier_id: auth.userId,
-      p_cliente_id: null,
+      p_cliente_id: input.clienteId,
       p_subtotal: input.totals.subtotal,
       p_discount_total: input.totals.discountTotal,
       p_tax_total: input.totals.taxTotal,
