@@ -144,7 +144,7 @@ y PLAN-03 ya aplicadas al remoto**.
 |----|------|------|-----------|-------|
 | TC-R01 | Login admin + nav | 15 | ✅ | Redirige a `/pos`; los 6 módulos visibles |
 | TC-R02 | Admin ve "Anular" | 15 | ✅ | Botón "Anular" presente en ventas `completed` |
-| TC-R02b | Cajero restringido | 15 | ⏭️ | No ejecutado: no hay credenciales de un usuario cajero. Cubierto por tests unitarios del guard |
+| TC-R02b | Cajero restringido | 15 | ✅ | Usuario `cajero@moveonpos.co` creado. Nav oculta Productos/Inventario/Reportes; `/productos`, `/inventario`, `/reportes`, `/productos/categorias` redirigen a `/pos`; "Anular" oculto (solo "Reimprimir") |
 | TC-R03 | Crear producto (IVA+costo) | 05 | ✅ | IVA 19% **sin "Invalid input"** al abrir; **Costo vacío aceptado**; producto creado |
 | TC-R03b | Costo presente | 05 | ⏭️ | No ejecutado por separado; el schema lo cubre en tests unitarios |
 | TC-R04 | Caja abierta | — | ✅ | $100.000 |
@@ -165,7 +165,12 @@ y PLAN-03 ya aplicadas al remoto**.
 
 ### Resumen
 
-**18 de 18 casos ejecutables: ✅ PASS.** 2 no ejecutados: TC-R02b (sin usuario cajero — cubierto por unit tests) y TC-R03b (costo presente — cubierto por schema test).
+**19 de 19 casos ejecutables: ✅ PASS** (TC-R02b cerrado tras crear el usuario cajero). 1 no ejecutado por separado: TC-R03b (costo presente — cubierto por schema test).
+
+### Hallazgos nuevos de esta ronda (no son de los 8 fixes; candidatos a nuevos PLAN)
+
+- **F-A (alta) — Caja por-tienda vs por-cajero:** la UI muestra la caja como abierta a nivel de **tienda** (`getOpenCashSession` por `tienda_id`), pero `create_sale_atomic` exige `opened_by = cashier_id` (sesión por cajero). Consecuencias con 2 usuarios: el cajero **ve** la caja del admin como propia, **no puede vender** (RPC rechaza con "No hay caja abierta para esta venta"), **no puede abrir su propia caja** (la UI cree que ya hay una abierta) y el botón "Cerrar caja" del cajero apunta a la sesión del admin. En MVP de 1 operador no se nota; al habilitar roles (PLAN-15) sí. Decidir el modelo: ¿caja por cajero o caja por tienda compartida? y alinear UI + RPC + RLS.
+- **F-B (media) — `sale-error-mapper` no mapea "No hay caja abierta para esta venta":** al fallar la venta del cajero, la UI mostró el genérico "Error al crear venta" en vez del mensaje específico en español. Revisar el matching del mapper contra el texto real que devuelve Supabase para ese `raise`.
 
 **Los 8 fixes P0 quedan validados en el navegador contra el remoto:**
 - PLAN-15 ✅ guard por rol (lado admin) · PLAN-01 ✅ reporte por día local (caso headline confirmado) · PLAN-05 ✅ form de producto · PLAN-02 ✅ cliente + descuentos (persistido en DB) · PLAN-06 ✅ paste en moneda (evento real) · PLAN-07 ✅ tope de stock · PLAN-04 ✅ historial por sesión · PLAN-03 ✅ número correlativo `V-000001/V-000002`.
