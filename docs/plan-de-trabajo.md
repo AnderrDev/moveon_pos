@@ -29,6 +29,9 @@ criterios de aceptación y esfuerzo estimado.
 | PLAN-09 | ✅ Hecho (auditor PASS) | `9a80f75` |
 | PLAN-10 | ✅ Hecho (auditor PASS) | `6c5d767` |
 | PLAN-11 | ✅ Hecho (auditor PASS) | `6c5d767` |
+| PLAN-14 | ✅ Hecho (auditor PASS) | `7de41dd` |
+| PLAN-12 | ✅ Hecho (auditor PASS) | `(este)` |
+| PLAN-13 | ⏳ Pendiente — requiere migración del RPC (aplicar al remoto, espera permiso) | — |
 
 > **Todos los P0 (bloqueantes go-live) completados.** Las migraciones de PLAN-01 (`20260527_001_add_tienda_timezone`) y PLAN-03 (`20260527_002_correlative_sale_number`) **ya se aplicaron al Supabase remoto (2026-05-27)** y se validaron por navegador (ver `docs/user-stories/PLAN-DE-PRUEBAS-post-fixes.md`: V-000001/V-000002 correlativos, reporte por TZ local). Pendiente menor: correr los tests pgTAP cuando Docker esté disponible.
 
