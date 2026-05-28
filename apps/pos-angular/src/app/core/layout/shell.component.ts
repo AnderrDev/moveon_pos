@@ -8,6 +8,7 @@ interface NavItem {
   label: string
   short: string
   href: string
+  adminOnly?: boolean
 }
 
 @Component({
@@ -40,7 +41,7 @@ interface NavItem {
           >
             Modulos
           </p>
-          @for (item of navItems; track item.href) {
+          @for (item of navItems(); track item.href) {
             <a
               [routerLink]="item.href"
               routerLinkActive="bg-primary text-white shadow-sm"
@@ -86,12 +87,12 @@ interface NavItem {
       <nav
         class="border-sidebar-border bg-sidebar fixed inset-x-0 bottom-0 z-40 border-t px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden"
       >
-        <div class="grid grid-cols-6 gap-1">
-          @for (item of navItems; track item.href) {
+        <div class="flex gap-1">
+          @for (item of navItems(); track item.href) {
             <a
               [routerLink]="item.href"
               routerLinkActive="bg-primary text-white"
-              class="text-sidebar-muted hover:bg-sidebar-hover flex min-h-12 flex-col items-center justify-center gap-1 rounded-lg px-1 text-[10px] font-semibold transition-colors hover:text-white"
+              class="text-sidebar-muted hover:bg-sidebar-hover flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-lg px-1 text-[10px] font-semibold transition-colors hover:text-white"
             >
               <span class="h-1.5 w-1.5 rounded-full border border-current"></span>
               <span class="max-w-full truncate">{{ item.short }}</span>
@@ -109,17 +110,28 @@ export class ShellComponent {
   private readonly sessionService = inject(SessionService)
   private readonly router = inject(Router)
 
-  readonly navItems: NavItem[] = [
+  private readonly allNavItems: readonly NavItem[] = [
     { label: 'Punto de Venta', short: 'POS', href: '/pos' },
-    { label: 'Productos', short: 'Prod', href: '/productos' },
-    { label: 'Inventario', short: 'Inv', href: '/inventario' },
+    { label: 'Productos', short: 'Prod', href: '/productos', adminOnly: true },
+    { label: 'Inventario', short: 'Inv', href: '/inventario', adminOnly: true },
     { label: 'Caja', short: 'Caja', href: '/caja' },
     { label: 'Clientes', short: 'Cli', href: '/clientes' },
-    { label: 'Reportes', short: 'Rep', href: '/reportes' },
+    { label: 'Reportes', short: 'Rep', href: '/reportes', adminOnly: true },
   ]
+
+  /** Ítems visibles según el rol; los admin-only se ocultan al cajero. */
+  readonly navItems = computed(() => {
+    const isAdmin = this.sessionService.isAdmin()
+    return this.allNavItems.filter((item) => !item.adminOnly || isAdmin)
+  })
 
   readonly userName = computed(() => this.sessionService.user()?.email?.split('@')[0] ?? 'Usuario')
   readonly userInitial = computed(() => this.userName().slice(0, 1).toUpperCase())
+
+  constructor() {
+    // Asegura que el rol esté cargado para la visibilidad reactiva del nav (OnPush).
+    void this.sessionService.getRole()
+  }
 
   async signOut(): Promise<void> {
     await this.sessionService.signOut()

@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router'
 import { authGuard } from './core/auth/auth.guard'
+import { roleGuard } from './core/auth/role.guard'
 import { ShellComponent } from './core/layout/shell.component'
 
 export const routes: Routes = [
@@ -19,16 +20,19 @@ export const routes: Routes = [
       },
       {
         path: 'productos',
+        canActivate: [roleGuard('admin')],
         loadComponent: () =>
           import('./features/products/productos.page').then((m) => m.ProductosPage),
       },
       {
         path: 'productos/categorias',
+        canActivate: [roleGuard('admin')],
         loadComponent: () =>
           import('./features/products/categorias.page').then((m) => m.CategoriasPage),
       },
       {
         path: 'inventario',
+        canActivate: [roleGuard('admin')],
         loadComponent: () =>
           import('./features/inventory/inventario.page').then((m) => m.InventarioPage),
       },
@@ -44,6 +48,7 @@ export const routes: Routes = [
       },
       {
         path: 'reportes',
+        canActivate: [roleGuard('admin')],
         loadComponent: () =>
           import('./features/reports/reportes.page').then((m) => m.ReportesPage),
       },

@@ -1,4 +1,4 @@
-import { inject, Injectable, signal } from '@angular/core'
+import { computed, inject, Injectable, signal } from '@angular/core'
 import type { AuthError, Session, User } from '@supabase/supabase-js'
 import { SupabaseClientService } from '../supabase/supabase-client.service'
 import type { Role } from '@/shared/types'
@@ -14,6 +14,11 @@ export interface AngularAuthContext {
 export class SessionService {
   private readonly supabaseClient = inject(SupabaseClientService)
   readonly user = signal<User | null>(null)
+
+  /** Rol del usuario activo para lectura síncrona/reactiva (OnPush). */
+  private readonly roleSignal = signal<Role | null>(null)
+  readonly role = this.roleSignal.asReadonly()
+  readonly isAdmin = computed(() => this.roleSignal() === 'admin')
 
   private contextCache: AngularAuthContext | null = null
   private contextPromise: Promise<AngularAuthContext | null> | null = null
@@ -49,10 +54,17 @@ export class SessionService {
     try {
       const ctx = await this.contextPromise
       this.contextCache = ctx
+      this.roleSignal.set(ctx?.rol ?? null)
       return ctx
     } finally {
       this.contextPromise = null
     }
+  }
+
+  /** Resuelve el rol del usuario activo, cargando el contexto si hace falta. */
+  async getRole(): Promise<Role | null> {
+    const ctx = await this.getAuthContext()
+    return ctx?.rol ?? null
   }
 
   async signIn(email: string, password: string): Promise<{ error: AuthError | null }> {
@@ -76,6 +88,7 @@ export class SessionService {
   private invalidateContext(): void {
     this.contextCache = null
     this.contextPromise = null
+    this.roleSignal.set(null)
   }
 
   private async loadAuthContext(): Promise<AngularAuthContext | null> {

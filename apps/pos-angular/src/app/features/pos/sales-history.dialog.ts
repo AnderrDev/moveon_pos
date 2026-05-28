@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   effect,
   inject,
   input,
@@ -13,6 +14,7 @@ import { ButtonComponent } from '../../shared/ui/button.component'
 import { BadgeComponent } from '../../shared/ui/badge.component'
 import { SalesRepository } from '../sales/sales.repository'
 import { SessionService } from '../../core/auth/session.service'
+import { canVoidSale } from '../../core/auth/role-policy'
 import { ToastService } from '../../shared/feedback/toast.service'
 import { ReceiptPrintService } from './receipt-print.service'
 import { formatCurrency, formatTime } from '@/shared/lib/format'
@@ -82,7 +84,7 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
                       <mo-button size="sm" variant="ghost" (click)="reprint(sale)"
                         >Reimprimir</mo-button
                       >
-                      @if (sale.status === 'completed') {
+                      @if (sale.status === 'completed' && canVoid()) {
                         <mo-button size="sm" variant="ghost" (click)="confirmVoid(sale)"
                           >Anular</mo-button
                         >
@@ -113,7 +115,12 @@ export class SalesHistoryDialog {
   readonly loading = signal(false)
   readonly loadError = signal<string | null>(null)
 
+  /** Solo admin puede anular ventas (defensa en cliente; RLS protege en servidor). */
+  readonly canVoid = computed(() => canVoidSale(this.session.role()))
+
   constructor() {
+    // Asegura que el rol esté cargado para la visibilidad reactiva del botón (OnPush).
+    void this.session.getRole()
     effect(() => {
       if (this.open() && this.cashSessionId()) {
         void this.load()
@@ -164,6 +171,9 @@ export class SalesHistoryDialog {
   }
 
   async confirmVoid(sale: Sale): Promise<void> {
+    // Defensa en profundidad: cortocircuitar si el rol no puede anular.
+    if (!canVoidSale(await this.session.getRole())) return
+
     const reason = window.prompt(`Motivo para anular ${sale.saleNumber}:`)
     if (!reason || reason.trim().length < 3) return
 
