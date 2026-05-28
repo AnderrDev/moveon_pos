@@ -12,6 +12,7 @@ import { AdjustStockDialog } from './adjust-stock.dialog'
 import { KardexDialog } from './kardex.dialog'
 import type { Product } from '@/modules/products/domain/entities/product.entity'
 import type { StockLevel } from '@/modules/inventory/domain/entities/inventory.entity'
+import { isLowStock } from '@/modules/inventory/domain/services/low-stock'
 
 interface StockRow {
   id: string
@@ -170,7 +171,7 @@ export class InventarioPage {
         sku: p.sku,
         currentStock: current,
         minimumStock: p.stockMinimo,
-        isLow: current <= p.stockMinimo,
+        isLow: isLowStock({ tipo: p.tipo, currentStock: current, minimumStock: p.stockMinimo }),
       }
     })
   })

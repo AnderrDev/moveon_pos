@@ -8,6 +8,7 @@ import {
   DEFAULT_TIMEZONE,
   getStoreDayRangeUtc,
 } from '@/modules/reports/domain/services/day-range'
+import { isLowStock } from '@/modules/inventory/domain/services/low-stock'
 import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
 
 export interface DailyPaymentBreakdown {
@@ -194,7 +195,11 @@ export class ReportsService {
           sku: p.sku,
           currentStock: sl.currentStock,
           minimumStock: sl.minimumStock,
-          isLow: sl.isLow,
+          isLow: isLowStock({
+            tipo: p.tipo,
+            currentStock: sl.currentStock,
+            minimumStock: sl.minimumStock,
+          }),
         }
       })
       .sort((a, b) => {

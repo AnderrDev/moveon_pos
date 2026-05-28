@@ -5,6 +5,8 @@ import {
   type InventoryMovementRow,
 } from '@/modules/inventory/infrastructure/mappers/inventory.mapper'
 import type { InventoryMovement, StockLevel } from '@/modules/inventory/domain/entities/inventory.entity'
+import { isLowStock } from '@/modules/inventory/domain/services/low-stock'
+import type { ProductType } from '@/shared/types'
 
 const MOV_COLS =
   'id, tienda_id, producto_id, tipo, cantidad, costo_unitario, motivo, referencia_tipo, referencia_id, created_by, created_at'
@@ -62,10 +64,10 @@ export class InventoryRepository {
 
     const { data: productos, error: pErr } = await supabase
       .from('productos')
-      .select('id, stock_minimo')
+      .select('id, tipo, stock_minimo')
       .eq('tienda_id', tiendaId)
       .eq('is_active', true)
-      .returns<{ id: string; stock_minimo: number }[]>()
+      .returns<{ id: string; tipo: ProductType; stock_minimo: number }[]>()
 
     if (pErr) throw new Error(pErr.message)
     if (!productos || productos.length === 0) return []
@@ -85,12 +87,13 @@ export class InventoryRepository {
 
     return productos.map((p) => {
       const current = stockMap[p.id] ?? 0
+      const minimum = Number(p.stock_minimo)
       return {
         productId: p.id,
         tiendaId,
         currentStock: current,
-        minimumStock: Number(p.stock_minimo),
-        isLow: current <= Number(p.stock_minimo),
+        minimumStock: minimum,
+        isLow: isLowStock({ tipo: p.tipo, currentStock: current, minimumStock: minimum }),
       }
     })
   }
