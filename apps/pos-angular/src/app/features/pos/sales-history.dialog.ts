@@ -17,6 +17,7 @@ import { SessionService } from '../../core/auth/session.service'
 import { canVoidSale } from '../../core/auth/role-policy'
 import { ToastService } from '../../shared/feedback/toast.service'
 import { ReceiptPrintService } from './receipt-print.service'
+import { selectSessionSales } from './sales-history.session-filter'
 import { formatCurrency, formatTime } from '@/shared/lib/format'
 import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
 import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
@@ -122,9 +123,16 @@ export class SalesHistoryDialog {
     // Asegura que el rol esté cargado para la visibilidad reactiva del botón (OnPush).
     void this.session.getRole()
     effect(() => {
-      if (this.open() && this.cashSessionId()) {
-        void this.load()
+      // Blindaje: cerrar la caja (o cerrar el dialog) limpia el estado para que al
+      // reabrir sin sesión arranque vacío — sin un frame con ventas viejas.
+      // Patrón seguro: si no hay sesión/no está abierto -> reset + return; nunca
+      // se leen señales escritas aquí, así que no hay bucle de effect.
+      if (!this.open() || !this.cashSessionId()) {
+        this.sales.set([])
+        this.loadError.set(null)
+        return
       }
+      void this.load()
     })
   }
 
@@ -154,7 +162,9 @@ export class SalesHistoryDialog {
     try {
       const auth = await this.session.getAuthContext()
       if (!auth) throw new Error('No autenticado')
-      this.sales.set(await this.salesRepo.listBySession(sid, auth.tiendaId))
+      const rows = await this.salesRepo.listBySession(sid, auth.tiendaId)
+      // Segunda barrera pura sobre lo que devuelve el repo.
+      this.sales.set(selectSessionSales(rows, sid))
     } catch (error) {
       this.loadError.set(getErrorMessage(error, 'Error al cargar'))
     } finally {
