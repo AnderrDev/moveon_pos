@@ -20,6 +20,9 @@
 
 1. Hacer un **status review** del proyecto: qué está hecho, qué está pendiente y qué se puede mejorar.
 2. **Consolidar el WIP sin commitear** (35 archivos modificados + nuevos sin trackear de las sesiones del 2026-05-04 al 2026-05-18) en commits temáticos, para no perder trabajo.
+3. **Crear historias de usuario** por feature y por flujo, más un guion E2E para arrancar pruebas.
+4. **Ejecutar pruebas manuales E2E** en el navegador (Playwright MCP) contra staging y registrar resultados.
+5. **Definir un plan de trabajo** para cada hallazgo y mejora detectados.
 
 ---
 
@@ -37,6 +40,12 @@ No se escribió código nuevo. Se consolidó en commits el trabajo acumulado de 
 
 ### 2.2 Archivos creados
 - `docs/sessions/2026-05-27-status-y-consolidacion-wip.md` — este spec.
+- `docs/user-stories/README.md` — índice de HUs y convención de IDs.
+- `docs/user-stories/features.md` — HUs por feature (test-ready).
+- `docs/user-stories/flows.md` — HUs por flujo operativo.
+- `docs/user-stories/E2E-flujo-completo-pruebas.md` — guion de smoke test.
+- `docs/user-stories/RESULTADOS-pruebas-2026-05-27.md` — resultados de la ejecución manual (19 TCs, 7 hallazgos críticos, 7 mejoras UX, 4 gaps de scope).
+- `docs/plan-de-trabajo.md` — plan de trabajo priorizado para atender cada hallazgo y gap.
 
 ---
 
