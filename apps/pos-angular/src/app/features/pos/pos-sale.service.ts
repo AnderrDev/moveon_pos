@@ -71,11 +71,6 @@ const rpcInputSchema = z.object({
   }),
 })
 
-function createSaleNumber(now = new Date()): string {
-  const prefix = `${String(now.getFullYear()).slice(-2)}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`
-  return `${prefix}-${String(now.getTime())}`
-}
-
 @Injectable({ providedIn: 'root' })
 export class PosSaleService {
   private readonly supabaseClient = inject(SupabaseClientService)
@@ -106,7 +101,9 @@ export class PosSaleService {
     const { data, error } = await rpcClient.rpc<string>('create_sale_atomic', {
       p_tienda_id: auth.tiendaId,
       p_cash_session_id: input.cashSessionId,
-      p_sale_number: createSaleNumber(),
+      // El sale_number lo genera create_sale_atomic (correlativo por tienda).
+      // Se envía un placeholder porque la firma del RPC lo exige, pero el RPC lo ignora.
+      p_sale_number: '',
       p_cashier_id: auth.userId,
       p_cliente_id: input.clienteId,
       p_subtotal: input.totals.subtotal,
