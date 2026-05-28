@@ -129,6 +129,38 @@ function todayIso(timezone: string): string {
             </div>
           </div>
 
+          <div class="bg-card rounded-xl border p-5">
+            <h3 class="font-display mb-3 text-sm font-bold uppercase tracking-wide">
+              Por cajero
+            </h3>
+            @if (d.cashierBreakdown.length === 0) {
+              <p class="text-muted-foreground text-sm">Sin ventas registradas.</p>
+            } @else {
+              <ul class="space-y-2 text-sm">
+                @for (c of d.cashierBreakdown; track c.cashierId) {
+                  <li class="flex justify-between gap-3">
+                    <span class="truncate">
+                      {{ cashierLabel(c.cashierId) }}
+                      <span class="text-muted-foreground">
+                        ({{ c.countCompleted }} ventas
+                        @if (c.countVoided > 0) {
+                          · {{ c.countVoided }} anuladas
+                        }
+                        )
+                      </span>
+                    </span>
+                    <span class="text-right">
+                      <span class="font-mono font-semibold tabular-nums">{{ money(c.totalVentas) }}</span>
+                      <span class="text-muted-foreground ml-2 font-mono text-xs tabular-nums">
+                        IVA {{ money(c.taxTotal) }}
+                      </span>
+                    </span>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+
           @if (d.sessions.length > 0) {
             <div class="bg-card rounded-xl border p-5">
               <h3 class="font-display mb-3 text-sm font-bold uppercase tracking-wide">
@@ -304,6 +336,16 @@ export class ReportesPage {
 
   paymentLabel(metodo: string): string {
     return getPaymentMethodLabel(metodo)
+  }
+
+  /**
+   * Etiqueta visible del cajero. Helper de presentación: el dominio no resuelve
+   * nombres (no hay fuente RLS-safe — `auth.users` inaccesible, `user_tiendas`
+   * sin nombre). El nombre real queda como mejora futura (vista/RPC o tabla
+   * profiles). Por ahora se muestra el id corto.
+   */
+  cashierLabel(id: string): string {
+    return `Cajero ${id.slice(0, 8)}`
   }
 
   tabClass(value: 'daily' | 'stock'): string {

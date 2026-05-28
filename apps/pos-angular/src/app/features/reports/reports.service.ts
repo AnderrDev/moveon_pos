@@ -9,6 +9,10 @@ import {
   getStoreDayRangeUtc,
 } from '@/modules/reports/domain/services/day-range'
 import { isLowStock } from '@/modules/inventory/domain/services/low-stock'
+import {
+  groupSalesByCashier,
+  type CashierSalesSummary,
+} from '@/modules/reports/domain/services/group-sales-by-cashier'
 import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
 
 export interface DailyPaymentBreakdown {
@@ -57,6 +61,7 @@ export interface DailyReport {
   avgVenta: number
   paymentBreakdown: DailyPaymentBreakdown[]
   topProducts: DailyTopProduct[]
+  cashierBreakdown: CashierSalesSummary[]
   salesDetail: DailySaleDetail[]
   sessions: DailySession[]
 }
@@ -139,6 +144,11 @@ export class ReportsService {
       .sort((a, b) => b.qty - a.qty)
       .slice(0, 5)
 
+    // Desglose por cajero: agrupación en cliente sobre las ventas ya cargadas
+    // del día (completadas + anuladas). Cero queries nuevas. La función de
+    // dominio suma totales/IVA solo de completadas y cuenta las anuladas aparte.
+    const cashierBreakdown = groupSalesByCashier(sales)
+
     const salesDetail: DailySaleDetail[] = [...sales]
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .map((s: Sale) => ({
@@ -162,6 +172,7 @@ export class ReportsService {
       avgVenta,
       paymentBreakdown,
       topProducts,
+      cashierBreakdown,
       salesDetail,
       sessions: filteredSessions.map((s) => ({
         id: s.id,
