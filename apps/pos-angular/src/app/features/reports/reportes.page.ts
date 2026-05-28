@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { PageHeaderComponent } from '../../shared/layout/page-header.component'
 import { ButtonComponent } from '../../shared/ui/button.component'
@@ -6,15 +6,22 @@ import { BadgeComponent } from '../../shared/ui/badge.component'
 import { EmptyStateComponent } from '../../shared/feedback/empty-state.component'
 import { ReportsService, type DailyReport, type StockReportRow } from './reports.service'
 import { SessionService } from '../../core/auth/session.service'
+import { TiendaInfoService } from '../../core/tienda/tienda-info.service'
+import { DEFAULT_TIMEZONE } from '@/modules/reports/domain/services/day-range'
 import { formatCurrency, formatTime } from '@/shared/lib/format'
 import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
 
-function todayIso(): string {
-  const d = new Date()
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
+/**
+ * Día actual (`YYYY-MM-DD`) en la zona horaria de la tienda, no en la del
+ * runtime del navegador. `en-CA` produce el formato ISO `YYYY-MM-DD`.
+ */
+function todayIso(timezone: string): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date())
 }
 
 @Component({
@@ -271,15 +278,17 @@ function todayIso(): string {
 export class ReportesPage {
   private readonly reportsService = inject(ReportsService)
   private readonly session = inject(SessionService)
+  private readonly tiendaInfo = inject(TiendaInfoService)
 
-  readonly dateIso = signal(todayIso())
+  readonly dateIso = signal(todayIso(DEFAULT_TIMEZONE))
   readonly tab = signal<'daily' | 'stock'>('daily')
   readonly daily = signal<DailyReport | null>(null)
   readonly stock = signal<StockReportRow[]>([])
   readonly loading = signal(true)
   readonly loadError = signal<string | null>(null)
 
-  readonly currentDate = computed(() => new Date(this.dateIso()))
+  /** El usuario eligió una fecha manualmente: no recalcular "hoy" por TZ. */
+  private userPickedDate = false
 
   constructor() {
     void this.reload()
@@ -307,6 +316,7 @@ export class ReportesPage {
   onDateChange(event: Event): void {
     const value = (event.target as HTMLInputElement).value
     if (value) {
+      this.userPickedDate = true
       this.dateIso.set(value)
       void this.reload()
     }
@@ -319,8 +329,14 @@ export class ReportesPage {
       const auth = await this.session.getAuthContext()
       if (!auth) throw new Error('No autenticado')
 
+      // Si el usuario no eligió fecha, "hoy" se calcula en la TZ de la tienda.
+      if (!this.userPickedDate) {
+        const timezone = await this.resolveTimezone(auth.tiendaId)
+        this.dateIso.set(todayIso(timezone))
+      }
+
       const [daily, stock] = await Promise.all([
-        this.reportsService.getDailyReport(auth.tiendaId, this.currentDate()),
+        this.reportsService.getDailyReport(auth.tiendaId, this.dateIso()),
         this.reportsService.getStockReport(auth.tiendaId),
       ])
 
@@ -330,6 +346,14 @@ export class ReportesPage {
       this.loadError.set(getErrorMessage(error, 'Error al cargar reporte'))
     } finally {
       this.loading.set(false)
+    }
+  }
+
+  private async resolveTimezone(tiendaId: string): Promise<string> {
+    try {
+      return (await this.tiendaInfo.get(tiendaId)).timezone
+    } catch {
+      return DEFAULT_TIMEZONE
     }
   }
 }

@@ -710,6 +710,7 @@ export type Database = {
           nit: string | null
           nombre: string
           telefono: string | null
+          timezone: string
           updated_at: string
         }
         Insert: {
@@ -721,6 +722,7 @@ export type Database = {
           nit?: string | null
           nombre: string
           telefono?: string | null
+          timezone?: string
           updated_at?: string
         }
         Update: {
@@ -732,6 +734,7 @@ export type Database = {
           nit?: string | null
           nombre?: string
           telefono?: string | null
+          timezone?: string
           updated_at?: string
         }
         Relationships: []

@@ -3,6 +3,11 @@ import { SalesRepository } from '../sales/sales.repository'
 import { CashRegisterRepository } from '../cash-register/cash-register.repository'
 import { InventoryRepository } from '../inventory/inventory.repository'
 import { ProductsRepository } from '../products/products.repository'
+import { TiendaInfoService } from '../../core/tienda/tienda-info.service'
+import {
+  DEFAULT_TIMEZONE,
+  getStoreDayRangeUtc,
+} from '@/modules/reports/domain/services/day-range'
 import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
 
 export interface DailyPaymentBreakdown {
@@ -70,15 +75,26 @@ export class ReportsService {
   private readonly cashRepo = inject(CashRegisterRepository)
   private readonly inventoryRepo = inject(InventoryRepository)
   private readonly productsRepo = inject(ProductsRepository)
+  private readonly tiendaInfo = inject(TiendaInfoService)
 
-  async getDailyReport(tiendaId: string, date: Date): Promise<DailyReport> {
-    const dayStart = new Date(date)
-    dayStart.setHours(0, 0, 0, 0)
-    const dayEnd = new Date(date)
-    dayEnd.setHours(23, 59, 59, 999)
+  /**
+   * Reporte diario del día calendario `dateIso` (`YYYY-MM-DD`) en la zona
+   * horaria de la tienda. El rango UTC `[start, end)` se calcula con la función
+   * de dominio `getStoreDayRangeUtc` para que una venta a las 23:30 hora local
+   * caiga en el día local correcto y no en el día UTC.
+   */
+  async getDailyReport(tiendaId: string, dateIso: string): Promise<DailyReport> {
+    let timezone = DEFAULT_TIMEZONE
+    try {
+      timezone = (await this.tiendaInfo.get(tiendaId)).timezone
+    } catch {
+      timezone = DEFAULT_TIMEZONE
+    }
+
+    const { start: dayStart, end: dayEnd } = getStoreDayRangeUtc(dateIso, timezone)
 
     const [sales, filteredSessions] = await Promise.all([
-      this.salesRepo.listByDate(tiendaId, date),
+      this.salesRepo.listByDate(tiendaId, dayStart, dayEnd),
       this.cashRepo.listSessionsByDateRange(tiendaId, dayStart, dayEnd),
     ])
 
@@ -135,7 +151,7 @@ export class ReportsService {
       }))
 
     return {
-      date,
+      date: dayStart,
       totalVentas,
       countVentas: completed.length,
       countAnuladas: voided.length,

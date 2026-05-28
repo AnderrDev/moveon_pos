@@ -45,18 +45,18 @@ export class SalesRepository {
     return (data ?? []).map(rowToSale)
   }
 
-  async listByDate(tiendaId: string, date: Date): Promise<Sale[]> {
-    const start = new Date(date)
-    start.setHours(0, 0, 0, 0)
-    const end = new Date(date)
-    end.setHours(23, 59, 59, 999)
-
+  /**
+   * Lista las ventas de la tienda en el rango UTC semiabierto `[start, end)`.
+   * El llamador calcula el rango (p. ej. el día calendario local de la tienda).
+   * No recalcula límites: `created_at` es timestamptz (UTC).
+   */
+  async listByDate(tiendaId: string, start: Date, end: Date): Promise<Sale[]> {
     const { data, error } = await this.supabaseClient.supabase
       .from('sales')
       .select(`${SALE_COLS}, sale_items(${ITEM_COLS}), payments(${PAY_COLS})`)
       .eq('tienda_id', tiendaId)
       .gte('created_at', start.toISOString())
-      .lte('created_at', end.toISOString())
+      .lt('created_at', end.toISOString())
       .order('created_at', { ascending: false })
       .returns<SaleRow[]>()
 

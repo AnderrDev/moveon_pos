@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '../supabase/supabase-client.service'
+import { DEFAULT_TIMEZONE } from '@/modules/reports/domain/services/day-range'
 
 export interface ReceiptSettings {
   mensajePie: string | null
@@ -14,6 +15,7 @@ export interface TiendaInfo {
   direccion: string | null
   telefono: string | null
   ciudad: string | null
+  timezone: string
   receipt: ReceiptSettings
 }
 
@@ -30,6 +32,7 @@ interface TiendaRow {
   direccion: string | null
   telefono: string | null
   ciudad: string | null
+  timezone: string | null
 }
 
 interface SettingsRow {
@@ -69,7 +72,7 @@ export class TiendaInfoService {
     const [tiendaRes, settingsRes] = await Promise.all([
       client
         .from('tiendas')
-        .select('id, nombre, nit, direccion, telefono, ciudad')
+        .select('id, nombre, nit, direccion, telefono, ciudad, timezone')
         .eq('id', tiendaId)
         .single<TiendaRow>(),
       client
@@ -91,6 +94,7 @@ export class TiendaInfoService {
       direccion: tiendaRes.data.direccion,
       telefono: tiendaRes.data.telefono,
       ciudad: tiendaRes.data.ciudad,
+      timezone: tiendaRes.data.timezone ?? DEFAULT_TIMEZONE,
       receipt: {
         mensajePie:
           (recibo.mensajePie ?? recibo.mensaje_pie ?? DEFAULT_RECEIPT.mensajePie) ?? null,
