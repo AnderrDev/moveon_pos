@@ -23,6 +23,9 @@ criterios de aceptación y esfuerzo estimado.
 | PLAN-06 | ✅ Hecho (auditor PASS) | `fda2c83` |
 | PLAN-07 | ✅ Hecho (auditor PASS) — RPC con error rico queda como follow-up | `bfb5f02` |
 | PLAN-04 | ✅ Hecho (auditor PASS) — el filtro ya existía; bug era sesión stale (follow-up: expirar sesiones abiertas) | `a471b91` |
+| PLAN-03 | ✅ Hecho (auditor PASS) — migración + pgTAP pendientes de aplicar/correr al remoto (Docker local off) | `de91a89` |
+
+> **Todos los P0 (bloqueantes go-live) completados.** Pendiente operativo de deploy: aplicar al Supabase remoto las migraciones de PLAN-01 (`20260527_001_add_tienda_timezone`) y PLAN-03 (`20260527_002_correlative_sale_number`), y correr los tests pgTAP cuando Docker esté disponible.
 
 
 ---
