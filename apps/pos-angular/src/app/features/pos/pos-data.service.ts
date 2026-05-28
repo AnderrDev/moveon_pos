@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core'
 import { ProductsCacheStore } from '../products/products-cache.store'
+import { InventoryRepository } from '../inventory/inventory.repository'
 import { SupabaseClientService } from '../../core/supabase/supabase-client.service'
 import type { OpenCashSession, PosCategory, PosProduct } from './pos.types'
 
@@ -12,9 +13,17 @@ interface CashSessionRow {
 export class PosDataService {
   private readonly supabaseClient = inject(SupabaseClientService)
   private readonly cache = inject(ProductsCacheStore)
+  private readonly inventoryRepo = inject(InventoryRepository)
 
   async listProducts(tiendaId: string): Promise<PosProduct[]> {
-    const products = await this.cache.ensureProducts(tiendaId)
+    // 2 queries: catálogo (cache) + niveles de stock (getStockLevels). Sin N+1.
+    const [products, stockLevels] = await Promise.all([
+      this.cache.ensureProducts(tiendaId),
+      this.inventoryRepo.getStockLevels(tiendaId),
+    ])
+
+    const stockByProduct = new Map(stockLevels.map((level) => [level.productId, level.currentStock]))
+
     return products
       .filter((p) => p.isActive)
       .map((p) => ({
@@ -25,6 +34,11 @@ export class PosDataService {
         precioVenta: p.precioVenta,
         ivaTasa: p.ivaTasa,
         categoriaId: p.categoriaId,
+        tipo: p.tipo,
+        // `prepared` no rastrea stock. Para simple/ingredient, stock real
+        // acotado a >= 0 (RN-I06): el máximo nunca es negativo.
+        stockDisponible:
+          p.tipo === 'prepared' ? null : Math.max(0, stockByProduct.get(p.id) ?? 0),
       }))
   }
 

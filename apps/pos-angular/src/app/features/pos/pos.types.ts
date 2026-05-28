@@ -1,4 +1,4 @@
-import type { IvaRate, PaymentMethod } from '@/shared/types'
+import type { IvaRate, PaymentMethod, ProductType } from '@/shared/types'
 
 export interface PosProduct {
   id: string
@@ -8,6 +8,9 @@ export interface PosProduct {
   precioVenta: number
   ivaTasa: IvaRate
   categoriaId: string | null
+  tipo: ProductType
+  /** Stock disponible. `null` = el producto no rastrea stock (ej. `prepared`). */
+  stockDisponible: number | null
 }
 
 export interface PosCategory {

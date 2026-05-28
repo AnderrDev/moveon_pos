@@ -4,6 +4,7 @@ import { SupabaseClientService } from '../../core/supabase/supabase-client.servi
 import { SessionService } from '../../core/auth/session.service'
 import { err, ok, type Result } from '@/shared/result'
 import { getErrorMessage } from '@/shared/lib/error-message'
+import { mapSaleError } from './sale-error-mapper'
 import type { PaymentEntry } from './pos.types'
 import type { PosCartItem } from './pos-cart.store'
 import type { CartTotals } from '@/modules/sales/domain/services/sale-calculator'
@@ -131,7 +132,13 @@ export class PosSaleService {
       })),
     })
 
-    if (error) return err({ kind: 'remote', message: getErrorMessage(error, 'Error al crear venta') })
+    if (error) {
+      // El RPC emite cadenas crudas (ej. 'Stock insuficiente'); el mapper las
+      // traduce a un mensaje legible y, para stock, reconstruye el detalle desde
+      // el carrito. El RPC sigue siendo la autoridad ante carreras de stock.
+      const rawMessage = getErrorMessage(error, 'Error al crear venta')
+      return err({ kind: 'remote', message: mapSaleError(rawMessage, input.items) })
+    }
     if (!data) return err({ kind: 'remote', message: 'Venta creada sin id de respuesta' })
 
     return ok({ saleId: data })

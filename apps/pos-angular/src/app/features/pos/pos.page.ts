@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { formatCurrency } from '@/shared/lib/format'
 import { getPaymentMethodLabel, PAYMENT_METHOD_OPTIONS } from '@/shared/lib/payment-methods'
@@ -277,7 +277,8 @@ import type { Cliente } from '@/modules/customers/domain/entities/cliente.entity
                             <button
                               type="button"
                               (click)="cart.updateQuantity(item.key, item.quantity + 1)"
-                              class="h-9 w-9"
+                              [disabled]="isAtStockMax(item)"
+                              class="h-9 w-9 disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               +
                             </button>
@@ -604,6 +605,15 @@ export class PosPage {
   })
 
   constructor() {
+    // El store marca el tope de stock; la página dispara el toast (ToastService
+    // NO vive en el store). Se consume y se limpia para no repetirlo.
+    effect(() => {
+      const feedback = this.cart.stockCapFeedback()
+      if (!feedback) return
+      this.toast.warning(`Stock máximo: ${feedback.maxQuantity} unidades`)
+      this.cart.clearStockCapFeedback()
+    })
+
     void this.load()
   }
 
@@ -669,6 +679,11 @@ export class PosPage {
 
   selectProduct(product: PosProduct): void {
     this.cart.addItem(product)
+  }
+
+  /** `true` cuando el ítem rastrea stock y ya alcanzó el máximo disponible. */
+  isAtStockMax(item: PosCartItem): boolean {
+    return item.maxQuantity !== null && item.quantity >= item.maxQuantity
   }
 
   onCustomerSelected(cliente: Cliente): void {

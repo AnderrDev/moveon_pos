@@ -6,14 +6,30 @@ import {
   type CartItemInput,
 } from '@/modules/sales/domain/services/sale-calculator'
 import type { CartTotals } from '@/modules/sales/domain/services/sale-calculator'
+import { capQuantity } from './stock-cap'
 import type { PosProduct, PaymentEntry } from './pos.types'
 
 export interface PosCartItem extends CartItemCalculated {
   key: string
+  /** Stock disponible. `null` = el producto no rastrea stock (ej. `prepared`). */
+  maxQuantity: number | null
 }
 
-function toCartItem(input: CartItemInput): PosCartItem {
-  return { ...calculateCartItem(input), key: input.productId }
+/**
+ * Feedback que la página observa para disparar el toast de tope de stock.
+ * El store NO inyecta ToastService: solo expone qué pasó.
+ */
+export interface StockCapFeedback {
+  nombre: string
+  maxQuantity: number
+}
+
+interface ToCartItemInput extends CartItemInput {
+  maxQuantity: number | null
+}
+
+function toCartItem(input: ToCartItemInput): PosCartItem {
+  return { ...calculateCartItem(input), key: input.productId, maxQuantity: input.maxQuantity }
 }
 
 function generateIdempotencyKey(): string {
@@ -31,6 +47,13 @@ export class PosCartStore {
   private readonly clienteIdState = signal<string | null>(null)
   private readonly clienteNombreState = signal<string | null>(null)
   private readonly globalDiscountState = signal<number>(0)
+  private readonly stockCapFeedbackState = signal<StockCapFeedback | null>(null)
+
+  /**
+   * Último tope de stock aplicado. La página lo observa para mostrar el toast y
+   * luego lo limpia con `clearStockCapFeedback()`. El store no muestra UI.
+   */
+  readonly stockCapFeedback = this.stockCapFeedbackState.asReadonly()
 
   readonly items = this.itemsState.asReadonly()
   readonly payments = this.paymentsState.asReadonly()
@@ -51,10 +74,21 @@ export class PosCartStore {
     this.itemsState.update((items) => {
       const existing = items.find((item) => item.key === product.id)
       if (existing) {
+        const { quantity, capped } = capQuantity(existing.quantity + 1, product.stockDisponible)
+        if (capped) this.flagStockCap(product.nombre, product.stockDisponible)
+        // Si el tope deja la misma cantidad (ya estaba al máximo) no recreamos el ítem.
+        if (quantity === existing.quantity) return items
         return items.map((item) =>
-          item.key === product.id ? toCartItem({ ...item, quantity: item.quantity + 1 }) : item,
+          item.key === product.id
+            ? toCartItem({ ...item, quantity, maxQuantity: product.stockDisponible })
+            : item,
         )
       }
+
+      const { quantity, capped } = capQuantity(1, product.stockDisponible)
+      if (capped) this.flagStockCap(product.nombre, product.stockDisponible)
+      // max=0 => no se puede agregar la unidad: no se inserta el ítem.
+      if (quantity <= 0) return items
 
       return [
         ...items,
@@ -64,8 +98,9 @@ export class PosCartStore {
           sku: product.sku,
           unitPrice: product.precioVenta,
           ivaTasa: product.ivaTasa,
-          quantity: 1,
+          quantity,
           discountAmount: 0,
+          maxQuantity: product.stockDisponible,
         }),
       ]
     })
@@ -82,14 +117,40 @@ export class PosCartStore {
     }
 
     this.itemsState.update((items) =>
-      items.map((item) => (item.key === productId ? toCartItem({ ...item, quantity }) : item)),
+      items.map((item) => {
+        if (item.key !== productId) return item
+        const capped = capQuantity(quantity, item.maxQuantity)
+        if (capped.capped) this.flagStockCap(item.nombre, item.maxQuantity)
+        return toCartItem({ ...item, quantity: capped.quantity, maxQuantity: item.maxQuantity })
+      }),
     )
   }
 
   updateDiscount(productId: string, discountAmount: number): void {
     this.itemsState.update((items) =>
-      items.map((item) => (item.key === productId ? toCartItem({ ...item, discountAmount }) : item)),
+      items.map((item) => {
+        if (item.key !== productId) return item
+        // El descuento no cambia la cantidad; el tope se mantiene por seguridad.
+        const capped = capQuantity(item.quantity, item.maxQuantity)
+        return toCartItem({
+          ...item,
+          quantity: capped.quantity,
+          discountAmount,
+          maxQuantity: item.maxQuantity,
+        })
+      }),
     )
+  }
+
+  /** Limpia el feedback de tope tras consumirlo en la página. */
+  clearStockCapFeedback(): void {
+    this.stockCapFeedbackState.set(null)
+  }
+
+  private flagStockCap(nombre: string, maxQuantity: number | null): void {
+    // `null` (prepared) nunca topa; defensivo por si llega.
+    if (maxQuantity === null) return
+    this.stockCapFeedbackState.set({ nombre, maxQuantity })
   }
 
   setCliente(clienteId: string, clienteNombre: string): void {
@@ -114,6 +175,7 @@ export class PosCartStore {
     this.clienteIdState.set(null)
     this.clienteNombreState.set(null)
     this.globalDiscountState.set(0)
+    this.stockCapFeedbackState.set(null)
   }
 
   addPayment(payment: PaymentEntry): void {
