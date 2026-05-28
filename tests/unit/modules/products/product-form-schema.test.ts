@@ -51,8 +51,90 @@ describe('productFormSchema', () => {
     expect(result.success).toBe(true)
   })
 
+  // ── IVA ──────────────────────────────────────────────────────────────────────
+
+  it('acepta el IVA por defecto (0) que produce createProductFormDefaults', () => {
+    const defaults = createProductFormDefaults()
+    expect(defaults.ivaTasa).toBe(0)
+
+    const result = productFormSchema.safeParse({
+      ...defaults,
+      nombre: 'Producto válido',
+      precioVenta: 1000,
+    })
+    expect(result.success).toBe(true)
+    if (!result.success) {
+      expect(result.error.issues.map((i) => i.path)).not.toContainEqual(['ivaTasa'])
+    }
+  })
+
+  it.each([0, 5, 19] as const)('acepta IVA permitido (%i)', (ivaTasa) => {
+    const result = productFormSchema.safeParse({ ...validProduct, ivaTasa })
+    expect(result.success).toBe(true)
+  })
+
+  it('rechaza un IVA no permitido (16)', () => {
+    const result = productFormSchema.safeParse({ ...validProduct, ivaTasa: 16 })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues[0].path).toEqual(['ivaTasa'])
+    }
+  })
+
+  // ── Costo (opcional) ──────────────────────────────────────────────────────────
+
+  it('acepta costo undefined', () => {
+    const result = productFormSchema.safeParse({ ...validProduct, costo: undefined })
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data.costo).toBeUndefined()
+  })
+
+  it('normaliza costo vacío ("") a undefined (caso del bug)', () => {
+    const result = productFormSchema.safeParse({ ...validProduct, costo: '' })
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data.costo).toBeUndefined()
+  })
+
+  it('acepta un costo presente y lo conserva', () => {
+    const result = productFormSchema.safeParse({ ...validProduct, costo: 70000 })
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data.costo).toBe(70000)
+  })
+
+  it('conserva el costo cero (no lo trata como vacío)', () => {
+    const result = productFormSchema.safeParse({ ...validProduct, costo: 0 })
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data.costo).toBe(0)
+  })
+
+  it('rechaza un costo negativo', () => {
+    const result = productFormSchema.safeParse({ ...validProduct, costo: -1 })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues[0].path).toEqual(['costo'])
+    }
+  })
+
+  it('rechaza un costo no numérico', () => {
+    const result = productFormSchema.safeParse({ ...validProduct, costo: 'abc' })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues[0].path).toEqual(['costo'])
+    }
+  })
+
+  // ── Precio de venta ─────────────────────────────────────────────────────────
+
   it('rechaza precio de venta en cero', () => {
     const result = productFormSchema.safeParse({ ...validProduct, precioVenta: 0 })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues[0].path).toEqual(['precioVenta'])
+    }
+  })
+
+  it('rechaza precio de venta negativo', () => {
+    const result = productFormSchema.safeParse({ ...validProduct, precioVenta: -5 })
     expect(result.success).toBe(false)
     if (!result.success) {
       expect(result.error.issues[0].path).toEqual(['precioVenta'])

@@ -45,10 +45,18 @@ export const productFormSchema = z.object({
 
   precioVenta: salePriceSchema,
 
-  costo: z
-    .number({ invalid_type_error: 'Ingresa un valor numérico' })
-    .nonnegative('El costo no puede ser negativo')
-    .optional(),
+  // El costo es opcional: el select/input puede entregar '' | null | undefined | NaN.
+  // El preprocess los normaliza a undefined, pero NO toca el 0 (costo válido).
+  costo: z.preprocess(
+    (v) =>
+      v === '' || v === null || v === undefined || (typeof v === 'number' && Number.isNaN(v))
+        ? undefined
+        : v,
+    z
+      .number({ invalid_type_error: 'Ingresa un valor numérico' })
+      .nonnegative('El costo no puede ser negativo')
+      .optional(),
+  ),
 
   ivaTasa: ivaRateSchema,
 

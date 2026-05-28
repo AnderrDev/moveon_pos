@@ -22,10 +22,10 @@ export interface FormSelectOption<T extends string | number = string> {
     >
       <select [formControlName]="controlName()" [class]="selectClasses()">
         @if (placeholder()) {
-          <option value="">{{ placeholder() }}</option>
+          <option [ngValue]="''">{{ placeholder() }}</option>
         }
         @for (option of options(); track option.value) {
-          <option [value]="option.value">{{ option.label }}</option>
+          <option [ngValue]="option.value">{{ option.label }}</option>
         }
       </select>
     </mo-field-wrapper>
