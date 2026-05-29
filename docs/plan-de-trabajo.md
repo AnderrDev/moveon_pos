@@ -35,6 +35,11 @@ criterios de aceptación y esfuerzo estimado.
 | PLAN-20 | ✅ Hecho (auditor PASS) — causa raíz: extracción del error del RPC | `8d41725` |
 | PLAN-17 | ✅ Hecho (auditor PASS) — nombre real del cajero pendiente (requiere vista/RPC RLS-safe) | `623b2f6` |
 | PLAN-16 | ✅ Hecho (auditor PASS) — pendiente config de Supabase (Redirect URLs + plantilla email) | `6d8ad3f` |
+| PLAN-18 | ✅ Hecho (auditor PASS) — importador escrito + dry-run OK; correr apply contra el remoto requiere permiso | `c0e16df` |
+
+### Hallazgo de seguridad adicional (de PLAN-18)
+
+- **PLAN-21 (seguridad):** `scripts/seed-admin-user.mjs` tiene un **service-role key hardcodeado** (viola CLAUDE.md §2.4). Debe leerlo de `.env.local` como los demás scripts, y rotar esa key (quedó en el repo/historial). Pendiente.
 
 > **Todos los P0 (bloqueantes go-live) completados.** Las migraciones de PLAN-01 (`20260527_001_add_tienda_timezone`) y PLAN-03 (`20260527_002_correlative_sale_number`) **ya se aplicaron al Supabase remoto (2026-05-27)** y se validaron por navegador (ver `docs/user-stories/PLAN-DE-PRUEBAS-post-fixes.md`: V-000001/V-000002 correlativos, reporte por TZ local). Pendiente menor: correr los tests pgTAP cuando Docker esté disponible.
 
