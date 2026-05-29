@@ -31,7 +31,7 @@ criterios de aceptación y esfuerzo estimado.
 | PLAN-11 | ✅ Hecho (auditor PASS) | `6c5d767` |
 | PLAN-14 | ✅ Hecho (auditor PASS) | `7de41dd` |
 | PLAN-12 | ✅ Hecho (auditor PASS) | `(este)` |
-| PLAN-13 | ⏳ Pendiente — requiere migración del RPC (aplicar al remoto, espera permiso) | — |
+| PLAN-13 | ✅ Código hecho (auditor PASS) — migración `20260528_002` **pendiente de aplicar al remoto** | `(este)` |
 | PLAN-20 | ✅ Hecho (auditor PASS) — causa raíz: extracción del error del RPC | `8d41725` |
 | PLAN-17 | ✅ Hecho (auditor PASS) — nombre real del cajero pendiente (requiere vista/RPC RLS-safe) | `623b2f6` |
 | PLAN-16 | ✅ Hecho (auditor PASS) — pendiente config de Supabase (Redirect URLs + plantilla email) | `6d8ad3f` |
