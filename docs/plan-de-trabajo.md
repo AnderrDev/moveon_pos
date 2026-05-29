@@ -24,14 +24,16 @@ criterios de aceptación y esfuerzo estimado.
 | PLAN-07 | ✅ Hecho (auditor PASS) — RPC con error rico queda como follow-up | `bfb5f02` |
 | PLAN-04 | ✅ Hecho (auditor PASS) — el filtro ya existía; bug era sesión stale (follow-up: expirar sesiones abiertas) | `a471b91` |
 | PLAN-03 | ✅ Hecho (auditor PASS) — migración aplicada al remoto (2026-05-27); pgTAP pendiente (Docker off) | `de91a89` |
-| PLAN-19 | ✅ Hecho (auditor PASS) — código commiteado; **migración pendiente de aplicar al remoto** (requiere permiso del usuario) | `7577ee3` |
+| PLAN-19 | ✅ Hecho + **aplicado al remoto (2026-05-28) y verificado en navegador**: el cajero vende contra la caja del admin (V-000004), índice `ux_one_open_session_per_tienda` | `7577ee3` |
 | PLAN-08 | ✅ Hecho (auditor PASS) | `4a7cc70` |
 | PLAN-09 | ✅ Hecho (auditor PASS) | `9a80f75` |
 | PLAN-10 | ✅ Hecho (auditor PASS) | `6c5d767` |
 | PLAN-11 | ✅ Hecho (auditor PASS) | `6c5d767` |
 | PLAN-14 | ✅ Hecho (auditor PASS) | `7de41dd` |
 | PLAN-12 | ✅ Hecho (auditor PASS) | `(este)` |
-| PLAN-13 | ✅ Código hecho (auditor PASS) — migración `20260528_002` **pendiente de aplicar al remoto** | `(este)` |
+| PLAN-13 | ✅ Hecho + **aplicado al remoto (2026-05-28) y verificado**: el `sale_exit` de V-000004 quedó con `motivo = 'Venta V-000004'` | `(aplicado)` |
+
+> **🎉 TODO el plan de trabajo cerrado (PLAN-01 … PLAN-20).** Migraciones `20260528_001` (caja compartida) y `20260528_002` (motivo sale_exit) aplicadas al remoto y verificadas por navegador el 2026-05-28. Quedan solo pendientes NO-código: config de Supabase Auth (PLAN-16 redirect URLs), PLAN-21 (key hardcodeada en seed script), y rotación de credenciales de `.env.local`.
 | PLAN-20 | ✅ Hecho (auditor PASS) — causa raíz: extracción del error del RPC | `8d41725` |
 | PLAN-17 | ✅ Hecho (auditor PASS) — nombre real del cajero pendiente (requiere vista/RPC RLS-safe) | `623b2f6` |
 | PLAN-16 | ✅ Hecho (auditor PASS) — pendiente config de Supabase (Redirect URLs + plantilla email) | `6d8ad3f` |
