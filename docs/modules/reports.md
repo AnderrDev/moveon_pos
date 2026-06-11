@@ -7,10 +7,10 @@ Lecturas agregadas para el negocio. **No tiene reglas de escritura.** Solo consu
 1. Ventas del día — totales, por método, por cajero.
 2. Detalle de ventas con filtros de fecha.
 3. Cierre de caja imprimible con ventas esperadas/confirmadas, diferencia total y diferencia de efectivo físico.
-4. Stock actual con bajo stock destacado.
+4. Stock actual con desglose `punto_venta` / `bodega` / total y bajo stock destacado.
 
 ## Implementación
-- Server Components que consultan vía repositorios.
+- Servicios Angular que consultan vía repositorios.
 - Para reportes pesados, considerar vistas materializadas (no en MVP).
 
 ## Zona horaria del reporte diario (PLAN-01)
@@ -26,3 +26,8 @@ Lecturas agregadas para el negocio. **No tiene reglas de escritura.** Solo consu
 - Top productos / batidos.
 - Comparativos por día/semana/mes.
 - Productos próximos a quedar sin stock por velocidad de venta.
+
+## Stock por ubicación (PLAN-23..26)
+- El reporte de stock muestra `punto_venta`, `bodega` y total.
+- "Stock bajo" se calcula contra `punto_venta`, porque es el stock vendible.
+- Productos `prepared` siguen excluidos de bajo stock.

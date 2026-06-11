@@ -35,7 +35,7 @@ Estas decisiones están cerradas. Cualquier cambio requiere un ADR formal.
 6. **Multi-sede preparado en datos** (`tienda_id` en todas las tablas operativas), aunque la UI multi-sede llega después.
 7. **PWA responsive** para funcionar en computador, laptop o tablet.
 8. **Modo contingencia simple, no offline-first completo.**
-9. **Next.js full-stack monorepo** con TypeScript estricto.
+9. **Angular 21 standalone PWA** con TypeScript estricto.
 
 ## Riesgo principal asumido
 

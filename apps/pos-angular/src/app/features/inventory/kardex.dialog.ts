@@ -25,6 +25,13 @@ const TIPO_LABELS: Record<string, string> = {
   sale_exit: 'Venta',
   adjustment: 'Ajuste',
   void_return: 'Anulacion',
+  transfer_out: 'Traslado salida',
+  transfer_in: 'Traslado entrada',
+}
+
+const LOCATION_LABELS: Record<string, string> = {
+  punto_venta: 'Punto de venta',
+  bodega: 'Bodega',
 }
 
 @Component({
@@ -55,6 +62,7 @@ const TIPO_LABELS: Record<string, string> = {
               <tr>
                 <th class="px-3 py-2">Fecha</th>
                 <th class="px-3 py-2">Tipo</th>
+                <th class="px-3 py-2">Ubicacion</th>
                 <th class="px-3 py-2 text-right">Cantidad</th>
                 <th class="px-3 py-2">Motivo</th>
               </tr>
@@ -67,6 +75,9 @@ const TIPO_LABELS: Record<string, string> = {
                   </td>
                   <td class="px-3 py-2">
                     <mo-badge [variant]="badgeVariant(mov.tipo)">{{ tipoLabel(mov.tipo) }}</mo-badge>
+                  </td>
+                  <td class="text-muted-foreground px-3 py-2 text-xs">
+                    {{ locationLabel(mov.ubicacion) }}
                   </td>
                   <td
                     class="px-3 py-2 text-right tabular-nums"
@@ -118,11 +129,15 @@ export class KardexDialog {
     return TIPO_LABELS[tipo] ?? tipo
   }
 
+  locationLabel(ubicacion: string): string {
+    return LOCATION_LABELS[ubicacion] ?? ubicacion
+  }
+
   badgeVariant(tipo: string): 'default' | 'success' | 'warning' | 'destructive' {
-    if (tipo === 'entry') return 'success'
+    if (tipo === 'entry' || tipo === 'transfer_in') return 'success'
     if (tipo === 'sale_exit') return 'default'
     if (tipo === 'adjustment') return 'warning'
-    if (tipo === 'void_return') return 'destructive'
+    if (tipo === 'void_return' || tipo === 'transfer_out') return 'destructive'
     return 'default'
   }
 

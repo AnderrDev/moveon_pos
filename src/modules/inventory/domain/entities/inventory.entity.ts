@@ -1,9 +1,11 @@
-import type { InventoryMovementType, TiendaId, UserId } from '@/shared/types'
+import type { InventoryLocation, InventoryMovementType, TiendaId, UserId } from '@/shared/types'
 
 export interface StockLevel {
   productId: string
   tiendaId: TiendaId
-  currentStock: number
+  puntoVentaStock: number
+  bodegaStock: number
+  totalStock: number
   minimumStock: number
   isLow: boolean
 }
@@ -13,6 +15,7 @@ export interface InventoryMovement {
   tiendaId: TiendaId
   productId: string
   tipo: InventoryMovementType
+  ubicacion: InventoryLocation
   cantidad: number
   costoUnitario: number | null
   motivo: string | null

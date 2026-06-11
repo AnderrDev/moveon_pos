@@ -99,7 +99,8 @@ Toda variación de stock pasa por aquí. **Nunca** se actualiza `productos.stock
 id              uuid PK
 tienda_id       uuid not null  (FK tiendas)
 producto_id     uuid not null  (FK productos)
-tipo            text not null  CHECK (tipo IN ('entry', 'sale_exit', 'adjustment', 'void_return'))
+tipo            text not null  CHECK (tipo IN ('entry', 'sale_exit', 'adjustment', 'void_return', 'transfer_out', 'transfer_in'))
+ubicacion       text not null  CHECK (ubicacion IN ('punto_venta', 'bodega')) default 'punto_venta'
 cantidad        numeric(14,3) not null  -- positiva: entra. negativa: sale.
 costo_unitario  numeric(14,2)
 motivo          text
@@ -109,11 +110,12 @@ created_by      uuid not null  (FK auth.users)
 created_at      timestamptz default now()
 
 INDEX (tienda_id, producto_id, created_at DESC)
+INDEX (tienda_id, producto_id, ubicacion, created_at DESC)
 INDEX (referencia_tipo, referencia_id)
 ```
 
 #### Vista materializada `producto_stock` (o función)
-El stock actual se calcula como `SUM(cantidad)` agrupado por producto. En MVP usamos una **función** `get_stock(producto_id, tienda_id)` o una columna calculada en vista. No mantenemos columna `stock` denormalizada para evitar inconsistencias.
+El stock actual se calcula como `SUM(cantidad)` agrupado por producto y ubicación. En MVP usamos una **función** `get_stock(producto_id, tienda_id, ubicacion default 'punto_venta')`. No mantenemos columna `stock` denormalizada para evitar inconsistencias.
 
 > Decisión: si performance se vuelve problema, evaluamos cache o trigger. Ver ADR cuando ocurra.
 
@@ -163,10 +165,10 @@ INDEX (tienda_id, status)
 INDEX (opened_by, status)
 ```
 
-**Regla:** un usuario solo puede tener una sesión `open` a la vez. Esto se valida con índice parcial:
+**Regla:** una tienda solo puede tener una sesión `open` a la vez. Esto se valida con índice parcial:
 ```sql
-CREATE UNIQUE INDEX ux_one_open_session_per_user
-  ON cash_sessions (opened_by) WHERE status = 'open';
+CREATE UNIQUE INDEX ux_one_open_session_per_tienda
+  ON cash_sessions (tienda_id) WHERE status = 'open';
 ```
 
 #### `cash_movements`

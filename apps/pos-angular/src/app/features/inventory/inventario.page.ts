@@ -9,6 +9,7 @@ import { ProductsRepository } from '../products/products.repository'
 import { SessionService } from '../../core/auth/session.service'
 import { RegisterEntryDialog } from './register-entry.dialog'
 import { AdjustStockDialog } from './adjust-stock.dialog'
+import { TransferStockDialog } from './transfer-stock.dialog'
 import { KardexDialog } from './kardex.dialog'
 import type { Product } from '@/modules/products/domain/entities/product.entity'
 import type { StockLevel } from '@/modules/inventory/domain/entities/inventory.entity'
@@ -18,7 +19,9 @@ interface StockRow {
   id: string
   nombre: string
   sku: string | null
-  currentStock: number
+  puntoVentaStock: number
+  bodegaStock: number
+  totalStock: number
   minimumStock: number
   isLow: boolean
 }
@@ -34,6 +37,7 @@ interface StockRow {
     EmptyStateComponent,
     RegisterEntryDialog,
     AdjustStockDialog,
+    TransferStockDialog,
     KardexDialog,
   ],
   template: `
@@ -68,7 +72,9 @@ interface StockRow {
               <tr>
                 <th class="px-4 py-3">Producto</th>
                 <th class="px-4 py-3">SKU</th>
-                <th class="px-4 py-3 text-right">Stock</th>
+                <th class="px-4 py-3 text-right">Punto venta</th>
+                <th class="px-4 py-3 text-right">Bodega</th>
+                <th class="px-4 py-3 text-right">Total</th>
                 <th class="px-4 py-3 text-right">Min</th>
                 <th class="px-4 py-3"></th>
                 <th class="px-4 py-3"></th>
@@ -82,7 +88,13 @@ interface StockRow {
                     {{ row.sku ?? '—' }}
                   </td>
                   <td class="px-4 py-3 text-right font-bold tabular-nums">
-                    {{ row.currentStock }}
+                    {{ row.puntoVentaStock }}
+                  </td>
+                  <td class="px-4 py-3 text-right font-semibold tabular-nums">
+                    {{ row.bodegaStock }}
+                  </td>
+                  <td class="text-muted-foreground px-4 py-3 text-right tabular-nums">
+                    {{ row.totalStock }}
                   </td>
                   <td class="text-muted-foreground px-4 py-3 text-right tabular-nums">
                     {{ row.minimumStock }}
@@ -99,6 +111,9 @@ interface StockRow {
                       >
                       <mo-button size="sm" variant="ghost" (click)="openAdjust(row)"
                         >Ajustar</mo-button
+                      >
+                      <mo-button size="sm" variant="ghost" (click)="openTransfer(row)"
+                        >Trasladar</mo-button
                       >
                       <mo-button size="sm" variant="ghost" (click)="openKardex(row)"
                         >Kardex</mo-button
@@ -127,6 +142,13 @@ interface StockRow {
       (saved)="load()"
     />
 
+    <mo-transfer-stock-dialog
+      [open]="transferOpen()"
+      [product]="selectedWithStock()"
+      (closed)="transferOpen.set(false)"
+      (saved)="load()"
+    />
+
     <mo-kardex-dialog
       [open]="kardexOpen()"
       [product]="selected()"
@@ -147,6 +169,7 @@ export class InventarioPage {
 
   readonly entryOpen = signal(false)
   readonly adjustOpen = signal(false)
+  readonly transferOpen = signal(false)
   readonly kardexOpen = signal(false)
   readonly selectedRow = signal<StockRow | null>(null)
 
@@ -157,21 +180,36 @@ export class InventarioPage {
 
   readonly selectedWithStock = computed(() => {
     const row = this.selectedRow()
-    return row ? { id: row.id, nombre: row.nombre, currentStock: row.currentStock } : null
+    return row
+      ? {
+          id: row.id,
+          nombre: row.nombre,
+          puntoVentaStock: row.puntoVentaStock,
+          bodegaStock: row.bodegaStock,
+        }
+      : null
   })
 
   readonly rows = computed<StockRow[]>(() => {
     const stockMap = new Map(this.stockLevels().map((s) => [s.productId, s] as const))
     return this.products().map((p) => {
       const stock = stockMap.get(p.id)
-      const current = stock?.currentStock ?? 0
+      const puntoVentaStock = stock?.puntoVentaStock ?? 0
+      const bodegaStock = stock?.bodegaStock ?? 0
+      const totalStock = stock?.totalStock ?? puntoVentaStock + bodegaStock
       return {
         id: p.id,
         nombre: p.nombre,
         sku: p.sku,
-        currentStock: current,
+        puntoVentaStock,
+        bodegaStock,
+        totalStock,
         minimumStock: p.stockMinimo,
-        isLow: isLowStock({ tipo: p.tipo, currentStock: current, minimumStock: p.stockMinimo }),
+        isLow: isLowStock({
+          tipo: p.tipo,
+          currentStock: puntoVentaStock,
+          minimumStock: p.stockMinimo,
+        }),
       }
     })
   })
@@ -221,6 +259,11 @@ export class InventarioPage {
   openAdjust(row: StockRow): void {
     this.selectedRow.set(row)
     this.adjustOpen.set(true)
+  }
+
+  openTransfer(row: StockRow): void {
+    this.selectedRow.set(row)
+    this.transferOpen.set(true)
   }
 
   openKardex(row: StockRow): void {

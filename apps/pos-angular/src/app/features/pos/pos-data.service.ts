@@ -22,7 +22,9 @@ export class PosDataService {
       this.inventoryRepo.getStockLevels(tiendaId),
     ])
 
-    const stockByProduct = new Map(stockLevels.map((level) => [level.productId, level.currentStock]))
+    const stockByProduct = new Map(
+      stockLevels.map((level) => [level.productId, level.puntoVentaStock]),
+    )
 
     return products
       .filter((p) => p.isActive)

@@ -46,4 +46,12 @@ export type CashSessionStatus = 'open' | 'closed'
 
 export type CashMovementType = 'cash_in' | 'cash_out' | 'expense' | 'correction'
 
-export type InventoryMovementType = 'entry' | 'sale_exit' | 'adjustment' | 'void_return'
+export type InventoryLocation = 'punto_venta' | 'bodega'
+
+export type InventoryMovementType =
+  | 'entry'
+  | 'sale_exit'
+  | 'adjustment'
+  | 'void_return'
+  | 'transfer_out'
+  | 'transfer_in'

@@ -29,13 +29,17 @@ HU original (`HU-XX`) de los sprints.
 - [ ] CA1: Un usuario inactivo no puede operar la app.
 - [ ] ⚠️ Gap: validar mensaje "Usuario sin acceso" y comportamiento exacto contra la implementación actual.
 
-### AUTH-04 — Separación de capacidades por rol (RN-A03, RN-S08, RN-I04) ⚠️
+### AUTH-04 — Separación de capacidades por rol (RN-A03, RN-S08, RN-I04) ✅
 **Como** administrador **quiero** que el cajero no acceda a funciones de admin.
-- [ ] ⚠️ Gap conocido: **no existe guard por rol en rutas** (solo `authGuard`). Hoy un cajero puede navegar a `/productos`, `/inventario`, etc. Documentar y completar antes de go-live.
+- [ ] CA1: Cajero no ve ni navega a `/productos`, `/inventario`, `/reportes` ni `/productos/categorias`.
+- [ ] CA2: Cajero no ve la acción "Anular" en ventas del turno.
+- [ ] CA3: Admin mantiene acceso completo.
 
-### AUTH-05 — Recuperación de contraseña ❌
+### AUTH-05 — Recuperación de contraseña ✅
 **Como** usuario **quiero** recuperar mi contraseña.
-- [ ] ❌ Gap: UI de "Olvidé mi contraseña" no implementada (flujo Supabase Auth pendiente).
+- [ ] CA1: `/recuperar-contrasena` solicita email sin revelar si existe.
+- [ ] CA2: `/restablecer-contrasena` permite fijar una nueva contraseña con sesión Supabase válida.
+- [ ] CA3: Supabase Auth debe tener configurados Site URL, Redirect URLs y plantilla de email en el dashboard.
 
 ---
 
@@ -65,41 +69,51 @@ HU original (`HU-XX`) de los sprints.
 - [ ] CA3: Escanear/escribir un código de barras exacto selecciona el producto directamente.
 - [ ] CA4: La búsqueda es responsiva (debounce) y usa el cache de productos (no refetchea cada tecla).
 
-### CAT-04 — Importación CSV desde Siigo ❌
+### CAT-04 — Importación CSV desde Siigo ✅
 **Como** admin **quiero** importar productos por CSV **para** migrar desde Siigo.
-- [ ] ❌ Gap: importador CSV no implementado (RN módulo products / HU-28).
+- [ ] CA1: El script CLI valida el CSV antes de escribir.
+- [ ] CA2: Inserta categorías/productos faltantes sin sobrescribir duplicados.
+- [ ] CA3: `stock_inicial` genera `inventory_movements.entry` en `bodega`.
 
 ---
 
 ## 3. Inventario (`/inventario`) — módulo `inventory`
 
-### INV-01 — Stock como suma de movimientos (RN-I01) ✅
+### INV-01 — Stock como suma de movimientos por ubicación (RN-I01, RN-I07) ✅
 **Como** sistema **quiero** que el stock sea la suma de `inventory_movements` **para** trazabilidad total.
-- [ ] CA1: El stock mostrado coincide con `get_stock(producto, tienda)`.
+- [ ] CA1: El stock mostrado coincide con `get_stock(producto, tienda, ubicacion)`.
 - [ ] CA2: Ningún flujo modifica un campo `stock` directamente.
 
 ### INV-02 — Registrar entrada de mercancía (HU-06) ✅
 **Como** admin **quiero** registrar entradas **para** sumar stock.
 - [ ] CA1: Puedo registrar una entrada (`entry`, cantidad positiva) para un producto.
-- [ ] CA2: Tras registrar, el stock del producto aumenta en la cantidad ingresada.
+- [ ] CA2: Por defecto la entrada aumenta `bodega`; puedo elegir `punto_venta` si aplica.
 
 ### INV-03 — Ajustar stock con motivo (RN-I02, RN-I03, RN-I05) ✅
 **Como** admin **quiero** ajustar stock **para** corregir diferencias de inventario físico.
 - [ ] CA1: Puedo crear un `adjustment` positivo o negativo.
-- [ ] CA2: El motivo es obligatorio (mínimo 10 caracteres).
+- [ ] CA2: El ajuste exige ubicación y motivo.
 - [ ] CA3: El ajuste queda registrado en `audit_logs`.
 
 ### INV-04 — Kardex por producto (HU-08) ✅
 **Como** admin **quiero** ver el historial de movimientos de un producto.
 - [ ] CA1: El kardex lista movimientos con tipo, cantidad, fecha y motivo.
-- [ ] CA2: Incluye `entry`, `sale_exit`, `adjustment`, `void_return`.
+- [ ] CA2: Incluye `entry`, `sale_exit`, `adjustment`, `void_return`, `transfer_out`, `transfer_in` y ubicación.
 
 ### INV-05 — Alerta de bajo stock (HU-09) ✅
 **Como** admin **quiero** ver productos bajo el mínimo **para** reabastecer a tiempo.
 - [ ] CA1: Los productos con stock < `stock_minimo` aparecen destacados.
+- [ ] CA2: El cálculo usa `punto_venta`, no el total con bodega.
 
-### INV-06 — Permisos de inventario (RN-I04) ⚠️
-- [ ] ⚠️ Gap: el cajero no debería crear `entry`/`adjustment`; falta guard por rol (ver AUTH-04).
+### INV-06 — Permisos de inventario (RN-I04) ✅
+- [ ] CA1: Solo admin accede a `/inventario`.
+- [ ] CA2: Solo admin crea `entry`, `adjustment` y traslados.
+
+### INV-07 — Trasladar entre Bodega y Punto de venta (RN-I08) ✅
+**Como** admin **quiero** trasladar mercancía **para** mover stock vendible al mostrador sin perder trazabilidad.
+- [ ] CA1: Puedo trasladar de `bodega` a `punto_venta` y viceversa.
+- [ ] CA2: No puedo trasladar más de lo disponible en el origen.
+- [ ] CA3: El traslado crea `transfer_out` y `transfer_in` con el mismo `referencia_id`.
 
 ---
 
@@ -139,7 +153,8 @@ HU original (`HU-XX`) de los sprints.
 
 ### POS-03 — Validación de stock (HU-20, RN-S02) ✅
 - [ ] CA1: No puedo confirmar una venta con cantidad > stock para productos `simple`/`ingredient`.
-- [ ] CA2: Productos `prepared` (batidos) no bloquean por stock.
+- [ ] CA2: La validación usa stock en `punto_venta`; stock en `bodega` no habilita venta.
+- [ ] CA3: Productos `prepared` (batidos) no bloquean por stock.
 
 ### POS-04 — Caja abierta obligatoria (HU-19, RN-S01) ✅
 - [ ] CA1: Sin sesión `open`, el botón de confirmar venta está bloqueado o devuelve `CashSessionNotOpen`.
@@ -149,7 +164,7 @@ HU original (`HU-XX`) de los sprints.
 - [ ] CA2: Se genera `saleNumber` correlativo por tienda.
 - [ ] CA3: `producto_nombre`/`producto_sku` quedan como snapshot en el ítem (RN-S05).
 - [ ] CA4: Reenviar con el mismo `idempotencyKey` devuelve la misma venta, sin duplicar (RN-S04).
-- [ ] CA5: Tras confirmar, el stock de cada producto disminuye en la cantidad vendida.
+- [ ] CA5: Tras confirmar, el stock `punto_venta` de cada producto disminuye en la cantidad vendida.
 
 ### POS-06 — Cliente opcional en la venta (HU-16, RN-CL01) ✅
 - [ ] CA1: Puedo confirmar una venta sin cliente.
@@ -159,12 +174,12 @@ HU original (`HU-XX`) de los sprints.
 - [ ] CA1: Puedo aplicar un descuento por ítem y/o global que reduce el total.
 - [ ] ⚠️ Gap: el umbral de descuento por rol (cajero ≤ 10%, mayor requiere admin/auditoría) no está implementado.
 
-### POS-08 — Anular venta con reposición de stock (HU-21, RN-S07, RN-S08) ✅/⚠️
+### POS-08 — Anular venta con reposición de stock (HU-21, RN-S07, RN-S08) ✅
 **Como** admin **quiero** anular una venta **para** corregir un error, reponiendo stock.
 - [ ] CA1: La anulación marca `status='voided'` y registra `voided_by/at/reason`.
-- [ ] CA2: Por cada ítem se crea un `void_return` (cantidad positiva) y el stock vuelve a subir.
+- [ ] CA2: Por cada ítem se crea un `void_return` en `punto_venta` (cantidad positiva) y el stock vuelve a subir.
 - [ ] CA3: Queda registro en `audit_logs`. Se ejecuta atómicamente (`void_sale_atomic`).
-- [ ] ⚠️ Gap: la restricción "solo admin" depende de guard por rol (ver AUTH-04).
+- [ ] CA4: Solo admin puede anular.
 
 ### POS-09 — Historial de ventas del día (HU-22) ✅
 - [ ] CA1: Puedo ver las ventas de la sesión/día con su número, total y estado.
@@ -198,10 +213,10 @@ HU original (`HU-XX`) de los sprints.
 
 ### REP-01 — Ventas del día (HU-24) ✅
 - [ ] CA1: Muestra total del día y desglose por método de pago.
-- [ ] ⚠️ CA2: El desglose por cajero está pendiente (gap M8).
+- [ ] CA2: Muestra desglose por cajero.
 
 ### REP-02 — Stock con alerta de bajo stock (HU-26) ✅
-- [ ] CA1: Lista el stock actual y destaca productos bajo el mínimo.
+- [ ] CA1: Lista stock `punto_venta`, `bodega`, total y destaca productos bajo el mínimo de punto de venta.
 
 ### REP-03 — Cierre de caja imprimible (HU-25) ✅
 - [ ] CA1: Existe el reporte de cierre con esperado/confirmado, diferencia de efectivo y diferencia de ventas.

@@ -6,10 +6,10 @@ import {
 } from '@/modules/inventory/infrastructure/mappers/inventory.mapper'
 import type { InventoryMovement, StockLevel } from '@/modules/inventory/domain/entities/inventory.entity'
 import { isLowStock } from '@/modules/inventory/domain/services/low-stock'
-import type { ProductType } from '@/shared/types'
+import type { InventoryLocation, ProductType } from '@/shared/types'
 
 const MOV_COLS =
-  'id, tienda_id, producto_id, tipo, cantidad, costo_unitario, motivo, referencia_tipo, referencia_id, created_by, created_at'
+  'id, tienda_id, producto_id, tipo, ubicacion, cantidad, costo_unitario, motivo, referencia_tipo, referencia_id, created_by, created_at'
 
 interface RpcClient {
   rpc<T>(
@@ -32,6 +32,7 @@ export interface RegisterEntryInput {
   tiendaId: string
   productId: string
   cantidad: number
+  ubicacion: InventoryLocation
   costoUnitario?: number
   motivo?: string
   createdBy: string
@@ -41,6 +42,17 @@ export interface AdjustStockInput {
   tiendaId: string
   productId: string
   cantidadDelta: number
+  ubicacion: InventoryLocation
+  motivo: string
+  createdBy: string
+}
+
+export interface TransferStockInput {
+  tiendaId: string
+  productId: string
+  fromUbicacion: InventoryLocation
+  toUbicacion: InventoryLocation
+  cantidad: number
   motivo: string
   createdBy: string
 }
@@ -49,11 +61,16 @@ export interface AdjustStockInput {
 export class InventoryRepository {
   private readonly supabaseClient = inject(SupabaseClientService)
 
-  async getStock(productId: string, tiendaId: string): Promise<number> {
+  async getStock(
+    productId: string,
+    tiendaId: string,
+    ubicacion: InventoryLocation = 'punto_venta',
+  ): Promise<number> {
     const client = this.supabaseClient.supabase as unknown as RpcClient
     const { data, error } = await client.rpc<number>('get_stock', {
       p_producto_id: productId,
       p_tienda_id: tiendaId,
+      p_ubicacion: ubicacion,
     })
     if (error) throw new Error(error.message)
     return Number(data ?? 0)
@@ -74,26 +91,37 @@ export class InventoryRepository {
 
     const { data: movs, error: mErr } = await supabase
       .from('inventory_movements')
-      .select('producto_id, cantidad')
+      .select('producto_id, ubicacion, cantidad')
       .eq('tienda_id', tiendaId)
-      .returns<{ producto_id: string; cantidad: number }[]>()
+      .returns<{ producto_id: string; ubicacion: InventoryLocation; cantidad: number }[]>()
 
     if (mErr) throw new Error(mErr.message)
 
-    const stockMap: Record<string, number> = {}
+    const stockMap: Record<string, { puntoVenta: number; bodega: number }> = {}
     for (const m of movs ?? []) {
-      stockMap[m.producto_id] = (stockMap[m.producto_id] ?? 0) + Number(m.cantidad)
+      const current = stockMap[m.producto_id] ?? { puntoVenta: 0, bodega: 0 }
+      if (m.ubicacion === 'bodega') {
+        current.bodega += Number(m.cantidad)
+      } else {
+        current.puntoVenta += Number(m.cantidad)
+      }
+      stockMap[m.producto_id] = current
     }
 
     return productos.map((p) => {
-      const current = stockMap[p.id] ?? 0
+      const current = stockMap[p.id] ?? { puntoVenta: 0, bodega: 0 }
+      const puntoVentaStock = current.puntoVenta
+      const bodegaStock = current.bodega
+      const totalStock = puntoVentaStock + bodegaStock
       const minimum = Number(p.stock_minimo)
       return {
         productId: p.id,
         tiendaId,
-        currentStock: current,
+        puntoVentaStock,
+        bodegaStock,
+        totalStock,
         minimumStock: minimum,
-        isLow: isLowStock({ tipo: p.tipo, currentStock: current, minimumStock: minimum }),
+        isLow: isLowStock({ tipo: p.tipo, currentStock: puntoVentaStock, minimumStock: minimum }),
       }
     })
   }
@@ -120,6 +148,7 @@ export class InventoryRepository {
         tienda_id: input.tiendaId,
         producto_id: input.productId,
         tipo: 'entry',
+        ubicacion: input.ubicacion,
         cantidad: input.cantidad,
         costo_unitario: input.costoUnitario ?? null,
         motivo: input.motivo ?? null,
@@ -141,6 +170,7 @@ export class InventoryRepository {
         tienda_id: input.tiendaId,
         producto_id: input.productId,
         tipo: 'adjustment',
+        ubicacion: input.ubicacion,
         cantidad: input.cantidadDelta,
         motivo: input.motivo,
         created_by: input.createdBy,
@@ -151,5 +181,21 @@ export class InventoryRepository {
     if (error) throw new Error(error.message)
     if (!data) throw new Error('Ajuste creado sin respuesta')
     return rowToInventoryMovement(data)
+  }
+
+  async transferStock(input: TransferStockInput): Promise<string> {
+    const client = this.supabaseClient.supabase as unknown as RpcClient
+    const { data, error } = await client.rpc<string>('transfer_stock_atomic', {
+      p_tienda_id: input.tiendaId,
+      p_producto_id: input.productId,
+      p_from_ubicacion: input.fromUbicacion,
+      p_to_ubicacion: input.toUbicacion,
+      p_cantidad: input.cantidad,
+      p_motivo: input.motivo,
+      p_created_by: input.createdBy,
+    })
+    if (error) throw new Error(error.message)
+    if (!data) throw new Error('Traslado creado sin respuesta')
+    return data
   }
 }

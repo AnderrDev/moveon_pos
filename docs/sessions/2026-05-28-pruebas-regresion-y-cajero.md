@@ -105,3 +105,48 @@ Implementado el flujo cliente-only de reset de contraseña (AUTH-05). Pipeline a
 - Supabase: Site URL, Redirect URLs allowlist con `<origin>/restablecer-contrasena` (incl. `localhost:4200`), plantilla "Reset Password".
 
 **Verificación:** `pnpm typecheck`, `pnpm lint`, `pnpm test` verdes.
+
+---
+
+## 9. PLAN-22..26 — Rebaseline + inventario por ubicación (Codex) [añadido 2026-05-29]
+
+Implementado el bloque completo acordado para separar inventario entre **Punto de venta** y **Bodega**.
+
+**PLAN-22 — Rebaseline documental / seguridad local**
+- `.codex/` agregado a `.gitignore` porque puede contener tokens MCP locales.
+- ADR 0008 queda como decisión arquitectónica a trackear.
+- Actualizados docs vivos: visión Angular, alcance MVP, modelo de datos, módulos `inventory/sales/products/reports`, user stories, flujos E2E y `docs/plan-de-trabajo.md`.
+
+**PLAN-23 — DB/RPC**
+- Creadas y aplicadas al Supabase remoto:
+  - `supabase/migrations/20260529_001_inventory_locations.sql`
+  - `supabase/migrations/20260529_002_inventory_location_rpcs.sql`
+- `inventory_movements.ubicacion` (`punto_venta`/`bodega`) con backfill/default `punto_venta`.
+- `get_stock(producto, tienda, ubicacion default 'punto_venta')`.
+- `create_sale_atomic` valida/descuenta `punto_venta`.
+- `void_sale_atomic` repone `punto_venta`.
+- Nuevo `transfer_stock_atomic` admin-only, atómico, con `transfer_out` + `transfer_in` y protección de stock origen.
+
+**PLAN-24 — Dominio/DTOs/importador**
+- Tipos `InventoryLocation` y movimientos `transfer_out`/`transfer_in`.
+- `StockLevel` ahora expone `puntoVentaStock`, `bodegaStock`, `totalStock`; bajo stock usa PV.
+- DTOs Zod para ubicación y traslado.
+- Importador Siigo genera `entry` en `bodega`.
+- Tipos Supabase regenerados desde remoto.
+
+**PLAN-25/26 — UI, POS y reportes**
+- `/inventario` muestra PV/Bodega/Total/Min, entrada por defecto a bodega, ajuste con ubicación, nuevo diálogo "Trasladar", kardex con ubicación.
+- POS usa PV como `stockDisponible`; `prepared` sigue sin tope.
+- `/reportes` muestra PV/Bodega/Total y alerta bajo stock por PV.
+
+**Verificación**
+- `corepack pnpm typecheck` ✅
+- `corepack pnpm lint` ✅
+- `corepack pnpm test` ✅ — 34 files / 299 tests.
+- Migraciones aplicadas a staging vía `psql` + `notify pgrst, 'reload schema'` ✅
+- `supabase/tests/inventory-locations.test.sql` contra staging ✅ — 7/7 pgTAP, con rollback.
+
+**Pendiente**
+- Rotar service-role key (acción manual del usuario; PLAN-21).
+- Configurar Supabase Auth Redirect URLs/plantilla para reset password (acción dashboard).
+- QA manual navegador del nuevo flujo PV/Bodega antes de go-live: entrada a bodega, traslado a PV, venta descuenta PV, anulación repone PV, reportes/kardex.

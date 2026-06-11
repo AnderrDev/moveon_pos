@@ -174,9 +174,8 @@ Referencias: features en [`features.md`](./features.md), flujos en [`flows.md`](
 
 ## Gaps a vigilar durante las pruebas
 
-- **Roles:** no hay guard por rol (solo `authGuard`). Un cajero puede acceder a rutas de admin. (AUTH-04)
+- **Roles:** guard por rol implementado; mantener prueba admin/cajero en cada regresión. (AUTH-04)
 - **Descuentos:** umbral por rol (RN-S09) no implementado. (POS-07 / TC-12)
-- **Recuperación de contraseña:** UI no implementada. (AUTH-05)
-- **CSV Siigo:** importador no implementado; el catálogo se carga manualmente. (CAT-04)
-- **Reportes por cajero:** pendiente. (REP-01)
+- **Recuperación de contraseña:** UI implementada; falta validar Redirect URLs/plantilla en Supabase. (AUTH-05)
+- **Inventario por ubicación:** bodega no habilita venta hasta trasladar a punto de venta. (INV-07/POS-03)
 - **Ticket térmico:** validar en impresora física real. (TCK-01)

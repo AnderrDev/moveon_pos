@@ -1,7 +1,3 @@
-/**
- * Tipos generados automáticamente por Supabase CLI.
- * Regenerar con: pnpm db:types
- */
 export type Json =
   | string
   | number
@@ -11,6 +7,8 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
@@ -371,6 +369,7 @@ export type Database = {
           referencia_tipo: string | null
           tienda_id: string
           tipo: Database["public"]["Enums"]["inventory_movement_type"]
+          ubicacion: Database["public"]["Enums"]["inventory_location"]
         }
         Insert: {
           cantidad: number
@@ -384,6 +383,7 @@ export type Database = {
           referencia_tipo?: string | null
           tienda_id: string
           tipo: Database["public"]["Enums"]["inventory_movement_type"]
+          ubicacion?: Database["public"]["Enums"]["inventory_location"]
         }
         Update: {
           cantidad?: number
@@ -397,6 +397,7 @@ export type Database = {
           referencia_tipo?: string | null
           tienda_id?: string
           tipo?: Database["public"]["Enums"]["inventory_movement_type"]
+          ubicacion?: Database["public"]["Enums"]["inventory_location"]
         }
         Relationships: [
           {
@@ -514,6 +515,29 @@ export type Database = {
             foreignKeyName: "productos_tienda_id_fkey"
             columns: ["tienda_id"]
             isOneToOne: false
+            referencedRelation: "tiendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sale_counters: {
+        Row: {
+          last_number: number
+          tienda_id: string
+        }
+        Insert: {
+          last_number?: number
+          tienda_id: string
+        }
+        Update: {
+          last_number?: number
+          tienda_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_counters_tienda_id_fkey"
+            columns: ["tienda_id"]
+            isOneToOne: true
             referencedRelation: "tiendas"
             referencedColumns: ["id"]
           },
@@ -808,10 +832,26 @@ export type Database = {
         Returns: string
       }
       get_stock: {
-        Args: { p_producto_id: string; p_tienda_id: string }
+        Args: {
+          p_producto_id: string
+          p_tienda_id: string
+          p_ubicacion?: Database["public"]["Enums"]["inventory_location"]
+        }
         Returns: number
       }
       get_user_tiendas: { Args: never; Returns: string[] }
+      transfer_stock_atomic: {
+        Args: {
+          p_cantidad: number
+          p_created_by: string
+          p_from_ubicacion: Database["public"]["Enums"]["inventory_location"]
+          p_motivo: string
+          p_producto_id: string
+          p_tienda_id: string
+          p_to_ubicacion: Database["public"]["Enums"]["inventory_location"]
+        }
+        Returns: string
+      }
       void_sale_atomic: {
         Args: {
           p_sale_id: string
@@ -840,11 +880,14 @@ export type Database = {
         | "failed"
       cash_movement_type: "cash_in" | "cash_out" | "expense" | "correction"
       cash_session_status: "open" | "closed"
+      inventory_location: "punto_venta" | "bodega"
       inventory_movement_type:
         | "entry"
         | "sale_exit"
         | "adjustment"
         | "void_return"
+        | "transfer_out"
+        | "transfer_in"
       payment_method:
         | "cash"
         | "card"
@@ -861,3 +904,166 @@ export type Database = {
     }
   }
 }
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      billing_doc_status: [
+        "pending",
+        "sent",
+        "accepted",
+        "rejected",
+        "cancelled",
+        "failed",
+      ],
+      billing_doc_type: ["invoice", "pos_document", "credit_note"],
+      billing_status: [
+        "not_required",
+        "pending",
+        "sent",
+        "accepted",
+        "rejected",
+        "failed",
+      ],
+      cash_movement_type: ["cash_in", "cash_out", "expense", "correction"],
+      cash_session_status: ["open", "closed"],
+      inventory_location: ["punto_venta", "bodega"],
+      inventory_movement_type: [
+        "entry",
+        "sale_exit",
+        "adjustment",
+        "void_return",
+        "transfer_out",
+        "transfer_in",
+      ],
+      payment_method: [
+        "cash",
+        "card",
+        "nequi",
+        "daviplata",
+        "transfer",
+        "other",
+      ],
+      product_type: ["simple", "prepared", "ingredient"],
+      sale_status: ["completed", "voided"],
+      user_role: ["admin", "cajero"],
+    },
+  },
+} as const

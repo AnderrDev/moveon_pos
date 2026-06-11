@@ -86,7 +86,7 @@ Sirven para probar el sistema como lo usaría el negocio, no feature por feature
 - [ ] CA2: Por cada ítem se crea un `void_return` y el stock vuelve a subir (RN-S07).
 - [ ] CA3: Queda registro en `audit_logs`; la operación es atómica (`void_sale_atomic`).
 - [ ] CA4: La venta original no se borra ni se edita (salvo campos `voided_*` y `status`) (RN-S06).
-- [ ] ⚠️ CA5: (Gap) La restricción "solo admin" depende del guard por rol pendiente.
+- [ ] CA5: Solo admin puede ejecutar la anulación.
 
 ---
 
@@ -116,11 +116,13 @@ Sirven para probar el sistema como lo usaría el negocio, no feature por feature
 **Pasos:**
 1. Crear una categoría (CAT-01).
 2. Crear un producto en esa categoría con precio e IVA (CAT-02).
-3. Registrar una entrada de stock para ese producto (INV-02).
-4. Verificar el stock en `/inventario` y el kardex (INV-04).
+3. Registrar una entrada de stock en `bodega` para ese producto (INV-02).
+4. Trasladar una parte de `bodega` a `punto_venta` (INV-07).
+5. Verificar el stock por ubicación en `/inventario` y el kardex (INV-04).
 
 **Criterios de aceptación:**
 - [ ] CA1: El producto aparece en `/pos` (activo) y es buscable (CAT-03).
-- [ ] CA2: Tras la entrada, el stock refleja la cantidad ingresada (INV-01).
-- [ ] CA3: El kardex muestra el movimiento `entry` con su motivo.
-- [ ] CA4: Un producto desactivado desaparece de `/pos` pero sigue en reportes (RN-P03).
+- [ ] CA2: Tras la entrada, `bodega` refleja la cantidad ingresada (INV-01).
+- [ ] CA3: Tras el traslado, `punto_venta` refleja el stock vendible.
+- [ ] CA4: El kardex muestra `entry`, `transfer_out` y `transfer_in` con ubicación y motivo.
+- [ ] CA5: Un producto desactivado desaparece de `/pos` pero sigue en reportes (RN-P03).

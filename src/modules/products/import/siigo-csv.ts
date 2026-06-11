@@ -14,7 +14,7 @@
  */
 
 import { err, ok, type Result } from '@/shared/result'
-import type { IvaRate, ProductType } from '@/shared/types'
+import type { InventoryLocation, IvaRate, ProductType } from '@/shared/types'
 import {
   entityNameSchema,
   ivaRateSchema,
@@ -82,6 +82,7 @@ export interface EntryMovementInsert {
   tienda_id: string
   producto_id: string
   tipo: 'entry'
+  ubicacion: InventoryLocation
   cantidad: number
   costo_unitario: number | null
   motivo: string
@@ -94,6 +95,9 @@ export const SIIGO_ENTRY_MOTIVO = 'Stock inicial migración Siigo'
 
 /** Etiqueta de `referencia_tipo` para los movimientos de esta importación. */
 export const SIIGO_REFERENCIA_TIPO = 'siigo_import'
+
+/** El stock inicial de Siigo entra a bodega; se traslada a PV para vender. */
+export const SIIGO_ENTRY_UBICACION: InventoryLocation = 'bodega'
 
 /** Columnas esperadas en el header (orden canónico, case-insensitive). */
 export const SIIGO_HEADER_COLUMNS = [
@@ -590,6 +594,7 @@ export function toEntryMovement(
     tienda_id: tiendaId,
     producto_id: productoId,
     tipo: 'entry',
+    ubicacion: SIIGO_ENTRY_UBICACION,
     cantidad: row.stockInicial,
     costo_unitario: row.costo ?? null,
     motivo: SIIGO_ENTRY_MOTIVO,

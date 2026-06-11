@@ -274,7 +274,9 @@ function todayIso(timezone: string): string {
                 <tr>
                   <th class="px-4 py-3">Producto</th>
                   <th class="px-4 py-3">SKU</th>
-                  <th class="px-4 py-3 text-right">Stock</th>
+                  <th class="px-4 py-3 text-right">Punto venta</th>
+                  <th class="px-4 py-3 text-right">Bodega</th>
+                  <th class="px-4 py-3 text-right">Total</th>
                   <th class="px-4 py-3 text-right">Min</th>
                   <th class="px-4 py-3"></th>
                 </tr>
@@ -287,7 +289,13 @@ function todayIso(timezone: string): string {
                       {{ row.sku ?? '—' }}
                     </td>
                     <td class="px-4 py-3 text-right font-bold tabular-nums">
-                      {{ row.currentStock }}
+                      {{ row.puntoVentaStock }}
+                    </td>
+                    <td class="px-4 py-3 text-right font-semibold tabular-nums">
+                      {{ row.bodegaStock }}
+                    </td>
+                    <td class="text-muted-foreground px-4 py-3 text-right tabular-nums">
+                      {{ row.totalStock }}
                     </td>
                     <td class="text-muted-foreground px-4 py-3 text-right tabular-nums">
                       {{ row.minimumStock }}

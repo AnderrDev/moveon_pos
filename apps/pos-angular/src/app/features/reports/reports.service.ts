@@ -70,7 +70,9 @@ export interface StockReportRow {
   productId: string
   nombre: string
   sku: string | null
-  currentStock: number
+  puntoVentaStock: number
+  bodegaStock: number
+  totalStock: number
   minimumStock: number
   isLow: boolean
 }
@@ -204,11 +206,13 @@ export class ReportsService {
           productId: sl.productId,
           nombre: p.nombre,
           sku: p.sku,
-          currentStock: sl.currentStock,
+          puntoVentaStock: sl.puntoVentaStock,
+          bodegaStock: sl.bodegaStock,
+          totalStock: sl.totalStock,
           minimumStock: sl.minimumStock,
           isLow: isLowStock({
             tipo: p.tipo,
-            currentStock: sl.currentStock,
+            currentStock: sl.puntoVentaStock,
             minimumStock: sl.minimumStock,
           }),
         }

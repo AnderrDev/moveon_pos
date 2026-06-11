@@ -77,8 +77,8 @@ El script lee `SUPABASE_URL` (con fallback a `NEXT_PUBLIC_SUPABASE_URL`) y
 - **Productos existentes** (match por `sku` o `codigo_barras` en la tienda) →
   se **omiten y reportan como "duplicado"**; nunca se actualizan ni sobrescriben,
   y no generan movimiento de stock.
-- **Stock inicial:** se aplica como `inventory_movements` tipo `entry` (cantidad
-  positiva, `motivo = 'Stock inicial migración Siigo'`, `referencia_tipo = 'siigo_import'`)
+- **Stock inicial:** se aplica como `inventory_movements` tipo `entry` en `bodega`
+  (cantidad positiva, `motivo = 'Stock inicial migración Siigo'`, `referencia_tipo = 'siigo_import'`)
   solo para productos nuevos de la corrida con `stock_inicial > 0`. El stock nunca
   se modifica directamente.
 - Orden de escritura: categorías → productos → movimientos, en lotes de ~100. Sin

@@ -10,6 +10,7 @@ Este directorio contiene las historias de usuario (HUs) del proyecto, organizada
 | [`features.md`](./features.md) | HUs **por cada feature** (auth, catálogo, inventario, caja, POS, pagos, clientes, reportes, tickets). Cada HU tiene criterios de aceptación verificables como checklist. |
 | [`flows.md`](./flows.md) | HUs **por cada flujo operativo** (cruzan varias features): apertura de día, venta efectivo, venta mixta, venta con descuento, anulación, cierre de caja, gestión de catálogo. |
 | [`E2E-flujo-completo-pruebas.md`](./E2E-flujo-completo-pruebas.md) | **Un flujo completo de extremo a extremo** (login → venta → cierre) escrito como guion de prueba para arrancar QA manual. |
+| [`PLAN-DE-PRUEBAS-inventario-ubicaciones.md`](./PLAN-DE-PRUEBAS-inventario-ubicaciones.md) | Matriz HU/casos y flujo manual completo para inventario por ubicación PV/Bodega. |
 | `sprint-01.md` … `sprint-05.md` | HUs originales por sprint (histórico). Las HUs `HU-XX` se referencian desde los nuevos docs. |
 
 ## Convención de IDs
@@ -32,4 +33,4 @@ Este directorio contiene las historias de usuario (HUs) del proyecto, organizada
 - ⚠️ Implementado parcialmente o con gap conocido (ver nota).
 - ❌ No implementado (fuera del estado actual; documentado para completar el MVP).
 
-> Gaps conocidos a la fecha (2026-05-27): no hay guard por rol en rutas (solo `authGuard` de autenticación); descuentos con permiso por rol (RN-S09) no implementados; recuperación de contraseña UI (AUTH) pendiente; importador CSV Siigo (CAT) no implementado. Ver `docs/sessions/2026-05-08-auditoria-hallazgos.md`.
+> Gaps conocidos a la fecha (2026-05-29): la rotación de service-role key sigue como acción manual; Supabase Auth requiere configurar Redirect URLs/plantilla para recuperación de contraseña; el umbral de descuentos por rol (RN-S09) sigue como follow-up. El bloque nuevo de inventario por ubicación vive en PLAN-22..26.

@@ -130,6 +130,7 @@ describe('parseSiigoRow — fila válida', () => {
       tienda_id: TIENDA,
       producto_id: 'prod-id',
       tipo: 'entry',
+      ubicacion: 'bodega',
       cantidad: 12,
       costo_unitario: 70000,
       motivo: 'Stock inicial migración Siigo',

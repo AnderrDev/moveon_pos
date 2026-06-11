@@ -25,11 +25,12 @@
 - Tipo de producto: `simple`, `prepared` (batido), `ingredient`.
 - Búsqueda por nombre, SKU o código de barras.
 
-### M3. Inventario simple
-- Stock por producto y por tienda.
-- Movimientos de inventario: `entry`, `sale_exit`, `adjustment`, `void_return`.
+### M3. Inventario por ubicación
+- Stock por producto, por tienda y por ubicación: `punto_venta` y `bodega`.
+- Movimientos de inventario: `entry`, `sale_exit`, `adjustment`, `void_return`, `transfer_out`, `transfer_in`.
 - Toda modificación de stock pasa por `inventory_movements`.
 - Stock mínimo y alerta visual cuando se cruza.
+- Las ventas descuentan solo de `punto_venta`; la mercancía nueva entra por defecto a `bodega` y se traslada al punto de venta cuando se vaya a vender.
 - Sin lotes, sin vencimientos (no aplica para este negocio).
 
 ### M4. Pantalla de venta (POS)
@@ -49,7 +50,7 @@
 
 ### M6. Caja
 - Apertura de caja con base inicial.
-- Una caja abierta por usuario a la vez.
+- Una caja abierta por tienda a la vez (caja física compartida).
 - Registro de ingresos y egresos manuales (con motivo).
 - Cierre de caja: ventas esperadas vs. confirmadas por método de pago, y efectivo físico esperado vs. contado.
 - Reporte de cierre imprimible.

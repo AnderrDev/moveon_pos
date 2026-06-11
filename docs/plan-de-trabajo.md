@@ -1,9 +1,12 @@
 # Plan de trabajo — Hallazgos de pruebas y mejoras
 
 Plan accionable derivado de la sesión de QA del 2026-05-27
-(ver `docs/user-stories/RESULTADOS-pruebas-2026-05-27.md`). Cada item tiene origen
-(TC-XX o gap conocido), causa probable, solución concreta, archivos afectados,
-criterios de aceptación y esfuerzo estimado.
+(ver `docs/user-stories/RESULTADOS-pruebas-2026-05-27.md`) y rebaselinado tras
+la decisión de inventario por ubicación (ADR 0008).
+
+> **Snapshot 2026-05-30:** PLAN-01..26 están cerrados localmente. El bloque activo
+> nuevo es PLAN-27..37: remediación de auditoría integral de arquitectura,
+> seguridad, patrones y mantenibilidad.
 
 **Leyenda de prioridad:**
 - **P0 — Bloqueante de go-live.** Sin esto no se puede operar la tienda con confianza.
@@ -17,8 +20,8 @@ criterios de aceptación y esfuerzo estimado.
 | ID | Estado | Commit |
 |---|---|---|
 | PLAN-15 | ✅ Hecho (auditor PASS) | `aa8a166` |
-| PLAN-01 | ✅ Hecho (auditor PASS) — migración pendiente de aplicar al remoto | `0e14011` |
-| PLAN-05 | ✅ Hecho (auditor PASS) — pendiente QA manual del form en navegador | `778b03d` |
+| PLAN-01 | ✅ Hecho + aplicado al remoto y verificado por navegador | `0e14011` |
+| PLAN-05 | ✅ Hecho + QA manual PASS | `778b03d` |
 | PLAN-02 | ✅ Hecho (auditor PASS) — umbral por rol RN-S09 queda como TODO | `4d54541` |
 | PLAN-06 | ✅ Hecho (auditor PASS) | `fda2c83` |
 | PLAN-07 | ✅ Hecho (auditor PASS) — RPC con error rico queda como follow-up | `bfb5f02` |
@@ -38,24 +41,73 @@ criterios de aceptación y esfuerzo estimado.
 | PLAN-17 | ✅ Hecho (auditor PASS) — nombre real del cajero pendiente (requiere vista/RPC RLS-safe) | `623b2f6` |
 | PLAN-16 | ✅ Hecho (auditor PASS) — pendiente config de Supabase (Redirect URLs + plantilla email) | `6d8ad3f` |
 | PLAN-18 | ✅ Hecho (auditor PASS) — importador escrito + dry-run OK; correr apply contra el remoto requiere permiso | `c0e16df` |
+| PLAN-21 | ✅ Hecho — script seed lee service role desde `.env.local`; rotación de key pendiente por usuario | `86cac38` |
+| PLAN-22 | ✅ Hecho — rebaseline documental y `.codex/` ignorado | `(este)` |
+| PLAN-23 | ✅ Hecho — migraciones de inventario por ubicación + RPCs | `(este)` |
+| PLAN-24 | ✅ Hecho — tipos/dominio/DTO/importador/tests | `(este)` |
+| PLAN-25 | ✅ Hecho — UI de inventario por ubicación + traslado admin | `(este)` |
+| PLAN-26 | ✅ Hecho — POS/reportes consumen stock de punto de venta | `(este)` |
+| PLAN-27 | ⏳ Pendiente — seguridad RLS/RPC admin-only | `(pendiente)` |
+| PLAN-28 | ⏳ Pendiente — descuentos por rol en servidor | `(pendiente)` |
+| PLAN-29 | ⏳ Pendiente — E2E Playwright minimo MVP | `(pendiente)` |
+| PLAN-30 | ⏳ Pendiente — dividir `pos.page.ts` | `(pendiente)` |
+| PLAN-31 | ⏳ Pendiente — repositorios Angular + `Result` | `(pendiente)` |
+| PLAN-32 | ⏳ Pendiente — dividir importador Siigo | `(pendiente)` |
+| PLAN-33 | ⏳ Pendiente — dividir reportes/caja/cierre | `(pendiente)` |
+| PLAN-34 | ⏳ Pendiente — formularios factory/mapper/presenter | `(pendiente)` |
+| PLAN-35 | ⏳ Pendiente — errores tipados por modulo | `(pendiente)` |
+| PLAN-36 | ⏳ Pendiente — limpieza documental legacy/runtime config | `(pendiente)` |
+| PLAN-37 | ⏳ Pendiente — placeholders, TODOs y fixtures | `(pendiente)` |
 
 ### Hallazgo de seguridad adicional (de PLAN-18)
 
 - **PLAN-21 (seguridad):** ✅ Hecho (`86cac38`) — `scripts/seed-admin-user.mjs` ya lee URL + service-role de `.env.local` (sin hardcode). **⚠️ Falta acción del usuario: ROTAR el service-role key** (sigue en el historial de git, válido hasta 2092).
+- **PLAN-22 (seguridad local):** ✅ Hecho — `.codex/` queda ignorado porque puede contener tokens MCP locales.
 
-> **Todos los P0 (bloqueantes go-live) completados.** Las migraciones de PLAN-01 (`20260527_001_add_tienda_timezone`) y PLAN-03 (`20260527_002_correlative_sale_number`) **ya se aplicaron al Supabase remoto (2026-05-27)** y se validaron por navegador (ver `docs/user-stories/PLAN-DE-PRUEBAS-post-fixes.md`: V-000001/V-000002 correlativos, reporte por TZ local). Pendiente menor: correr los tests pgTAP cuando Docker esté disponible.
+> **Todos los P0 del bloque QA 2026-05-27 quedaron completados.** Las migraciones de PLAN-01 (`20260527_001_add_tienda_timezone`) y PLAN-03 (`20260527_002_correlative_sale_number`) **ya se aplicaron al Supabase remoto (2026-05-27)** y se validaron por navegador (ver `docs/user-stories/PLAN-DE-PRUEBAS-post-fixes.md`: V-000001/V-000002 correlativos, reporte por TZ local). El bloque nuevo de auditoría abre nuevos P0: PLAN-27 y PLAN-28.
 
-### Hallazgos nuevos (regresión 2026-05-28, candidatos)
+### Hallazgos nuevos (regresión 2026-05-28, resueltos)
 
 | ID | Título | Prioridad | Origen |
 |---|---|---|---|
-| PLAN-19 | Modelo de caja multi-usuario: alinear UI (por-tienda) con RPC (por-cajero). El cajero no puede vender/abrir su caja si otro usuario tiene una abierta; ve la caja ajena como propia | P0/P1 (bloquea operación con roles) | TC-R02b (F-A) |
-| PLAN-20 | `sale-error-mapper` no mapea "No hay caja abierta para esta venta" → muestra genérico | P2 | TC-R02b (F-B) |
+| PLAN-19 | Caja compartida por tienda | ✅ Resuelto | TC-R02b (F-A) |
+| PLAN-20 | Mapper de error de caja abierta | ✅ Resuelto | TC-R02b (F-B) |
+
+### Bloque activo — Inventario por ubicación (ADR 0008)
+
+| ID | Título | Prioridad | Criterio de cierre |
+|---|---|---|---|
+| PLAN-22 | Rebaseline documental y seguridad local | P0 | Docs vivas coherentes; `.codex/` ignorado; ADR 0008 trackeado |
+| PLAN-23 | DB/RPC de inventario `punto_venta`/`bodega` | P0 | `get_stock` por ubicación, ventas/anulaciones en PV, traslado atómico admin-only |
+| PLAN-24 | Dominio, DTOs, tipos e importador | P0 | `StockLevel` por ubicación; Siigo entra a bodega; tests unitarios |
+| PLAN-25 | UI inventario por ubicación | P0 | Tabla PV/Bodega/Total, entrada/ajuste con ubicación, diálogo traslado, kardex con ubicación |
+| PLAN-26 | POS/reportes/regresión | P0 | POS usa PV como stock vendible; reportes muestran PV/Bodega/Total |
+
+### Bloque activo — Remediación de auditoría integral
+
+Plan detallado: `docs/audits/2026-05-30-plan-accion-auditoria-arquitectura.md`.
+
+| ID | Título | Prioridad | Criterio de cierre |
+|---|---|---|---|
+| PLAN-27 | Seguridad RLS/RPC para operaciones admin-only | P0 | Cajero no puede mutar productos/categorías/inventario por API directa; admin conserva operación; tests SQL por rol |
+| PLAN-28 | Descuentos por rol en flujo POS real | P0 | RPC bloquea descuentos no autorizados; UI muestra error claro; tests admin/cajero |
+| PLAN-29 | E2E Playwright mínimo de regresión MVP | P1 | `corepack pnpm test:e2e` ejecuta flujo caja → inventario PV/Bodega → POS → anulación → reportes |
+| PLAN-30 | Dividir `pos.page.ts` | P1 | `pos.page.ts` y componentes nuevos bajo 300 líneas; flujo POS sin regresión |
+| PLAN-31 | Repositorios Angular alineados con `Result` | P1 | Repositories sensibles devuelven `Result` o adapters compatibles; errores mapeados |
+| PLAN-32 | Dividir importador Siigo | P1 | Parser/validator/mapper separados; API pública y tests conservados |
+| PLAN-33 | Dividir reportes, caja y cierre | P2 | Componentes standalone + OnPush bajo 300 líneas; comportamiento igual |
+| PLAN-34 | Formularios factory/mapper/presenter | P2 | Formularios inventario/caja migrados al patrón de 3 archivos con tests |
+| PLAN-35 | Errores tipados por módulo | P2 | Use-cases retornan errores discriminados, no `Error` genérico de negocio |
+| PLAN-36 | Limpieza documental legacy y runtime config | P2 | Docs fuente coherentes con Angular/runtime config; docs históricas preservadas |
+| PLAN-37 | Limpieza de placeholders, TODOs y fixtures | P3 | Carpetas vacías justificadas o eliminadas; TODOs convertidos en PLANs |
+
+**Gate de go-live recomendado:** PLAN-27, PLAN-28 y PLAN-29 cerrados.  
+**Gate de mantenibilidad MVP:** PLAN-30, PLAN-31 y PLAN-32 cerrados.
 
 
 ---
 
-## Resumen ejecutivo
+## Resumen ejecutivo histórico — bloque QA 2026-05-27
 
 | # | ID | Título | Prioridad | Esfuerzo |
 |---|---|---|---|---|

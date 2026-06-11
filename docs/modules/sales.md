@@ -70,7 +70,7 @@ type Payment = {
 No se puede crear una venta si el usuario no tiene una `cash_session` con status `open` en la tienda activa.
 
 ### RN-S02: Stock disponible
-No se puede vender una cantidad mayor al stock disponible para productos `simple` o `ingredient`. Productos `prepared` (batidos) en MVP no validan stock (se asume preparación bajo demanda).
+No se puede vender una cantidad mayor al stock disponible en `punto_venta` para productos `simple` o `ingredient`. Productos `prepared` (batidos) en MVP no validan stock (se asume preparación bajo demanda).
 
 ### RN-S03: Total = suma de pagos
 La suma de todos los `payments.amount` debe ser **mayor o igual** al `total` de la venta. Si es mayor, la diferencia es el cambio (solo aplica para método `cash`).
@@ -135,7 +135,7 @@ IVA se calcula por ítem según `producto.iva_tasa`. El IVA total de la venta es
    - Insert `sales`.
    - Insert `sale_items`.
    - Insert `payments`.
-   - Insert `inventory_movements` tipo `sale_exit` por cada ítem (cantidad negativa).
+   - Insert `inventory_movements` tipo `sale_exit` en `punto_venta` por cada ítem (cantidad negativa).
 9. Devolver `Sale` completa.
 
 **Errores posibles (Result.error):**
@@ -160,7 +160,7 @@ IVA se calcula por ítem según `producto.iva_tasa`. El IVA total de la venta es
 3. Si tiene `billing_document` aceptado → crear nota crédito (en v1.1+, en MVP solo permite anular ventas sin facturación).
 4. Transacción DB:
    - Update `sales` set `status='voided'`, `voided_*`.
-   - Insert `inventory_movements` tipo `void_return` por cada ítem.
+   - Insert `inventory_movements` tipo `void_return` en `punto_venta` por cada ítem.
    - Insert `audit_log`.
 
 ### `GetSaleUseCase`, `ListSalesUseCase`

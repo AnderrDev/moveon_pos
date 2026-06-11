@@ -1,11 +1,12 @@
 import type { InventoryMovement } from '../../domain/entities/inventory.entity'
-import type { InventoryMovementType } from '@/shared/types'
+import type { InventoryLocation, InventoryMovementType } from '@/shared/types'
 
 export interface InventoryMovementRow {
   id: string
   tienda_id: string
   producto_id: string
   tipo: string
+  ubicacion: string
   cantidad: number
   costo_unitario: number | null
   motivo: string | null
@@ -21,6 +22,7 @@ export function rowToInventoryMovement(row: InventoryMovementRow): InventoryMove
     tiendaId: row.tienda_id,
     productId: row.producto_id,
     tipo: row.tipo as InventoryMovementType,
+    ubicacion: row.ubicacion as InventoryLocation,
     cantidad: Number(row.cantidad),
     costoUnitario: row.costo_unitario !== null ? Number(row.costo_unitario) : null,
     motivo: row.motivo,

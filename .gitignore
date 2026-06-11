@@ -1,5 +1,6 @@
 # MCP config (contains secrets)
 .mcp.json
+.codex/
 
 # dependencies
 /node_modules

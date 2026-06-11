@@ -7,8 +7,10 @@ import {
   output,
   signal,
 } from '@angular/core'
-import { getErrorMessage } from '@/shared/lib/error-message'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
+import { getErrorMessage } from '@/shared/lib/error-message'
+import { transferStockSchema } from '@/modules/inventory/application/dtos/inventory.dto'
+import type { InventoryLocation } from '@/shared/types'
 import { DialogComponent } from '../../shared/ui/dialog.component'
 import { ButtonComponent } from '../../shared/ui/button.component'
 import { FormNumberInputComponent } from '../../shared/forms/form-number-input.component'
@@ -18,10 +20,8 @@ import { FormErrorComponent } from '../../shared/forms/form-error.component'
 import { InventoryRepository } from './inventory.repository'
 import { SessionService } from '../../core/auth/session.service'
 import { ToastService } from '../../shared/feedback/toast.service'
-import { adjustStockSchema } from '@/modules/inventory/application/dtos/inventory.dto'
-import type { InventoryLocation } from '@/shared/types'
 
-interface ProductSummary {
+interface ProductStockSummary {
   id: string
   nombre: string
   puntoVentaStock: number
@@ -29,12 +29,12 @@ interface ProductSummary {
 }
 
 const LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
-  { value: 'punto_venta', label: 'Punto de venta' },
   { value: 'bodega', label: 'Bodega' },
+  { value: 'punto_venta', label: 'Punto de venta' },
 ]
 
 @Component({
-  selector: 'mo-adjust-stock-dialog',
+  selector: 'mo-transfer-stock-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
@@ -49,7 +49,7 @@ const LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
   template: `
     <mo-dialog
       [open]="open()"
-      title="Ajustar stock"
+      title="Trasladar stock"
       [description]="
         product()
           ? product()!.nombre + ' · PV ' + product()!.puntoVentaStock + ' · Bodega ' + product()!.bodegaStock
@@ -59,27 +59,37 @@ const LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
       (closed)="onClose()"
     >
       <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
+        <div class="grid gap-3 sm:grid-cols-2">
+          <mo-form-select
+            controlName="fromUbicacion"
+            label="Origen"
+            [required]="true"
+            [options]="locationOptions"
+            [placeholder]="null"
+          />
+          <mo-form-select
+            controlName="toUbicacion"
+            label="Destino"
+            [required]="true"
+            [options]="locationOptions"
+            [placeholder]="null"
+          />
+        </div>
+
         <mo-form-number-input
-          controlName="cantidadDelta"
-          label="Variación (+ entrada / − salida)"
-          description="Ej: 5 para sumar, -3 para restar"
+          controlName="cantidad"
+          label="Cantidad"
+          [required]="true"
           [step]="1"
-          [min]="null"
-          [required]="true"
+          [min]="1"
         />
-        <mo-form-select
-          controlName="ubicacion"
-          label="Ubicacion"
-          [required]="true"
-          [options]="locationOptions"
-          [placeholder]="null"
-        />
+
         <mo-form-textarea
           controlName="motivo"
           label="Motivo"
           [required]="true"
           [rows]="3"
-          placeholder="Conteo fisico, daño, perdida, etc."
+          placeholder="Reposicion al punto de venta, conteo de bodega, etc."
         />
 
         <mo-form-error [message]="rootError()" />
@@ -88,21 +98,21 @@ const LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
           <mo-button variant="outline" type="button" [disabled]="saving()" (click)="onClose()"
             >Cancelar</mo-button
           >
-          <mo-button type="submit" [loading]="saving()" loadingText="Guardando..."
-            >Guardar ajuste</mo-button
+          <mo-button type="submit" [loading]="saving()" loadingText="Trasladando..."
+            >Trasladar</mo-button
           >
         </div>
       </form>
     </mo-dialog>
   `,
 })
-export class AdjustStockDialog {
+export class TransferStockDialog {
   private readonly repo = inject(InventoryRepository)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
 
   readonly open = input<boolean>(false)
-  readonly product = input<ProductSummary | null>(null)
+  readonly product = input<ProductStockSummary | null>(null)
 
   readonly closed = output<void>()
   readonly saved = output<void>()
@@ -112,13 +122,17 @@ export class AdjustStockDialog {
   readonly locationOptions = LOCATION_OPTIONS
 
   readonly form = new FormGroup({
-    cantidadDelta: new FormControl<number>(0, {
+    fromUbicacion: new FormControl<InventoryLocation>('bodega', {
       nonNullable: true,
       validators: [Validators.required],
     }),
-    ubicacion: new FormControl<InventoryLocation>('punto_venta', {
+    toUbicacion: new FormControl<InventoryLocation>('punto_venta', {
       nonNullable: true,
       validators: [Validators.required],
+    }),
+    cantidad: new FormControl<number>(1, {
+      nonNullable: true,
+      validators: [Validators.required, Validators.min(1)],
     }),
     motivo: new FormControl<string>('', {
       nonNullable: true,
@@ -129,7 +143,12 @@ export class AdjustStockDialog {
   constructor() {
     effect(() => {
       if (this.open()) {
-        this.form.reset({ cantidadDelta: 0, ubicacion: 'punto_venta', motivo: '' })
+        this.form.reset({
+          fromUbicacion: 'bodega',
+          toUbicacion: 'punto_venta',
+          cantidad: 1,
+          motivo: '',
+        })
         this.rootError.set(null)
       }
     })
@@ -140,7 +159,6 @@ export class AdjustStockDialog {
     this.form.markAllAsTouched()
     if (this.form.invalid) return
 
-    const value = this.form.getRawValue()
     const product = this.product()
     if (!product) return
 
@@ -149,34 +167,48 @@ export class AdjustStockDialog {
       this.rootError.set('Sesion expirada')
       return
     }
+    if (auth.rol !== 'admin') {
+      this.rootError.set('Solo el admin puede trasladar inventario')
+      return
+    }
+
+    const value = this.form.getRawValue()
+    const parsed = transferStockSchema.safeParse({
+      productId: product.id,
+      fromUbicacion: value.fromUbicacion,
+      toUbicacion: value.toUbicacion,
+      cantidad: Number(value.cantidad),
+      motivo: value.motivo.trim(),
+    })
+    if (!parsed.success) {
+      this.rootError.set(parsed.error.issues[0]?.message ?? 'Datos de traslado invalidos')
+      return
+    }
+
+    const available = this.stockFor(product, parsed.data.fromUbicacion)
+    if (parsed.data.cantidad > available) {
+      this.rootError.set(`Stock insuficiente en origen. Disponible: ${available}`)
+      return
+    }
 
     this.saving.set(true)
     this.form.disable({ emitEvent: false })
 
     try {
-      const parsed = adjustStockSchema.safeParse({
-        productId: product.id,
-        cantidadDelta: Number(value.cantidadDelta),
-        ubicacion: value.ubicacion,
-        motivo: value.motivo.trim(),
-      })
-      if (!parsed.success) {
-        this.rootError.set(parsed.error.issues[0]?.message ?? 'Datos de ajuste invalidos')
-        return
-      }
-      await this.repo.adjustStock({
+      await this.repo.transferStock({
         tiendaId: auth.tiendaId,
         productId: product.id,
-        cantidadDelta: parsed.data.cantidadDelta,
-        ubicacion: parsed.data.ubicacion,
+        fromUbicacion: parsed.data.fromUbicacion,
+        toUbicacion: parsed.data.toUbicacion,
+        cantidad: parsed.data.cantidad,
         motivo: parsed.data.motivo.trim(),
         createdBy: auth.userId,
       })
-      this.toast.success('Ajuste registrado')
+      this.toast.success('Traslado registrado')
       this.saved.emit()
       this.closed.emit()
     } catch (error) {
-      this.rootError.set(getErrorMessage(error, 'Error al ajustar stock'))
+      this.rootError.set(getErrorMessage(error, 'Error al trasladar stock'))
     } finally {
       this.saving.set(false)
       this.form.enable({ emitEvent: false })
@@ -186,5 +218,9 @@ export class AdjustStockDialog {
   onClose(): void {
     if (this.saving()) return
     this.closed.emit()
+  }
+
+  private stockFor(product: ProductStockSummary, ubicacion: InventoryLocation): number {
+    return ubicacion === 'bodega' ? product.bodegaStock : product.puntoVentaStock
   }
 }

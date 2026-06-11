@@ -150,6 +150,7 @@ function makeDeps(options: {
       getKardex:       async () => ok([]),
       registerEntry:   async () => err(new Error('not implemented')),
       adjustStock:     async () => err(new Error('not implemented')),
+      transferStock:    async () => err(new Error('not implemented')),
     },
     productRepository: {
       findById:      async () => ok(product),

@@ -13,16 +13,24 @@ import { DialogComponent } from '../../shared/ui/dialog.component'
 import { ButtonComponent } from '../../shared/ui/button.component'
 import { FormNumberInputComponent } from '../../shared/forms/form-number-input.component'
 import { FormCurrencyInputComponent } from '../../shared/forms/form-currency-input.component'
+import { FormSelectComponent, type FormSelectOption } from '../../shared/forms/form-select.component'
 import { FormTextareaComponent } from '../../shared/forms/form-textarea.component'
 import { FormErrorComponent } from '../../shared/forms/form-error.component'
 import { InventoryRepository } from './inventory.repository'
 import { SessionService } from '../../core/auth/session.service'
 import { ToastService } from '../../shared/feedback/toast.service'
+import { registerEntrySchema } from '@/modules/inventory/application/dtos/inventory.dto'
+import type { InventoryLocation } from '@/shared/types'
 
 interface ProductSummary {
   id: string
   nombre: string
 }
+
+const LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
+  { value: 'bodega', label: 'Bodega' },
+  { value: 'punto_venta', label: 'Punto de venta' },
+]
 
 @Component({
   selector: 'mo-register-entry-dialog',
@@ -34,6 +42,7 @@ interface ProductSummary {
     ButtonComponent,
     FormNumberInputComponent,
     FormCurrencyInputComponent,
+    FormSelectComponent,
     FormTextareaComponent,
     FormErrorComponent,
   ],
@@ -52,6 +61,13 @@ interface ProductSummary {
           [required]="true"
           [step]="1"
           [min]="1"
+        />
+        <mo-form-select
+          controlName="ubicacion"
+          label="Ubicacion"
+          [required]="true"
+          [options]="locationOptions"
+          [placeholder]="null"
         />
         <mo-form-currency-input controlName="costoUnitario" label="Costo unitario" />
         <mo-form-textarea controlName="motivo" label="Motivo (opcional)" [rows]="2" />
@@ -83,9 +99,11 @@ export class RegisterEntryDialog {
 
   readonly saving = signal(false)
   readonly rootError = signal<string | null>(null)
+  readonly locationOptions = LOCATION_OPTIONS
 
   readonly form = new FormGroup({
     cantidad: new FormControl<number>(1, { nonNullable: true, validators: [Validators.required, Validators.min(1)] }),
+    ubicacion: new FormControl<InventoryLocation>('bodega', { nonNullable: true, validators: [Validators.required] }),
     costoUnitario: new FormControl<number>(0, { nonNullable: true }),
     motivo: new FormControl<string>('', { nonNullable: true }),
   })
@@ -93,7 +111,7 @@ export class RegisterEntryDialog {
   constructor() {
     effect(() => {
       if (this.open()) {
-        this.form.reset({ cantidad: 1, costoUnitario: 0, motivo: '' })
+        this.form.reset({ cantidad: 1, ubicacion: 'bodega', costoUnitario: 0, motivo: '' })
         this.rootError.set(null)
       }
     })
@@ -118,12 +136,24 @@ export class RegisterEntryDialog {
 
     try {
       const value = this.form.getRawValue()
+      const parsed = registerEntrySchema.safeParse({
+        productId: product.id,
+        cantidad: Number(value.cantidad),
+        ubicacion: value.ubicacion,
+        costoUnitario: value.costoUnitario > 0 ? value.costoUnitario : undefined,
+        motivo: value.motivo.trim() || undefined,
+      })
+      if (!parsed.success) {
+        this.rootError.set(parsed.error.issues[0]?.message ?? 'Datos de entrada invalidos')
+        return
+      }
       await this.repo.registerEntry({
         tiendaId: auth.tiendaId,
         productId: product.id,
-        cantidad: Number(value.cantidad),
-        costoUnitario: value.costoUnitario > 0 ? value.costoUnitario : undefined,
-        motivo: value.motivo.trim() || undefined,
+        cantidad: parsed.data.cantidad,
+        ubicacion: parsed.data.ubicacion,
+        costoUnitario: parsed.data.costoUnitario,
+        motivo: parsed.data.motivo?.trim() || undefined,
         createdBy: auth.userId,
       })
       this.toast.success(`Entrada registrada (+${value.cantidad} ${product.nombre})`)
