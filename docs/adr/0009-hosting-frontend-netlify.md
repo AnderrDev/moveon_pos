@@ -1,7 +1,7 @@
 # ADR 0009 — Hosting frontend en Netlify
 
 **Fecha:** 2026-06-11
-**Estado:** Propuesto
+**Estado:** Aceptado
 **Decisores:** Dueño del negocio + equipo MOVEONAPP
 
 ## Contexto
@@ -10,7 +10,7 @@ El cleanup de Next/Vercel dejó el frontend como una app Angular standalone est�
 
 La arquitectura registra que el hosting frontend quedó pendiente. La app se puede publicar como archivos estáticos generados por `pnpm build` en `dist/pos-angular/browser`.
 
-## Decisión Propuesta
+## Decisión
 
 Usar **Netlify** para hospedar el frontend estático de Angular y mantener **Supabase** como backend.
 
@@ -29,6 +29,8 @@ Configuración prevista:
   - `SUPABASE_DB_URL`
 - Redirect SPA:
   - `/*` → `/index.html` con status `200`.
+- Configuración versionada:
+  - `netlify.toml`.
 
 ## Plan de Implementación
 
@@ -49,6 +51,12 @@ Configuración prevista:
    - Recuperación de contraseña.
    - Refresh directo en rutas internas (`/pos`, `/inventario`, `/restablecer-contrasena`).
    - Conexión a Supabase usando anon key y RLS.
+
+Estado 2026-06-11:
+
+- `netlify.toml` creado.
+- Guia operativa creada en `docs/deploy/netlify.md`.
+- Queda pendiente configurar Netlify y Supabase Auth en los dashboards externos.
 
 ## Consecuencias
 

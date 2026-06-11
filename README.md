@@ -9,7 +9,7 @@ Sistema de Punto de Venta para tienda física de suplementos y batidos para gimn
 ## Visión rápida
 
 - **Stack:** Angular 21 standalone + TypeScript + Tailwind CSS 4 + Supabase.
-- **Despliegue:** frontend estático pendiente de activar; propuesta actual: Netlify + Supabase.
+- **Despliegue:** Netlify para frontend estático + Supabase para backend.
 - **Arquitectura:** Clean Architecture por módulos, dominio TypeScript puro y UI Angular en `apps/pos-angular`.
 - **Facturación electrónica:** vía proveedor autorizado DIAN (patrón Adapter).
 - **Multi-sede:** preparado en datos desde el día uno.

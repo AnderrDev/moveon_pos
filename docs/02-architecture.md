@@ -299,10 +299,9 @@ En MVP v1.0 esperamos **0 a 2 Edge Functions máximo**.
 
 ### 9.2 Deploy
 
-- Pendiente de implementar tras el cleanup de Vercel/Next (sesión `2026-05-02-cleanup-next-vercel`).
-- Propuesta activa: **Netlify para el frontend estático + Supabase para backend** (ver ADR 0009).
+- Decisión aceptada: **Netlify para el frontend estático + Supabase para backend** (ver ADR 0009).
 - La app Angular es estática: `pnpm build` produce `dist/pos-angular/browser`.
-- Mientras se implementa, `main` no tiene deploy automático.
+- La configuración base vive en `netlify.toml`.
 
 ---
 
