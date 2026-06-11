@@ -147,22 +147,30 @@ import type { Cliente } from '@/modules/customers/domain/entities/cliente.entity
                     @for (product of filteredProducts(); track product.id) {
                       <button
                         type="button"
+                        [disabled]="isOutOfStock(product)"
                         (click)="selectProduct(product)"
-                        class="bg-card hover:border-primary/50 hover:bg-primary/5 focus:ring-ring flex min-h-24 cursor-pointer flex-col items-start rounded-xl border p-3.5 text-left transition-all duration-150 focus:ring-2 focus:outline-none active:scale-[0.98]"
+                        [class]="productCardClass(product)"
                       >
-                        <span
-                          class="text-foreground line-clamp-2 text-sm leading-snug font-semibold"
-                        >
-                          {{ product.nombre }}
-                        </span>
-                        @if (product.sku) {
-                          <span
-                            class="text-muted-foreground mt-0.5 font-mono text-[10px] leading-none"
-                          >
-                            {{ product.sku }}
+                        <div class="flex w-full items-start justify-between gap-2">
+                          <span class="min-w-0">
+                            <span
+                              class="text-foreground line-clamp-2 text-sm leading-snug font-semibold"
+                            >
+                              {{ product.nombre }}
+                            </span>
+                            @if (product.sku) {
+                              <span
+                                class="text-muted-foreground mt-0.5 block truncate font-mono text-[10px] leading-none"
+                              >
+                                {{ product.sku }}
+                              </span>
+                            }
                           </span>
-                        }
-                        <span class="mt-auto pt-2">
+                          <span [class]="productStockBadgeClass(product)">
+                            {{ productStockLabel(product) }}
+                          </span>
+                        </div>
+                        <div class="mt-auto w-full pt-2">
                           <span class="text-primary block text-base font-bold tabular-nums">
                             {{ money(product.precioVenta) }}
                           </span>
@@ -171,7 +179,14 @@ import type { Cliente } from '@/modules/customers/domain/entities/cliente.entity
                               >+IVA {{ product.ivaTasa }}%</span
                             >
                           }
-                        </span>
+                          @if (isOutOfStock(product)) {
+                            <span
+                              class="border-destructive/30 bg-destructive/10 text-destructive mt-2 inline-flex w-full items-center justify-center rounded-md border px-2 py-1 text-[11px] font-semibold"
+                            >
+                              Sin stock disponible
+                            </span>
+                          }
+                        </div>
                       </button>
                     }
                   </div>
@@ -699,8 +714,40 @@ export class PosPage {
     ].join(' ')
   }
 
+  productCardClass(product: PosProduct): string {
+    const outOfStock = this.isOutOfStock(product)
+    return [
+      'bg-card focus:ring-ring flex min-h-32 flex-col items-start rounded-xl border p-3.5 text-left transition-all duration-150 focus:ring-2 focus:outline-none',
+      outOfStock
+        ? 'border-destructive/30 bg-destructive/5 cursor-not-allowed opacity-80'
+        : 'cursor-pointer hover:border-primary/50 hover:bg-primary/5 active:scale-[0.98]',
+    ].join(' ')
+  }
+
+  productStockLabel(product: PosProduct): string {
+    if (product.stockDisponible === null) return 'Sin control'
+    return `Stock ${product.stockDisponible}`
+  }
+
+  productStockBadgeClass(product: PosProduct): string {
+    const base =
+      'shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold leading-4 tabular-nums'
+    if (product.stockDisponible === null) {
+      return `${base} border-border bg-muted text-muted-foreground`
+    }
+    if (this.isOutOfStock(product)) {
+      return `${base} border-destructive/30 bg-destructive/10 text-destructive`
+    }
+    return `${base} border-emerald-600/25 bg-emerald-500/10 text-emerald-700`
+  }
+
   selectProduct(product: PosProduct): void {
     this.cart.addItem(product)
+  }
+
+  /** `true` cuando el producto rastrea stock y no hay unidades en punto de venta. */
+  isOutOfStock(product: PosProduct): boolean {
+    return product.stockDisponible === 0
   }
 
   /** `true` cuando el ítem rastrea stock y ya alcanzó el máximo disponible. */
