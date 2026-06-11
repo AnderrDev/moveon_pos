@@ -4,13 +4,13 @@ Sistema de Punto de Venta para tienda física de suplementos y batidos para gimn
 
 ## Estado del proyecto
 
-🚧 **En planeación → Sprint 1**
+🚧 **MVP en cierre / QA**
 
 ## Visión rápida
 
-- **Stack:** Next.js 15 (App Router) + TypeScript + Supabase + Tailwind + shadcn/ui.
-- **Despliegue:** Vercel + Supabase.
-- **Arquitectura:** Clean Architecture por módulos, monorepo Next.js full-stack.
+- **Stack:** Angular 21 standalone + TypeScript + Tailwind CSS 4 + Supabase.
+- **Despliegue:** frontend estático pendiente de activar; propuesta actual: Netlify + Supabase.
+- **Arquitectura:** Clean Architecture por módulos, dominio TypeScript puro y UI Angular en `apps/pos-angular`.
 - **Facturación electrónica:** vía proveedor autorizado DIAN (patrón Adapter).
 - **Multi-sede:** preparado en datos desde el día uno.
 

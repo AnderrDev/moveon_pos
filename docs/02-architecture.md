@@ -299,9 +299,10 @@ En MVP v1.0 esperamos **0 a 2 Edge Functions máximo**.
 
 ### 9.2 Deploy
 
-- Pendiente de definir tras el cleanup de Vercel/Next (sesión `2026-05-02-cleanup-next-vercel`).
-- Opciones a evaluar: Cloudflare Pages, Netlify, Supabase Storage + CDN, GitHub Pages, contenedor en Hetzner. La app Angular es estática (`ng build pos-angular` produce `dist/pos-angular/browser`).
-- Mientras se decide, `main` no tiene deploy automático.
+- Pendiente de implementar tras el cleanup de Vercel/Next (sesión `2026-05-02-cleanup-next-vercel`).
+- Propuesta activa: **Netlify para el frontend estático + Supabase para backend** (ver ADR 0009).
+- La app Angular es estática: `pnpm build` produce `dist/pos-angular/browser`.
+- Mientras se implementa, `main` no tiene deploy automático.
 
 ---
 

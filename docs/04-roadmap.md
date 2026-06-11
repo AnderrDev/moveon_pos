@@ -27,10 +27,10 @@
 ### Entregables
 - [ ] Repo en GitHub con `CLAUDE.md`, `AGENTS.md`, `README.md`, `/docs`.
 - [ ] Proyecto Supabase creado (dev + staging + prod).
-- [ ] Proyecto Vercel conectado al repo.
-- [ ] Next.js 15 + TS + Tailwind + shadcn/ui inicializado.
+- [ ] Hosting frontend conectado al repo (propuesta: Netlify).
+- [ ] Angular 21 standalone + TS + Tailwind CSS inicializado.
 - [ ] ESLint + Prettier + Vitest configurados.
-- [ ] GitHub Actions: typecheck + lint + test en cada PR.
+- [ ] CI/CD: typecheck + lint + test en cada PR; deploy automático del frontend cuando se active hosting.
 - [ ] Estructura de carpetas creada (`src/modules`, `src/shared`, etc.).
 - [ ] `tipos generados` desde Supabase con `pnpm db:types`.
 - [ ] Migration inicial con tablas mínimas: `tiendas`, `user_tiendas`.
@@ -38,7 +38,7 @@
 - [ ] Página de login funcionando.
 
 ### Salida esperada
-Un repo donde corres `pnpm dev`, te logueas con un usuario seed y ves un layout vacío con sidebar.
+Un repo donde corres `pnpm dev`, te logueas con un usuario seed y ves el shell Angular del POS.
 
 ---
 
