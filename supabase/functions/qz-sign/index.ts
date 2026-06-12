@@ -6,6 +6,11 @@ interface SigningRequest {
 }
 
 const textEncoder = new TextEncoder()
+const defaultAllowedOrigins = [
+  'http://localhost:4200',
+  'http://127.0.0.1:4200',
+  'https://bespoke-sopapillas-b3e7dc.netlify.app',
+]
 let signingKeyPromise: Promise<CryptoKey> | null = null
 
 Deno.serve(async (request) => {
@@ -159,8 +164,7 @@ function isAllowedOrigin(origin: string): boolean {
 function allowedOrigins(): Set<string> {
   const configured = Deno.env.get('QZ_ALLOWED_ORIGINS') ?? ''
   return new Set([
-    'http://localhost:4200',
-    'http://127.0.0.1:4200',
+    ...defaultAllowedOrigins,
     ...configured.split(',').map((origin) => origin.trim()).filter(Boolean),
   ])
 }

@@ -24,7 +24,13 @@ En `Supabase Dashboard` > `Edge Functions` > `Secrets`, crear:
 - `QZ_PRIVATE_KEY`: contenido completo de `private-key.pem`.
 - `QZ_ALLOWED_ORIGINS`: origen de la aplicacion publicada, por ejemplo `https://pos.moveonapp.com`. Para varios origenes, separarlos con coma.
 
-Localmente, `http://localhost:4200` y `http://127.0.0.1:4200` ya estan permitidos.
+Estos origenes ya estan permitidos por defecto:
+
+- `http://localhost:4200`.
+- `http://127.0.0.1:4200`.
+- `https://bespoke-sopapillas-b3e7dc.netlify.app`.
+
+`QZ_ALLOWED_ORIGINS` se conserva para agregar dominios futuros sin modificar codigo.
 
 Alternativa con Supabase CLI desde PowerShell:
 
