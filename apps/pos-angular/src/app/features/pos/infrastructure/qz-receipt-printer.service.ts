@@ -19,17 +19,18 @@ export class QzReceiptPrinterService {
   private readonly signing = inject(QzSigningService)
   private connectionPromise: Promise<void> | null = null
   private logoPromise: Promise<string> | null = null
+  private printerPromises = new Map<string, Promise<string>>()
 
   async print(
     input: EscPosReceiptInput,
     configuredPrinterName: string,
     options: ReceiptOutputOptions = {},
   ): Promise<void> {
-    if (options.openCashDrawer) await this.openCashDrawer(configuredPrinterName)
     await this.printRaw(
       buildEscPosReceipt(input),
       configuredPrinterName,
       `MOVEONAPP ${input.sale.saleNumber}`,
+      options,
     )
   }
 
@@ -52,13 +53,16 @@ export class QzReceiptPrinterService {
     content: string,
     configuredPrinterName: string,
     jobName: string,
+    options: ReceiptOutputOptions = {},
   ): Promise<void> {
     try {
+      const logoPromise = this.loadLogo()
       await this.ensureConnected()
       const printerName = await this.findPrinter(configuredPrinterName)
       const config = qz.configs.create(printerName, { jobName })
-      const logo = await this.loadLogo()
+      const logo = await logoPromise
       await qz.print(config, [
+        ...(options.openCashDrawer ? [CASH_DRAWER_PULSE] : []),
         '\x1b@\x1ba\x01',
         {
           type: 'raw',
@@ -87,6 +91,19 @@ export class QzReceiptPrinterService {
   }
 
   private async findPrinter(configuredPrinterName: string): Promise<string> {
+    const cacheKey = configuredPrinterName.trim().toLowerCase()
+    const cached = this.printerPromises.get(cacheKey)
+    if (cached) return cached
+
+    const printerPromise = this.resolvePrinter(configuredPrinterName).catch((error: unknown) => {
+      this.printerPromises.delete(cacheKey)
+      throw error
+    })
+    this.printerPromises.set(cacheKey, printerPromise)
+    return printerPromise
+  }
+
+  private async resolvePrinter(configuredPrinterName: string): Promise<string> {
     const found = await qz.printers.find(configuredPrinterName)
     if (typeof found === 'string') {
       if (found) return found

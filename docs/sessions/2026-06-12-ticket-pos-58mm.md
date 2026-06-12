@@ -91,6 +91,7 @@ Adecuar el ticket de venta para una impresora termica Jaltech POS-58, evitar que
 - [x] La preferencia de IVA del POS oculta tanto `+IVA` en las cards como la fila `IVA` del resumen del carrito, sin alterar calculos.
 - [x] Apertura automatica de caja monedero por ESC/POS en ventas con efectivo, independiente de imprimir la tirilla, con preferencia por tienda y boton de prueba.
 - [x] CORS de `qz-sign` habilitado para el sitio productivo de Netlify, ademas de localhost.
+- [x] Flujo QZ optimizado: apertura de caja y ticket se envian en un solo trabajo RAW, el nombre de impresora se cachea y el logo se carga en paralelo.
 
 ## 6. Pendientes de validacion operativa
 
