@@ -12,6 +12,16 @@ Ver `/docs/03-data-model.md` tablas `categorias` y `productos`.
 - RN-P03: Producto inactivo no aparece en POS pero sí en reportes históricos.
 - RN-P04: Tipo `prepared` (batidos) en MVP se trata como producto simple. Recetas en v1.2.
 
+- RN-P05: `para_que_sirve` y `recomendado_para` son informacion comercial opcional, de maximo 800 caracteres cada una, basada en la ficha oficial del fabricante.
+
+## Informacion para recomendacion
+
+- El administrador puede completar **Para que sirve** y **A quien se recomienda** al crear o editar un producto.
+- La card del POS ofrece una accion secundaria **Ver informacion** que no agrega el producto al carrito.
+- La informacion sigue disponible cuando el producto no tiene stock.
+- Si ambos campos estan vacios, el POS muestra un estado pendiente en vez de inventar contenido.
+- La ficha incluye un aviso para consultar a un profesional ante condiciones medicas, embarazo o uso de medicamentos.
+
 ## Use cases
 - `CreateProducto`, `UpdateProducto`, `DeactivateProducto`
 - `CreateCategoria`, `UpdateCategoria`, `DeactivateCategoria`

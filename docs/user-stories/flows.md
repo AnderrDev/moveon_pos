@@ -37,7 +37,7 @@ Sirven para probar el sistema como lo usaría el negocio, no feature por feature
 - [ ] CA2: Si el efectivo entregado supera el total, se muestra el cambio correcto (PAY-02).
 - [ ] CA3: Al confirmar, la venta queda `completed` con `saleNumber` correlativo.
 - [ ] CA4: El stock del producto baja en la cantidad vendida (`sale_exit`).
-- [ ] CA5: Se imprime/auto-imprime el ticket 80mm.
+- [ ] CA5: Se imprime/auto-imprime el ticket térmico de 58 mm.
 
 ---
 

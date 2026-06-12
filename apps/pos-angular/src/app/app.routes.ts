@@ -62,6 +62,12 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/reports/reportes.page').then((m) => m.ReportesPage),
       },
+      {
+        path: 'configuracion',
+        canActivate: [roleGuard('admin')],
+        loadComponent: () =>
+          import('./features/settings/configuracion.page').then((m) => m.ConfiguracionPage),
+      },
     ],
   },
   { path: '**', redirectTo: 'pos' },

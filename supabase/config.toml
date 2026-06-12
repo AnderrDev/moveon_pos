@@ -37,3 +37,6 @@ enable_signup = false
 enable_signup = false
 double_confirm_changes = true
 enable_confirmations = false
+
+[functions.qz-sign]
+verify_jwt = true

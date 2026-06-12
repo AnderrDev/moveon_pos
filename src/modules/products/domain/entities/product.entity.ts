@@ -7,6 +7,8 @@ export interface Product {
   sku: string | null
   codigoBarras: string | null
   categoriaId: string | null
+  paraQueSirve: string | null
+  recomendadoPara: string | null
   tipo: ProductType
   unidad: string
   precioVenta: number

@@ -1,16 +1,14 @@
 import { inject, Injectable, signal } from '@angular/core'
-import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
 import { SessionService } from '../../core/auth/session.service'
 import { SupabaseClientService } from '../../core/supabase/supabase-client.service'
-import {
-  TiendaInfoService,
-  type TiendaInfo,
-} from '../../core/tienda/tienda-info.service'
+import { TiendaInfoService } from '../../core/tienda/tienda-info.service'
 import { SalesRepository } from '../sales/sales.repository'
-import type { ReceiptCliente } from './receipt-ticket.component'
+import type { EscPosReceiptCustomer } from './infrastructure/esc-pos-receipt.builder'
+import { QzReceiptPrinterService } from './infrastructure/qz-receipt-printer.service'
 
 interface PrintOptions {
   change?: number
+  openCashDrawer?: boolean
 }
 
 interface ClienteRow {
@@ -25,13 +23,8 @@ export class ReceiptPrintService {
   private readonly tiendaInfo = inject(TiendaInfoService)
   private readonly session = inject(SessionService)
   private readonly supabase = inject(SupabaseClientService)
+  private readonly qzPrinter = inject(QzReceiptPrinterService)
 
-  readonly sale = signal<Sale | null>(null)
-  readonly tienda = signal<TiendaInfo | null>(null)
-  readonly cliente = signal<ReceiptCliente | null>(null)
-  readonly cashierEmail = signal<string | null>(null)
-  readonly change = signal<number | null>(null)
-  readonly visible = signal(false)
   readonly busy = signal(false)
 
   async printSale(saleId: string, options: PrintOptions = {}): Promise<void> {
@@ -47,23 +40,42 @@ export class ReceiptPrintService {
       ])
       if (!sale) throw new Error('Venta no encontrada')
 
-      const cliente = await this.loadCliente(sale.clienteId)
-
-      this.sale.set(sale)
-      this.tienda.set(tienda)
-      this.cliente.set(cliente)
-      this.cashierEmail.set(auth.email)
-      this.change.set(options.change ?? null)
-      this.visible.set(true)
-
-      await this.waitForRender()
-      this.openPrintDialog()
+      const customer = await this.loadCliente(sale.clienteId)
+      await this.qzPrinter.print(
+        {
+          sale,
+          store: {
+            titulo: tienda.receipt.titulo,
+            nit: tienda.receipt.nit,
+            direccion: tienda.receipt.direccion,
+            ciudad: tienda.receipt.ciudad,
+            telefono: tienda.receipt.telefono,
+            mensajePie: tienda.receipt.mensajePie,
+            mostrarNit: tienda.receipt.mostrarNit,
+            mostrarDireccion: tienda.receipt.mostrarDireccion,
+            mostrarTelefono: tienda.receipt.mostrarTelefono,
+            mostrarIva: tienda.receipt.mostrarIva,
+          },
+          customer,
+          cashierEmail: auth.email,
+          change: options.change ?? sale.change,
+        },
+        tienda.receipt.printerName,
+        { openCashDrawer: options.openCashDrawer },
+      )
     } finally {
       this.busy.set(false)
     }
   }
 
-  private async loadCliente(clienteId: string | null): Promise<ReceiptCliente | null> {
+  async openCashDrawer(): Promise<void> {
+    const auth = await this.session.getAuthContext()
+    if (!auth) throw new Error('No autenticado')
+    const tienda = await this.tiendaInfo.get(auth.tiendaId)
+    await this.qzPrinter.openCashDrawer(tienda.receipt.printerName)
+  }
+
+  private async loadCliente(clienteId: string | null): Promise<EscPosReceiptCustomer | null> {
     if (!clienteId) return null
     const { data } = await this.supabase.supabase
       .from('clientes')
@@ -76,29 +88,5 @@ export class ReceiptPrintService {
       tipoDocumento: data.tipo_documento,
       numeroDocumento: data.numero_documento,
     }
-  }
-
-  private waitForRender(): Promise<void> {
-    return new Promise((resolve) => {
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
-    })
-  }
-
-  private openPrintDialog(): void {
-    const cleanup = () => {
-      document.body.classList.remove('printing-receipt')
-      this.visible.set(false)
-      this.sale.set(null)
-      this.cliente.set(null)
-      this.change.set(null)
-      window.removeEventListener('afterprint', cleanup)
-    }
-
-    document.body.classList.add('printing-receipt')
-    window.addEventListener('afterprint', cleanup, { once: true })
-    window.print()
-    setTimeout(() => {
-      if (this.visible()) cleanup()
-    }, 3000)
   }
 }

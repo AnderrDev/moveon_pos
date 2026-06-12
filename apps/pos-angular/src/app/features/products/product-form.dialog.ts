@@ -17,6 +17,7 @@ import { FormCurrencyInputComponent } from '../../shared/forms/form-currency-inp
 import { FormNumberInputComponent } from '../../shared/forms/form-number-input.component'
 import { FormSelectComponent, type FormSelectOption } from '../../shared/forms/form-select.component'
 import { FormCheckboxComponent } from '../../shared/forms/form-checkbox.component'
+import { FormTextareaComponent } from '../../shared/forms/form-textarea.component'
 import { FormErrorComponent } from '../../shared/forms/form-error.component'
 import { ProductFormPresenter } from './product-form.presenter'
 import { productFormMapper } from '@/modules/products/forms/product-form.mapper'
@@ -51,6 +52,7 @@ const IVA_OPTIONS: FormSelectOption<number>[] = [
     FormNumberInputComponent,
     FormSelectComponent,
     FormCheckboxComponent,
+    FormTextareaComponent,
     FormErrorComponent,
   ],
   template: `
@@ -98,6 +100,31 @@ const IVA_OPTIONS: FormSelectOption<number>[] = [
             [placeholder]="null"
             [options]="tipoOptions"
             [error]="presenter.errors().tipo ?? null"
+          />
+        </div>
+
+        <div class="space-y-4 rounded-xl border p-4">
+          <div>
+            <h3 class="text-sm font-semibold">Información para recomendar</h3>
+            <p class="text-muted-foreground mt-1 text-xs">
+              Usa la ficha oficial del fabricante como fuente.
+            </p>
+          </div>
+          <mo-form-textarea
+            controlName="paraQueSirve"
+            label="Para qué sirve"
+            placeholder="Ej. Apoya la recuperación muscular y ayuda a completar la ingesta diaria de proteína."
+            description="Resume la finalidad y los beneficios principales sin promesas médicas."
+            [rows]="3"
+            [error]="presenter.errors().paraQueSirve ?? null"
+          />
+          <mo-form-textarea
+            controlName="recomendadoPara"
+            label="A quién se recomienda"
+            placeholder="Ej. Personas activas que buscan complementar su consumo diario de proteína."
+            description="Describe el perfil de cliente adecuado y evita diagnósticos o prescripciones."
+            [rows]="3"
+            [error]="presenter.errors().recomendadoPara ?? null"
           />
         </div>
 

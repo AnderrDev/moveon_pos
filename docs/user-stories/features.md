@@ -75,6 +75,14 @@ HU original (`HU-XX`) de los sprints.
 - [ ] CA2: Inserta categorías/productos faltantes sin sobrescribir duplicados.
 - [ ] CA3: `stock_inicial` genera `inventory_movements.entry` en `bodega`.
 
+### CAT-05 - Informacion para recomendar productos
+**Como** cajero **quiero** consultar para que sirve un producto y a quien se recomienda **para** orientar mejor al cliente.
+- [ ] CA1: El administrador puede editar `Para que sirve` y `A quien se recomienda` en el formulario de producto.
+- [ ] CA2: Cada card del POS ofrece `Ver informacion` sin agregar el producto al carrito.
+- [ ] CA3: La ficha se puede abrir aunque el producto este sin stock.
+- [ ] CA4: Si no hay informacion registrada, se muestra un estado pendiente claro.
+- [ ] CA5: Cada campo admite hasta 800 caracteres y se valida con Zod y constraint de base de datos.
+
 ---
 
 ## 3. Inventario (`/inventario`) — módulo `inventory`
@@ -228,9 +236,10 @@ HU original (`HU-XX`) de los sprints.
 
 ## 8. Tickets / Impresión (módulo POS — `receipt-*`) — feature transversal
 
-### TCK-01 — Ticket interno 80mm (HU-27) ✅
-- [ ] CA1: Al confirmar una venta se imprime/auto-imprime un ticket 80mm (no fiscal).
+### TCK-01 — Ticket interno 58 mm (HU-27) ✅
+- [ ] CA1: Al confirmar una venta se imprime automáticamente un comprobante de venta para rollo térmico de 58 mm, sin presentarlo como factura electrónica.
 - [ ] CA2: El ticket incluye encabezado de tienda (de `tienda-info.service`), ítems, IVA, total, pagos y cambio.
 - [ ] CA3: Puedo reimprimir el ticket de una venta.
-- [ ] CA4: Los estilos `@media print` aíslan el ticket (solo se imprime el área del recibo).
-- [ ] ⚠️ CA5: Pendiente validación en impresora térmica física real.
+- [ ] CA4: El ticket se envia como ESC/POS RAW y finaliza con avance corto y comando de corte, sin hoja fija de 210 mm.
+- [ ] CA5: Si QZ Tray no esta disponible, la venta permanece guardada y se muestra un error para reintentar desde historial.
+- [ ] ⚠️ CA6: Pendiente validacion fisica final del avance y corte en la Jaltech POS 58.

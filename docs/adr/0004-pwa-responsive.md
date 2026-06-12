@@ -34,4 +34,4 @@ Construimos **una sola PWA responsive** con Next.js. Puede instalarse en escrito
 - El layout debe funcionar bien en pantallas desde 1024px (laptop) hasta 1920px (escritorio).
 - Soporte tablet (768px+) en Sprint 4.
 - No optimizamos para móvil < 768px en MVP.
-- La impresión usa `window.print()` con CSS específico para 80mm en MVP. Integración ESC/POS directa va post-MVP.
+- La decisión inicial de usar `window.print()` fue reemplazada por impresion ESC/POS RAW mediante QZ Tray; ver ADR 0010.

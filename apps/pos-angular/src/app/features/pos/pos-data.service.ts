@@ -36,6 +36,8 @@ export class PosDataService {
         precioVenta: p.precioVenta,
         ivaTasa: p.ivaTasa,
         categoriaId: p.categoriaId,
+        paraQueSirve: p.paraQueSirve,
+        recomendadoPara: p.recomendadoPara,
         tipo: p.tipo,
         // `prepared` no rastrea stock. Para simple/ingredient, stock real
         // acotado a >= 0 (RN-I06): el máximo nunca es negativo.

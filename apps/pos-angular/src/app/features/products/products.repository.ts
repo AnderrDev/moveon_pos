@@ -11,7 +11,7 @@ import type { CreateProductDto, UpdateProductDto } from '@/modules/products/appl
 import type { CreateCategoriaDto, UpdateCategoriaDto } from '@/modules/products/application/dtos/categoria.dto'
 
 const PRODUCT_COLS =
-  'id, tienda_id, nombre, sku, codigo_barras, categoria_id, tipo, unidad, precio_venta, costo, iva_tasa, stock_minimo, is_active, created_at, updated_at'
+  'id, tienda_id, nombre, sku, codigo_barras, categoria_id, para_que_sirve, recomendado_para, tipo, unidad, precio_venta, costo, iva_tasa, stock_minimo, is_active, created_at, updated_at'
 const CATEGORIA_COLS = 'id, tienda_id, nombre, orden, is_active, created_at, updated_at'
 
 interface SearchProductsParams {
@@ -83,6 +83,8 @@ export class ProductsRepository {
         sku: dto.sku ?? null,
         codigo_barras: dto.codigoBarras ?? null,
         categoria_id: dto.categoriaId ?? null,
+        para_que_sirve: dto.paraQueSirve ?? null,
+        recomendado_para: dto.recomendadoPara ?? null,
         tipo: dto.tipo,
         unidad: dto.unidad,
         precio_venta: dto.precioVenta,
@@ -109,6 +111,8 @@ export class ProductsRepository {
     if (dto.sku !== undefined) patch['sku'] = dto.sku ?? null
     if (dto.codigoBarras !== undefined) patch['codigo_barras'] = dto.codigoBarras ?? null
     if (dto.categoriaId !== undefined) patch['categoria_id'] = dto.categoriaId ?? null
+    if (dto.paraQueSirve !== undefined) patch['para_que_sirve'] = dto.paraQueSirve ?? null
+    if (dto.recomendadoPara !== undefined) patch['recomendado_para'] = dto.recomendadoPara ?? null
     if (dto.tipo !== undefined) patch['tipo'] = dto.tipo
     if (dto.unidad !== undefined) patch['unidad'] = dto.unidad
     if (dto.precioVenta !== undefined) patch['precio_venta'] = dto.precioVenta

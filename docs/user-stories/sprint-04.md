@@ -6,7 +6,7 @@
 
 ## HUs planeadas
 
-- HU-23: Imprimir ticket no fiscal en formato 80mm.
+- HU-23: Imprimir comprobante de venta en formato térmico de 58 mm.
 - HU-24: Reporte ventas del día con filtros y totales.
 - HU-25: Reporte detalle de ventas con filtros de fecha.
 - HU-26: Reporte cierre de caja imprimible.

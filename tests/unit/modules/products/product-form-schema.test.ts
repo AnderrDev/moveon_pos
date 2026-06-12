@@ -37,6 +37,8 @@ describe('productFormSchema', () => {
     sku: 'WHY-001',
     codigoBarras: '',
     categoriaId: '',
+    paraQueSirve: 'Apoya la recuperacion muscular.',
+    recomendadoPara: 'Personas activas que buscan complementar su proteina diaria.',
     tipo: 'simple',
     unidad: 'und',
     precioVenta: 110000,
@@ -156,6 +158,18 @@ describe('productFormSchema', () => {
       expect(result.error.issues[0].path).toEqual(['categoriaId'])
     }
   })
+
+  it('rechaza informacion comercial que supera el limite', () => {
+    const result = productFormSchema.safeParse({
+      ...createProductFormDefaults(),
+      nombre: 'Producto valido',
+      precioVenta: 1000,
+      paraQueSirve: 'a'.repeat(801),
+    })
+
+    expect(result.success).toBe(false)
+    if (!result.success) expect(result.error.issues[0].path).toEqual(['paraQueSirve'])
+  })
 })
 
 describe('createProductFormDefaults', () => {
@@ -163,6 +177,8 @@ describe('createProductFormDefaults', () => {
     const defaults = createProductFormDefaults()
     expect(defaults.nombre).toBe('')
     expect(defaults.sku).toBe('')
+    expect(defaults.paraQueSirve).toBe('')
+    expect(defaults.recomendadoPara).toBe('')
     expect(defaults.precioVenta).toBe(0)
     expect(defaults.costo).toBeUndefined()
     expect(defaults.ivaTasa).toBe(0)
@@ -191,6 +207,8 @@ describe('createProductFormDefaults', () => {
       sku: 'BAR-001',
       codigoBarras: '770000000001',
       categoriaId: '11111111-1111-4111-8111-111111111111',
+      paraQueSirve: 'Aporta proteina.',
+      recomendadoPara: 'Personas activas.',
       tipo: 'ingredient' as const,
       unidad: 'kg',
       precioVenta: 5000,

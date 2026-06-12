@@ -20,6 +20,8 @@ describe('product DTO schemas', () => {
     sku: 'WHY-001',
     codigoBarras: '770000000001',
     categoriaId,
+    paraQueSirve: 'Apoya la recuperacion muscular.',
+    recomendadoPara: 'Personas activas.',
     tipo: 'simple',
     unidad: 'und',
     precioVenta: 100000,
@@ -35,6 +37,12 @@ describe('product DTO schemas', () => {
 
   it('rechaza precio de venta no positivo', () => {
     expect(createProductSchema.safeParse({ ...validProduct, precioVenta: 0 }).success).toBe(false)
+  })
+
+  it('rechaza informacion comercial demasiado larga', () => {
+    expect(
+      createProductSchema.safeParse({ ...validProduct, recomendadoPara: 'a'.repeat(801) }).success,
+    ).toBe(false)
   })
 
   it('permite updates parciales sin tiendaId', () => {

@@ -12,6 +12,8 @@ const product: Product = {
   sku: 'why-001',
   codigoBarras: '770000000001',
   categoriaId: '33333333-3333-4333-8333-333333333333',
+  paraQueSirve: 'Apoya la recuperacion muscular.',
+  recomendadoPara: 'Personas activas.',
   tipo: 'simple',
   unidad: 'und',
   precioVenta: 110000,
@@ -28,6 +30,8 @@ const formValue: ProductFormValue = {
   sku: ' why-001 ',
   codigoBarras: ' 770000000001 ',
   categoriaId: '',
+  paraQueSirve: '  Apoya la recuperacion muscular.  ',
+  recomendadoPara: '  Personas activas.  ',
   tipo: 'simple',
   unidad: ' und ',
   precioVenta: 110000,
@@ -54,6 +58,8 @@ describe('productFormMapper', () => {
     expect(productFormMapper.toFormValue(product)).toMatchObject({
       nombre: 'Whey Protein',
       sku: 'why-001',
+      paraQueSirve: 'Apoya la recuperacion muscular.',
+      recomendadoPara: 'Personas activas.',
       precioVenta: 110000,
       ivaTasa: 19,
     })
@@ -77,6 +83,8 @@ describe('productFormMapper', () => {
       sku: 'WHY-001',
       codigoBarras: '770000000001',
       categoriaId: undefined,
+      paraQueSirve: 'Apoya la recuperacion muscular.',
+      recomendadoPara: 'Personas activas.',
       tipo: 'simple',
       unidad: 'und',
       precioVenta: 110000,
@@ -102,17 +110,23 @@ describe('productFormMapper', () => {
       sku: '',
       codigoBarras: '',
       categoriaId: '',
+      paraQueSirve: '',
+      recomendadoPara: '',
     }
 
     expect(productFormMapper.toCreatePayload(emptyOptionalValue, tiendaId)).toMatchObject({
       sku: undefined,
       codigoBarras: undefined,
       categoriaId: undefined,
+      paraQueSirve: null,
+      recomendadoPara: null,
     })
     expect(productFormMapper.toUpdatePayload(emptyOptionalValue)).toMatchObject({
       sku: undefined,
       codigoBarras: undefined,
       categoriaId: undefined,
+      paraQueSirve: null,
+      recomendadoPara: null,
     })
   })
 })

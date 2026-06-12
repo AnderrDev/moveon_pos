@@ -6,6 +6,7 @@ import { validatePaymentsForSale } from '@/modules/sales/domain/services/sale-ca
 import { buildPaymentEntry, requiresReference } from '@/modules/sales/domain/services/sale-builder'
 import type { PaymentMethod } from '@/shared/types'
 import { SessionService } from '../../core/auth/session.service'
+import { TiendaInfoService } from '../../core/tienda/tienda-info.service'
 import { ToastService } from '../../shared/feedback/toast.service'
 import { PosCartStore } from './pos-cart.store'
 import { PosDataService } from './pos-data.service'
@@ -14,6 +15,7 @@ import { ReceiptPrintService } from './receipt-print.service'
 import { SalesHistoryDialog } from './sales-history.dialog'
 import { CustomerPickerDialog } from './customer-picker.dialog'
 import { ItemDiscountDialog, type ItemDiscountResult } from './item-discount.dialog'
+import { ProductInfoDialog } from './product-info.dialog'
 import type { PosCartItem } from './pos-cart.store'
 import type { OpenCashSession, PosCategory, PosProduct } from './pos.types'
 import type { Cliente } from '@/modules/customers/domain/entities/cliente.entity'
@@ -23,7 +25,7 @@ import type { Cliente } from '@/modules/customers/domain/entities/cliente.entity
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [PosCartStore],
-  imports: [SalesHistoryDialog, CustomerPickerDialog, ItemDiscountDialog],
+  imports: [SalesHistoryDialog, CustomerPickerDialog, ItemDiscountDialog, ProductInfoDialog],
   template: `
     <section class="flex h-full min-h-0 flex-col">
       <header
@@ -145,49 +147,74 @@ import type { Cliente } from '@/modules/customers/domain/entities/cliente.entity
                 } @else {
                   <div class="grid grid-cols-2 gap-2 pb-3 sm:grid-cols-3 xl:grid-cols-4">
                     @for (product of filteredProducts(); track product.id) {
-                      <button
-                        type="button"
-                        [disabled]="isOutOfStock(product)"
-                        (click)="selectProduct(product)"
-                        [class]="productCardClass(product)"
-                      >
-                        <div class="flex w-full items-start justify-between gap-2">
-                          <span class="min-w-0">
-                            <span
-                              class="text-foreground line-clamp-2 text-sm leading-snug font-semibold"
-                            >
-                              {{ product.nombre }}
-                            </span>
-                            @if (product.sku) {
+                      <article [class]="productCardClass(product)">
+                        <button
+                          type="button"
+                          [disabled]="isOutOfStock(product)"
+                          [attr.aria-label]="'Agregar ' + product.nombre + ' al carrito'"
+                          (click)="selectProduct(product)"
+                          [class]="productAddButtonClass(product)"
+                        >
+                          <div class="flex w-full items-start justify-between gap-2">
+                            <span class="min-w-0">
                               <span
-                                class="text-muted-foreground mt-0.5 block truncate font-mono text-[10px] leading-none"
+                                class="text-foreground line-clamp-2 text-sm leading-snug font-semibold"
                               >
-                                {{ product.sku }}
+                                {{ product.nombre }}
+                              </span>
+                              @if (product.sku) {
+                                <span
+                                  class="text-muted-foreground mt-0.5 block truncate font-mono text-[10px] leading-none"
+                                >
+                                  {{ product.sku }}
+                                </span>
+                              }
+                            </span>
+                            <span [class]="productStockBadgeClass(product)">
+                              {{ productStockLabel(product) }}
+                            </span>
+                          </div>
+                          <div class="mt-auto w-full pt-2">
+                            <span class="text-primary block text-base font-bold tabular-nums">
+                              {{ money(product.precioVenta) }}
+                            </span>
+                            @if (mostrarIvaEnPos() && product.ivaTasa > 0) {
+                              <span class="text-muted-foreground text-[10px]"
+                                >+IVA {{ product.ivaTasa }}%</span
+                              >
+                            }
+                            @if (isOutOfStock(product)) {
+                              <span
+                                class="border-destructive/30 bg-destructive/10 text-destructive mt-2 inline-flex w-full items-center justify-center rounded-md border px-2 py-1 text-[11px] font-semibold"
+                              >
+                                Sin stock disponible
                               </span>
                             }
-                          </span>
-                          <span [class]="productStockBadgeClass(product)">
-                            {{ productStockLabel(product) }}
-                          </span>
-                        </div>
-                        <div class="mt-auto w-full pt-2">
-                          <span class="text-primary block text-base font-bold tabular-nums">
-                            {{ money(product.precioVenta) }}
-                          </span>
-                          @if (product.ivaTasa > 0) {
-                            <span class="text-muted-foreground text-[10px]"
-                              >+IVA {{ product.ivaTasa }}%</span
+                          </div>
+                        </button>
+                        <div class="border-border/70 w-full border-t p-2">
+                          <button
+                            type="button"
+                            [attr.aria-label]="'Ver información de ' + product.nombre"
+                            (click)="openProductInfo(product)"
+                            class="text-muted-foreground hover:bg-muted hover:text-foreground focus:ring-ring flex min-h-11 w-full items-center justify-center gap-2 rounded-lg px-2 text-xs font-semibold transition-colors focus:ring-2 focus:outline-none"
+                          >
+                            <svg
+                              aria-hidden="true"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              class="h-4 w-4"
                             >
-                          }
-                          @if (isOutOfStock(product)) {
-                            <span
-                              class="border-destructive/30 bg-destructive/10 text-destructive mt-2 inline-flex w-full items-center justify-center rounded-md border px-2 py-1 text-[11px] font-semibold"
-                            >
-                              Sin stock disponible
-                            </span>
-                          }
+                              <circle cx="12" cy="12" r="9" />
+                              <path d="M12 11v5" />
+                              <path d="M12 8h.01" />
+                            </svg>
+                            Ver información
+                          </button>
                         </div>
-                      </button>
+                      </article>
                     }
                   </div>
                 }
@@ -341,7 +368,7 @@ import type { Cliente } from '@/modules/customers/domain/entities/cliente.entity
                       >
                     </div>
                   }
-                  @if (cart.totals().taxTotal > 0) {
+                  @if (mostrarIvaEnPos() && cart.totals().taxTotal > 0) {
                     <div class="mb-1.5 flex justify-between text-sm">
                       <span class="text-muted-foreground">IVA</span>
                       <span class="text-muted-foreground">{{ money(cart.totals().taxTotal) }}</span>
@@ -537,6 +564,33 @@ import type { Cliente } from '@/modules/customers/domain/entities/cliente.entity
               }
             </div>
 
+            <div class="space-y-2">
+              <p class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+                Tirilla de compra
+              </p>
+              <div class="grid grid-cols-2 gap-2" role="group" aria-label="Imprimir tirilla">
+                <button
+                  type="button"
+                  [attr.aria-pressed]="imprimirEstaVenta()"
+                  [class]="receiptChoiceClass(true)"
+                  (click)="imprimirEstaVenta.set(true)"
+                >
+                  Imprimir
+                </button>
+                <button
+                  type="button"
+                  [attr.aria-pressed]="!imprimirEstaVenta()"
+                  [class]="receiptChoiceClass(false)"
+                  (click)="imprimirEstaVenta.set(false)"
+                >
+                  No imprimir
+                </button>
+              </div>
+              <p class="text-muted-foreground text-[11px]">
+                Esta eleccion aplica solamente a la venta actual.
+              </p>
+            </div>
+
             @if (saleError()) {
               <p class="bg-destructive/10 text-destructive rounded-lg px-3 py-2 text-sm">
                 {{ saleError() }}
@@ -583,10 +637,17 @@ import type { Cliente } from '@/modules/customers/domain/entities/cliente.entity
       (closed)="discountItem.set(null)"
       (applied)="onItemDiscountApplied($event)"
     />
+
+    <mo-product-info-dialog
+      [open]="productInfo() !== null"
+      [product]="productInfo()"
+      (closed)="productInfo.set(null)"
+    />
   `,
 })
 export class PosPage {
   private readonly sessionService = inject(SessionService)
+  private readonly tiendaInfo = inject(TiendaInfoService)
   private readonly dataService = inject(PosDataService)
   private readonly saleService = inject(PosSaleService)
   private readonly receiptPrint = inject(ReceiptPrintService)
@@ -594,6 +655,10 @@ export class PosPage {
 
   readonly cart = inject(PosCartStore)
   readonly products = signal<PosProduct[]>([])
+  readonly mostrarIvaEnPos = signal(true)
+  readonly imprimirAlFinalizarVenta = signal(true)
+  readonly imprimirEstaVenta = signal(true)
+  readonly abrirCajonEnEfectivo = signal(true)
   readonly categories = signal<PosCategory[]>([])
   readonly cashSession = signal<OpenCashSession | null>(null)
   readonly query = signal('')
@@ -609,6 +674,7 @@ export class PosPage {
   readonly isSaving = signal(false)
   readonly customerPickerOpen = signal(false)
   readonly discountItem = signal<PosCartItem | null>(null)
+  readonly productInfo = signal<PosProduct | null>(null)
   readonly globalDiscountInput = signal('')
   readonly paymentMethods = PAYMENT_METHOD_OPTIONS
   readonly String = String
@@ -662,15 +728,19 @@ export class PosPage {
       const auth = await this.sessionService.getAuthContext()
       if (!auth) throw new Error('No autenticado')
 
-      const [products, categories, cashSession] = await Promise.all([
+      const [products, categories, cashSession, tienda] = await Promise.all([
         this.dataService.listProducts(auth.tiendaId),
         this.dataService.listCategories(auth.tiendaId),
         this.dataService.getOpenCashSession(auth.tiendaId),
+        this.tiendaInfo.get(auth.tiendaId),
       ])
 
       this.products.set(products)
       this.categories.set(categories)
       this.cashSession.set(cashSession)
+      this.mostrarIvaEnPos.set(tienda.receipt.mostrarIvaEnPos)
+      this.imprimirAlFinalizarVenta.set(tienda.receipt.imprimirAlFinalizarVenta)
+      this.abrirCajonEnEfectivo.set(tienda.receipt.abrirCajonEnEfectivo)
     } catch (error) {
       this.loadError.set(getErrorMessage(error, 'No se pudo cargar el POS'))
     } finally {
@@ -717,10 +787,19 @@ export class PosPage {
   productCardClass(product: PosProduct): string {
     const outOfStock = this.isOutOfStock(product)
     return [
-      'bg-card focus:ring-ring flex min-h-32 flex-col items-start rounded-xl border p-3.5 text-left transition-all duration-150 focus:ring-2 focus:outline-none',
+      'bg-card flex min-h-40 flex-col overflow-hidden rounded-xl border text-left transition-colors duration-150',
       outOfStock
-        ? 'border-destructive/30 bg-destructive/5 cursor-not-allowed opacity-80'
-        : 'cursor-pointer hover:border-primary/50 hover:bg-primary/5 active:scale-[0.98]',
+        ? 'border-destructive/30 bg-destructive/5'
+        : 'hover:border-primary/50',
+    ].join(' ')
+  }
+
+  productAddButtonClass(product: PosProduct): string {
+    return [
+      'focus:ring-ring flex w-full flex-1 flex-col items-start p-3.5 text-left transition-colors focus:ring-2 focus:outline-none',
+      this.isOutOfStock(product)
+        ? 'cursor-not-allowed opacity-75'
+        : 'cursor-pointer hover:bg-primary/5 active:bg-primary/10',
     ].join(' ')
   }
 
@@ -743,6 +822,10 @@ export class PosPage {
 
   selectProduct(product: PosProduct): void {
     this.cart.addItem(product)
+  }
+
+  openProductInfo(product: PosProduct): void {
+    this.productInfo.set(product)
   }
 
   /** `true` cuando el producto rastrea stock y no hay unidades en punto de venta. */
@@ -781,6 +864,7 @@ export class PosPage {
 
   openCheckout(): void {
     this.saleError.set(null)
+    this.imprimirEstaVenta.set(this.imprimirAlFinalizarVenta())
     this.checkoutOpen.set(true)
     const currentGlobal = this.cart.globalDiscount()
     this.globalDiscountInput.set(currentGlobal > 0 ? String(currentGlobal) : '')
@@ -821,6 +905,16 @@ export class PosPage {
       active
         ? 'border-primary bg-primary text-primary-foreground'
         : 'border-border bg-background hover:bg-muted',
+    ].join(' ')
+  }
+
+  receiptChoiceClass(printReceipt: boolean): string {
+    const active = this.imprimirEstaVenta() === printReceipt
+    return [
+      'h-10 rounded-lg border px-3 text-sm font-semibold transition-colors',
+      active
+        ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+        : 'border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground',
     ].join(' ')
   }
 
@@ -887,6 +981,9 @@ export class PosPage {
 
       const change = this.cart.change()
       const saleId = result.value.saleId
+      const shouldOpenCashDrawer =
+        this.abrirCajonEnEfectivo() &&
+        this.cart.payments().some((payment) => payment.metodo === 'cash' && payment.amount > 0)
       this.cart.clearCart()
       this.globalDiscountInput.set('')
       this.paymentAmount.set('')
@@ -896,7 +993,21 @@ export class PosPage {
       this.toast.success(
         change > 0 ? `Venta completada · cambio ${formatCurrency(change)}` : 'Venta completada',
       )
-      void this.receiptPrint.printSale(saleId, { change })
+      if (this.imprimirEstaVenta()) {
+        void this.receiptPrint
+          .printSale(saleId, { change, openCashDrawer: shouldOpenCashDrawer })
+          .catch((error: unknown) => {
+            this.toast.error(
+              getErrorMessage(error, 'La venta se guardo, pero el ticket no se imprimio'),
+            )
+          })
+      } else if (shouldOpenCashDrawer) {
+        void this.receiptPrint.openCashDrawer().catch((error: unknown) => {
+          this.toast.error(
+            getErrorMessage(error, 'La venta se guardo, pero la caja no se pudo abrir'),
+          )
+        })
+      }
     } catch (error) {
       this.saleError.set(getErrorMessage(error, 'No se pudo completar la venta'))
     } finally {

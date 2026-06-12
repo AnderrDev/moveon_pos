@@ -29,7 +29,7 @@ Estas decisiones están cerradas. Cualquier cambio requiere un ADR formal.
 
 1. **Construir POS propio**, no adaptar uno open source.
 2. **No construir integración DIAN directa.** Usar proveedor autorizado vía API en MVP. El POS expone una interfaz `BillingProvider` con patrón Adapter.
-3. **Facturación electrónica opcional por venta.** La gran mayoría de ventas cierra con ticket interno.
+3. **Facturación electrónica opcional por venta.** Las ventas sin documento electrónico cierran con un comprobante de venta claramente diferenciado.
 4. **MVP mínimo primero.** Apagar Siigo lo antes posible. Funcionalidades avanzadas (fidelización, reportes complejos, recetas con modificadores) van en versiones siguientes.
 5. **Stack Supabase** para reducir costos de infraestructura y simplificar operación.
 6. **Multi-sede preparado en datos** (`tienda_id` en todas las tablas operativas), aunque la UI multi-sede llega después.

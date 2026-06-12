@@ -7,6 +7,18 @@ export const createProductSchema = z.object({
   sku: z.string().optional(),
   codigoBarras: z.string().optional(),
   categoriaId: z.string().uuid().optional(),
+  paraQueSirve: z
+    .string()
+    .trim()
+    .max(800, 'La información no puede superar 800 caracteres')
+    .nullable()
+    .optional(),
+  recomendadoPara: z
+    .string()
+    .trim()
+    .max(800, 'La recomendación no puede superar 800 caracteres')
+    .nullable()
+    .optional(),
   tipo: productTypeSchema,
   unidad: z.string().default('und'),
   precioVenta: z.number().positive('El precio debe ser mayor a 0'),

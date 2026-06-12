@@ -461,7 +461,9 @@ export type Database = {
           is_active: boolean
           iva_tasa: number
           nombre: string
+          para_que_sirve: string | null
           precio_venta: number
+          recomendado_para: string | null
           sku: string | null
           stock_minimo: number
           tienda_id: string
@@ -478,7 +480,9 @@ export type Database = {
           is_active?: boolean
           iva_tasa?: number
           nombre: string
+          para_que_sirve?: string | null
           precio_venta: number
+          recomendado_para?: string | null
           sku?: string | null
           stock_minimo?: number
           tienda_id: string
@@ -495,7 +499,9 @@ export type Database = {
           is_active?: boolean
           iva_tasa?: number
           nombre?: string
+          para_que_sirve?: string | null
           precio_venta?: number
+          recomendado_para?: string | null
           sku?: string | null
           stock_minimo?: number
           tienda_id?: string

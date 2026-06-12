@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router'
 import { SessionService } from '../auth/session.service'
 import { ToastHostComponent } from '../../shared/feedback/toast-host.component'
-import { ReceiptPrintHostComponent } from '../../features/pos/receipt-print-host.component'
 
 interface NavItem {
   label: string
@@ -15,7 +14,7 @@ interface NavItem {
   selector: 'mo-shell',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, ToastHostComponent, ReceiptPrintHostComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, ToastHostComponent],
   template: `
     <div class="bg-background flex h-dvh flex-col overflow-hidden md:flex-row">
       <aside
@@ -103,7 +102,6 @@ interface NavItem {
     </div>
 
     <mo-toast-host />
-    <mo-receipt-print-host />
   `,
 })
 export class ShellComponent {
@@ -117,6 +115,7 @@ export class ShellComponent {
     { label: 'Caja', short: 'Caja', href: '/caja' },
     { label: 'Clientes', short: 'Cli', href: '/clientes' },
     { label: 'Reportes', short: 'Rep', href: '/reportes', adminOnly: true },
+    { label: 'Configuracion', short: 'Conf', href: '/configuracion', adminOnly: true },
   ]
 
   /** Ítems visibles según el rol; los admin-only se ocultan al cajero. */

@@ -3,9 +3,20 @@ import { SupabaseClientService } from '../supabase/supabase-client.service'
 import { DEFAULT_TIMEZONE } from '@/modules/reports/domain/services/day-range'
 
 export interface ReceiptSettings {
+  titulo: string
+  nit: string | null
+  direccion: string | null
+  ciudad: string | null
+  telefono: string | null
   mensajePie: string | null
   mostrarNit: boolean
+  mostrarDireccion: boolean
   mostrarTelefono: boolean
+  mostrarIva: boolean
+  mostrarIvaEnPos: boolean
+  imprimirAlFinalizarVenta: boolean
+  abrirCajonEnEfectivo: boolean
+  printerName: string
 }
 
 export interface TiendaInfo {
@@ -20,9 +31,20 @@ export interface TiendaInfo {
 }
 
 const DEFAULT_RECEIPT: ReceiptSettings = {
+  titulo: 'COMPROBANTE DE VENTA',
+  nit: null,
+  direccion: null,
+  ciudad: null,
+  telefono: null,
   mensajePie: 'Gracias por tu compra. ¡Vuelve pronto!',
   mostrarNit: true,
+  mostrarDireccion: true,
   mostrarTelefono: true,
+  mostrarIva: false,
+  mostrarIvaEnPos: true,
+  imprimirAlFinalizarVenta: true,
+  abrirCajonEnEfectivo: true,
+  printerName: 'POS-58',
 }
 
 interface TiendaRow {
@@ -96,10 +118,24 @@ export class TiendaInfoService {
       ciudad: tiendaRes.data.ciudad,
       timezone: tiendaRes.data.timezone ?? DEFAULT_TIMEZONE,
       receipt: {
+        titulo: recibo.titulo ?? DEFAULT_RECEIPT.titulo,
+        nit: recibo.nit !== undefined ? recibo.nit : tiendaRes.data.nit,
+        direccion:
+          recibo.direccion !== undefined ? recibo.direccion : tiendaRes.data.direccion,
+        ciudad: recibo.ciudad !== undefined ? recibo.ciudad : tiendaRes.data.ciudad,
+        telefono: recibo.telefono !== undefined ? recibo.telefono : tiendaRes.data.telefono,
         mensajePie:
           (recibo.mensajePie ?? recibo.mensaje_pie ?? DEFAULT_RECEIPT.mensajePie) ?? null,
         mostrarNit: recibo.mostrarNit ?? DEFAULT_RECEIPT.mostrarNit,
+        mostrarDireccion: recibo.mostrarDireccion ?? DEFAULT_RECEIPT.mostrarDireccion,
         mostrarTelefono: recibo.mostrarTelefono ?? DEFAULT_RECEIPT.mostrarTelefono,
+        mostrarIva: recibo.mostrarIva ?? DEFAULT_RECEIPT.mostrarIva,
+        mostrarIvaEnPos: recibo.mostrarIvaEnPos ?? DEFAULT_RECEIPT.mostrarIvaEnPos,
+        imprimirAlFinalizarVenta:
+          recibo.imprimirAlFinalizarVenta ?? DEFAULT_RECEIPT.imprimirAlFinalizarVenta,
+        abrirCajonEnEfectivo:
+          recibo.abrirCajonEnEfectivo ?? DEFAULT_RECEIPT.abrirCajonEnEfectivo,
+        printerName: recibo.printerName ?? DEFAULT_RECEIPT.printerName,
       },
     }
   }

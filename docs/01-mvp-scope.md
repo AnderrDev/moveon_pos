@@ -56,7 +56,7 @@
 - Reporte de cierre imprimible.
 
 ### M7. Tickets internos
-- Impresión vía navegador (CSS optimizado para 80mm).
+- Impresión RAW mediante QZ Tray y comandos ESC/POS para rollo térmico de 58 mm.
 - Información: nombre tienda, fecha/hora, productos, totales, método(s) de pago.
 - **No es documento fiscal.** Es comprobante interno.
 

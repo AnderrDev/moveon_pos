@@ -8,6 +8,8 @@ export interface PosProduct {
   precioVenta: number
   ivaTasa: IvaRate
   categoriaId: string | null
+  paraQueSirve: string | null
+  recomendadoPara: string | null
   tipo: ProductType
   /** Stock disponible. `null` = el producto no rastrea stock (ej. `prepared`). */
   stockDisponible: number | null

@@ -6,6 +6,7 @@ import { salePriceSchema, skuSchema, ivaRateSchema, productTypeSchema } from '@/
 export const PRODUCT_NAME_MIN = 2
 export const PRODUCT_NAME_MAX = 100
 export const PRODUCT_SKU_MAX  = 50
+export const PRODUCT_INFO_MAX = 800
 
 // ── Schema del formulario ─────────────────────────────────────────────────────
 // Distinto del DTO del backend:
@@ -32,6 +33,20 @@ export const productFormSchema = z.object({
   categoriaId: z
     .string()
     .uuid('Selecciona una categoría válida')
+    .optional()
+    .or(z.literal('')),
+
+  paraQueSirve: z
+    .string()
+    .trim()
+    .max(PRODUCT_INFO_MAX, `La información no puede superar ${PRODUCT_INFO_MAX} caracteres`)
+    .optional()
+    .or(z.literal('')),
+
+  recomendadoPara: z
+    .string()
+    .trim()
+    .max(PRODUCT_INFO_MAX, `La recomendación no puede superar ${PRODUCT_INFO_MAX} caracteres`)
     .optional()
     .or(z.literal('')),
 
@@ -85,6 +100,8 @@ export function createProductFormDefaults(
     sku:          initial.sku          ?? '',
     codigoBarras: initial.codigoBarras ?? '',
     categoriaId:  initial.categoriaId  ?? '',
+    paraQueSirve: initial.paraQueSirve ?? '',
+    recomendadoPara: initial.recomendadoPara ?? '',
     tipo:         initial.tipo         ?? 'simple',
     unidad:       initial.unidad       ?? 'und',
     precioVenta:  initial.precioVenta  ?? 0,

@@ -76,7 +76,7 @@ Referencias: features en [`features.md`](./features.md), flujos en [`flows.md`](
 - [ ] Esperado: cambio correcto = entregado − total. (PAY-02)
 - [ ] Esperado: venta `completed` con `saleNumber` correlativo. (POS-05)
 - [ ] Esperado: stock A baja a 18. (POS-05 / CA5)
-- [ ] Esperado: se imprime/auto-imprime el ticket 80mm. (TCK-01)
+- [ ] Esperado: se imprime/auto-imprime el ticket térmico de 58 mm sin avance excesivo de papel. (TCK-01)
 
 **TC-10 — Idempotencia**
 1. Reintentar confirmar la misma venta (doble click / reintento de red).

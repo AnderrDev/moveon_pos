@@ -111,8 +111,8 @@ HU-13 a HU-22.
 **Módulos:** M7 (Tickets), M8 (Reportes).
 
 ### Entregables
-- [ ] Componente `TicketPrintable` con CSS para 80mm.
-- [ ] Botón "Imprimir ticket" usando `window.print()`.
+- [ ] Generador ESC/POS de 32 columnas para rollo térmico de 58 mm.
+- [ ] Impresión RAW mediante QZ Tray y reimpresión desde historial.
 - [ ] Reporte ventas del día (totales, por método, por cajero).
 - [ ] Reporte detalle de ventas con filtros de fecha.
 - [ ] Reporte cierre de caja imprimible.

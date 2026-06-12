@@ -71,6 +71,8 @@ categoria_id    uuid           (FK categorias, nullable)
 nombre          text not null
 sku             text
 codigo_barras   text
+para_que_sirve  text           -- nullable, max. 800 caracteres
+recomendado_para text          -- nullable, max. 800 caracteres
 tipo            text not null  CHECK (tipo IN ('simple', 'prepared', 'ingredient'))
 unidad          text default 'unidad'
 precio_venta    numeric(14,2) not null
