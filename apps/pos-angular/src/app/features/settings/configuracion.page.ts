@@ -198,18 +198,19 @@ import { QzReceiptPrinterService } from '../pos/infrastructure/qz-receipt-printe
             <mo-form-error [message]="presenter.errors().root ?? null" />
 
             <div
-              class="bg-card mb-4 flex flex-col gap-4 rounded-xl border p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+              class="bg-card mb-4 flex flex-col gap-5 rounded-xl border p-5 shadow-sm xl:flex-row xl:items-center xl:justify-between"
             >
-              <div>
+              <div class="min-w-0">
                 <p class="text-sm font-semibold">Verifica antes de guardar</p>
-                <p class="text-muted-foreground mt-1 text-xs">
+                <p class="text-muted-foreground mt-1 max-w-md text-xs leading-relaxed">
                   Las pruebas usan la impresora indicada y no crean una venta.
                 </p>
               </div>
-              <div class="flex flex-col gap-3 sm:flex-row">
+              <div class="grid w-full grid-cols-1 gap-3 sm:grid-cols-3 xl:w-auto">
                 <mo-button
                   type="button"
                   variant="outline"
+                  [fullWidth]="true"
                   [loading]="printingTest()"
                   [disabled]="saving() || openingDrawer()"
                   loadingText="Imprimiendo..."
@@ -220,6 +221,7 @@ import { QzReceiptPrinterService } from '../pos/infrastructure/qz-receipt-printe
                 <mo-button
                   type="button"
                   variant="outline"
+                  [fullWidth]="true"
                   [loading]="openingDrawer()"
                   [disabled]="saving() || printingTest()"
                   loadingText="Abriendo..."
@@ -229,6 +231,7 @@ import { QzReceiptPrinterService } from '../pos/infrastructure/qz-receipt-printe
                 </mo-button>
                 <mo-button
                   type="submit"
+                  [fullWidth]="true"
                   [loading]="saving()"
                   [disabled]="printingTest() || openingDrawer()"
                   loadingText="Guardando..."

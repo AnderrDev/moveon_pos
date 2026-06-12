@@ -52,12 +52,14 @@ export class ButtonComponent {
   readonly disabled = input(false)
   readonly loading = input(false)
   readonly loadingText = input<string | null>(null)
+  readonly fullWidth = input(false)
 
   readonly classes = computed(() =>
     [
       'inline-flex items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-all duration-150',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
       'disabled:cursor-not-allowed disabled:opacity-50',
+      this.fullWidth() ? 'w-full' : '',
       VARIANT_CLASSES[this.variant()],
       SIZE_CLASSES[this.size()],
     ].join(' '),
