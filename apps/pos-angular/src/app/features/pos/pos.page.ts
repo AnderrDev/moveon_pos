@@ -16,16 +16,34 @@ import { SalesHistoryDialog } from './sales-history.dialog'
 import { CustomerPickerDialog } from './customer-picker.dialog'
 import { ItemDiscountDialog, type ItemDiscountResult } from './item-discount.dialog'
 import { ProductInfoDialog } from './product-info.dialog'
+import {
+  ReceiptOutputStatusDialog,
+  type ReceiptOutputKind,
+  type ReceiptOutputStatus,
+} from './receipt-output-status.dialog'
 import type { PosCartItem } from './pos-cart.store'
 import type { OpenCashSession, PosCategory, PosProduct } from './pos.types'
 import type { Cliente } from '@/modules/customers/domain/entities/cliente.entity'
+
+interface PostSaleOutputJob {
+  saleId: string
+  change: number
+  printReceipt: boolean
+  openCashDrawer: boolean
+}
 
 @Component({
   selector: 'mo-pos-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [PosCartStore],
-  imports: [SalesHistoryDialog, CustomerPickerDialog, ItemDiscountDialog, ProductInfoDialog],
+  imports: [
+    SalesHistoryDialog,
+    CustomerPickerDialog,
+    ItemDiscountDialog,
+    ProductInfoDialog,
+    ReceiptOutputStatusDialog,
+  ],
   template: `
     <section class="flex h-full min-h-0 flex-col">
       <header
@@ -406,6 +424,7 @@ import type { Cliente } from '@/modules/customers/domain/entities/cliente.entity
           type="button"
           aria-label="Cerrar cobro"
           class="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
+          [disabled]="isSaving()"
           (click)="closeCheckout()"
         ></button>
         <section
@@ -601,7 +620,8 @@ import type { Cliente } from '@/modules/customers/domain/entities/cliente.entity
               <button
                 type="button"
                 (click)="closeCheckout()"
-                class="h-10 rounded-lg border px-4 text-sm font-semibold"
+                [disabled]="isSaving()"
+                class="h-10 rounded-lg border px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Cancelar
               </button>
@@ -611,7 +631,15 @@ import type { Cliente } from '@/modules/customers/domain/entities/cliente.entity
                 [disabled]="!canConfirm() || isSaving()"
                 class="bg-primary text-primary-foreground h-10 rounded-lg px-4 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {{ isSaving() ? 'Procesando...' : 'Confirmar · ' + money(cart.totals().total) }}
+                @if (isSaving()) {
+                  <span
+                    class="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent align-[-2px]"
+                    aria-hidden="true"
+                  ></span>
+                  Guardando venta...
+                } @else {
+                  Confirmar · {{ money(cart.totals().total) }}
+                }
               </button>
             </div>
           </div>
@@ -643,6 +671,15 @@ import type { Cliente } from '@/modules/customers/domain/entities/cliente.entity
       [product]="productInfo()"
       (closed)="productInfo.set(null)"
     />
+
+    <mo-receipt-output-status-dialog
+      [open]="receiptOutputStatus() !== null"
+      [kind]="receiptOutputKind()"
+      [status]="receiptOutputStatus() ?? 'printing'"
+      [errorMessage]="receiptOutputError()"
+      (retry)="retryReceiptOutput()"
+      (closed)="dismissReceiptOutput()"
+    />
   `,
 })
 export class PosPage {
@@ -672,6 +709,9 @@ export class PosPage {
   readonly saleError = signal<string | null>(null)
   readonly historyOpen = signal(false)
   readonly isSaving = signal(false)
+  readonly receiptOutputStatus = signal<ReceiptOutputStatus | null>(null)
+  readonly receiptOutputError = signal<string | null>(null)
+  readonly pendingReceiptOutput = signal<PostSaleOutputJob | null>(null)
   readonly customerPickerOpen = signal(false)
   readonly discountItem = signal<PosCartItem | null>(null)
   readonly productInfo = signal<PosProduct | null>(null)
@@ -706,6 +746,9 @@ export class PosPage {
 
   /** El campo "Referencia" solo aplica a métodos no-efectivo. */
   readonly showReference = computed(() => requiresReference(this.paymentMethod()))
+  readonly receiptOutputKind = computed<ReceiptOutputKind>(() =>
+    this.pendingReceiptOutput()?.printReceipt ? 'receipt' : 'drawer',
+  )
 
   constructor() {
     // El store marca el tope de stock; la página dispara el toast (ToastService
@@ -874,6 +917,7 @@ export class PosPage {
   }
 
   closeCheckout(): void {
+    if (this.isSaving()) return
     this.checkoutOpen.set(false)
     this.cart.clearPayments()
     this.paymentAmount.set('')
@@ -981,6 +1025,7 @@ export class PosPage {
 
       const change = this.cart.change()
       const saleId = result.value.saleId
+      const shouldPrintReceipt = this.imprimirEstaVenta()
       const shouldOpenCashDrawer =
         this.abrirCajonEnEfectivo() &&
         this.cart.payments().some((payment) => payment.metodo === 'cash' && payment.amount > 0)
@@ -993,25 +1038,63 @@ export class PosPage {
       this.toast.success(
         change > 0 ? `Venta completada · cambio ${formatCurrency(change)}` : 'Venta completada',
       )
-      if (this.imprimirEstaVenta()) {
-        void this.receiptPrint
-          .printSale(saleId, { change, openCashDrawer: shouldOpenCashDrawer })
-          .catch((error: unknown) => {
-            this.toast.error(
-              getErrorMessage(error, 'La venta se guardo, pero el ticket no se imprimio'),
-            )
-          })
-      } else if (shouldOpenCashDrawer) {
-        void this.receiptPrint.openCashDrawer().catch((error: unknown) => {
-          this.toast.error(
-            getErrorMessage(error, 'La venta se guardo, pero la caja no se pudo abrir'),
-          )
+      if (shouldPrintReceipt || shouldOpenCashDrawer) {
+        await this.runReceiptOutput({
+          saleId,
+          change,
+          printReceipt: shouldPrintReceipt,
+          openCashDrawer: shouldOpenCashDrawer,
         })
       }
     } catch (error) {
       this.saleError.set(getErrorMessage(error, 'No se pudo completar la venta'))
     } finally {
       this.isSaving.set(false)
+    }
+  }
+
+  retryReceiptOutput(): void {
+    const job = this.pendingReceiptOutput()
+    if (!job || this.receiptOutputStatus() === 'printing') return
+    void this.runReceiptOutput(job)
+  }
+
+  dismissReceiptOutput(): void {
+    if (this.receiptOutputStatus() === 'printing') return
+    this.receiptOutputStatus.set(null)
+    this.receiptOutputError.set(null)
+    this.pendingReceiptOutput.set(null)
+  }
+
+  private async runReceiptOutput(job: PostSaleOutputJob): Promise<void> {
+    this.pendingReceiptOutput.set(job)
+    this.receiptOutputError.set(null)
+    this.receiptOutputStatus.set('printing')
+
+    try {
+      if (job.printReceipt) {
+        await this.receiptPrint.printSale(job.saleId, {
+          change: job.change,
+          openCashDrawer: job.openCashDrawer,
+        })
+        this.toast.success('Tirilla enviada a la impresora')
+      } else {
+        await this.receiptPrint.openCashDrawer()
+        this.toast.success('Caja abierta')
+      }
+
+      this.receiptOutputStatus.set(null)
+      this.pendingReceiptOutput.set(null)
+    } catch (error) {
+      this.receiptOutputError.set(
+        getErrorMessage(
+          error,
+          job.printReceipt
+            ? 'La venta se guardó, pero la tirilla no se imprimió.'
+            : 'La venta se guardó, pero la caja no se pudo abrir.',
+        ),
+      )
+      this.receiptOutputStatus.set('error')
     }
   }
 }

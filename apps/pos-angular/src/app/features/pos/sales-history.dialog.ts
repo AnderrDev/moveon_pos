@@ -83,9 +83,16 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
                   </td>
                   <td class="px-3 py-2 text-right">
                     <div class="flex justify-end gap-1">
-                      <mo-button size="sm" variant="ghost" (click)="reprint(sale)"
-                        >Reimprimir</mo-button
+                      <mo-button
+                        size="sm"
+                        variant="ghost"
+                        [loading]="reprintingSaleId() === sale.id"
+                        [disabled]="reprintingSaleId() !== null"
+                        loadingText="Enviando..."
+                        (click)="reprint(sale)"
                       >
+                        Reimprimir
+                      </mo-button>
                       @if (sale.status === 'completed' && canVoid()) {
                         <mo-button size="sm" variant="ghost" (click)="confirmVoid(sale)"
                           >Anular</mo-button
@@ -123,6 +130,7 @@ export class SalesHistoryDialog {
   readonly sales = signal<Sale[]>([])
   readonly loading = signal(false)
   readonly loadError = signal<string | null>(null)
+  readonly reprintingSaleId = signal<string | null>(null)
 
   /** Venta seleccionada para anular y visibilidad del dialog de motivo. */
   readonly voidTarget = signal<Sale | null>(null)
@@ -188,10 +196,15 @@ export class SalesHistoryDialog {
   }
 
   async reprint(sale: Sale): Promise<void> {
+    if (this.reprintingSaleId() !== null) return
+    this.reprintingSaleId.set(sale.id)
     try {
       await this.receiptPrint.printSale(sale.id)
+      this.toast.success(`Tirilla ${sale.saleNumber} enviada`)
     } catch (error) {
       this.toast.error(getErrorMessage(error, 'No se pudo imprimir el ticket'))
+    } finally {
+      this.reprintingSaleId.set(null)
     }
   }
 

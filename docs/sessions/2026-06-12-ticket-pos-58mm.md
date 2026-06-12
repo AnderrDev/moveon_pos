@@ -92,6 +92,10 @@ Adecuar el ticket de venta para una impresora termica Jaltech POS-58, evitar que
 - [x] Apertura automatica de caja monedero por ESC/POS en ventas con efectivo, independiente de imprimir la tirilla, con preferencia por tienda y boton de prueba.
 - [x] CORS de `qz-sign` habilitado para el sitio productivo de Netlify, ademas de localhost.
 - [x] Flujo QZ optimizado: apertura de caja y ticket se envian en un solo trabajo RAW, el nombre de impresora se cachea y el logo se carga en paralelo.
+- [x] UX de salida mejorada: loader bloqueante despues de guardar la venta, estado de error recuperable con reintento y feedback de reimpresion en historial.
+- [x] Errores QZ clasificados para firma, conexion, permisos, impresora y logo; las operaciones concurrentes se rechazan con un mensaje controlado.
+- [x] `pnpm test` - 36 archivos y 308 tests pasaron con la cobertura nueva de errores QZ.
+- [x] `pnpm typecheck` - corregido `ignoreDeprecations` para TypeScript 5.9.3 y validacion completa aprobada.
 
 ## 6. Pendientes de validacion operativa
 

@@ -28,7 +28,7 @@ export class ReceiptPrintService {
   readonly busy = signal(false)
 
   async printSale(saleId: string, options: PrintOptions = {}): Promise<void> {
-    if (this.busy()) return
+    if (this.busy()) throw new Error('Ya hay una impresión en proceso. Espera a que termine.')
     this.busy.set(true)
     try {
       const auth = await this.session.getAuthContext()
@@ -69,10 +69,16 @@ export class ReceiptPrintService {
   }
 
   async openCashDrawer(): Promise<void> {
-    const auth = await this.session.getAuthContext()
-    if (!auth) throw new Error('No autenticado')
-    const tienda = await this.tiendaInfo.get(auth.tiendaId)
-    await this.qzPrinter.openCashDrawer(tienda.receipt.printerName)
+    if (this.busy()) throw new Error('Ya hay una operación de impresión en proceso.')
+    this.busy.set(true)
+    try {
+      const auth = await this.session.getAuthContext()
+      if (!auth) throw new Error('No autenticado')
+      const tienda = await this.tiendaInfo.get(auth.tiendaId)
+      await this.qzPrinter.openCashDrawer(tienda.receipt.printerName)
+    } finally {
+      this.busy.set(false)
+    }
   }
 
   private async loadCliente(clienteId: string | null): Promise<EscPosReceiptCustomer | null> {

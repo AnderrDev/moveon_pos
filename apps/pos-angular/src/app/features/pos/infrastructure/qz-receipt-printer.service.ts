@@ -7,6 +7,7 @@ import {
   type EscPosReceiptStore,
 } from './esc-pos-receipt.builder'
 import { QzSigningService } from './qz-signing.service'
+import { getQzPrintErrorMessage } from './qz-print-error'
 
 const CASH_DRAWER_PULSE = '\x1b\x70\x00\x19\xfa'
 
@@ -45,7 +46,7 @@ export class QzReceiptPrinterService {
       const config = qz.configs.create(printerName, { jobName: 'MOVEONAPP abrir caja' })
       await qz.print(config, [CASH_DRAWER_PULSE])
     } catch (error) {
-      throw new Error(this.toUserMessage(error), { cause: error })
+      throw new Error(getQzPrintErrorMessage(error, configuredPrinterName), { cause: error })
     }
   }
 
@@ -56,11 +57,9 @@ export class QzReceiptPrinterService {
     options: ReceiptOutputOptions = {},
   ): Promise<void> {
     try {
-      const logoPromise = this.loadLogo()
-      await this.ensureConnected()
+      const [, logo] = await Promise.all([this.ensureConnected(), this.loadLogo()])
       const printerName = await this.findPrinter(configuredPrinterName)
       const config = qz.configs.create(printerName, { jobName })
-      const logo = await logoPromise
       await qz.print(config, [
         ...(options.openCashDrawer ? [CASH_DRAWER_PULSE] : []),
         '\x1b@\x1ba\x01',
@@ -75,7 +74,7 @@ export class QzReceiptPrinterService {
         content,
       ])
     } catch (error) {
-      throw new Error(this.toUserMessage(error), { cause: error })
+      throw new Error(getQzPrintErrorMessage(error, configuredPrinterName), { cause: error })
     }
   }
 
@@ -147,23 +146,4 @@ export class QzReceiptPrinterService {
     })
   }
 
-  private toUserMessage(error: unknown): string {
-    const message = error instanceof Error ? error.message : String(error)
-    const normalized = message.toLowerCase()
-
-    if (
-      normalized.includes('websocket') ||
-      normalized.includes('connect') ||
-      normalized.includes('qz tray')
-    ) {
-      return 'QZ Tray no esta instalado o abierto. Abre QZ Tray y vuelve a reimprimir.'
-    }
-    if (normalized.includes('printer') || normalized.includes('impresora')) {
-      return 'No se encontro la impresora POS-58 en Windows.'
-    }
-    if (normalized.includes('sign')) {
-      return 'No se pudo firmar la solicitud de impresion. Verifica la funcion qz-sign en Supabase.'
-    }
-    return `No se pudo enviar el comando a la POS-58: ${message}`
-  }
 }
