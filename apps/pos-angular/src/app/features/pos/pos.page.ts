@@ -532,7 +532,7 @@ interface PostSaleOutputJob {
               <p class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
                 Metodo de pago
               </p>
-              <div class="grid grid-cols-2 gap-1.5 min-[420px]:grid-cols-3 sm:grid-cols-5">
+              <div class="grid grid-cols-2 gap-1.5 min-[420px]:grid-cols-3">
                 @for (method of paymentMethods; track method.value) {
                   <button
                     type="button"

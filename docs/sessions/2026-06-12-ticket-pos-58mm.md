@@ -96,6 +96,7 @@ Adecuar el ticket de venta para una impresora termica Jaltech POS-58, evitar que
 - [x] Errores QZ clasificados para firma, conexion, permisos, impresora y logo; las operaciones concurrentes se rechazan con un mensaje controlado.
 - [x] `pnpm test` - 36 archivos y 308 tests pasaron con la cobertura nueva de errores QZ.
 - [x] `pnpm typecheck` - corregido `ignoreDeprecations` para TypeScript 5.9.3 y validacion completa aprobada.
+- [x] Alertas globales redisenadas como tarjetas compactas con iconografia semantica, mejor cierre, accesibilidad por estado y un maximo de tres visibles.
 
 ## 6. Pendientes de validacion operativa
 

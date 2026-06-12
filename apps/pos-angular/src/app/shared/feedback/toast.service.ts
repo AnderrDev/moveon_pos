@@ -28,7 +28,7 @@ export class ToastService {
       variant: input.variant ?? 'info',
       durationMs: input.durationMs ?? 4000,
     }
-    this.state.update((current) => [...current.slice(-3), item])
+    this.state.update((current) => [...current.slice(-2), item])
     window.setTimeout(() => this.dismiss(id), item.durationMs)
     return id
   }
