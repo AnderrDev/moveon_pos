@@ -97,6 +97,8 @@ Adecuar el ticket de venta para una impresora termica Jaltech POS-58, evitar que
 - [x] `pnpm test` - 36 archivos y 308 tests pasaron con la cobertura nueva de errores QZ.
 - [x] `pnpm typecheck` - corregido `ignoreDeprecations` para TypeScript 5.9.3 y validacion completa aprobada.
 - [x] Alertas globales redisenadas como tarjetas compactas con iconografia semantica, mejor cierre, accesibilidad por estado y un maximo de tres visibles.
+- [x] Estado de error de impresion convertido en una guia de recuperacion: confirma que la venta esta segura, identifica el dispositivo y muestra pasos concretos segun la causa.
+- [x] `No imprimir` definido como valor predeterminado para tiendas sin una preferencia de impresion guardada y para el estado inicial del cobro.
 
 ## 6. Pendientes de validacion operativa
 

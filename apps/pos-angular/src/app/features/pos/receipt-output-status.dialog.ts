@@ -19,7 +19,7 @@ export type ReceiptOutputStatus = 'printing' | 'error'
       width="sm"
       (closed)="closed.emit()"
     >
-      <div class="space-y-5" aria-live="polite">
+      <div aria-live="polite">
         @if (status() === 'printing') {
           <div class="flex flex-col items-center px-3 py-5 text-center">
             <div
@@ -41,20 +41,66 @@ export type ReceiptOutputStatus = 'printing' | 'error'
             </p>
           </div>
         } @else {
-          <div class="border-destructive/25 bg-destructive/10 rounded-xl border p-4">
-            <p class="text-destructive text-sm font-bold">No se completó la salida</p>
-            <p class="text-foreground mt-2 text-sm leading-relaxed">{{ errorMessage() }}</p>
-            <p class="text-muted-foreground mt-3 text-xs leading-relaxed">
-              La venta permanece registrada. Puedes corregir el problema y volver a intentarlo sin
-              crear otra venta.
-            </p>
-          </div>
+          <div class="space-y-4">
+            <div class="flex gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3.5">
+              <span
+                class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700"
+                aria-hidden="true"
+              >
+                <svg viewBox="0 0 24 24" class="h-4 w-4">
+                  <path d="m5 12.5 4 4L19 7" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.25" />
+                </svg>
+              </span>
+              <div>
+                <p class="text-sm font-bold text-emerald-950">La venta está segura</p>
+                <p class="mt-0.5 text-xs leading-relaxed text-emerald-800">
+                  Quedó registrada correctamente. Reintentar no creará otra venta ni cobrará de nuevo.
+                </p>
+              </div>
+            </div>
 
-          <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <mo-button variant="outline" [fullWidth]="true" (click)="closed.emit()">
-              Cerrar
-            </mo-button>
-            <mo-button [fullWidth]="true" (click)="retry.emit()">Reintentar</mo-button>
+            <div class="overflow-hidden rounded-xl border border-amber-200 bg-amber-50/70">
+              <div class="flex gap-3 border-b border-amber-200 px-4 py-3.5">
+                <span
+                  class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700"
+                  aria-hidden="true"
+                >
+                  <svg viewBox="0 0 24 24" class="h-5 w-5">
+                    <path d="M7 8V4h10v4M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M7 14h10v6H7z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" />
+                    <path d="M17.5 11h.01" stroke="currentColor" stroke-linecap="round" stroke-width="2.4" />
+                  </svg>
+                </span>
+                <div class="min-w-0">
+                  <p class="text-sm font-bold text-amber-950">{{ deviceErrorTitle() }}</p>
+                  <p class="mt-1 text-sm leading-relaxed text-amber-900">{{ errorMessage() }}</p>
+                </div>
+              </div>
+
+              <div class="bg-card/70 px-4 py-3.5">
+                <p class="text-foreground text-xs font-bold tracking-wide uppercase">Antes de reintentar</p>
+                <ol class="mt-3 space-y-2.5">
+                  @for (step of recoverySteps(); track step; let index = $index) {
+                    <li class="text-muted-foreground flex gap-2.5 text-sm leading-5">
+                      <span
+                        class="bg-foreground text-background flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+                      >
+                        {{ index + 1 }}
+                      </span>
+                      <span>{{ step }}</span>
+                    </li>
+                  }
+                </ol>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-2 pt-1 sm:grid-cols-[1fr_1.35fr]">
+              <mo-button variant="outline" [fullWidth]="true" (click)="closed.emit()">
+                Cerrar por ahora
+              </mo-button>
+              <mo-button [fullWidth]="true" (click)="retry.emit()">
+                Reintentar impresión
+              </mo-button>
+            </div>
           </div>
         }
       </div>
@@ -73,8 +119,8 @@ export class ReceiptOutputStatusDialog {
   readonly title = computed(() =>
     this.status() === 'error'
       ? this.kind() === 'receipt'
-        ? 'La tirilla no se imprimió'
-        : 'La caja no se abrió'
+        ? 'No pudimos imprimir la tirilla'
+        : 'No pudimos abrir la caja'
       : this.kind() === 'receipt'
         ? 'Imprimiendo tirilla'
         : 'Abriendo caja',
@@ -82,11 +128,58 @@ export class ReceiptOutputStatusDialog {
 
   readonly description = computed(() =>
     this.status() === 'error'
-      ? 'La venta se completó correctamente, pero el dispositivo necesita atención.'
+      ? 'La venta terminó bien. Solo falta resolver la conexión con el dispositivo.'
       : 'Completando la operación en la impresora configurada.',
   )
 
   readonly progressLabel = computed(() =>
     this.kind() === 'receipt' ? 'Enviando comprobante...' : 'Enviando pulso al cajón...',
   )
+
+  readonly deviceErrorTitle = computed(() => {
+    const error = this.normalizedError()
+    if (error.includes('qz tray')) return 'QZ Tray necesita atención'
+    if (error.includes('impresora configurada')) return 'Impresora no disponible'
+    if (error.includes('autorizar')) return 'No se pudo autorizar la impresión'
+    if (error.includes('logo')) return 'No se pudo preparar el comprobante'
+    return this.kind() === 'receipt' ? 'La impresora no respondió' : 'El cajón no respondió'
+  })
+
+  readonly recoverySteps = computed(() => {
+    const error = this.normalizedError()
+
+    if (error.includes('qz tray')) {
+      return [
+        'Confirma que QZ Tray esté instalado y abierto en este computador.',
+        'Si aparece una solicitud de acceso, selecciona Permitir y recuerda la decisión.',
+        'Verifica que el icono de QZ Tray aparezca activo junto al reloj de Windows.',
+      ]
+    }
+
+    if (error.includes('impresora configurada')) {
+      return [
+        'Conecta y enciende la impresora térmica en este computador.',
+        'Comprueba en Windows que la impresora instalada tenga el mismo nombre configurado en MOVEONAPP.',
+        'Si este equipo no imprime, puedes cerrar este mensaje y continuar trabajando.',
+      ]
+    }
+
+    if (error.includes('autorizar')) {
+      return [
+        'Comprueba que este computador tenga conexión a internet.',
+        'Mantén QZ Tray abierto y autoriza el sitio si muestra una solicitud.',
+        'Espera unos segundos antes de volver a intentar.',
+      ]
+    }
+
+    return [
+      'Confirma que QZ Tray y la impresora estén encendidos y disponibles.',
+      'Revisa el cable USB, el papel y que Windows no muestre la impresora sin conexión.',
+      'Cuando el dispositivo esté listo, vuelve a intentarlo.',
+    ]
+  })
+
+  private normalizedError(): string {
+    return (this.errorMessage() ?? '').toLowerCase()
+  }
 }

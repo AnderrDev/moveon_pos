@@ -42,7 +42,7 @@ const DEFAULT_RECEIPT: ReceiptSettings = {
   mostrarTelefono: true,
   mostrarIva: false,
   mostrarIvaEnPos: true,
-  imprimirAlFinalizarVenta: true,
+  imprimirAlFinalizarVenta: false,
   abrirCajonEnEfectivo: true,
   printerName: 'POS-58',
 }

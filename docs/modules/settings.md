@@ -21,7 +21,7 @@ La accion `Imprimir prueba` genera una tirilla de muestra con los valores que es
 
 Desactivar la impresion al finalizar una venta no deshabilita `Imprimir prueba` ni modifica el registro de la venta. Solo omite el envio automatico a QZ Tray.
 
-En el modal de cobro, el cajero puede cambiar entre `Imprimir` y `No imprimir` para la venta actual. La seleccion comienza con el valor de `imprimirAlFinalizarVenta` cada vez que se abre el cobro y no modifica la configuracion guardada.
+En el modal de cobro, el cajero puede cambiar entre `Imprimir` y `No imprimir` para la venta actual. La seleccion comienza con el valor de `imprimirAlFinalizarVenta` cada vez que se abre el cobro y no modifica la configuracion guardada. Cuando la tienda aun no tiene una preferencia guardada, el valor predeterminado es `No imprimir`.
 
 La caja monedero se controla a traves del puerto de la impresora. Al habilitar `abrirCajonEnEfectivo`, la aplicacion envia `ESC p` al pin 2 despues de guardar una venta con efectivo; tambien funciona en pagos mixtos y es independiente de la impresion de la tirilla. `Probar caja` permite validar la conexion sin registrar una venta.
 

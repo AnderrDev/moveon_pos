@@ -41,7 +41,7 @@ export function createReceiptSettingsFormDefaults(
     mostrarTelefono: initial.mostrarTelefono ?? true,
     mostrarIva: initial.mostrarIva ?? false,
     mostrarIvaEnPos: initial.mostrarIvaEnPos ?? true,
-    imprimirAlFinalizarVenta: initial.imprimirAlFinalizarVenta ?? true,
+    imprimirAlFinalizarVenta: initial.imprimirAlFinalizarVenta ?? false,
     abrirCajonEnEfectivo: initial.abrirCajonEnEfectivo ?? true,
   }
 }
