@@ -20,25 +20,35 @@ describe('calculateCartItem', () => {
     expect(result.total).toBe(6000)
   })
 
-  it('aplica IVA 19% sobre la base imponible', () => {
+  it('extrae el IVA 19% incluido sin aumentar el precio de venta', () => {
     const result = calculateCartItem({
       productId: '1', nombre: 'Suplemento', sku: null,
       unitPrice: 100000, ivaTasa: 19, quantity: 1, discountAmount: 0,
     })
-    expect(result.baseImponible).toBe(100000)
-    expect(result.taxAmount).toBe(19000)
-    expect(result.total).toBe(119000)
+    expect(result.baseImponible).toBe(84034)
+    expect(result.taxAmount).toBe(15966)
+    expect(result.total).toBe(100000)
   })
 
-  it('aplica descuento ANTES de calcular IVA', () => {
+  it('mantiene en $79.000 un producto gravado al 19% (regresión)', () => {
+    const result = calculateCartItem({
+      productId: '1', nombre: 'Creatina', sku: null,
+      unitPrice: 79000, ivaTasa: 19, quantity: 1, discountAmount: 0,
+    })
+
+    expect(result.taxAmount).toBe(12613)
+    expect(result.total).toBe(79000)
+  })
+
+  it('aplica el descuento al precio final y extrae el IVA restante', () => {
     const result = calculateCartItem({
       productId: '1', nombre: 'Proteína', sku: null,
       unitPrice: 100000, ivaTasa: 19, quantity: 1, discountAmount: 10000,
     })
     expect(result.descuentoTotal).toBe(10000)
-    expect(result.baseImponible).toBe(90000)
-    expect(result.taxAmount).toBe(17100)   // 90000 * 0.19
-    expect(result.total).toBe(107100)
+    expect(result.baseImponible).toBe(75630)
+    expect(result.taxAmount).toBe(14370)
+    expect(result.total).toBe(90000)
   })
 
   it('multiplica descuento por cantidad', () => {
@@ -56,8 +66,8 @@ describe('calculateCartItem', () => {
       productId: '1', nombre: 'Batido', sku: null,
       unitPrice: 10000, ivaTasa: 5, quantity: 2, discountAmount: 0,
     })
-    expect(result.taxAmount).toBe(1000)   // 20000 * 0.05
-    expect(result.total).toBe(21000)
+    expect(result.taxAmount).toBe(952)
+    expect(result.total).toBe(20000)
   })
 })
 
@@ -69,8 +79,8 @@ describe('calculateCartTotals', () => {
     ]
     const totals = calculateCartTotals(items)
     expect(totals.subtotal).toBe(70000)       // 20000 + 50000
-    expect(totals.taxTotal).toBe(9500)        // 0 + 9500
-    expect(totals.total).toBe(79500)          // 20000 + 59500
+    expect(totals.taxTotal).toBe(7983)        // IVA incluido en los $50.000
+    expect(totals.total).toBe(70000)
     expect(totals.discountTotal).toBe(0)
   })
 
@@ -90,9 +100,9 @@ describe('calculateCartTotals', () => {
 
   it('aplica descuento global sobre el total con IVA mixto (19/5/0) y descuento por ítem', () => {
     const items = [
-      // IVA 19% con descuento por unidad: base 90000, IVA 17100, total 107100
+      // IVA 19% incluido con descuento: total 90000, IVA contenido 14370
       calculateCartItem({ productId: '1', nombre: 'Proteína', sku: null, unitPrice: 100000, ivaTasa: 19, quantity: 1, discountAmount: 10000 }),
-      // IVA 5%: base 20000, IVA 1000, total 21000
+      // IVA 5% incluido: total 20000, IVA contenido 952
       calculateCartItem({ productId: '2', nombre: 'Batido',   sku: null, unitPrice: 10000,  ivaTasa: 5,  quantity: 2, discountAmount: 0 }),
       // IVA 0%: base 6000, total 6000
       calculateCartItem({ productId: '3', nombre: 'Agua',     sku: null, unitPrice: 2000,   ivaTasa: 0,  quantity: 3, discountAmount: 0 }),
@@ -101,8 +111,8 @@ describe('calculateCartTotals', () => {
 
     expect(totals.subtotal).toBe(126000)      // 100000 + 20000 + 6000 brutos
     expect(totals.discountTotal).toBe(15000)  // 10000 por ítem + 5000 global
-    expect(totals.taxTotal).toBe(18100)       // 17100 + 1000 + 0 — NO afectado por el global
-    expect(totals.total).toBe(129100)         // (107100 + 21000 + 6000) − 5000
+    expect(totals.taxTotal).toBe(15322)       // 14370 + 952 + 0 — NO afectado por el global
+    expect(totals.total).toBe(111000)         // (90000 + 20000 + 6000) − 5000
   })
 
   it('acota el descuento global al total (nunca negativo)', () => {

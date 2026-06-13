@@ -73,7 +73,7 @@ function makeInput(overrides: Partial<CreateSaleUseCaseInput> = {}): CreateSaleU
       taxAmount:      0,
       total:          2,
     }],
-    payments:       [{ metodo: 'cash', amount: 226_100 }],
+    payments:       [{ metodo: 'cash', amount: 190_000 }],
     subtotal:       2,
     discountTotal:  0,
     taxTotal:       0,
@@ -186,8 +186,8 @@ describe('createSaleUseCase', () => {
       saleNumber:    `260427-${now.getTime()}`,
       subtotal:      200_000,
       discountTotal: 10_000,
-      taxTotal:      36_100,
-      total:         226_100,
+      taxTotal:      30_336,
+      total:         190_000,
       change:        0,
     })
     expect(createdInputs[0].items[0]).toMatchObject({
@@ -195,8 +195,8 @@ describe('createSaleUseCase', () => {
       productoSku:    'PRO-1',
       unitPrice:      100_000,
       taxRate:        19,
-      taxAmount:      36_100,
-      total:          226_100,
+      taxAmount:      30_336,
+      total:          190_000,
     })
   })
 
@@ -270,9 +270,9 @@ describe('createSaleUseCase', () => {
 
     expect(result.ok).toBe(true)
     expect(createdInputs[0]).toMatchObject({
-      taxTotal: 9_500,
-      total:    199_500,
-      change:   10_500,
+      taxTotal: 9_048,
+      total:    190_000,
+      change:   20_000,
     })
   })
 })

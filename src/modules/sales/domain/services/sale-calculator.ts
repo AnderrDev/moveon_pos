@@ -12,11 +12,11 @@ export interface CartItemInput {
 }
 
 export interface CartItemCalculated extends CartItemInput {
-  subtotalBruto: number   // unitPrice * quantity
+  subtotalBruto: number   // Precio final (IVA incluido) * quantity
   descuentoTotal: number  // discountAmount * quantity
-  baseImponible: number   // subtotalBruto - descuentoTotal
-  taxAmount: number       // baseImponible * ivaTasa / 100
-  total: number           // baseImponible + taxAmount
+  baseImponible: number   // Total sin el IVA incluido
+  taxAmount: number       // IVA contenido en el total
+  total: number           // subtotalBruto - descuentoTotal
 }
 
 export interface CartTotals {
@@ -29,9 +29,11 @@ export interface CartTotals {
 export function calculateCartItem(item: CartItemInput): CartItemCalculated {
   const subtotalBruto   = Math.round(item.unitPrice * item.quantity)
   const descuentoTotal  = Math.round(item.discountAmount * item.quantity)
-  const baseImponible   = subtotalBruto - descuentoTotal
-  const taxAmount       = Math.round(baseImponible * item.ivaTasa / 100)
-  const total           = baseImponible + taxAmount
+  const total           = Math.max(0, subtotalBruto - descuentoTotal)
+  const baseImponible   = item.ivaTasa === 0
+    ? total
+    : Math.round(total / (1 + item.ivaTasa / 100))
+  const taxAmount       = total - baseImponible
 
   return { ...item, subtotalBruto, descuentoTotal, baseImponible, taxAmount, total }
 }
