@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+} from '@angular/core'
 import { ControlContainer, FormGroupDirective, ReactiveFormsModule } from '@angular/forms'
 import { clampCurrency, formatCurrency, parseCurrency } from '@/shared/lib/format'
 import { FieldWrapperComponent } from './field-wrapper.component'
@@ -43,16 +51,29 @@ export class FormCurrencyInputComponent {
   readonly max = input<number>(100_000_000)
 
   private readonly focused = signal(false)
+  private readonly controlValue = signal<number | null | undefined>(undefined)
 
   private get control() {
     return this.container.form.get(this.controlName())
   }
 
   readonly display = computed(() => {
-    const value = this.control?.value as number | null | undefined
+    const value = this.controlValue()
     if (this.focused()) return value && value > 0 ? String(value) : ''
     return value && value > 0 ? formatCurrency(value) : ''
   })
+
+  constructor() {
+    effect((onCleanup) => {
+      const control = this.container.form.get(this.controlName())
+      this.controlValue.set(control?.value as number | null | undefined)
+
+      const subscription = control?.valueChanges.subscribe((value) => {
+        this.controlValue.set(value as number | null | undefined)
+      })
+      onCleanup(() => subscription?.unsubscribe())
+    })
+  }
 
   readonly inputClasses = computed(() =>
     [

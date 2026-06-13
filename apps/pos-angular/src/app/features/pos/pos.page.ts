@@ -198,7 +198,7 @@ interface PostSaleOutputJob {
                             </span>
                             @if (mostrarIvaEnPos() && product.ivaTasa > 0) {
                               <span class="text-muted-foreground text-[10px]"
-                                >+IVA {{ product.ivaTasa }}%</span
+                                >IVA {{ product.ivaTasa }}% incluido</span
                               >
                             }
                             @if (isOutOfStock(product)) {

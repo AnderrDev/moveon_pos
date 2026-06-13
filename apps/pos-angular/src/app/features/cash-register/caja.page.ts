@@ -65,6 +65,7 @@ import type {
               [required]="true"
             />
             <mo-form-error [message]="openError()" />
+            <div class="my-4"></div>
             <mo-button
               type="submit"
               [loading]="opening()"

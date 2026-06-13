@@ -140,13 +140,15 @@ import type { Product } from '@/modules/products/domain/entities/product.entity'
       }
     </section>
 
-    <mo-product-form-dialog
-      [open]="dialogOpen()"
-      [product]="editingProduct()"
-      [categorias]="categorias()"
-      (closed)="closeDialog()"
-      (saved)="onSaved($event)"
-    />
+    @if (dialogOpen()) {
+      <mo-product-form-dialog
+        [open]="true"
+        [product]="editingProduct()"
+        [categorias]="categorias()"
+        (closed)="closeDialog()"
+        (saved)="onSaved($event)"
+      />
+    }
   `,
 })
 export class ProductosPage {

@@ -15,14 +15,16 @@ import { loginFormMapper } from '@/modules/auth/forms/login-form.mapper'
   template: `
     <main class="bg-background flex min-h-dvh items-center justify-center px-4 py-10">
       <section class="bg-card w-full max-w-md rounded-2xl border p-6 shadow-xl">
-        <div class="mb-6">
-          <div
-            class="bg-primary mb-4 flex h-11 w-11 items-center justify-center rounded-xl text-sm font-black text-white"
-          >
-            M
-          </div>
-          <h1 class="font-display text-2xl font-bold">MOVEONAPP POS</h1>
-          <p class="text-muted-foreground mt-1 text-sm">Ingresa para operar la tienda.</p>
+        <div class="mb-6 text-center">
+          <img
+            src="assets/brand/moveon-logo-dark.png"
+            alt="MOVEON Nutricion y Sportwear"
+            width="768"
+            height="215"
+            class="mx-auto h-auto w-[220px]"
+          />
+          <h1 class="sr-only">MOVEONAPP POS</h1>
+          <p class="text-muted-foreground mt-3 text-sm">Ingresa para operar la tienda.</p>
         </div>
 
         <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">

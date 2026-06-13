@@ -96,7 +96,9 @@ Al anular una venta, por cada `sale_item` se crea un `inventory_movement` tipo `
 - Mayor a ese umbral requiere rol admin o aprobación documentada en `audit_logs`.
 
 ### RN-S10: Cálculo de IVA
-IVA se calcula por ítem según `producto.iva_tasa`. El IVA total de la venta es la suma de IVAs por ítem.
+`producto.precio_venta` es el precio final al consumidor e incluye IVA. El IVA se extrae por ítem según
+`producto.iva_tasa` para discriminarlo en ventas, reportes y tickets, sin sumarlo nuevamente al total.
+El IVA total de la venta es la suma de los IVAs incluidos por ítem.
 
 ---
 

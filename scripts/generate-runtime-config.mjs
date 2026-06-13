@@ -13,7 +13,10 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..')
-const ENV_FILE = join(ROOT, '.env.local')
+const envFileArgIndex = process.argv.indexOf('--env-file')
+const ENV_FILE = envFileArgIndex >= 0
+  ? join(ROOT, process.argv[envFileArgIndex + 1] ?? '')
+  : join(ROOT, '.env.local')
 const OUTPUT = join(ROOT, 'apps/pos-angular/public/runtime-config.json')
 
 function parseEnvFile(path) {

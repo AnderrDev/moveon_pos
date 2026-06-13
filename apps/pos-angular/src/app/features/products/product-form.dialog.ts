@@ -63,7 +63,7 @@ const IVA_OPTIONS: FormSelectOption<number>[] = [
       width="lg"
       (closed)="onClose()"
     >
-      <form [formGroup]="presenter.form" (ngSubmit)="submit()" class="space-y-4">
+      <form [formGroup]="presenter.form" (ngSubmit)="submit()" class="space-y-6">
         <mo-form-input
           controlName="nombre"
           label="Nombre"

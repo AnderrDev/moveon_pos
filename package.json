@@ -26,7 +26,11 @@
     "db:types": "supabase gen types typescript --project-id rmaieqyscchtxxkgxgik > src/infrastructure/supabase/database.types.ts",
     "db:diff": "supabase db diff",
     "supabase:start": "supabase start",
-    "supabase:stop": "supabase stop"
+    "supabase:stop": "supabase stop",
+    "offline:start": "node scripts/offline/start.mjs",
+    "offline:dev": "node scripts/offline/dev.mjs",
+    "offline:export": "node scripts/offline/export.mjs",
+    "offline:sync": "node scripts/offline/sync.mjs"
   },
   "dependencies": {
     "@angular/animations": "^21.2.11",

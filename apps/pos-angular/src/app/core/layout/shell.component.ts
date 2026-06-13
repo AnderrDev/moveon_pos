@@ -20,18 +20,17 @@ interface NavItem {
       <aside
         class="border-sidebar-border bg-sidebar hidden w-64 flex-shrink-0 flex-col border-r md:flex"
       >
-        <div class="border-sidebar-border flex items-center gap-3 border-b px-5 py-[1.125rem]">
-          <div
-            class="bg-primary flex h-9 w-9 items-center justify-center rounded-lg text-white shadow-sm"
-          >
-            <span class="text-sm font-black">M</span>
-          </div>
-          <div>
-            <p class="font-display text-[13px] leading-none font-bold tracking-wide text-white">
-              MOVEONAPP
-            </p>
-            <p class="text-sidebar-muted mt-[3px] text-[11px] font-medium">Punto de Venta</p>
-          </div>
+        <div
+          class="border-sidebar-border flex min-h-[77px] items-center justify-center border-b px-5 py-3"
+        >
+          <img
+            src="assets/brand/moveon-logo-white.png"
+            alt="MOVEON Nutricion y Sportwear"
+            width="768"
+            height="215"
+            class="h-auto w-[170px]"
+          />
+          <span class="sr-only">Punto de Venta</span>
         </div>
 
         <nav class="flex-1 space-y-0.5 px-3 py-4">
