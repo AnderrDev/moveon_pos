@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { salePriceSchema, skuSchema, ivaRateSchema, productTypeSchema } from '@/shared/validations/common'
+import { inventoryLocationSchema } from '@/modules/inventory/application/dtos/inventory.dto'
 
 // ── Constantes de validación ──────────────────────────────────────────────────
 
@@ -81,7 +82,28 @@ export const productFormSchema = z.object({
     .nonnegative('El stock mínimo no puede ser negativo')
     .default(0),
 
+  stockInicial: z.preprocess(
+    (value) =>
+      value === '' || value === null || value === undefined ||
+      (typeof value === 'number' && Number.isNaN(value))
+        ? 0
+        : value,
+    z
+      .number({ invalid_type_error: 'Ingresa una cantidad válida' })
+      .nonnegative('El inventario inicial no puede ser negativo'),
+  ),
+
+  stockInicialUbicacion: inventoryLocationSchema.default('bodega'),
+
   isActive: z.boolean().default(true),
+}).superRefine((value, ctx) => {
+  if (value.tipo === 'prepared' && value.stockInicial > 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['stockInicial'],
+      message: 'Los productos preparados no controlan inventario',
+    })
+  }
 })
 
 // ── Tipos derivados (nunca se definen a mano) ─────────────────────────────────
@@ -108,6 +130,8 @@ export function createProductFormDefaults(
     costo:        initial.costo,
     ivaTasa:      initial.ivaTasa      ?? 0,
     stockMinimo:  initial.stockMinimo  ?? 0,
+    stockInicial: initial.stockInicial ?? 0,
+    stockInicialUbicacion: initial.stockInicialUbicacion ?? 'bodega',
     isActive:     initial.isActive     ?? true,
   }
 }

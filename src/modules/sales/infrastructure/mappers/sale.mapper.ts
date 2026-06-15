@@ -8,6 +8,7 @@ export interface SaleRow {
   sale_number: string
   cliente_id: string | null
   cashier_id: string
+  cashier_email: string | null
   subtotal: number
   discount_total: number
   tax_total: number
@@ -21,6 +22,7 @@ export interface SaleRow {
   idempotency_key: string
   created_at: string
   updated_at: string
+  clientes?: { nombre: string } | null
   sale_items?: SaleItemRow[]
   payments?: PaymentRow[]
 }
@@ -76,23 +78,28 @@ export function rowToPayment(row: PaymentRow): Payment {
 }
 
 export function rowToSale(row: SaleRow): Sale {
+  const payments = (row.payments ?? []).map(rowToPayment)
+  const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0)
+
   return {
     id: row.id,
     tiendaId: row.tienda_id,
     cashSessionId: row.cash_session_id,
     saleNumber: row.sale_number,
     clienteId: row.cliente_id,
+    clienteNombre: row.clientes?.nombre ?? null,
     cashierId: row.cashier_id,
+    cashierEmail: row.cashier_email,
     status: row.status as SaleStatus,
     billingStatus: row.billing_status as BillingStatus,
     billingDocumentId: row.billing_document_id,
     items: (row.sale_items ?? []).map(rowToSaleItem),
-    payments: (row.payments ?? []).map(rowToPayment),
+    payments,
     subtotal: Number(row.subtotal),
     discountTotal: Number(row.discount_total),
     taxTotal: Number(row.tax_total),
     total: Number(row.total),
-    change: 0,
+    change: Math.max(0, totalPaid - Number(row.total)),
     idempotencyKey: row.idempotency_key,
     voidedBy: row.voided_by,
     voidedAt: row.voided_at ? new Date(row.voided_at) : null,

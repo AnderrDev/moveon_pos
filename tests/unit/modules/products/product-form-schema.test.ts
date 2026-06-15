@@ -45,6 +45,8 @@ describe('productFormSchema', () => {
     costo: 70000,
     ivaTasa: 19,
     stockMinimo: 2,
+    stockInicial: 12,
+    stockInicialUbicacion: 'bodega',
     isActive: true,
   }
 
@@ -151,6 +153,34 @@ describe('productFormSchema', () => {
     }
   })
 
+  it('acepta inventario inicial en una ubicación válida', () => {
+    const result = productFormSchema.safeParse({
+      ...validProduct,
+      stockInicial: 8,
+      stockInicialUbicacion: 'punto_venta',
+    })
+
+    expect(result.success).toBe(true)
+  })
+
+  it('rechaza inventario inicial negativo', () => {
+    const result = productFormSchema.safeParse({ ...validProduct, stockInicial: -1 })
+
+    expect(result.success).toBe(false)
+    if (!result.success) expect(result.error.issues[0].path).toEqual(['stockInicial'])
+  })
+
+  it('rechaza inventario inicial para productos preparados', () => {
+    const result = productFormSchema.safeParse({
+      ...validProduct,
+      tipo: 'prepared',
+      stockInicial: 1,
+    })
+
+    expect(result.success).toBe(false)
+    if (!result.success) expect(result.error.issues[0].path).toEqual(['stockInicial'])
+  })
+
   it('rechaza categorías que no son uuid cuando se envían', () => {
     const result = productFormSchema.safeParse({ ...validProduct, categoriaId: 'no-es-uuid' })
     expect(result.success).toBe(false)
@@ -170,6 +200,7 @@ describe('productFormSchema', () => {
     expect(result.success).toBe(false)
     if (!result.success) expect(result.error.issues[0].path).toEqual(['paraQueSirve'])
   })
+
 })
 
 describe('createProductFormDefaults', () => {
@@ -183,6 +214,8 @@ describe('createProductFormDefaults', () => {
     expect(defaults.costo).toBeUndefined()
     expect(defaults.ivaTasa).toBe(0)
     expect(defaults.stockMinimo).toBe(0)
+    expect(defaults.stockInicial).toBe(0)
+    expect(defaults.stockInicialUbicacion).toBe('bodega')
     expect(defaults.tipo).toBe('simple')
     expect(defaults.unidad).toBe('und')
     expect(defaults.isActive).toBe(true)
@@ -215,6 +248,8 @@ describe('createProductFormDefaults', () => {
       costo: 3000,
       ivaTasa: 5 as const,
       stockMinimo: 10,
+      stockInicial: 25,
+      stockInicialUbicacion: 'punto_venta' as const,
       isActive: false,
     }
 

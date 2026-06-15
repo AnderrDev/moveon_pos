@@ -163,7 +163,7 @@ interface PostSaleOutputJob {
                     Sin productos para esta busqueda
                   </div>
                 } @else {
-                  <div class="grid grid-cols-2 gap-2 pb-3 sm:grid-cols-3 xl:grid-cols-4">
+                  <div class="grid grid-cols-1 gap-2.5 pb-3 sm:grid-cols-2 2xl:grid-cols-3">
                     @for (product of filteredProducts(); track product.id) {
                       <article [class]="productCardClass(product)">
                         <button
@@ -173,50 +173,89 @@ interface PostSaleOutputJob {
                           (click)="selectProduct(product)"
                           [class]="productAddButtonClass(product)"
                         >
-                          <div class="flex w-full items-start justify-between gap-2">
-                            <span class="min-w-0">
-                              <span
-                                class="text-foreground line-clamp-2 text-sm leading-snug font-semibold"
-                              >
-                                {{ product.nombre }}
-                              </span>
-                              @if (product.sku) {
-                                <span
-                                  class="text-muted-foreground mt-0.5 block truncate font-mono text-[10px] leading-none"
-                                >
-                                  {{ product.sku }}
-                                </span>
-                              }
+                          <div class="flex w-full items-center justify-between gap-2">
+                            <span
+                              class="text-muted-foreground min-w-0 truncate font-mono text-[10px] font-semibold tracking-wide uppercase"
+                            >
+                              {{ product.sku || 'Producto' }}
                             </span>
                             <span [class]="productStockBadgeClass(product)">
+                              <span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>
                               {{ productStockLabel(product) }}
                             </span>
                           </div>
-                          <div class="mt-auto w-full pt-2">
-                            <span class="text-primary block text-base font-bold tabular-nums">
-                              {{ money(product.precioVenta) }}
-                            </span>
-                            @if (mostrarIvaEnPos() && product.ivaTasa > 0) {
-                              <span class="text-muted-foreground text-[10px]"
-                                >IVA {{ product.ivaTasa }}% incluido</span
+
+                          <h3
+                            class="text-foreground mt-3 w-full text-[15px] leading-[1.3] font-bold tracking-[-0.01em]"
+                          >
+                            {{ product.nombre }}
+                          </h3>
+
+                          <div class="mt-auto flex w-full items-end justify-between gap-3 pt-5">
+                            <div class="min-w-0">
+                              <span
+                                class="text-muted-foreground block text-[10px] font-semibold tracking-wide uppercase"
                               >
-                            }
+                                Precio de venta
+                              </span>
+                              <span
+                                class="font-display text-primary mt-0.5 block text-lg leading-none font-bold tabular-nums"
+                              >
+                                {{ money(product.precioVenta) }}
+                              </span>
+                              @if (mostrarIvaEnPos() && product.ivaTasa > 0) {
+                                <span class="text-muted-foreground mt-1 block text-[10px]">
+                                  IVA {{ product.ivaTasa }}% incluido
+                                </span>
+                              }
+                            </div>
+
                             @if (isOutOfStock(product)) {
                               <span
-                                class="border-destructive/30 bg-destructive/10 text-destructive mt-2 inline-flex w-full items-center justify-center rounded-md border px-2 py-1 text-[11px] font-semibold"
+                                class="bg-destructive/10 text-destructive inline-flex h-10 shrink-0 items-center rounded-xl px-3 text-[11px] font-bold"
                               >
-                                Sin stock disponible
+                                Agotado
+                              </span>
+                            } @else {
+                              <span
+                                aria-hidden="true"
+                                class="bg-primary text-primary-foreground shadow-primary/20 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-md transition-transform group-active:scale-90"
+                              >
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="2.5"
+                                  class="h-5 w-5"
+                                >
+                                  <path d="M12 5v14M5 12h14" />
+                                </svg>
                               </span>
                             }
                           </div>
                         </button>
-                        <div class="border-border/70 w-full border-t p-2">
+                        <div class="border-border/60 bg-muted/20 w-full border-t px-2 py-1.5">
                           <button
                             type="button"
                             [attr.aria-label]="'Ver información de ' + product.nombre"
                             (click)="openProductInfo(product)"
-                            class="text-muted-foreground hover:bg-muted hover:text-foreground focus:ring-ring flex min-h-11 w-full items-center justify-center gap-2 rounded-lg px-2 text-xs font-semibold transition-colors focus:ring-2 focus:outline-none"
+                            class="text-muted-foreground hover:bg-background hover:text-foreground focus:ring-ring flex min-h-11 w-full items-center justify-between rounded-lg px-2.5 text-xs font-semibold transition-colors focus:ring-2 focus:outline-none"
                           >
+                            <span class="flex items-center gap-2">
+                              <svg
+                                aria-hidden="true"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                class="h-4 w-4"
+                              >
+                                <circle cx="12" cy="12" r="9" />
+                                <path d="M12 11v5" />
+                                <path d="M12 8h.01" />
+                              </svg>
+                              Ficha del producto
+                            </span>
                             <svg
                               aria-hidden="true"
                               viewBox="0 0 24 24"
@@ -225,11 +264,8 @@ interface PostSaleOutputJob {
                               stroke-width="2"
                               class="h-4 w-4"
                             >
-                              <circle cx="12" cy="12" r="9" />
-                              <path d="M12 11v5" />
-                              <path d="M12 8h.01" />
+                              <path d="m9 18 6-6-6-6" />
                             </svg>
-                            Ver información
                           </button>
                         </div>
                       </article>
@@ -275,7 +311,9 @@ interface PostSaleOutputJob {
                       class="bg-primary/10 flex items-center justify-between gap-2 rounded-lg px-3 py-2"
                     >
                       <span class="min-w-0">
-                        <span class="text-muted-foreground block text-[10px] font-semibold tracking-wide uppercase">
+                        <span
+                          class="text-muted-foreground block text-[10px] font-semibold tracking-wide uppercase"
+                        >
                           Cliente
                         </span>
                         <span class="block truncate text-sm font-semibold">{{
@@ -669,6 +707,7 @@ interface PostSaleOutputJob {
     <mo-product-info-dialog
       [open]="productInfo() !== null"
       [product]="productInfo()"
+      [isAdmin]="isAdmin()"
       (closed)="productInfo.set(null)"
     />
 
@@ -715,6 +754,7 @@ export class PosPage {
   readonly customerPickerOpen = signal(false)
   readonly discountItem = signal<PosCartItem | null>(null)
   readonly productInfo = signal<PosProduct | null>(null)
+  readonly isAdmin = this.sessionService.isAdmin
   readonly globalDiscountInput = signal('')
   readonly paymentMethods = PAYMENT_METHOD_OPTIONS
   readonly String = String
@@ -747,7 +787,7 @@ export class PosPage {
   /** El campo "Referencia" solo aplica a métodos no-efectivo. */
   readonly showReference = computed(() => requiresReference(this.paymentMethod()))
   readonly receiptOutputKind = computed<ReceiptOutputKind>(() =>
-    this.pendingReceiptOutput()?.printReceipt ? 'receipt' : 'drawer',
+    this.pendingReceiptOutput()?.printReceipt ? 'receipt' : 'drawer'
   )
 
   constructor() {
@@ -830,30 +870,31 @@ export class PosPage {
   productCardClass(product: PosProduct): string {
     const outOfStock = this.isOutOfStock(product)
     return [
-      'bg-card flex min-h-40 flex-col overflow-hidden rounded-xl border text-left transition-colors duration-150',
+      'group bg-card relative flex min-h-52 flex-col overflow-hidden rounded-2xl border text-left shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-200',
       outOfStock
-        ? 'border-destructive/30 bg-destructive/5'
-        : 'hover:border-primary/50',
+        ? 'border-border opacity-80'
+        : 'hover:border-primary/40 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-16px_rgba(15,23,42,0.35)]',
     ].join(' ')
   }
 
   productAddButtonClass(product: PosProduct): string {
     return [
-      'focus:ring-ring flex w-full flex-1 flex-col items-start p-3.5 text-left transition-colors focus:ring-2 focus:outline-none',
+      'focus:ring-ring relative flex w-full flex-1 flex-col items-start p-4 text-left transition-colors focus:ring-2 focus:outline-none',
       this.isOutOfStock(product)
-        ? 'cursor-not-allowed opacity-75'
-        : 'cursor-pointer hover:bg-primary/5 active:bg-primary/10',
+        ? 'cursor-not-allowed'
+        : 'cursor-pointer hover:bg-primary/[0.035] active:bg-primary/[0.07]',
     ].join(' ')
   }
 
   productStockLabel(product: PosProduct): string {
-    if (product.stockDisponible === null) return 'Sin control'
-    return `Stock ${product.stockDisponible}`
+    if (product.stockDisponible === null) return 'Bajo pedido'
+    if (product.stockDisponible === 1) return '1 disponible'
+    return `${product.stockDisponible} disponibles`
   }
 
   productStockBadgeClass(product: PosProduct): string {
     const base =
-      'shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold leading-4 tabular-nums'
+      'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-bold leading-4 tabular-nums'
     if (product.stockDisponible === null) {
       return `${base} border-border bg-muted text-muted-foreground`
     }
@@ -1016,9 +1057,7 @@ export class PosPage {
 
       if (!result.ok) {
         this.saleError.set(
-          result.error.kind === 'unauthenticated'
-            ? 'Sesion expirada'
-            : result.error.message,
+          result.error.kind === 'unauthenticated' ? 'Sesion expirada' : result.error.message
         )
         return
       }
@@ -1036,7 +1075,7 @@ export class PosPage {
       this.paymentMethod.set('cash')
       this.checkoutOpen.set(false)
       this.toast.success(
-        change > 0 ? `Venta completada · cambio ${formatCurrency(change)}` : 'Venta completada',
+        change > 0 ? `Venta completada · cambio ${formatCurrency(change)}` : 'Venta completada'
       )
       if (shouldPrintReceipt || shouldOpenCashDrawer) {
         await this.runReceiptOutput({
@@ -1091,8 +1130,8 @@ export class PosPage {
           error,
           job.printReceipt
             ? 'La venta se guardó, pero la tirilla no se imprimió.'
-            : 'La venta se guardó, pero la caja no se pudo abrir.',
-        ),
+            : 'La venta se guardó, pero la caja no se pudo abrir.'
+        )
       )
       this.receiptOutputStatus.set('error')
     }

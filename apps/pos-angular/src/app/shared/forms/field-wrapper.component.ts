@@ -4,6 +4,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core'
   selector: 'mo-field-wrapper',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'block' },
   template: `
     <div class="flex flex-col gap-1.5">
       @if (label()) {

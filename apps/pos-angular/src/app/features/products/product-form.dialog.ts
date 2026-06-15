@@ -8,6 +8,7 @@ import {
   output,
   signal,
 } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { ReactiveFormsModule } from '@angular/forms'
 import { DialogComponent } from '../../shared/ui/dialog.component'
@@ -25,6 +26,7 @@ import type { Product, Categoria } from '@/modules/products/domain/entities/prod
 import { ProductsRepository } from './products.repository'
 import { SessionService } from '../../core/auth/session.service'
 import { ToastService } from '../../shared/feedback/toast.service'
+import type { InventoryLocation } from '@/shared/types'
 
 const TIPO_OPTIONS: FormSelectOption<string>[] = [
   { value: 'simple', label: 'Simple' },
@@ -36,6 +38,11 @@ const IVA_OPTIONS: FormSelectOption<number>[] = [
   { value: 0, label: '0% (exento)' },
   { value: 5, label: '5%' },
   { value: 19, label: '19%' },
+]
+
+const INITIAL_STOCK_LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
+  { value: 'bodega', label: 'Bodega' },
+  { value: 'punto_venta', label: 'Punto de venta' },
 ]
 
 @Component({
@@ -63,7 +70,7 @@ const IVA_OPTIONS: FormSelectOption<number>[] = [
       width="lg"
       (closed)="onClose()"
     >
-      <form [formGroup]="presenter.form" (ngSubmit)="submit()" class="space-y-4">
+      <form [formGroup]="presenter.form" (ngSubmit)="submit()" class="flex flex-col gap-5">
         <mo-form-input
           controlName="nombre"
           label="Nombre"
@@ -71,7 +78,7 @@ const IVA_OPTIONS: FormSelectOption<number>[] = [
           [error]="presenter.errors().nombre ?? null"
         />
 
-        <div class="grid gap-4 sm:grid-cols-2">
+        <div class="grid gap-x-4 gap-y-5 sm:grid-cols-2">
           <mo-form-input
             controlName="sku"
             label="SKU"
@@ -86,7 +93,7 @@ const IVA_OPTIONS: FormSelectOption<number>[] = [
           />
         </div>
 
-        <div class="grid gap-4 sm:grid-cols-2">
+        <div class="grid gap-x-4 gap-y-5 sm:grid-cols-2">
           <mo-form-select
             controlName="categoriaId"
             label="Categoria"
@@ -102,6 +109,46 @@ const IVA_OPTIONS: FormSelectOption<number>[] = [
             [error]="presenter.errors().tipo ?? null"
           />
         </div>
+
+        @if (!product()) {
+          <section class="border-primary/20 bg-primary/[0.035] rounded-xl border p-4">
+            <div>
+              <h3 class="text-sm font-semibold">Inventario inicial</h3>
+              <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
+                Opcional. Se registrará como una entrada de inventario auditada junto con el producto.
+              </p>
+            </div>
+
+            @if (selectedType() === 'prepared') {
+              <div class="border-border bg-card text-muted-foreground mt-4 rounded-lg border px-3.5 py-3 text-xs">
+                Los productos preparados no controlan inventario. Su disponibilidad se maneja bajo pedido.
+              </div>
+            } @else {
+              <div class="mt-4 grid gap-x-4 gap-y-5 sm:grid-cols-2">
+                <mo-form-number-input
+                  controlName="stockInicial"
+                  label="Cantidad inicial"
+                  [min]="0"
+                  [step]="1"
+                  description="Déjalo en 0 si registrarás la entrada después."
+                  [error]="presenter.errors().stockInicial ?? null"
+                />
+                <mo-form-select
+                  controlName="stockInicialUbicacion"
+                  label="Ubicación inicial"
+                  [placeholder]="null"
+                  [options]="initialStockLocationOptions"
+                  [error]="presenter.errors().stockInicialUbicacion ?? null"
+                />
+              </div>
+              @if (presenter.form.controls.stockInicial.value > 0) {
+                <p class="text-muted-foreground mt-3 text-[11px] leading-relaxed">
+                  El costo unitario de la entrada será el costo registrado para el producto.
+                </p>
+              }
+            }
+          </section>
+        }
 
         <div class="space-y-4 rounded-xl border p-4">
           <div>
@@ -128,7 +175,7 @@ const IVA_OPTIONS: FormSelectOption<number>[] = [
           />
         </div>
 
-        <div class="grid gap-4 sm:grid-cols-2">
+        <div class="grid gap-x-4 gap-y-5 sm:grid-cols-2">
           <mo-form-currency-input
             controlName="precioVenta"
             label="Precio de venta"
@@ -142,7 +189,7 @@ const IVA_OPTIONS: FormSelectOption<number>[] = [
           />
         </div>
 
-        <div class="grid gap-4 sm:grid-cols-3">
+        <div class="grid gap-x-4 gap-y-5 sm:grid-cols-3">
           <mo-form-select
             controlName="ivaTasa"
             label="IVA"
@@ -188,6 +235,10 @@ export class ProductFormDialog {
   readonly presenter = inject(ProductFormPresenter)
   readonly tipoOptions = TIPO_OPTIONS
   readonly ivaOptions = IVA_OPTIONS
+  readonly initialStockLocationOptions = INITIAL_STOCK_LOCATION_OPTIONS
+  readonly selectedType = toSignal(this.presenter.form.controls.tipo.valueChanges, {
+    initialValue: this.presenter.form.controls.tipo.value,
+  })
 
   readonly open = input<boolean>(false)
   readonly product = input<Product | null>(null)
@@ -208,6 +259,11 @@ export class ProductFormDialog {
     effect(() => {
       if (this.open()) {
         this.presenter.reset(productFormMapper.toFormValue(this.product()))
+      }
+    })
+    effect(() => {
+      if (this.selectedType() === 'prepared') {
+        this.presenter.form.controls.stockInicial.setValue(0, { emitEvent: false })
       }
     })
   }
@@ -236,9 +292,19 @@ export class ProductFormDialog {
           )
         : await this.repo.createProduct(
             productFormMapper.toCreatePayload(value, auth.tiendaId),
+            {
+              cantidad: value.stockInicial,
+              ubicacion: value.stockInicialUbicacion,
+            },
           )
 
-      this.toast.success(product ? 'Producto actualizado' : 'Producto creado')
+      this.toast.success(
+        product
+          ? 'Producto actualizado'
+          : value.stockInicial > 0
+            ? `Producto creado con ${value.stockInicial} unidades en inventario`
+            : 'Producto creado',
+      )
       this.saved.emit(result)
       this.closed.emit()
     } catch (error) {
@@ -253,4 +319,5 @@ export class ProductFormDialog {
     if (this.saving()) return
     this.closed.emit()
   }
+
 }

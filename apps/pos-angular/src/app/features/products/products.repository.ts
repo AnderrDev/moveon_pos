@@ -9,6 +9,7 @@ import {
 import type { Categoria, Product } from '@/modules/products/domain/entities/product.entity'
 import type { CreateProductDto, UpdateProductDto } from '@/modules/products/application/dtos/product.dto'
 import type { CreateCategoriaDto, UpdateCategoriaDto } from '@/modules/products/application/dtos/categoria.dto'
+import type { InventoryLocation } from '@/shared/types'
 
 const PRODUCT_COLS =
   'id, tienda_id, nombre, sku, codigo_barras, categoria_id, para_que_sirve, recomendado_para, tipo, unidad, precio_venta, costo, iva_tasa, stock_minimo, is_active, created_at, updated_at'
@@ -32,6 +33,18 @@ interface UntypedClient {
       }
     }
   }
+}
+
+interface RpcClient {
+  rpc<T>(
+    fn: string,
+    args: Record<string, unknown>,
+  ): Promise<{ data: T | null; error: { message: string } | null }>
+}
+
+export interface InitialStockInput {
+  cantidad: number
+  ubicacion: InventoryLocation
 }
 
 @Injectable({ providedIn: 'root' })
@@ -73,31 +86,41 @@ export class ProductsRepository {
     return (data ?? []).map(rowToCategoria)
   }
 
-  async createProduct(dto: CreateProductDto): Promise<Product> {
-    const client = this.supabaseClient.supabase as unknown as UntypedClient
-    const { data, error } = await client
-      .from('productos')
-      .insert({
-        tienda_id: dto.tiendaId,
-        nombre: dto.nombre,
-        sku: dto.sku ?? null,
-        codigo_barras: dto.codigoBarras ?? null,
-        categoria_id: dto.categoriaId ?? null,
-        para_que_sirve: dto.paraQueSirve ?? null,
-        recomendado_para: dto.recomendadoPara ?? null,
-        tipo: dto.tipo,
-        unidad: dto.unidad,
-        precio_venta: dto.precioVenta,
-        costo: dto.costo ?? null,
-        iva_tasa: dto.ivaTasa,
-        stock_minimo: dto.stockMinimo,
-        is_active: dto.isActive,
-      })
-      .select(PRODUCT_COLS)
-      .single<ProductRow>()
+  async createProduct(dto: CreateProductDto, initialStock: InitialStockInput): Promise<Product> {
+    const client = this.supabaseClient.supabase as unknown as RpcClient
+    const { data: productId, error } = await client.rpc<string>(
+      'create_product_with_initial_stock',
+      {
+        p_tienda_id: dto.tiendaId,
+        p_nombre: dto.nombre,
+        p_sku: dto.sku ?? null,
+        p_codigo_barras: dto.codigoBarras ?? null,
+        p_categoria_id: dto.categoriaId ?? null,
+        p_para_que_sirve: dto.paraQueSirve ?? null,
+        p_recomendado_para: dto.recomendadoPara ?? null,
+        p_tipo: dto.tipo,
+        p_unidad: dto.unidad,
+        p_precio_venta: dto.precioVenta,
+        p_costo: dto.costo ?? null,
+        p_iva_tasa: dto.ivaTasa,
+        p_stock_minimo: dto.stockMinimo,
+        p_is_active: dto.isActive,
+        p_initial_stock: initialStock.cantidad,
+        p_initial_location: initialStock.ubicacion,
+      },
+    )
 
     if (error) throw new Error(error.message)
-    if (!data) throw new Error('Producto creado sin respuesta')
+    if (!productId) throw new Error('Producto creado sin respuesta')
+
+    const { data, error: readError } = await this.supabaseClient.supabase
+      .from('productos')
+      .select(PRODUCT_COLS)
+      .eq('id', productId)
+      .eq('tienda_id', dto.tiendaId)
+      .single<ProductRow>()
+
+    if (readError) throw new Error(readError.message)
     return rowToProduct(data)
   }
 

@@ -4,7 +4,7 @@ import { rowToSale, type SaleRow } from '@/modules/sales/infrastructure/mappers/
 import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
 
 const SALE_COLS =
-  'id, tienda_id, cash_session_id, sale_number, cliente_id, cashier_id, subtotal, discount_total, tax_total, total, status, billing_status, billing_document_id, voided_by, voided_at, voided_reason, idempotency_key, created_at, updated_at'
+  'id, tienda_id, cash_session_id, sale_number, cliente_id, cashier_id, cashier_email, subtotal, discount_total, tax_total, total, status, billing_status, billing_document_id, voided_by, voided_at, voided_reason, idempotency_key, created_at, updated_at'
 const ITEM_COLS =
   'id, sale_id, producto_id, producto_nombre, producto_sku, quantity, unit_price, discount_amount, tax_rate, tax_amount, total'
 const PAY_COLS = 'id, sale_id, metodo, amount, referencia, created_at'
@@ -23,7 +23,7 @@ export class SalesRepository {
   async findById(saleId: string, tiendaId: string): Promise<Sale | null> {
     const { data, error } = await this.supabaseClient.supabase
       .from('sales')
-      .select(`${SALE_COLS}, sale_items(${ITEM_COLS}), payments(${PAY_COLS})`)
+      .select(`${SALE_COLS}, clientes(nombre), sale_items(${ITEM_COLS}), payments(${PAY_COLS})`)
       .eq('id', saleId)
       .eq('tienda_id', tiendaId)
       .maybeSingle<SaleRow>()
@@ -35,7 +35,7 @@ export class SalesRepository {
   async listBySession(cashSessionId: string, tiendaId: string): Promise<Sale[]> {
     const { data, error } = await this.supabaseClient.supabase
       .from('sales')
-      .select(`${SALE_COLS}, sale_items(${ITEM_COLS}), payments(${PAY_COLS})`)
+      .select(`${SALE_COLS}, clientes(nombre), sale_items(${ITEM_COLS}), payments(${PAY_COLS})`)
       .eq('cash_session_id', cashSessionId)
       .eq('tienda_id', tiendaId)
       .order('created_at', { ascending: false })
@@ -53,7 +53,7 @@ export class SalesRepository {
   async listByDate(tiendaId: string, start: Date, end: Date): Promise<Sale[]> {
     const { data, error } = await this.supabaseClient.supabase
       .from('sales')
-      .select(`${SALE_COLS}, sale_items(${ITEM_COLS}), payments(${PAY_COLS})`)
+      .select(`${SALE_COLS}, clientes(nombre), sale_items(${ITEM_COLS}), payments(${PAY_COLS})`)
       .eq('tienda_id', tiendaId)
       .gte('created_at', start.toISOString())
       .lt('created_at', end.toISOString())

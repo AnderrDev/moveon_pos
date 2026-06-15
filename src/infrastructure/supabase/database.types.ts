@@ -611,6 +611,7 @@ export type Database = {
           billing_document_id: string | null
           billing_status: Database["public"]["Enums"]["billing_status"]
           cash_session_id: string
+          cashier_email: string | null
           cashier_id: string
           cliente_id: string | null
           created_at: string
@@ -632,6 +633,7 @@ export type Database = {
           billing_document_id?: string | null
           billing_status?: Database["public"]["Enums"]["billing_status"]
           cash_session_id: string
+          cashier_email?: string | null
           cashier_id: string
           cliente_id?: string | null
           created_at?: string
@@ -653,6 +655,7 @@ export type Database = {
           billing_document_id?: string | null
           billing_status?: Database["public"]["Enums"]["billing_status"]
           cash_session_id?: string
+          cashier_email?: string | null
           cashier_id?: string
           cliente_id?: string | null
           created_at?: string
@@ -834,6 +837,27 @@ export type Database = {
           p_tax_total: number
           p_tienda_id: string
           p_total: number
+        }
+        Returns: string
+      }
+      create_product_with_initial_stock: {
+        Args: {
+          p_categoria_id: string | null
+          p_codigo_barras: string | null
+          p_costo: number | null
+          p_initial_location: Database["public"]["Enums"]["inventory_location"]
+          p_initial_stock: number
+          p_is_active: boolean
+          p_iva_tasa: number
+          p_nombre: string
+          p_para_que_sirve: string | null
+          p_precio_venta: number
+          p_recomendado_para: string | null
+          p_sku: string | null
+          p_stock_minimo: number
+          p_tienda_id: string
+          p_tipo: Database["public"]["Enums"]["product_type"]
+          p_unidad: string
         }
         Returns: string
       }

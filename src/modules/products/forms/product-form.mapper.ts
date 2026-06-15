@@ -28,6 +28,8 @@ export const productFormMapper = {
       costo:        product?.costo        ?? undefined,
       ivaTasa:      product?.ivaTasa      ?? 0,
       stockMinimo:  product?.stockMinimo  ?? 0,
+      stockInicial: 0,
+      stockInicialUbicacion: 'bodega',
       isActive:       product?.isActive       ?? true,
     }
   },

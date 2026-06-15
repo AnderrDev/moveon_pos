@@ -29,7 +29,9 @@ export interface Sale {
   cashSessionId: string
   saleNumber: string
   clienteId: string | null
+  clienteNombre: string | null
   cashierId: UserId
+  cashierEmail: string | null
   status: SaleStatus
   billingStatus: BillingStatus
   billingDocumentId: string | null

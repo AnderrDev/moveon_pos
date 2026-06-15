@@ -31,6 +31,8 @@ Implementado como función `get_stock(producto_id, tienda_id, ubicacion default 
 
 La mercancía nueva (`entry`) entra por defecto a `bodega`; las ventas (`sale_exit`) descuentan de `punto_venta`; anulaciones (`void_return`) reponen a `punto_venta`.
 
+El alta de producto puede crear opcionalmente un movimiento `entry` inicial mediante `create_product_with_initial_stock`. La creación del producto y el movimiento son atómicos y quedan asociados por `referencia_tipo = 'product_initial_stock'`.
+
 ### RN-I08: Traslados
 Los traslados entre `bodega` y `punto_venta` son atómicos vía `transfer_stock_atomic`: insertan `transfer_out` y `transfer_in` con el mismo `referencia_id`, no permiten dejar negativo el origen y en MVP solo los ejecuta `admin`.
 

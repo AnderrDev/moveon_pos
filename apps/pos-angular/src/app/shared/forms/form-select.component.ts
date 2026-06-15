@@ -11,6 +11,7 @@ export interface FormSelectOption<T extends string | number = string> {
   selector: 'mo-form-select',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'block' },
   imports: [ReactiveFormsModule, FieldWrapperComponent],
   viewProviders: [{ provide: ControlContainer, useExisting: FormGroupDirective }],
   template: `

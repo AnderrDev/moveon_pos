@@ -4,6 +4,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core'
   selector: 'mo-form-error',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'block' },
   template: `
     @if (message()) {
       <div

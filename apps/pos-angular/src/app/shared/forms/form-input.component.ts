@@ -6,6 +6,7 @@ import { FieldWrapperComponent } from './field-wrapper.component'
   selector: 'mo-form-input',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'block' },
   imports: [ReactiveFormsModule, FieldWrapperComponent],
   viewProviders: [{ provide: ControlContainer, useExisting: FormGroupDirective }],
   template: `

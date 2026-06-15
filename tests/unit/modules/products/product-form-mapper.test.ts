@@ -38,6 +38,8 @@ const formValue: ProductFormValue = {
   costo: 70000,
   ivaTasa: 19,
   stockMinimo: 2,
+  stockInicial: 15,
+  stockInicialUbicacion: 'bodega',
   isActive: true,
 }
 

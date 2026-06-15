@@ -5,6 +5,7 @@ import { ControlContainer, FormGroupDirective, ReactiveFormsModule } from '@angu
   selector: 'mo-form-checkbox',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'block' },
   imports: [ReactiveFormsModule],
   viewProviders: [{ provide: ControlContainer, useExisting: FormGroupDirective }],
   template: `

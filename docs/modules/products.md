@@ -13,6 +13,8 @@ Ver `/docs/03-data-model.md` tablas `categorias` y `productos`.
 - RN-P04: Tipo `prepared` (batidos) en MVP se trata como producto simple. Recetas en v1.2.
 
 - RN-P05: `para_que_sirve` y `recomendado_para` son informacion comercial opcional, de maximo 800 caracteres cada una, basada en la ficha oficial del fabricante.
+- RN-P06: La taxonomia operativa del POS separa proteinas, creatinas, pre-entrenos, aminoacidos y recuperacion, bienestar y salud, termogenicos, ganadores de peso, energizantes, alimentos proteicos, batidos e ingredientes para batidos.
+- RN-P07: Al crear un producto se puede registrar inventario inicial opcional. Producto y movimiento `entry` se crean en una sola transaccion; el costo unitario usa el costo del producto y la ubicacion por defecto es `bodega`.
 
 ## Informacion para recomendacion
 
@@ -21,6 +23,9 @@ Ver `/docs/03-data-model.md` tablas `categorias` y `productos`.
 - La informacion sigue disponible cuando el producto no tiene stock.
 - Si ambos campos estan vacios, el POS muestra un estado pendiente en vez de inventar contenido.
 - La ficha incluye un aviso para consultar a un profesional ante condiciones medicas, embarazo o uso de medicamentos.
+- Los textos describen familias de producto con lenguaje prudente. No deben prometer curas, perdida de grasa ni resultados deportivos garantizados.
+- Batidos, frutas, toppings y demas ingredientes pueden agruparse para facilitar la venta, pero no requieren contenido de recomendacion.
+- Los productos `prepared` no admiten inventario inicial porque no rastrean stock en el MVP.
 
 ## Use cases
 - `CreateProducto`, `UpdateProducto`, `DeactivateProducto`

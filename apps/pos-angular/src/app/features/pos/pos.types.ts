@@ -6,6 +6,8 @@ export interface PosProduct {
   sku: string | null
   codigoBarras: string | null
   precioVenta: number
+  /** Solo se entrega al POS cuando el usuario activo es administrador. */
+  costo: number | null
   ivaTasa: IvaRate
   categoriaId: string | null
   paraQueSirve: string | null

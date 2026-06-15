@@ -20,7 +20,9 @@ type Sale = {
   cashSessionId: string;
   saleNumber: string;
   clienteId: string | null;
+  clienteNombre: string | null;
   cashierId: string;
+  cashierEmail: string | null;
   items: SaleItem[];
   payments: Payment[];
   subtotal: Money;
@@ -99,6 +101,12 @@ Al anular una venta, por cada `sale_item` se crea un `inventory_movement` tipo `
 `producto.precio_venta` es el precio final al consumidor e incluye IVA. El IVA se extrae por ítem según
 `producto.iva_tasa` para discriminarlo en ventas, reportes y tickets, sin sumarlo nuevamente al total.
 El IVA total de la venta es la suma de los IVAs incluidos por ítem.
+
+### RN-S11: Usuario responsable
+Cada venta registra obligatoriamente el `cashier_id` del usuario autenticado y un snapshot de su correo en `cashier_email`. La base valida que el usuario coincida con la sesión Auth y tenga acceso activo a la tienda; el cliente no puede atribuir la venta a otro usuario.
+
+### RN-S12: Historial operativo del turno
+El historial del turno muestra por venta: productos y cantidades, precios, descuentos, IVA incluido, total, pagos y referencias, cambio entregado, cliente, usuario responsable, fecha, estado y motivo de anulación. El cambio histórico se reconstruye como `max(0, suma de pagos - total)`.
 
 ---
 

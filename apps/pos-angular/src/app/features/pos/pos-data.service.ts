@@ -2,6 +2,7 @@ import { inject, Injectable } from '@angular/core'
 import { ProductsCacheStore } from '../products/products-cache.store'
 import { InventoryRepository } from '../inventory/inventory.repository'
 import { SupabaseClientService } from '../../core/supabase/supabase-client.service'
+import { SessionService } from '../../core/auth/session.service'
 import type { OpenCashSession, PosCategory, PosProduct } from './pos.types'
 
 interface CashSessionRow {
@@ -12,10 +13,13 @@ interface CashSessionRow {
 @Injectable({ providedIn: 'root' })
 export class PosDataService {
   private readonly supabaseClient = inject(SupabaseClientService)
+  private readonly session = inject(SessionService)
   private readonly cache = inject(ProductsCacheStore)
   private readonly inventoryRepo = inject(InventoryRepository)
 
   async listProducts(tiendaId: string): Promise<PosProduct[]> {
+    const canViewCost = (await this.session.getRole()) === 'admin'
+
     // 2 queries: catálogo (cache) + niveles de stock (getStockLevels). Sin N+1.
     const [products, stockLevels] = await Promise.all([
       this.cache.ensureProducts(tiendaId),
@@ -23,7 +27,7 @@ export class PosDataService {
     ])
 
     const stockByProduct = new Map(
-      stockLevels.map((level) => [level.productId, level.puntoVentaStock]),
+      stockLevels.map((level) => [level.productId, level.puntoVentaStock])
     )
 
     return products
@@ -34,6 +38,7 @@ export class PosDataService {
         sku: p.sku,
         codigoBarras: p.codigoBarras,
         precioVenta: p.precioVenta,
+        costo: canViewCost ? p.costo : null,
         ivaTasa: p.ivaTasa,
         categoriaId: p.categoriaId,
         paraQueSirve: p.paraQueSirve,
@@ -41,16 +46,13 @@ export class PosDataService {
         tipo: p.tipo,
         // `prepared` no rastrea stock. Para simple/ingredient, stock real
         // acotado a >= 0 (RN-I06): el máximo nunca es negativo.
-        stockDisponible:
-          p.tipo === 'prepared' ? null : Math.max(0, stockByProduct.get(p.id) ?? 0),
+        stockDisponible: p.tipo === 'prepared' ? null : Math.max(0, stockByProduct.get(p.id) ?? 0),
       }))
   }
 
   async listCategories(tiendaId: string): Promise<PosCategory[]> {
     const categorias = await this.cache.ensureCategorias(tiendaId)
-    return categorias
-      .filter((c) => c.isActive)
-      .map((c) => ({ id: c.id, nombre: c.nombre }))
+    return categorias.filter((c) => c.isActive).map((c) => ({ id: c.id, nombre: c.nombre }))
   }
 
   async getOpenCashSession(tiendaId: string): Promise<OpenCashSession | null> {
