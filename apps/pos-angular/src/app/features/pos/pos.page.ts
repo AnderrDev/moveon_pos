@@ -945,6 +945,7 @@ export class PosPage {
 
   productStockLabel(product: PosProduct): string {
     if (product.stockDisponible === null) return 'Bajo pedido'
+    if (product.stockDisponible === 0) return 'Agotado'
     if (product.stockDisponible === 1) return '1 disponible'
     return `${product.stockDisponible} disponibles`
   }
