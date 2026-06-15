@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '../../core/supabase/supabase-client.service'
+import { AuditLogRepository } from '../audit/audit-log.repository'
 import {
   rowToCategoria,
   rowToProduct,
@@ -50,6 +51,7 @@ export interface InitialStockInput {
 @Injectable({ providedIn: 'root' })
 export class ProductsRepository {
   private readonly supabaseClient = inject(SupabaseClientService)
+  private readonly audit = inject(AuditLogRepository)
 
   async listProducts(params: SearchProductsParams): Promise<Product[]> {
     let query = this.supabaseClient.supabase
@@ -122,7 +124,16 @@ export class ProductsRepository {
       .single<ProductRow>()
 
     if (readError) throw new Error(readError.message)
-    return rowToProduct(data)
+    const product = rowToProduct(data)
+    void this.audit.log({
+      tiendaId: dto.tiendaId,
+      entityType: 'producto',
+      entityId: product.id,
+      entityLabel: product.nombre,
+      action: 'create',
+      changes: { tipo: product.tipo, precioVenta: product.precioVenta, costo: product.costo, ivaTasa: product.ivaTasa },
+    })
+    return product
   }
 
   async updateProduct(
@@ -156,7 +167,18 @@ export class ProductsRepository {
 
     if (error) throw new Error(error.message)
     if (!data) throw new Error('Producto actualizado sin respuesta')
-    return rowToProduct(data)
+    const product = rowToProduct(data)
+    const auditChanges: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(dto)) if (v !== undefined) auditChanges[k] = v
+    void this.audit.log({
+      tiendaId,
+      entityType: 'producto',
+      entityId: id,
+      entityLabel: product.nombre,
+      action: 'update',
+      changes: auditChanges,
+    })
+    return product
   }
 
   async deleteProduct(id: string, tiendaId: string): Promise<void> {
@@ -169,6 +191,8 @@ export class ProductsRepository {
       .select(PRODUCT_COLS)
       .single<ProductRow>()
     if (result.error) throw new Error(result.error.message)
+    const label = result.data ? rowToProduct(result.data).nombre : id
+    void this.audit.log({ tiendaId, entityType: 'producto', entityId: id, entityLabel: label, action: 'delete' })
   }
 
   async deactivateProduct(id: string, tiendaId: string): Promise<void> {
@@ -181,6 +205,8 @@ export class ProductsRepository {
       .select(PRODUCT_COLS)
       .single<ProductRow>()
     if (result.error) throw new Error(result.error.message)
+    const label = result.data ? rowToProduct(result.data).nombre : id
+    void this.audit.log({ tiendaId, entityType: 'producto', entityId: id, entityLabel: label, action: 'deactivate' })
   }
 
   async createCategoria(dto: CreateCategoriaDto, tiendaId: string): Promise<Categoria> {

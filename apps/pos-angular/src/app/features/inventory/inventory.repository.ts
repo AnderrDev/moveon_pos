@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '../../core/supabase/supabase-client.service'
+import { AuditLogRepository } from '../audit/audit-log.repository'
 import {
   rowToInventoryMovement,
   type InventoryMovementRow,
@@ -31,6 +32,7 @@ interface UntypedClient {
 export interface RegisterEntryInput {
   tiendaId: string
   productId: string
+  productName?: string
   cantidad: number
   ubicacion: InventoryLocation
   costoUnitario?: number
@@ -41,6 +43,7 @@ export interface RegisterEntryInput {
 export interface AdjustStockInput {
   tiendaId: string
   productId: string
+  productName?: string
   cantidadDelta: number
   ubicacion: InventoryLocation
   motivo: string
@@ -50,6 +53,7 @@ export interface AdjustStockInput {
 export interface TransferStockInput {
   tiendaId: string
   productId: string
+  productName?: string
   fromUbicacion: InventoryLocation
   toUbicacion: InventoryLocation
   cantidad: number
@@ -60,6 +64,7 @@ export interface TransferStockInput {
 @Injectable({ providedIn: 'root' })
 export class InventoryRepository {
   private readonly supabaseClient = inject(SupabaseClientService)
+  private readonly audit = inject(AuditLogRepository)
 
   async getStock(
     productId: string,
@@ -159,7 +164,16 @@ export class InventoryRepository {
 
     if (error) throw new Error(error.message)
     if (!data) throw new Error('Movimiento creado sin respuesta')
-    return rowToInventoryMovement(data)
+    const movement = rowToInventoryMovement(data)
+    void this.audit.log({
+      tiendaId: input.tiendaId,
+      entityType: 'movimiento_inventario',
+      entityId: movement.id,
+      entityLabel: input.productName ?? input.productId,
+      action: 'entry',
+      changes: { cantidad: input.cantidad, ubicacion: input.ubicacion, motivo: input.motivo ?? null },
+    })
+    return movement
   }
 
   async adjustStock(input: AdjustStockInput): Promise<InventoryMovement> {
@@ -180,7 +194,16 @@ export class InventoryRepository {
 
     if (error) throw new Error(error.message)
     if (!data) throw new Error('Ajuste creado sin respuesta')
-    return rowToInventoryMovement(data)
+    const movement = rowToInventoryMovement(data)
+    void this.audit.log({
+      tiendaId: input.tiendaId,
+      entityType: 'movimiento_inventario',
+      entityId: movement.id,
+      entityLabel: input.productName ?? input.productId,
+      action: 'adjust',
+      changes: { cantidadDelta: input.cantidadDelta, ubicacion: input.ubicacion, motivo: input.motivo },
+    })
+    return movement
   }
 
   async transferStock(input: TransferStockInput): Promise<string> {
@@ -196,6 +219,14 @@ export class InventoryRepository {
     })
     if (error) throw new Error(error.message)
     if (!data) throw new Error('Traslado creado sin respuesta')
+    void this.audit.log({
+      tiendaId: input.tiendaId,
+      entityType: 'movimiento_inventario',
+      entityId: data,
+      entityLabel: input.productName ?? input.productId,
+      action: 'transfer',
+      changes: { from: input.fromUbicacion, to: input.toUbicacion, cantidad: input.cantidad, motivo: input.motivo },
+    })
     return data
   }
 }

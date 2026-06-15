@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '../../core/supabase/supabase-client.service'
+import { AuditLogRepository } from '../audit/audit-log.repository'
 import {
   rowToCashMovement,
   rowToCashSession,
@@ -62,6 +63,7 @@ interface RpcClient {
 @Injectable({ providedIn: 'root' })
 export class CashRegisterRepository {
   private readonly supabaseClient = inject(SupabaseClientService)
+  private readonly audit = inject(AuditLogRepository)
 
   async getOpenSession(tiendaId: string): Promise<CashSession | null> {
     const { data, error } = await this.supabaseClient.supabase
@@ -130,7 +132,15 @@ export class CashRegisterRepository {
       .single<CashSessionRow>()
     if (error) throw new Error(error.message)
     if (!data) throw new Error('Sesion creada sin respuesta')
-    return rowToCashSession(data)
+    const session = rowToCashSession(data)
+    void this.audit.log({
+      tiendaId: input.tiendaId,
+      entityType: 'sesion_caja',
+      entityId: session.id,
+      action: 'open',
+      changes: { openingAmount: input.openingAmount },
+    })
+    return session
   }
 
   async addMovement(input: AddMovementInput): Promise<CashMovement> {
@@ -207,6 +217,13 @@ export class CashRegisterRepository {
 
     const session = await this.getSessionById(input.sessionId, input.tiendaId)
     if (!session) throw new Error('Cierre sin respuesta')
+    void this.audit.log({
+      tiendaId: input.tiendaId,
+      entityType: 'sesion_caja',
+      entityId: input.sessionId,
+      action: 'close',
+      changes: { actualCashAmount: input.actualCashAmount, notasCierre: input.notasCierre ?? null },
+    })
     return session
   }
 }

@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '../../core/supabase/supabase-client.service'
+import { AuditLogRepository } from '../audit/audit-log.repository'
 import { rowToSale, type SaleRow } from '@/modules/sales/infrastructure/mappers/sale.mapper'
 import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
 
@@ -19,6 +20,7 @@ interface RpcClient {
 @Injectable({ providedIn: 'root' })
 export class SalesRepository {
   private readonly supabaseClient = inject(SupabaseClientService)
+  private readonly audit = inject(AuditLogRepository)
 
   async findById(saleId: string, tiendaId: string): Promise<Sale | null> {
     const { data, error } = await this.supabaseClient.supabase
@@ -78,6 +80,13 @@ export class SalesRepository {
       p_voided_reason: reason,
     })
     if (error) throw new Error(error.message)
+    void this.audit.log({
+      tiendaId,
+      entityType: 'venta',
+      entityId: saleId,
+      action: 'void',
+      changes: { reason },
+    })
   }
 
   async correctPayment(

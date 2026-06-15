@@ -2,6 +2,7 @@ import { inject, Injectable } from '@angular/core'
 import { z } from 'zod'
 import { SupabaseClientService } from '../../core/supabase/supabase-client.service'
 import { SessionService } from '../../core/auth/session.service'
+import { AuditLogRepository } from '../audit/audit-log.repository'
 import { err, ok, type Result } from '@/shared/result'
 import { mapSaleError } from './sale-error-mapper'
 import type { PaymentEntry } from './pos.types'
@@ -78,6 +79,7 @@ const rpcInputSchema = z.object({
 export class PosSaleService {
   private readonly supabaseClient = inject(SupabaseClientService)
   private readonly sessionService = inject(SessionService)
+  private readonly audit = inject(AuditLogRepository)
 
   async createSale(
     input: CreatePosSaleInput
@@ -148,6 +150,14 @@ export class PosSaleService {
       return err({ kind: 'remote', message: mapSaleError(rawMessage, input.items) })
     }
     if (!data) return err({ kind: 'remote', message: 'Venta creada sin id de respuesta' })
+
+    void this.audit.log({
+      tiendaId: auth.tiendaId,
+      entityType: 'venta',
+      entityId: data,
+      action: 'create',
+      changes: { total: input.totals.total, items: input.items.length, payments: input.payments.map((p) => p.metodo) },
+    })
 
     return ok({ saleId: data })
   }

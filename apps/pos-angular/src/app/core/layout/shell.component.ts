@@ -115,6 +115,7 @@ export class ShellComponent {
     { label: 'Caja', short: 'Caja', href: '/caja' },
     { label: 'Clientes', short: 'Cli', href: '/clientes' },
     { label: 'Reportes', short: 'Rep', href: '/reportes', adminOnly: true },
+    { label: 'Auditoría', short: 'Log', href: '/auditoria', adminOnly: true },
     { label: 'Configuracion', short: 'Conf', href: '/configuracion', adminOnly: true },
   ]
 
