@@ -17,3 +17,10 @@ export function canActivateForRole(rol: Role | null, allowed: readonly Role[]): 
 export function canVoidSale(rol: Role | null): boolean {
   return rol === 'admin'
 }
+
+/**
+ * Decide si un rol puede corregir el método de pago de una venta. Solo `admin`.
+ */
+export function canCorrectPayment(rol: Role | null): boolean {
+  return rol === 'admin'
+}

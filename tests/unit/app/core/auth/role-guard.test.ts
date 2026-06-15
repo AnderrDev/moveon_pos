@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
 // Pure decision function extracted to role-policy.ts so it runs in node without TestBed.
-import { canActivateForRole } from '../../../../../apps/pos-angular/src/app/core/auth/role-policy'
+import {
+  canActivateForRole,
+  canCorrectPayment,
+} from '../../../../../apps/pos-angular/src/app/core/auth/role-policy'
 
 describe('canActivateForRole', () => {
   it('permite admin cuando la ruta admite admin', () => {
@@ -22,5 +25,19 @@ describe('canActivateForRole', () => {
 
   it('niega cuando la lista de roles permitidos está vacía', () => {
     expect(canActivateForRole('admin', [])).toBe(false)
+  })
+})
+
+describe('canCorrectPayment', () => {
+  it('permite corregir pago a admin', () => {
+    expect(canCorrectPayment('admin')).toBe(true)
+  })
+
+  it('niega corregir pago a cajero', () => {
+    expect(canCorrectPayment('cajero')).toBe(false)
+  })
+
+  it('niega corregir pago a contexto sin rol (null)', () => {
+    expect(canCorrectPayment(null)).toBe(false)
   })
 })

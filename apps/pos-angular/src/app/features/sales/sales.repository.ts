@@ -79,4 +79,25 @@ export class SalesRepository {
     })
     if (error) throw new Error(error.message)
   }
+
+  async correctPayment(
+    paymentId: string,
+    tiendaId: string,
+    newMetodo: string,
+    reason: string,
+  ): Promise<void> {
+    const { data: userData } = await this.supabaseClient.supabase.auth.getUser()
+    const userId = userData.user?.id
+    if (!userId) throw new Error('No autenticado')
+
+    const client = this.supabaseClient.supabase as unknown as RpcClient
+    const { error } = await client.rpc<void>('correct_payment_atomic', {
+      p_payment_id:   paymentId,
+      p_tienda_id:    tiendaId,
+      p_new_metodo:   newMetodo,
+      p_corrected_by: userId,
+      p_reason:       reason,
+    })
+    if (error) throw new Error(error.message)
+  }
 }

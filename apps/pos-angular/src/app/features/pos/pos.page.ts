@@ -721,6 +721,7 @@ interface PostSaleOutputJob {
     <mo-sales-history-dialog
       [open]="historyOpen()"
       [cashSessionId]="cashSession()?.id ?? null"
+      [cashSessionIsOpen]="cashSession() !== null"
       (closed)="historyOpen.set(false)"
     />
 

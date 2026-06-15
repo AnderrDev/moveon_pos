@@ -174,10 +174,11 @@ function makeDeps(options: {
         createdInputs.push(input)
         return ok(makeSale(input))
       },
-      findById:      async () => ok(null),
-      listBySession: async () => ok([]),
-      listByDate:    async () => ok([]),
-      void:          async () => err(new Error('not implemented')),
+      findById:       async () => ok(null),
+      listBySession:  async () => ok([]),
+      listByDate:     async () => ok([]),
+      void:           async () => err(new Error('not implemented')),
+      correctPayment: async () => err(new Error('not implemented')),
     },
   }
 }

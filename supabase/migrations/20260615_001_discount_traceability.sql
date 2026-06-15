@@ -205,7 +205,7 @@ begin
   end if;
 
   if v_role = 'cajero' and v_discount_total > round(v_subtotal * 0.10, 2) then
-    raise exception 'Descuentos mayores al 10% requieren aprobación de admin';
+    raise exception 'Descuentos mayores al 10%% requieren aprobación de admin';
   end if;
 
   if v_role = 'admin' and v_discount_total > round(v_subtotal * 0.10, 2) then

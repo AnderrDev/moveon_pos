@@ -43,10 +43,19 @@ export interface VoidSaleInput {
   voidedReason: string
 }
 
+export interface CorrectPaymentInput {
+  paymentId:   string
+  tiendaId:    TiendaId
+  newMetodo:   PaymentMethod
+  correctedBy: UserId
+  reason:      string
+}
+
 export interface SaleRepository {
   create(input: CreateSaleInput): Promise<Result<Sale>>
   findById(id: string, tiendaId: TiendaId): Promise<Result<Sale | null>>
   listBySession(cashSessionId: string, tiendaId: TiendaId): Promise<Result<Sale[]>>
   listByDate(tiendaId: TiendaId, date: Date): Promise<Result<Sale[]>>
   void(input: VoidSaleInput): Promise<Result<Sale>>
+  correctPayment(input: CorrectPaymentInput): Promise<Result<void>>
 }

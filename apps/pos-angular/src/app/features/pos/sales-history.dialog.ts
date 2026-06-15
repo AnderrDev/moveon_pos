@@ -14,14 +14,16 @@ import { ButtonComponent } from '../../shared/ui/button.component'
 import { BadgeComponent } from '../../shared/ui/badge.component'
 import { SalesRepository } from '../sales/sales.repository'
 import { SessionService } from '../../core/auth/session.service'
-import { canVoidSale } from '../../core/auth/role-policy'
+import { canVoidSale, canCorrectPayment } from '../../core/auth/role-policy'
 import { ToastService } from '../../shared/feedback/toast.service'
 import { ReceiptPrintService } from './receipt-print.service'
 import { VoidReasonDialog } from './void-reason.dialog'
+import { CorrectPaymentDialog } from './correct-payment.dialog'
 import { selectSessionSales } from './sales-history.session-filter'
 import { formatCurrency, formatShortDate, formatTime } from '@/shared/lib/format'
 import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
 import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
+import type { PaymentMethod } from '@/shared/types'
 import type { CashMovement } from '@/modules/cash-register/domain/entities/cash-session.entity'
 import { CashRegisterRepository } from '../cash-register/cash-register.repository'
 import { ExcelExportService } from '../../shared/export/excel-export.service'
@@ -31,7 +33,7 @@ import { buildTurnSalesWorkbook } from './sales-export'
   selector: 'mo-sales-history-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DialogComponent, ButtonComponent, BadgeComponent, VoidReasonDialog],
+  imports: [DialogComponent, ButtonComponent, BadgeComponent, VoidReasonDialog, CorrectPaymentDialog],
   template: `
     <mo-dialog
       [open]="open()"
@@ -293,7 +295,7 @@ import { buildTurnSalesWorkbook } from './sales-export'
                         <div class="mt-3 space-y-2.5">
                           @for (payment of sale.payments; track payment.id) {
                             <div class="flex items-start justify-between gap-3 text-sm">
-                              <div>
+                              <div class="min-w-0 flex-1">
                                 <p class="font-semibold">{{ paymentLabel(payment.metodo) }}</p>
                                 @if (payment.referencia) {
                                   <p class="text-muted-foreground mt-0.5 text-[11px]">
@@ -301,9 +303,20 @@ import { buildTurnSalesWorkbook } from './sales-export'
                                   </p>
                                 }
                               </div>
-                              <span class="font-bold tabular-nums">{{
-                                money(payment.amount)
-                              }}</span>
+                              <div class="flex shrink-0 items-center gap-2">
+                                <span class="font-bold tabular-nums">{{
+                                  money(payment.amount)
+                                }}</span>
+                                @if (sale.status === 'completed' && canCorrectPaymentComputed() && cashSessionIsOpen()) {
+                                  <button
+                                    type="button"
+                                    class="text-muted-foreground hover:text-primary border-border hover:border-primary rounded-lg border px-2 py-1 text-[11px] font-semibold transition-colors"
+                                    (click)="openCorrectPayment(sale, payment.id, payment.metodo)"
+                                  >
+                                    Corregir
+                                  </button>
+                                }
+                              </div>
                             </div>
                           }
                         </div>
@@ -386,6 +399,15 @@ import { buildTurnSalesWorkbook } from './sales-export'
       (closed)="voidDialogOpen.set(false)"
       (confirmed)="onVoidConfirmed($event)"
     />
+
+    <mo-correct-payment-dialog
+      [open]="correctPaymentDialogOpen()"
+      [paymentId]="correctPaymentTarget()?.paymentId ?? null"
+      [currentMetodo]="correctPaymentTarget()?.currentMetodo ?? null"
+      [saleNumber]="correctPaymentTarget()?.saleNumber ?? null"
+      (closed)="correctPaymentDialogOpen.set(false)"
+      (confirmed)="onCorrectPaymentConfirmed($event)"
+    />
   `,
 })
 export class SalesHistoryDialog {
@@ -398,6 +420,7 @@ export class SalesHistoryDialog {
 
   readonly open = input<boolean>(false)
   readonly cashSessionId = input<string | null>(null)
+  readonly cashSessionIsOpen = input<boolean>(false)
   readonly closed = output<void>()
   readonly changed = output<void>()
 
@@ -416,6 +439,17 @@ export class SalesHistoryDialog {
   /** Solo admin puede anular ventas (defensa en cliente; RLS protege en servidor). */
   readonly canVoid = computed(() => canVoidSale(this.session.role()))
 
+  /** Solo admin puede corregir métodos de pago (defensa en cliente; RLS protege en servidor). */
+  readonly canCorrectPaymentComputed = computed(() => canCorrectPayment(this.session.role()))
+
+  /** Pago seleccionado para corrección y visibilidad del dialog de corrección. */
+  readonly correctPaymentTarget = signal<{
+    paymentId: string
+    currentMetodo: PaymentMethod
+    saleNumber: string
+  } | null>(null)
+  readonly correctPaymentDialogOpen = signal(false)
+
   constructor() {
     // Asegura que el rol esté cargado para la visibilidad reactiva del botón (OnPush).
     void this.session.getRole()
@@ -432,6 +466,9 @@ export class SalesHistoryDialog {
         // No dejar el dialog de motivo colgado si se cierra el historial.
         this.voidDialogOpen.set(false)
         this.voidTarget.set(null)
+        // No dejar el dialog de corrección colgado si se cierra el historial.
+        this.correctPaymentDialogOpen.set(false)
+        this.correctPaymentTarget.set(null)
         return
       }
       void this.load()
@@ -582,6 +619,44 @@ export class SalesHistoryDialog {
       this.changed.emit()
     } catch (error) {
       this.toast.error(getErrorMessage(error, 'No se pudo anular'))
+    }
+  }
+
+  openCorrectPayment(sale: Sale, paymentId: string, currentMetodo: PaymentMethod): void {
+    // Defensa en profundidad: cortocircuitar si el rol no puede corregir ANTES de abrir.
+    if (!canCorrectPayment(this.session.role())) return
+
+    this.correctPaymentTarget.set({
+      paymentId,
+      currentMetodo,
+      saleNumber: sale.saleNumber,
+    })
+    this.correctPaymentDialogOpen.set(true)
+  }
+
+  async onCorrectPaymentConfirmed(event: {
+    paymentId: string
+    newMetodo: PaymentMethod
+    reason: string
+  }): Promise<void> {
+    // Defensa en profundidad: re-verificar el rol antes de ejecutar la corrección.
+    if (!canCorrectPayment(await this.session.getRole())) return
+
+    const auth = await this.session.getAuthContext()
+    if (!auth) return
+
+    try {
+      await this.salesRepo.correctPayment(
+        event.paymentId,
+        auth.tiendaId,
+        event.newMetodo,
+        event.reason,
+      )
+      this.toast.success('Método de pago corregido')
+      await this.load()
+      this.changed.emit()
+    } catch (error) {
+      this.toast.error(getErrorMessage(error, 'No se pudo corregir el pago'))
     }
   }
 }

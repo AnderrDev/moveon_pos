@@ -38,5 +38,18 @@ export const voidSaleSchema = z.object({
   voidedReason: z.string().min(3, 'Describe el motivo de anulación').max(200),
 })
 
-export type CreateSaleDto = z.infer<typeof createSaleSchema>
-export type VoidSaleDto   = z.infer<typeof voidSaleSchema>
+export const correctPaymentSchema = z.object({
+  paymentId: z.string().uuid('ID de pago inválido'),
+  newMetodo: z.enum(['cash', 'card', 'nequi', 'daviplata', 'transfer', 'other'], {
+    errorMap: () => ({ message: 'Método de pago inválido' }),
+  }),
+  reason: z
+    .string()
+    .trim()
+    .min(10, 'El motivo debe tener al menos 10 caracteres')
+    .max(200, 'El motivo no puede superar 200 caracteres'),
+})
+
+export type CreateSaleDto      = z.infer<typeof createSaleSchema>
+export type VoidSaleDto        = z.infer<typeof voidSaleSchema>
+export type CorrectPaymentDto  = z.infer<typeof correctPaymentSchema>
