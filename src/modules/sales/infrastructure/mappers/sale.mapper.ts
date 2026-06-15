@@ -11,6 +11,10 @@ export interface SaleRow {
   cashier_email: string | null
   subtotal: number
   discount_total: number
+  item_discount_total: number
+  global_discount_total: number
+  discount_reason: string | null
+  discount_approved_by: string | null
   tax_total: number
   total: number
   status: string
@@ -36,6 +40,7 @@ export interface SaleItemRow {
   quantity: number
   unit_price: number
   discount_amount: number
+  global_discount_amount: number
   tax_rate: number
   tax_amount: number
   total: number
@@ -60,6 +65,7 @@ export function rowToSaleItem(row: SaleItemRow): SaleItem {
     quantity: Number(row.quantity),
     unitPrice: Number(row.unit_price),
     discountAmount: Number(row.discount_amount),
+    globalDiscountAmount: Number(row.global_discount_amount),
     taxRate: Number(row.tax_rate),
     taxAmount: Number(row.tax_amount),
     total: Number(row.total),
@@ -96,7 +102,11 @@ export function rowToSale(row: SaleRow): Sale {
     items: (row.sale_items ?? []).map(rowToSaleItem),
     payments,
     subtotal: Number(row.subtotal),
+    itemDiscountTotal: Number(row.item_discount_total),
+    globalDiscountTotal: Number(row.global_discount_total),
     discountTotal: Number(row.discount_total),
+    discountReason: row.discount_reason,
+    discountApprovedBy: row.discount_approved_by,
     taxTotal: Number(row.tax_total),
     total: Number(row.total),
     change: Math.max(0, totalPaid - Number(row.total)),

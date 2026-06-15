@@ -1,12 +1,15 @@
 # Módulo: products (Productos y Categorías)
 
 ## Responsabilidad
+
 CRUD de catálogo: categorías y productos. Búsqueda.
 
 ## Entidades
+
 Ver `/docs/03-data-model.md` tablas `categorias` y `productos`.
 
 ## Reglas
+
 - RN-P01: SKU y código de barras únicos por tienda.
 - RN-P02: Cambios de precio se auditan en `audit_logs`.
 - RN-P03: Producto inactivo no aparece en POS pero sí en reportes históricos.
@@ -28,6 +31,7 @@ Ver `/docs/03-data-model.md` tablas `categorias` y `productos`.
 - Los productos `prepared` no admiten inventario inicial porque no rastrean stock en el MVP.
 
 ## Use cases
+
 - `CreateProducto`, `UpdateProducto`, `DeactivateProducto`
 - `CreateCategoria`, `UpdateCategoria`, `DeactivateCategoria`
 - `ListProductos`, `SearchProductos`, `GetProducto`
@@ -46,18 +50,18 @@ es el único lugar que usa el SERVICE ROLE y conecta a Supabase.
 nombre, sku, codigo_barras, categoria, tipo, unidad, precio_venta, costo, iva_tasa, stock_inicial
 ```
 
-| Columna         | Obligatoria | Reglas |
-|-----------------|-------------|--------|
-| `nombre`        | Sí          | 2–100 caracteres. |
-| `sku`           | No          | Se pasa a mayúsculas; letras/números/guiones (≥3 chars). Único por tienda. |
-| `codigo_barras` | No          | Texto libre. Único por tienda. |
+| Columna         | Obligatoria | Reglas                                                                          |
+| --------------- | ----------- | ------------------------------------------------------------------------------- |
+| `nombre`        | Sí          | 2–100 caracteres.                                                               |
+| `sku`           | No          | Se pasa a mayúsculas; letras/números/guiones (≥3 chars). Único por tienda.      |
+| `codigo_barras` | No          | Texto libre. Único por tienda.                                                  |
 | `categoria`     | No          | Vacío → producto sin categoría. Se crea si no existe (por `tienda_id, nombre`). |
-| `tipo`          | No          | `simple` \| `prepared` \| `ingredient`. Vacío → `simple`. Otro valor → error. |
-| `unidad`        | No          | Vacío → `und`. |
-| `precio_venta`  | Sí          | Entero > 0. Formato COP: `$ 110.000` → `110000`. Centavos/decimales → error. |
-| `costo`         | No          | Vacío → sin costo. Entero ≥ 0 (mismo parseo COP). |
-| `iva_tasa`      | Sí          | `0`, `5` o `19`. Otro (ej. `16`) → error. |
-| `stock_inicial` | No          | Vacío → `0`. Entero ≥ 0. Negativo/decimal → error. |
+| `tipo`          | No          | `simple` \| `prepared` \| `ingredient`. Vacío → `simple`. Otro valor → error.   |
+| `unidad`        | No          | Vacío → `und`.                                                                  |
+| `precio_venta`  | Sí          | Entero > 0. Formato COP: `$ 110.000` → `110000`. Centavos/decimales → error.    |
+| `costo`         | No          | Vacío → sin costo. Entero ≥ 0 (mismo parseo COP).                               |
+| `iva_tasa`      | Sí          | `0`, `5` o `19`. Otro (ej. `16`) → error.                                       |
+| `stock_inicial` | No          | Vacío → `0`. Entero ≥ 0. Negativo/decimal → error.                              |
 
 Validaciones cross-row: `sku`, `codigo_barras` y `nombre` (este último
 case-insensitive) deben ser únicos dentro del archivo; el duplicado se reporta
@@ -98,3 +102,10 @@ El script lee `SUPABASE_URL` (con fallback a `NEXT_PUBLIC_SUPABASE_URL`) y
   se modifica directamente.
 - Orden de escritura: categorías → productos → movimientos, en lotes de ~100. Sin
   transacción única: ante un error se detiene y reporta lo ya escrito.
+
+## Exportación Excel
+
+- La pantalla de productos permite descargar las filas filtradas en `.xlsx`.
+- Incluye categoría, información comercial, costo, precio, IVA, stock mínimo y estado.
+- Productos y categorías son rutas exclusivas de `admin`; por tanto, el costo no se expone a cajeros.
+- No se exportan UUID, `tienda_id` ni campos técnicos.

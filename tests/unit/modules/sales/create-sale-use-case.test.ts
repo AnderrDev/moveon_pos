@@ -100,6 +100,7 @@ function makeSale(input: CreateSaleInput): Sale {
     items:             input.items.map((item, index) => ({
       id:     `sale-item-${index + 1}`,
       saleId: 'sale-1',
+      globalDiscountAmount: 0,
       ...item,
     })),
     payments:          input.payments.map((payment, index) => ({
@@ -111,7 +112,11 @@ function makeSale(input: CreateSaleInput): Sale {
       createdAt:  now,
     })),
     subtotal:          input.subtotal,
+    itemDiscountTotal: input.discountTotal,
+    globalDiscountTotal: 0,
     discountTotal:     input.discountTotal,
+    discountReason:    null,
+    discountApprovedBy: null,
     taxTotal:          input.taxTotal,
     total:             input.total,
     change:            input.change,

@@ -9,6 +9,8 @@ export interface SaleItem {
   quantity: number
   unitPrice: number
   discountAmount: number
+  /** Parte del descuento global asignada a esta línea. */
+  globalDiscountAmount: number
   taxRate: number
   taxAmount: number
   total: number
@@ -38,7 +40,11 @@ export interface Sale {
   items: SaleItem[]
   payments: Payment[]
   subtotal: number
+  itemDiscountTotal: number
+  globalDiscountTotal: number
   discountTotal: number
+  discountReason: string | null
+  discountApprovedBy: string | null
   taxTotal: number
   total: number
   change: number

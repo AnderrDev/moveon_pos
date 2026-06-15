@@ -4,15 +4,15 @@ import { rowToSale, type SaleRow } from '@/modules/sales/infrastructure/mappers/
 import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
 
 const SALE_COLS =
-  'id, tienda_id, cash_session_id, sale_number, cliente_id, cashier_id, cashier_email, subtotal, discount_total, tax_total, total, status, billing_status, billing_document_id, voided_by, voided_at, voided_reason, idempotency_key, created_at, updated_at'
+  'id, tienda_id, cash_session_id, sale_number, cliente_id, cashier_id, cashier_email, subtotal, item_discount_total, global_discount_total, discount_total, discount_reason, discount_approved_by, tax_total, total, status, billing_status, billing_document_id, voided_by, voided_at, voided_reason, idempotency_key, created_at, updated_at'
 const ITEM_COLS =
-  'id, sale_id, producto_id, producto_nombre, producto_sku, quantity, unit_price, discount_amount, tax_rate, tax_amount, total'
+  'id, sale_id, producto_id, producto_nombre, producto_sku, quantity, unit_price, discount_amount, global_discount_amount, tax_rate, tax_amount, total'
 const PAY_COLS = 'id, sale_id, metodo, amount, referencia, created_at'
 
 interface RpcClient {
   rpc<T>(
     fn: string,
-    args: Record<string, unknown>,
+    args: Record<string, unknown>
   ): Promise<{ data: T | null; error: { message: string } | null }>
 }
 

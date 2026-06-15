@@ -8,6 +8,8 @@ import { CustomersRepository } from './customers.repository'
 import { SessionService } from '../../core/auth/session.service'
 import { ToastService } from '../../shared/feedback/toast.service'
 import type { Cliente } from '@/modules/customers/domain/entities/cliente.entity'
+import { ExcelExportService } from '../../shared/export/excel-export.service'
+import { buildCustomersWorkbook } from './customer-export'
 
 @Component({
   selector: 'mo-clientes-page',
@@ -22,8 +24,19 @@ import type { Cliente } from '@/modules/customers/domain/entities/cliente.entity
           [value]="query()"
           (input)="onQuery($event)"
           placeholder="Buscar por nombre, email o telefono"
-          class="border-input bg-card focus:ring-ring h-10 w-72 rounded-lg border px-3 text-sm focus:outline-none focus:ring-2"
+          class="border-input bg-card focus:ring-ring h-10 w-72 rounded-lg border px-3 text-sm focus:ring-2 focus:outline-none"
         />
+        @if (canExport()) {
+          <mo-button
+            variant="outline"
+            [loading]="exporting()"
+            loadingText="Generando..."
+            [disabled]="filtered().length === 0"
+            (click)="exportCustomers()"
+          >
+            Descargar Excel
+          </mo-button>
+        }
         <mo-button (click)="openCreate()">+ Nuevo cliente</mo-button>
       </mo-page-header>
 
@@ -45,7 +58,9 @@ import type { Cliente } from '@/modules/customers/domain/entities/cliente.entity
       } @else {
         <div class="bg-card flex-1 overflow-auto rounded-xl border">
           <table class="w-full text-sm">
-            <thead class="bg-muted/50 text-muted-foreground sticky top-0 text-left text-xs uppercase tracking-wide">
+            <thead
+              class="bg-muted/50 text-muted-foreground sticky top-0 text-left text-xs tracking-wide uppercase"
+            >
               <tr>
                 <th class="px-4 py-3">Nombre</th>
                 <th class="px-4 py-3">Documento</th>
@@ -97,6 +112,7 @@ export class ClientesPage {
   private readonly repo = inject(CustomersRepository)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
+  private readonly excel = inject(ExcelExportService)
 
   readonly clientes = signal<Cliente[]>([])
   readonly loading = signal(true)
@@ -104,6 +120,8 @@ export class ClientesPage {
   readonly query = signal('')
   readonly dialogOpen = signal(false)
   readonly editing = signal<Cliente | null>(null)
+  readonly exporting = signal(false)
+  readonly canExport = this.session.isAdmin
 
   readonly filtered = computed(() => {
     const q = this.query().trim().toLowerCase()
@@ -112,16 +130,31 @@ export class ClientesPage {
       [c.nombre, c.email ?? '', c.telefono ?? '', c.numeroDocumento ?? '']
         .join(' ')
         .toLowerCase()
-        .includes(q),
+        .includes(q)
     )
   })
 
   constructor() {
+    void this.session.getRole()
     void this.load()
   }
 
   onQuery(event: Event): void {
     this.query.set((event.target as HTMLInputElement).value)
+  }
+
+  async exportCustomers(): Promise<void> {
+    if (!this.canExport()) return
+
+    this.exporting.set(true)
+    try {
+      await this.excel.download(buildCustomersWorkbook(this.filtered(), this.query()))
+      this.toast.success('Archivo de clientes descargado')
+    } catch (error) {
+      this.toast.error(getErrorMessage(error, 'No se pudo generar el archivo'))
+    } finally {
+      this.exporting.set(false)
+    }
   }
 
   async load(): Promise<void> {

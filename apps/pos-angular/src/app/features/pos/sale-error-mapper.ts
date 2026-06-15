@@ -39,6 +39,18 @@ const KNOWN_MESSAGES: readonly { raw: string; display: string }[] = [
     display: 'El cambio solo puede generarse desde pagos en efectivo',
   },
   { raw: 'Producto no disponible', display: 'Producto no disponible' },
+  {
+    raw: 'Descuentos mayores al 10% requieren aprobación de admin',
+    display: 'Descuentos mayores al 10% requieren aprobación de admin',
+  },
+  {
+    raw: 'El motivo del descuento es obligatorio',
+    display: 'Escribe el motivo del descuento antes de confirmar',
+  },
+  {
+    raw: 'El descuento por producto no es válido',
+    display: 'Revisa los descuentos aplicados a los productos',
+  },
 ]
 
 /**
@@ -59,9 +71,7 @@ export function mapSaleError(rawMessage: string, items: readonly SaleErrorCartIt
     return buildStockMessage(items)
   }
 
-  const known = KNOWN_MESSAGES.find((candidate) =>
-    message.includes(candidate.raw.toLowerCase()),
-  )
+  const known = KNOWN_MESSAGES.find((candidate) => message.includes(candidate.raw.toLowerCase()))
   if (known) return known.display
 
   return GENERIC_MESSAGE
@@ -70,7 +80,7 @@ export function mapSaleError(rawMessage: string, items: readonly SaleErrorCartIt
 function buildStockMessage(items: readonly SaleErrorCartItem[]): string {
   // Solo ítems con rastreo (maxQuantity !== null) que superan su disponible.
   const offenders = items.filter(
-    (item) => item.maxQuantity !== null && item.quantity > item.maxQuantity,
+    (item) => item.maxQuantity !== null && item.quantity > item.maxQuantity
   )
 
   // Si no hay un único producto identificable, fallback de stock.

@@ -15,6 +15,8 @@ export interface CreatePosSaleInput {
   items: PosCartItem[]
   payments: PaymentEntry[]
   totals: CartTotals
+  globalDiscountTotal: number
+  discountReason: string | null
   change: number
 }
 
@@ -50,7 +52,7 @@ const rpcInputSchema = z.object({
         ivaTasa: z.number().nonnegative(),
         taxAmount: z.number().nonnegative(),
         total: z.number().nonnegative(),
-      }),
+      })
     )
     .min(1, 'La venta necesita al menos un ítem'),
   payments: z
@@ -59,7 +61,7 @@ const rpcInputSchema = z.object({
         metodo: z.enum(['cash', 'card', 'nequi', 'daviplata', 'transfer', 'other']),
         amount: z.number().positive(),
         referencia: z.string().nullable().optional(),
-      }),
+      })
     )
     .min(1, 'Se requiere al menos un pago'),
   totals: z.object({
@@ -68,6 +70,8 @@ const rpcInputSchema = z.object({
     taxTotal: z.number().nonnegative(),
     total: z.number().positive(),
   }),
+  globalDiscountTotal: z.number().nonnegative(),
+  discountReason: z.string().trim().min(3, 'Escribe el motivo del descuento').nullable(),
 })
 
 @Injectable({ providedIn: 'root' })
@@ -76,7 +80,7 @@ export class PosSaleService {
   private readonly sessionService = inject(SessionService)
 
   async createSale(
-    input: CreatePosSaleInput,
+    input: CreatePosSaleInput
   ): Promise<Result<CreatePosSaleResult, CreatePosSaleError>> {
     const auth = await this.sessionService.getAuthContext()
     if (!auth) return err({ kind: 'unauthenticated' })
@@ -88,6 +92,8 @@ export class PosSaleService {
       items: input.items,
       payments: input.payments,
       totals: input.totals,
+      globalDiscountTotal: input.globalDiscountTotal,
+      discountReason: input.discountReason,
     })
     if (!parsed.success) {
       return err({
@@ -126,6 +132,8 @@ export class PosSaleService {
         amount: payment.amount,
         referencia: payment.referencia ?? null,
       })),
+      p_global_discount_total: input.globalDiscountTotal,
+      p_discount_reason: input.discountReason,
     })
 
     if (error) {

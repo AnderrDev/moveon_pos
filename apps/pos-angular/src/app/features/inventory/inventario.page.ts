@@ -14,6 +14,9 @@ import { KardexDialog } from './kardex.dialog'
 import type { Product } from '@/modules/products/domain/entities/product.entity'
 import type { StockLevel } from '@/modules/inventory/domain/entities/inventory.entity'
 import { isLowStock } from '@/modules/inventory/domain/services/low-stock'
+import { ExcelExportService } from '../../shared/export/excel-export.service'
+import { ToastService } from '../../shared/feedback/toast.service'
+import { buildInventoryWorkbook } from './inventory-export'
 
 interface StockRow {
   id: string
@@ -48,8 +51,17 @@ interface StockRow {
           [value]="query()"
           (input)="onQuery($event)"
           placeholder="Buscar producto"
-          class="border-input bg-card focus:ring-ring h-10 w-56 rounded-lg border px-3 text-sm focus:outline-none focus:ring-2"
+          class="border-input bg-card focus:ring-ring h-10 w-56 rounded-lg border px-3 text-sm focus:ring-2 focus:outline-none"
         />
+        <mo-button
+          variant="outline"
+          [loading]="exporting()"
+          loadingText="Generando..."
+          [disabled]="filteredRows().length === 0"
+          (click)="exportInventory()"
+        >
+          Descargar Excel
+        </mo-button>
       </mo-page-header>
 
       @if (loading()) {
@@ -68,7 +80,9 @@ interface StockRow {
       } @else {
         <div class="bg-card flex-1 overflow-auto rounded-xl border">
           <table class="w-full text-sm">
-            <thead class="bg-muted/50 text-muted-foreground sticky top-0 text-left text-xs uppercase tracking-wide">
+            <thead
+              class="bg-muted/50 text-muted-foreground sticky top-0 text-left text-xs tracking-wide uppercase"
+            >
               <tr>
                 <th class="px-4 py-3">Producto</th>
                 <th class="px-4 py-3">SKU</th>
@@ -160,12 +174,15 @@ export class InventarioPage {
   private readonly inventoryRepo = inject(InventoryRepository)
   private readonly productsRepo = inject(ProductsRepository)
   private readonly session = inject(SessionService)
+  private readonly excel = inject(ExcelExportService)
+  private readonly toast = inject(ToastService)
 
   readonly products = signal<Product[]>([])
   readonly stockLevels = signal<StockLevel[]>([])
   readonly loading = signal(true)
   readonly loadError = signal<string | null>(null)
   readonly query = signal('')
+  readonly exporting = signal(false)
 
   readonly entryOpen = signal(false)
   readonly adjustOpen = signal(false)
@@ -217,9 +234,7 @@ export class InventarioPage {
   readonly filteredRows = computed(() => {
     const q = this.query().trim().toLowerCase()
     if (!q) return this.rows()
-    return this.rows().filter((r) =>
-      [r.nombre, r.sku ?? ''].join(' ').toLowerCase().includes(q),
-    )
+    return this.rows().filter((r) => [r.nombre, r.sku ?? ''].join(' ').toLowerCase().includes(q))
   })
 
   constructor() {
@@ -228,6 +243,18 @@ export class InventarioPage {
 
   onQuery(event: Event): void {
     this.query.set((event.target as HTMLInputElement).value)
+  }
+
+  async exportInventory(): Promise<void> {
+    this.exporting.set(true)
+    try {
+      await this.excel.download(buildInventoryWorkbook(this.filteredRows(), this.query()))
+      this.toast.success('Archivo de inventario descargado')
+    } catch (error) {
+      this.toast.error(getErrorMessage(error, 'No se pudo generar el archivo'))
+    } finally {
+      this.exporting.set(false)
+    }
   }
 
   async load(): Promise<void> {

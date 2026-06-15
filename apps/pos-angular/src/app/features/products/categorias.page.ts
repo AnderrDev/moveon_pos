@@ -11,6 +11,8 @@ import { ProductsCacheStore } from './products-cache.store'
 import { SessionService } from '../../core/auth/session.service'
 import { ToastService } from '../../shared/feedback/toast.service'
 import type { Categoria } from '@/modules/products/domain/entities/product.entity'
+import { ExcelExportService } from '../../shared/export/excel-export.service'
+import { buildCategoriesWorkbook } from './product-export'
 
 @Component({
   selector: 'mo-categorias-page',
@@ -28,6 +30,15 @@ import type { Categoria } from '@/modules/products/domain/entities/product.entit
   template: `
     <section class="flex h-full min-h-0 flex-col">
       <mo-page-header title="Productos" subtitle="Catalogo y precios">
+        <mo-button
+          variant="outline"
+          [loading]="exporting()"
+          loadingText="Generando..."
+          [disabled]="categorias().length === 0"
+          (click)="exportCategories()"
+        >
+          Descargar Excel
+        </mo-button>
         <mo-button (click)="openCreate()">+ Nueva categoria</mo-button>
       </mo-page-header>
 
@@ -66,7 +77,9 @@ import type { Categoria } from '@/modules/products/domain/entities/product.entit
       } @else {
         <div class="bg-card flex-1 overflow-auto rounded-xl border">
           <table class="w-full text-sm">
-            <thead class="bg-muted/50 text-muted-foreground sticky top-0 text-left text-xs uppercase tracking-wide">
+            <thead
+              class="bg-muted/50 text-muted-foreground sticky top-0 text-left text-xs tracking-wide uppercase"
+            >
               <tr>
                 <th class="px-4 py-3">Categoria</th>
                 <th class="px-4 py-3">Estado</th>
@@ -117,12 +130,14 @@ export class CategoriasPage {
   private readonly store = inject(ProductsCacheStore)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
+  private readonly excel = inject(ExcelExportService)
 
   readonly categorias = computed(() => this.store.categorias() ?? [])
   readonly loading = signal(true)
   readonly loadError = signal<string | null>(null)
   readonly dialogOpen = signal(false)
   readonly editing = signal<Categoria | null>(null)
+  readonly exporting = signal(false)
 
   constructor() {
     void this.load()
@@ -139,6 +154,18 @@ export class CategoriasPage {
       this.loadError.set(getErrorMessage(error, 'Error al cargar'))
     } finally {
       this.loading.set(false)
+    }
+  }
+
+  async exportCategories(): Promise<void> {
+    this.exporting.set(true)
+    try {
+      await this.excel.download(buildCategoriesWorkbook(this.categorias()))
+      this.toast.success('Archivo de categorías descargado')
+    } catch (error) {
+      this.toast.error(getErrorMessage(error, 'No se pudo generar el archivo'))
+    } finally {
+      this.exporting.set(false)
     }
   }
 

@@ -11,7 +11,11 @@ function makeRow(overrides: Partial<SaleRow> = {}): SaleRow {
     cashier_id: 'cashier-1',
     cashier_email: 'cajero@example.com',
     subtotal: 80_000,
+    item_discount_total: 0,
+    global_discount_total: 0,
     discount_total: 0,
+    discount_reason: null,
+    discount_approved_by: null,
     tax_total: 12_773,
     total: 80_000,
     status: 'completed',
@@ -60,7 +64,7 @@ describe('rowToSale', () => {
             created_at: '2026-06-14T10:00:00Z',
           },
         ],
-      }),
+      })
     )
 
     expect(sale.change).toBe(0)

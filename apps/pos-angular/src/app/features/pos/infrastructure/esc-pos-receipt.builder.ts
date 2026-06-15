@@ -77,8 +77,8 @@ export function buildEscPosReceipt(input: EscPosReceiptInput): string {
     output.push(
       ...pairLines(
         `${formatQuantity(item.quantity)} x ${formatMoney(item.unitPrice)}`,
-        formatMoney(item.total),
-      ),
+        formatMoney(item.total)
+      )
     )
     if (store.mostrarIva && item.taxRate > 0) {
       output.push(...pairLines(`  IVA ${formatTaxRate(item.taxRate)}%`, formatMoney(itemTax(item))))
@@ -88,7 +88,12 @@ export function buildEscPosReceipt(input: EscPosReceiptInput): string {
   output.push(divider())
   output.push(...pairLines('Subtotal', formatMoney(sale.subtotal)))
   if (sale.discountTotal > 0) {
-    output.push(...pairLines('Descuento', `-${formatMoney(sale.discountTotal)}`))
+    if (sale.itemDiscountTotal > 0) {
+      output.push(...pairLines('Desc. productos', `-${formatMoney(sale.itemDiscountTotal)}`))
+    }
+    if (sale.globalDiscountTotal > 0) {
+      output.push(...pairLines('Desc. global', `-${formatMoney(sale.globalDiscountTotal)}`))
+    }
   }
   if (store.mostrarIva) {
     for (const tax of taxSummary) {

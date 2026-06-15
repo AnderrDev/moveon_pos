@@ -2,7 +2,10 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } 
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { formatCurrency } from '@/shared/lib/format'
 import { getPaymentMethodLabel, PAYMENT_METHOD_OPTIONS } from '@/shared/lib/payment-methods'
-import { validatePaymentsForSale } from '@/modules/sales/domain/services/sale-calculator'
+import {
+  validateDiscountAuthorization,
+  validatePaymentsForSale,
+} from '@/modules/sales/domain/services/sale-calculator'
 import { buildPaymentEntry, requiresReference } from '@/modules/sales/domain/services/sale-builder'
 import type { PaymentMethod } from '@/shared/types'
 import { SessionService } from '../../core/auth/session.service'
@@ -562,9 +565,39 @@ interface PostSaleOutputJob {
                 }
               </div>
               <p class="text-muted-foreground text-[11px]">
-                Monto en pesos descontado del total de la venta.
+                Monto en pesos distribuido entre los productos para recalcular correctamente el IVA.
               </p>
             </div>
+
+            @if (cart.totals().discountTotal > 0) {
+              <div class="space-y-2 rounded-xl border border-amber-500/30 bg-amber-500/8 p-3">
+                <div class="flex items-center justify-between gap-3">
+                  <p class="text-xs font-bold tracking-wide uppercase">Control del descuento</p>
+                  <span class="text-muted-foreground text-[11px] tabular-nums">
+                    {{ money(cart.totals().discountTotal) }} · {{ discountPercentage() }}%
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  [value]="discountReason()"
+                  (input)="setDiscountReason($event)"
+                  maxlength="160"
+                  placeholder="Motivo del descuento"
+                  class="border-input bg-card focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2"
+                />
+                <p class="text-muted-foreground text-[11px]">
+                  El motivo queda en el historial y la auditoría.
+                  @if (!isAdmin()) {
+                    Descuentos mayores al 10% requieren un administrador.
+                  }
+                </p>
+                @if (discountAuthorizationError()) {
+                  <p class="text-destructive text-xs font-semibold">
+                    {{ discountAuthorizationError() }}
+                  </p>
+                }
+              </div>
+            }
 
             <div class="space-y-3">
               <p class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
@@ -756,13 +789,14 @@ export class PosPage {
   readonly productInfo = signal<PosProduct | null>(null)
   readonly isAdmin = this.sessionService.isAdmin
   readonly globalDiscountInput = signal('')
+  readonly discountReason = signal('')
   readonly paymentMethods = PAYMENT_METHOD_OPTIONS
   readonly String = String
 
   readonly filteredProducts = computed(() => {
     const q = this.query().toLowerCase().trim()
     const categoryId = this.activeCategory()
-    return this.products().filter((product) => {
+    const filtered = this.products().filter((product) => {
       const matchesCategory = categoryId === null || product.categoriaId === categoryId
       if (!matchesCategory) return false
       if (!q) return true
@@ -773,14 +807,31 @@ export class PosPage {
         product.codigoBarras === this.query().trim()
       )
     })
+
+    return [
+      ...filtered.filter((product) => product.stockDisponible !== 0),
+      ...filtered.filter((product) => product.stockDisponible === 0),
+    ]
   })
 
   readonly canConfirm = computed(() => {
     const paymentError = validatePaymentsForSale(this.cart.payments(), this.cart.totals().total)
+    const hasDiscount = this.cart.totals().discountTotal > 0
     return (
       this.cart.items().length > 0 &&
       this.cart.totalPaid() >= this.cart.totals().total &&
+      (!hasDiscount || this.discountReason().trim().length >= 3) &&
+      !this.discountAuthorizationError() &&
       !paymentError
+    )
+  })
+  readonly discountAuthorizationError = computed(() => {
+    const role = this.sessionService.role()
+    if (!role) return null
+    return validateDiscountAuthorization(
+      role,
+      this.cart.totals().subtotal,
+      this.cart.totals().discountTotal
     )
   })
 
@@ -837,6 +888,12 @@ export class PosPage {
 
   paymentLabel(method: PaymentMethod): string {
     return getPaymentMethodLabel(method)
+  }
+
+  discountPercentage(): string {
+    const subtotal = this.cart.totals().subtotal
+    if (subtotal <= 0) return '0.00'
+    return ((this.cart.totals().discountTotal / subtotal) * 100).toFixed(2)
   }
 
   setQuery(event: Event): void {
@@ -941,6 +998,10 @@ export class PosPage {
     this.cart.setGlobalDiscount(value === '' ? 0 : Number.parseInt(value, 10))
   }
 
+  setDiscountReason(event: Event): void {
+    this.discountReason.set((event.target as HTMLInputElement).value)
+  }
+
   clearGlobalDiscount(): void {
     this.globalDiscountInput.set('')
     this.cart.setGlobalDiscount(0)
@@ -1037,10 +1098,6 @@ export class PosPage {
     const cashSession = this.cashSession()
     if (!cashSession || !this.canConfirm()) return
 
-    // TODO PLAN-02/RN-S09: cuando exista el flujo de aprobación, validar aquí con
-    // validateDiscountAuthorization(session.role(), cart.totals().subtotal, cart.totals().discountTotal)
-    // antes de crear la venta. Por ahora el umbral por rol no se aplica en la UI.
-
     this.saleError.set(null)
     this.isSaving.set(true)
 
@@ -1052,6 +1109,8 @@ export class PosPage {
         items: this.cart.items(),
         payments: this.cart.payments(),
         totals: this.cart.totals(),
+        globalDiscountTotal: this.cart.globalDiscount(),
+        discountReason: this.cart.totals().discountTotal > 0 ? this.discountReason().trim() : null,
         change: this.cart.change(),
       })
 
@@ -1070,6 +1129,7 @@ export class PosPage {
         this.cart.payments().some((payment) => payment.metodo === 'cash' && payment.amount > 0)
       this.cart.clearCart()
       this.globalDiscountInput.set('')
+      this.discountReason.set('')
       this.paymentAmount.set('')
       this.paymentReference.set('')
       this.paymentMethod.set('cash')

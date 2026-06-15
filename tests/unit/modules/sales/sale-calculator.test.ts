@@ -70,7 +70,6 @@ describe('calculateCartItem', () => {
     expect(result.total).toBe(20000)
   })
 })
-
 describe('calculateCartTotals', () => {
   it('suma correctamente múltiples ítems', () => {
     const items = [
@@ -111,7 +110,7 @@ describe('calculateCartTotals', () => {
 
     expect(totals.subtotal).toBe(126000)      // 100000 + 20000 + 6000 brutos
     expect(totals.discountTotal).toBe(15000)  // 10000 por ítem + 5000 global
-    expect(totals.taxTotal).toBe(15322)       // 14370 + 952 + 0 — NO afectado por el global
+    expect(totals.taxTotal).toBe(14661)       // IVA recalculado tras prorratear el global
     expect(totals.total).toBe(111000)         // (90000 + 20000 + 6000) − 5000
   })
 

@@ -12,6 +12,8 @@ import { SessionService } from '../../core/auth/session.service'
 import { ToastService } from '../../shared/feedback/toast.service'
 import { formatCurrency } from '@/shared/lib/format'
 import type { Product } from '@/modules/products/domain/entities/product.entity'
+import { ExcelExportService } from '../../shared/export/excel-export.service'
+import { buildProductsWorkbook } from './product-export'
 
 @Component({
   selector: 'mo-productos-page',
@@ -29,6 +31,15 @@ import type { Product } from '@/modules/products/domain/entities/product.entity'
   template: `
     <section class="flex h-full min-h-0 flex-col">
       <mo-page-header title="Productos" subtitle="Catalogo y precios">
+        <mo-button
+          variant="outline"
+          [loading]="exporting()"
+          loadingText="Generando..."
+          [disabled]="filteredProducts().length === 0"
+          (click)="exportProducts()"
+        >
+          Descargar Excel
+        </mo-button>
         <mo-button (click)="openCreate()">+ Nuevo producto</mo-button>
       </mo-page-header>
 
@@ -54,7 +65,7 @@ import type { Product } from '@/modules/products/domain/entities/product.entity'
           [value]="query()"
           (input)="onQueryInput($event)"
           placeholder="Buscar por nombre, SKU o codigo de barras"
-          class="border-input bg-card focus:ring-ring h-10 flex-1 rounded-lg border px-3 text-sm focus:outline-none focus:ring-2"
+          class="border-input bg-card focus:ring-ring h-10 flex-1 rounded-lg border px-3 text-sm focus:ring-2 focus:outline-none"
         />
       </div>
 
@@ -77,7 +88,9 @@ import type { Product } from '@/modules/products/domain/entities/product.entity'
       } @else {
         <div class="bg-card flex-1 overflow-auto rounded-xl border">
           <table class="w-full text-sm">
-            <thead class="bg-muted/50 text-muted-foreground sticky top-0 text-left text-xs uppercase tracking-wide">
+            <thead
+              class="bg-muted/50 text-muted-foreground sticky top-0 text-left text-xs tracking-wide uppercase"
+            >
               <tr>
                 <th class="px-4 py-3">Producto</th>
                 <th class="px-4 py-3">SKU</th>
@@ -122,11 +135,7 @@ import type { Product } from '@/modules/products/domain/entities/product.entity'
                         Editar
                       </mo-button>
                       @if (product.isActive) {
-                        <mo-button
-                          size="sm"
-                          variant="ghost"
-                          (click)="confirmDeactivate(product)"
-                        >
+                        <mo-button size="sm" variant="ghost" (click)="confirmDeactivate(product)">
                           Desactivar
                         </mo-button>
                       }
@@ -154,6 +163,7 @@ export class ProductosPage {
   private readonly store = inject(ProductsCacheStore)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
+  private readonly excel = inject(ExcelExportService)
 
   readonly products = computed(() => this.store.products() ?? [])
   readonly categorias = computed(() => this.store.categorias() ?? [])
@@ -162,16 +172,14 @@ export class ProductosPage {
   readonly query = signal('')
   readonly dialogOpen = signal(false)
   readonly editingProduct = signal<Product | null>(null)
+  readonly exporting = signal(false)
 
   readonly filteredProducts = computed(() => {
     const q = this.query().trim().toLowerCase()
     const list = this.products()
     if (!q) return list
     return list.filter((p) =>
-      [p.nombre, p.sku ?? '', p.codigoBarras ?? '']
-        .join(' ')
-        .toLowerCase()
-        .includes(q),
+      [p.nombre, p.sku ?? '', p.codigoBarras ?? ''].join(' ').toLowerCase().includes(q)
     )
   })
 
@@ -190,6 +198,20 @@ export class ProductosPage {
 
   onQueryInput(event: Event): void {
     this.query.set((event.target as HTMLInputElement).value)
+  }
+
+  async exportProducts(): Promise<void> {
+    this.exporting.set(true)
+    try {
+      await this.excel.download(
+        buildProductsWorkbook(this.filteredProducts(), this.categorias(), this.query())
+      )
+      this.toast.success('Archivo de productos descargado')
+    } catch (error) {
+      this.toast.error(getErrorMessage(error, 'No se pudo generar el archivo'))
+    } finally {
+      this.exporting.set(false)
+    }
   }
 
   async load(options: { force?: boolean } = {}): Promise<void> {

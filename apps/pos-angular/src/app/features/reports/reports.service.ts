@@ -4,10 +4,7 @@ import { CashRegisterRepository } from '../cash-register/cash-register.repositor
 import { InventoryRepository } from '../inventory/inventory.repository'
 import { ProductsRepository } from '../products/products.repository'
 import { TiendaInfoService } from '../../core/tienda/tienda-info.service'
-import {
-  DEFAULT_TIMEZONE,
-  getStoreDayRangeUtc,
-} from '@/modules/reports/domain/services/day-range'
+import { DEFAULT_TIMEZONE, getStoreDayRangeUtc } from '@/modules/reports/domain/services/day-range'
 import { isLowStock } from '@/modules/inventory/domain/services/low-stock'
 import {
   groupSalesByCashier,
@@ -35,7 +32,47 @@ export interface DailySaleDetail {
   status: string
   total: number
   itemCount: number
+  cashierId: string
+  cashierEmail: string | null
+  customerName: string | null
+  subtotal: number
+  discountTotal: number
+  itemDiscountTotal: number
+  globalDiscountTotal: number
+  discountPercentage: number
+  discountReason: string | null
+  discountApprovedBy: string | null
+  taxTotal: number
+  change: number
+  voidedReason: string | null
   payments: { metodo: string; amount: number }[]
+}
+
+export interface DailySaleItemDetail {
+  saleNumber: string
+  createdAt: Date
+  status: string
+  cashierEmail: string | null
+  productName: string
+  productSku: string | null
+  quantity: number
+  unitPrice: number
+  discountTotal: number
+  itemDiscountTotal: number
+  globalDiscountTotal: number
+  taxRate: number
+  taxAmount: number
+  total: number
+}
+
+export interface DailySalePaymentDetail {
+  saleNumber: string
+  createdAt: Date
+  status: string
+  cashierEmail: string | null
+  method: string
+  amount: number
+  reference: string | null
 }
 
 export interface DailySession {
@@ -58,11 +95,17 @@ export interface DailyReport {
   subtotalVentas: number
   taxTotal: number
   discountTotal: number
+  itemDiscountTotal: number
+  globalDiscountTotal: number
+  discountedSalesCount: number
+  averageDiscountPercentage: number
   avgVenta: number
   paymentBreakdown: DailyPaymentBreakdown[]
   topProducts: DailyTopProduct[]
   cashierBreakdown: CashierSalesSummary[]
   salesDetail: DailySaleDetail[]
+  saleItems: DailySaleItemDetail[]
+  salePayments: DailySalePaymentDetail[]
   sessions: DailySession[]
 }
 
@@ -113,6 +156,18 @@ export class ReportsService {
     const subtotalVentas = completed.reduce((s, v) => s + v.subtotal, 0)
     const taxTotal = completed.reduce((s, v) => s + v.taxTotal, 0)
     const discountTotal = completed.reduce((s, v) => s + v.discountTotal, 0)
+    const itemDiscountTotal = completed.reduce((s, v) => s + v.itemDiscountTotal, 0)
+    const globalDiscountTotal = completed.reduce((s, v) => s + v.globalDiscountTotal, 0)
+    const discountedSales = completed.filter((sale) => sale.discountTotal > 0)
+    const averageDiscountPercentage =
+      discountedSales.length > 0
+        ? (discountedSales.reduce(
+            (sum, sale) => sum + (sale.subtotal > 0 ? sale.discountTotal / sale.subtotal : 0),
+            0
+          ) /
+            discountedSales.length) *
+          100
+        : 0
     const avgVenta = completed.length > 0 ? Math.round(totalVentas / completed.length) : 0
 
     const payMap = new Map<string, { count: number; total: number }>()
@@ -160,8 +215,52 @@ export class ReportsService {
         status: s.status,
         total: s.total,
         itemCount: s.items.reduce((acc, i) => acc + i.quantity, 0),
+        cashierId: s.cashierId,
+        cashierEmail: s.cashierEmail,
+        customerName: s.clienteNombre,
+        subtotal: s.subtotal,
+        discountTotal: s.discountTotal,
+        itemDiscountTotal: s.itemDiscountTotal,
+        globalDiscountTotal: s.globalDiscountTotal,
+        discountPercentage: s.subtotal > 0 ? (s.discountTotal / s.subtotal) * 100 : 0,
+        discountReason: s.discountReason,
+        discountApprovedBy: s.discountApprovedBy,
+        taxTotal: s.taxTotal,
+        change: s.change,
+        voidedReason: s.voidedReason,
         payments: s.payments.map((p) => ({ metodo: p.metodo, amount: p.amount })),
       }))
+
+    const saleItems: DailySaleItemDetail[] = sales.flatMap((sale) =>
+      sale.items.map((item) => ({
+        saleNumber: sale.saleNumber,
+        createdAt: sale.createdAt,
+        status: sale.status,
+        cashierEmail: sale.cashierEmail,
+        productName: item.productoNombre,
+        productSku: item.productoSku,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        discountTotal: item.discountAmount * item.quantity + item.globalDiscountAmount,
+        itemDiscountTotal: item.discountAmount * item.quantity,
+        globalDiscountTotal: item.globalDiscountAmount,
+        taxRate: item.taxRate,
+        taxAmount: item.taxAmount,
+        total: item.total,
+      }))
+    )
+
+    const salePayments: DailySalePaymentDetail[] = sales.flatMap((sale) =>
+      sale.payments.map((payment) => ({
+        saleNumber: sale.saleNumber,
+        createdAt: sale.createdAt,
+        status: sale.status,
+        cashierEmail: sale.cashierEmail,
+        method: payment.metodo,
+        amount: payment.amount,
+        reference: payment.referencia,
+      }))
+    )
 
     return {
       date: dayStart,
@@ -171,11 +270,17 @@ export class ReportsService {
       subtotalVentas,
       taxTotal,
       discountTotal,
+      itemDiscountTotal,
+      globalDiscountTotal,
+      discountedSalesCount: discountedSales.length,
+      averageDiscountPercentage,
       avgVenta,
       paymentBreakdown,
       topProducts,
       cashierBreakdown,
       salesDetail,
+      saleItems,
+      salePayments,
       sessions: filteredSessions.map((s) => ({
         id: s.id,
         openedAt: s.openedAt,

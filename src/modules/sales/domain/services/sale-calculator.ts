@@ -12,65 +12,79 @@ export interface CartItemInput {
 }
 
 export interface CartItemCalculated extends CartItemInput {
-  subtotalBruto: number   // Precio final (IVA incluido) * quantity
-  descuentoTotal: number  // discountAmount * quantity
-  baseImponible: number   // Total sin el IVA incluido
-  taxAmount: number       // IVA contenido en el total
-  total: number           // subtotalBruto - descuentoTotal
+  subtotalBruto: number // Precio final (IVA incluido) * quantity
+  descuentoTotal: number // discountAmount * quantity
+  baseImponible: number // Total sin el IVA incluido
+  taxAmount: number // IVA contenido en el total
+  total: number // subtotalBruto - descuentoTotal
 }
 
 export interface CartTotals {
-  subtotal:      number
+  subtotal: number
   discountTotal: number
-  taxTotal:      number
-  total:         number
+  taxTotal: number
+  total: number
 }
 
 export function calculateCartItem(item: CartItemInput): CartItemCalculated {
-  const subtotalBruto   = Math.round(item.unitPrice * item.quantity)
-  const descuentoTotal  = Math.round(item.discountAmount * item.quantity)
-  const total           = Math.max(0, subtotalBruto - descuentoTotal)
-  const baseImponible   = item.ivaTasa === 0
-    ? total
-    : Math.round(total / (1 + item.ivaTasa / 100))
-  const taxAmount       = total - baseImponible
+  const subtotalBruto = Math.round(item.unitPrice * item.quantity)
+  const descuentoTotal = Math.round(item.discountAmount * item.quantity)
+  const total = Math.max(0, subtotalBruto - descuentoTotal)
+  const baseImponible = item.ivaTasa === 0 ? total : Math.round(total / (1 + item.ivaTasa / 100))
+  const taxAmount = total - baseImponible
 
   return { ...item, subtotalBruto, descuentoTotal, baseImponible, taxAmount, total }
 }
 
-export function calculateCartTotals(
-  items: CartItemCalculated[],
-  globalDiscount = 0,
-): CartTotals {
+export function calculateCartTotals(items: CartItemCalculated[], globalDiscount = 0): CartTotals {
   const itemTotals = items.reduce<CartTotals>(
     (acc, item) => ({
-      subtotal:      acc.subtotal      + item.subtotalBruto,
+      subtotal: acc.subtotal + item.subtotalBruto,
       discountTotal: acc.discountTotal + item.descuentoTotal,
-      taxTotal:      acc.taxTotal      + item.taxAmount,
-      total:         acc.total         + item.total,
+      taxTotal: acc.taxTotal + item.taxAmount,
+      total: acc.total + item.total,
     }),
-    { subtotal: 0, discountTotal: 0, taxTotal: 0, total: 0 },
+    { subtotal: 0, discountTotal: 0, taxTotal: 0, total: 0 }
   )
 
-  return applyGlobalDiscount(itemTotals, globalDiscount)
+  const effectiveDiscount = Math.max(0, Math.min(Math.round(globalDiscount), itemTotals.total))
+  if (effectiveDiscount === 0 || items.length === 0) return itemTotals
+
+  let allocated = 0
+  let taxTotal = 0
+  for (const [index, item] of items.entries()) {
+    const allocation =
+      index === items.length - 1
+        ? effectiveDiscount - allocated
+        : Math.round((effectiveDiscount * item.total) / itemTotals.total)
+    allocated += allocation
+    const discountedTotal = Math.max(0, item.total - allocation)
+    const base =
+      item.ivaTasa === 0 ? discountedTotal : Math.round(discountedTotal / (1 + item.ivaTasa / 100))
+    taxTotal += discountedTotal - base
+  }
+
+  return {
+    subtotal: itemTotals.subtotal,
+    discountTotal: itemTotals.discountTotal + effectiveDiscount,
+    taxTotal,
+    total: itemTotals.total - effectiveDiscount,
+  }
 }
 
 /**
- * Aplica un descuento global (en monto COP) como descuento comercial sobre el
- * TOTAL post-IVA. NO se prorratea entre ítems para no alterar el IVA por ítem
- * (`taxTotal` queda intacto). El monto efectivo se acota al total disponible,
- * de modo que `total` nunca sea negativo, y se suma a `discountTotal` para que
- * el ticket y los reportes reflejen el descuento completo (ítems + global).
+ * Helper para totales ya agregados. El flujo principal usa `calculateCartTotals`
+ * porque necesita las tasas de cada línea para recalcular correctamente el IVA.
  */
 export function applyGlobalDiscount(totals: CartTotals, globalDiscount: number): CartTotals {
   const effectiveDiscount = Math.max(0, Math.min(Math.round(globalDiscount), totals.total))
   if (effectiveDiscount === 0) return totals
 
   return {
-    subtotal:      totals.subtotal,
+    subtotal: totals.subtotal,
     discountTotal: totals.discountTotal + effectiveDiscount,
-    taxTotal:      totals.taxTotal,
-    total:         totals.total - effectiveDiscount,
+    taxTotal: totals.taxTotal,
+    total: totals.total - effectiveDiscount,
   }
 }
 
@@ -85,7 +99,7 @@ export interface PaymentValidationInput {
 
 export function validatePaymentsForSale(
   payments: PaymentValidationInput[],
-  saleTotal: number,
+  saleTotal: number
 ): string | null {
   const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0)
   const cashPaid = payments.reduce((sum, p) => {
@@ -106,7 +120,7 @@ export function validateDiscountAuthorization(
   role: Role,
   subtotal: number,
   discountTotal: number,
-  threshold = 0.1,
+  threshold = 0.1
 ): string | null {
   if (role === 'admin') return null
   if (discountTotal > Math.round(subtotal * threshold)) {

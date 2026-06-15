@@ -10,6 +10,9 @@ import { TiendaInfoService } from '../../core/tienda/tienda-info.service'
 import { DEFAULT_TIMEZONE } from '@/modules/reports/domain/services/day-range'
 import { formatCurrency, formatTime } from '@/shared/lib/format'
 import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
+import { ToastService } from '../../shared/feedback/toast.service'
+import { ExcelExportService } from '../../shared/export/excel-export.service'
+import { buildDailyReportWorkbook, buildStockReportWorkbook } from './report-export'
 
 /**
  * Día actual (`YYYY-MM-DD`) en la zona horaria de la tienda, no en la del
@@ -28,12 +31,7 @@ function todayIso(timezone: string): string {
   selector: 'mo-reportes-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    PageHeaderComponent,
-    ButtonComponent,
-    BadgeComponent,
-    EmptyStateComponent,
-  ],
+  imports: [PageHeaderComponent, ButtonComponent, BadgeComponent, EmptyStateComponent],
   template: `
     <section class="flex h-full min-h-0 flex-col gap-4">
       <mo-page-header title="Reportes" subtitle="Reporte diario y stock">
@@ -41,18 +39,23 @@ function todayIso(timezone: string): string {
           type="date"
           [value]="dateIso()"
           (change)="onDateChange($event)"
-          class="border-input bg-card focus:ring-ring h-10 rounded-lg border px-3 text-sm focus:outline-none focus:ring-2"
+          class="border-input bg-card focus:ring-ring h-10 rounded-lg border px-3 text-sm focus:ring-2 focus:outline-none"
         />
         <mo-button variant="outline" (click)="reload()">Actualizar</mo-button>
+        <mo-button
+          variant="outline"
+          [loading]="exporting()"
+          loadingText="Generando..."
+          [disabled]="!canExport()"
+          (click)="exportCurrentReport()"
+        >
+          Descargar Excel
+        </mo-button>
       </mo-page-header>
 
       <div class="grid gap-2">
         <nav class="flex gap-1 text-sm">
-          <button
-            type="button"
-            (click)="tab.set('daily')"
-            [class]="tabClass('daily')"
-          >
+          <button type="button" (click)="tab.set('daily')" [class]="tabClass('daily')">
             Reporte diario
           </button>
           <button type="button" (click)="tab.set('stock')" [class]="tabClass('stock')">
@@ -71,19 +74,35 @@ function todayIso(timezone: string): string {
         </mo-empty-state>
       } @else if (tab() === 'daily') {
         @if (daily(); as d) {
-          <div class="grid gap-4 md:grid-cols-4">
+          <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
             <div class="bg-card rounded-xl border p-5">
               <p class="text-muted-foreground text-xs font-semibold uppercase">Total ventas</p>
-              <p class="font-display mt-2 text-2xl font-bold tabular-nums">{{ money(d.totalVentas) }}</p>
+              <p class="font-display mt-2 text-2xl font-bold tabular-nums">
+                {{ money(d.totalVentas) }}
+              </p>
               <p class="text-muted-foreground text-xs">{{ d.countVentas }} ventas</p>
+            </div>
+            <div class="rounded-xl border border-amber-500/30 bg-amber-500/8 p-5">
+              <p class="text-xs font-semibold text-amber-800 uppercase">Descuentos</p>
+              <p class="font-display mt-2 text-2xl font-bold tabular-nums">
+                {{ money(d.discountTotal) }}
+              </p>
+              <p class="text-muted-foreground text-xs">
+                {{ d.discountedSalesCount }} ventas · promedio
+                {{ percent(d.averageDiscountPercentage) }}
+              </p>
             </div>
             <div class="bg-card rounded-xl border p-5">
               <p class="text-muted-foreground text-xs font-semibold uppercase">Ticket promedio</p>
-              <p class="font-display mt-2 text-2xl font-bold tabular-nums">{{ money(d.avgVenta) }}</p>
+              <p class="font-display mt-2 text-2xl font-bold tabular-nums">
+                {{ money(d.avgVenta) }}
+              </p>
             </div>
             <div class="bg-card rounded-xl border p-5">
               <p class="text-muted-foreground text-xs font-semibold uppercase">IVA</p>
-              <p class="font-display mt-2 text-2xl font-bold tabular-nums">{{ money(d.taxTotal) }}</p>
+              <p class="font-display mt-2 text-2xl font-bold tabular-nums">
+                {{ money(d.taxTotal) }}
+              </p>
             </div>
             <div class="bg-card rounded-xl border p-5">
               <p class="text-muted-foreground text-xs font-semibold uppercase">Anuladas</p>
@@ -91,9 +110,76 @@ function todayIso(timezone: string): string {
             </div>
           </div>
 
+          <div class="bg-card rounded-xl border border-amber-500/25 p-5">
+            <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h3 class="font-display text-sm font-bold tracking-wide uppercase">
+                  Control de descuentos
+                </h3>
+                <p class="text-muted-foreground mt-1 text-xs">
+                  Seguimiento por venta, origen y responsable.
+                </p>
+              </div>
+              <div class="flex gap-4 text-right text-xs">
+                <div>
+                  <p class="text-muted-foreground">Por productos</p>
+                  <p class="font-mono font-bold tabular-nums">{{ money(d.itemDiscountTotal) }}</p>
+                </div>
+                <div>
+                  <p class="text-muted-foreground">Globales</p>
+                  <p class="font-mono font-bold tabular-nums">{{ money(d.globalDiscountTotal) }}</p>
+                </div>
+              </div>
+            </div>
+            @if (d.discountedSalesCount === 0) {
+              <p class="text-muted-foreground text-sm">No se aplicaron descuentos este día.</p>
+            } @else {
+              <div class="overflow-auto">
+                <table class="w-full min-w-[760px] text-sm">
+                  <thead class="text-muted-foreground text-left text-xs uppercase">
+                    <tr>
+                      <th class="px-2 py-2">Venta</th>
+                      <th class="px-2 py-2">Usuario</th>
+                      <th class="px-2 py-2 text-right">Productos</th>
+                      <th class="px-2 py-2 text-right">Global</th>
+                      <th class="px-2 py-2 text-right">Total</th>
+                      <th class="px-2 py-2 text-right">%</th>
+                      <th class="px-2 py-2">Motivo</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y">
+                    @for (sale of discountedSales(d); track sale.id) {
+                      <tr>
+                        <td class="px-2 py-2 font-mono text-xs">{{ sale.saleNumber }}</td>
+                        <td class="px-2 py-2 text-xs">
+                          {{ sale.cashierEmail ?? cashierLabel(sale.cashierId) }}
+                        </td>
+                        <td class="px-2 py-2 text-right tabular-nums">
+                          {{ money(sale.itemDiscountTotal) }}
+                        </td>
+                        <td class="px-2 py-2 text-right tabular-nums">
+                          {{ money(sale.globalDiscountTotal) }}
+                        </td>
+                        <td class="px-2 py-2 text-right font-bold tabular-nums">
+                          {{ money(sale.discountTotal) }}
+                        </td>
+                        <td class="px-2 py-2 text-right tabular-nums">
+                          {{ percent(sale.discountPercentage) }}
+                        </td>
+                        <td class="max-w-64 px-2 py-2 text-xs">
+                          {{ sale.discountReason ?? 'Histórico sin motivo' }}
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </div>
+
           <div class="grid gap-4 md:grid-cols-2">
             <div class="bg-card rounded-xl border p-5">
-              <h3 class="font-display mb-3 text-sm font-bold uppercase tracking-wide">
+              <h3 class="font-display mb-3 text-sm font-bold tracking-wide uppercase">
                 Por metodo de pago
               </h3>
               @if (d.paymentBreakdown.length === 0) {
@@ -111,7 +197,7 @@ function todayIso(timezone: string): string {
             </div>
 
             <div class="bg-card rounded-xl border p-5">
-              <h3 class="font-display mb-3 text-sm font-bold uppercase tracking-wide">
+              <h3 class="font-display mb-3 text-sm font-bold tracking-wide uppercase">
                 Top productos
               </h3>
               @if (d.topProducts.length === 0) {
@@ -120,7 +206,10 @@ function todayIso(timezone: string): string {
                 <ul class="space-y-2 text-sm">
                   @for (p of d.topProducts; track p.productId) {
                     <li class="flex justify-between">
-                      <span class="truncate pr-3">{{ p.nombre }} <span class="text-muted-foreground">× {{ p.qty }}</span></span>
+                      <span class="truncate pr-3"
+                        >{{ p.nombre }}
+                        <span class="text-muted-foreground">× {{ p.qty }}</span></span
+                      >
                       <span class="font-mono font-semibold tabular-nums">{{ money(p.total) }}</span>
                     </li>
                   }
@@ -130,9 +219,7 @@ function todayIso(timezone: string): string {
           </div>
 
           <div class="bg-card rounded-xl border p-5">
-            <h3 class="font-display mb-3 text-sm font-bold uppercase tracking-wide">
-              Por cajero
-            </h3>
+            <h3 class="font-display mb-3 text-sm font-bold tracking-wide uppercase">Por cajero</h3>
             @if (d.cashierBreakdown.length === 0) {
               <p class="text-muted-foreground text-sm">Sin ventas registradas.</p>
             } @else {
@@ -150,7 +237,9 @@ function todayIso(timezone: string): string {
                       </span>
                     </span>
                     <span class="text-right">
-                      <span class="font-mono font-semibold tabular-nums">{{ money(c.totalVentas) }}</span>
+                      <span class="font-mono font-semibold tabular-nums">{{
+                        money(c.totalVentas)
+                      }}</span>
                       <span class="text-muted-foreground ml-2 font-mono text-xs tabular-nums">
                         IVA {{ money(c.taxTotal) }}
                       </span>
@@ -163,7 +252,7 @@ function todayIso(timezone: string): string {
 
           @if (d.sessions.length > 0) {
             <div class="bg-card rounded-xl border p-5">
-              <h3 class="font-display mb-3 text-sm font-bold uppercase tracking-wide">
+              <h3 class="font-display mb-3 text-sm font-bold tracking-wide uppercase">
                 Cierres de caja
               </h3>
               <div class="overflow-auto">
@@ -184,7 +273,9 @@ function todayIso(timezone: string): string {
                       <tr>
                         <td class="text-muted-foreground px-2 py-2 text-xs">
                           {{ time(s.openedAt) }}
-                          @if (s.closedAt) { → {{ time(s.closedAt) }} }
+                          @if (s.closedAt) {
+                            → {{ time(s.closedAt) }}
+                          }
                         </td>
                         <td class="px-2 py-2 text-right tabular-nums">
                           {{ money(s.expectedSalesAmount) }}
@@ -221,7 +312,7 @@ function todayIso(timezone: string): string {
           }
 
           <div class="bg-card rounded-xl border p-5">
-            <h3 class="font-display mb-3 text-sm font-bold uppercase tracking-wide">
+            <h3 class="font-display mb-3 text-sm font-bold tracking-wide uppercase">
               Detalle de ventas
             </h3>
             @if (d.salesDetail.length === 0) {
@@ -234,6 +325,7 @@ function todayIso(timezone: string): string {
                       <th class="px-2 py-2">Hora</th>
                       <th class="px-2 py-2">No.</th>
                       <th class="px-2 py-2 text-right">Items</th>
+                      <th class="px-2 py-2 text-right">Descuento</th>
                       <th class="px-2 py-2 text-right">Total</th>
                       <th class="px-2 py-2">Estado</th>
                     </tr>
@@ -246,6 +338,9 @@ function todayIso(timezone: string): string {
                         </td>
                         <td class="px-2 py-2 font-mono text-xs">{{ s.saleNumber }}</td>
                         <td class="px-2 py-2 text-right tabular-nums">{{ s.itemCount }}</td>
+                        <td class="px-2 py-2 text-right tabular-nums">
+                          {{ s.discountTotal > 0 ? money(s.discountTotal) : '—' }}
+                        </td>
                         <td class="px-2 py-2 text-right font-semibold tabular-nums">
                           {{ money(s.total) }}
                         </td>
@@ -270,7 +365,9 @@ function todayIso(timezone: string): string {
         } @else {
           <div class="bg-card flex-1 overflow-auto rounded-xl border">
             <table class="w-full text-sm">
-              <thead class="bg-muted/50 text-muted-foreground sticky top-0 text-left text-xs uppercase">
+              <thead
+                class="bg-muted/50 text-muted-foreground sticky top-0 text-left text-xs uppercase"
+              >
                 <tr>
                   <th class="px-4 py-3">Producto</th>
                   <th class="px-4 py-3">SKU</th>
@@ -319,6 +416,8 @@ export class ReportesPage {
   private readonly reportsService = inject(ReportsService)
   private readonly session = inject(SessionService)
   private readonly tiendaInfo = inject(TiendaInfoService)
+  private readonly toast = inject(ToastService)
+  private readonly excel = inject(ExcelExportService)
 
   readonly dateIso = signal(todayIso(DEFAULT_TIMEZONE))
   readonly tab = signal<'daily' | 'stock'>('daily')
@@ -326,6 +425,7 @@ export class ReportesPage {
   readonly stock = signal<StockReportRow[]>([])
   readonly loading = signal(true)
   readonly loadError = signal<string | null>(null)
+  readonly exporting = signal(false)
 
   /** El usuario eligió una fecha manualmente: no recalcular "hoy" por TZ. */
   private userPickedDate = false
@@ -336,6 +436,16 @@ export class ReportesPage {
 
   money(v: number): string {
     return formatCurrency(v)
+  }
+
+  percent(value: number): string {
+    return `${value.toFixed(2)}%`
+  }
+
+  discountedSales(report: DailyReport): DailyReport['salesDetail'] {
+    return report.salesDetail.filter(
+      (sale) => sale.status === 'completed' && sale.discountTotal > 0
+    )
   }
 
   time(d: Date): string {
@@ -361,6 +471,28 @@ export class ReportesPage {
       'rounded-lg px-3 py-1.5 font-semibold transition-colors',
       this.tab() === value ? 'bg-primary text-primary-foreground' : 'hover:bg-muted',
     ].join(' ')
+  }
+
+  canExport(): boolean {
+    return this.tab() === 'daily' ? this.daily() !== null : this.stock().length > 0
+  }
+
+  async exportCurrentReport(): Promise<void> {
+    this.exporting.set(true)
+    try {
+      if (this.tab() === 'daily') {
+        const report = this.daily()
+        if (!report) return
+        await this.excel.download(buildDailyReportWorkbook(report, this.dateIso()))
+      } else {
+        await this.excel.download(buildStockReportWorkbook(this.stock()))
+      }
+      this.toast.success('Reporte descargado en Excel')
+    } catch (error) {
+      this.toast.error(getErrorMessage(error, 'No se pudo generar el reporte'))
+    } finally {
+      this.exporting.set(false)
+    }
   }
 
   onDateChange(event: Event): void {

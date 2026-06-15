@@ -22,6 +22,10 @@ import { selectSessionSales } from './sales-history.session-filter'
 import { formatCurrency, formatShortDate, formatTime } from '@/shared/lib/format'
 import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
 import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
+import type { CashMovement } from '@/modules/cash-register/domain/entities/cash-session.entity'
+import { CashRegisterRepository } from '../cash-register/cash-register.repository'
+import { ExcelExportService } from '../../shared/export/excel-export.service'
+import { buildTurnSalesWorkbook } from './sales-export'
 
 @Component({
   selector: 'mo-sales-history-dialog',
@@ -43,7 +47,9 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
           <div class="bg-muted h-28 animate-pulse rounded-2xl"></div>
         </div>
       } @else if (loadError()) {
-        <div class="border-destructive/25 bg-destructive/5 rounded-2xl border px-5 py-8 text-center">
+        <div
+          class="border-destructive/25 bg-destructive/5 rounded-2xl border px-5 py-8 text-center"
+        >
           <p class="text-destructive font-semibold">No pudimos cargar el historial</p>
           <p class="text-muted-foreground mt-1 text-sm">{{ loadError() }}</p>
           <mo-button class="mt-4" variant="outline" size="sm" (click)="load()">
@@ -51,7 +57,9 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
           </mo-button>
         </div>
       } @else if (sales().length === 0) {
-        <div class="border-border bg-muted/20 rounded-2xl border border-dashed px-5 py-12 text-center">
+        <div
+          class="border-border bg-muted/20 rounded-2xl border border-dashed px-5 py-12 text-center"
+        >
           <div
             class="bg-primary/10 text-primary mx-auto flex h-12 w-12 items-center justify-center rounded-2xl"
           >
@@ -66,6 +74,17 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
           </p>
         </div>
       } @else {
+        <div class="mb-4 flex justify-end">
+          <mo-button
+            size="sm"
+            variant="outline"
+            [loading]="exporting()"
+            loadingText="Generando..."
+            (click)="exportTurn()"
+          >
+            Descargar Excel
+          </mo-button>
+        </div>
         <div class="mb-5 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
           <div
             class="border-primary/20 bg-primary/5 col-span-2 rounded-2xl border p-3.5 sm:col-span-1"
@@ -87,7 +106,9 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
             <p class="text-muted-foreground text-[10px] font-bold tracking-wide uppercase">
               Anuladas
             </p>
-            <p class="font-display mt-1 text-xl font-black tabular-nums">{{ voidedSalesCount() }}</p>
+            <p class="font-display mt-1 text-xl font-black tabular-nums">
+              {{ voidedSalesCount() }}
+            </p>
           </div>
         </div>
 
@@ -121,7 +142,9 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
                   </div>
                   <div class="flex shrink-0 items-center gap-3">
                     <div class="text-right">
-                      <p class="text-muted-foreground text-[10px] font-bold tracking-wide uppercase">
+                      <p
+                        class="text-muted-foreground text-[10px] font-bold tracking-wide uppercase"
+                      >
                         Total
                       </p>
                       <p
@@ -171,9 +194,13 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
                 >
                   <div class="grid gap-4 md:grid-cols-[minmax(0,1.3fr)_minmax(16rem,0.7fr)]">
                     <section class="border-border bg-card overflow-hidden rounded-2xl border">
-                      <div class="border-border flex items-center justify-between border-b px-4 py-3">
+                      <div
+                        class="border-border flex items-center justify-between border-b px-4 py-3"
+                      >
                         <h3 class="text-sm font-black">Productos vendidos</h3>
-                        <span class="text-muted-foreground text-xs">{{ sale.items.length }} líneas</span>
+                        <span class="text-muted-foreground text-xs"
+                          >{{ sale.items.length }} líneas</span
+                        >
                       </div>
                       <div class="divide-border divide-y">
                         @for (item of sale.items; track item.id) {
@@ -184,7 +211,9 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
                               {{ item.quantity }}×
                             </span>
                             <div class="min-w-0 flex-1">
-                              <p class="text-sm leading-snug font-bold">{{ item.productoNombre }}</p>
+                              <p class="text-sm leading-snug font-bold">
+                                {{ item.productoNombre }}
+                              </p>
                               <p class="text-muted-foreground mt-1 text-xs">
                                 {{ money(item.unitPrice) }} c/u
                                 @if (item.productoSku) {
@@ -194,7 +223,12 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
                               <div class="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11px]">
                                 @if (item.discountAmount > 0) {
                                   <span class="text-emerald-700">
-                                    Descuento −{{ money(itemDiscountTotal(item)) }}
+                                    Desc. producto −{{ money(itemDiscountTotal(item)) }}
+                                  </span>
+                                }
+                                @if (item.globalDiscountAmount > 0) {
+                                  <span class="text-amber-700">
+                                    Desc. global −{{ money(item.globalDiscountAmount) }}
                                   </span>
                                 }
                                 @if (item.taxRate > 0) {
@@ -221,11 +255,26 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
                             <dd class="font-semibold tabular-nums">{{ money(sale.subtotal) }}</dd>
                           </div>
                           <div class="flex justify-between gap-3">
-                            <dt class="text-muted-foreground">Descuentos</dt>
+                            <dt class="text-muted-foreground">Descuentos por producto</dt>
                             <dd class="font-semibold tabular-nums">
-                              {{ sale.discountTotal > 0 ? '−' : '' }}{{ money(sale.discountTotal) }}
+                              {{ sale.itemDiscountTotal > 0 ? '−' : ''
+                              }}{{ money(sale.itemDiscountTotal) }}
                             </dd>
                           </div>
+                          @if (sale.globalDiscountTotal > 0) {
+                            <div class="flex justify-between gap-3">
+                              <dt class="text-muted-foreground">Descuento global</dt>
+                              <dd class="font-semibold tabular-nums">
+                                −{{ money(sale.globalDiscountTotal) }}
+                              </dd>
+                            </div>
+                          }
+                          @if (sale.discountReason) {
+                            <div class="border-border border-t pt-2">
+                              <dt class="text-muted-foreground text-xs">Motivo del descuento</dt>
+                              <dd class="mt-1 text-xs font-semibold">{{ sale.discountReason }}</dd>
+                            </div>
+                          }
                           <div class="flex justify-between gap-3">
                             <dt class="text-muted-foreground">IVA incluido</dt>
                             <dd class="font-semibold tabular-nums">{{ money(sale.taxTotal) }}</dd>
@@ -252,7 +301,9 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
                                   </p>
                                 }
                               </div>
-                              <span class="font-bold tabular-nums">{{ money(payment.amount) }}</span>
+                              <span class="font-bold tabular-nums">{{
+                                money(payment.amount)
+                              }}</span>
                             </div>
                           }
                         </div>
@@ -263,7 +314,9 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
                           </div>
                           <div class="flex justify-between gap-3">
                             <dt class="font-bold">Cambio entregado</dt>
-                            <dd class="text-primary font-black tabular-nums">{{ money(sale.change) }}</dd>
+                            <dd class="text-primary font-black tabular-nums">
+                              {{ money(sale.change) }}
+                            </dd>
                           </div>
                         </dl>
                       </section>
@@ -340,6 +393,8 @@ export class SalesHistoryDialog {
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
   private readonly receiptPrint = inject(ReceiptPrintService)
+  private readonly cashRepo = inject(CashRegisterRepository)
+  private readonly excel = inject(ExcelExportService)
 
   readonly open = input<boolean>(false)
   readonly cashSessionId = input<string | null>(null)
@@ -347,10 +402,12 @@ export class SalesHistoryDialog {
   readonly changed = output<void>()
 
   readonly sales = signal<Sale[]>([])
+  readonly cashMovements = signal<CashMovement[]>([])
   readonly loading = signal(false)
   readonly loadError = signal<string | null>(null)
   readonly reprintingSaleId = signal<string | null>(null)
   readonly expandedSaleId = signal<string | null>(null)
+  readonly exporting = signal(false)
 
   /** Venta seleccionada para anular y visibilidad del dialog de motivo. */
   readonly voidTarget = signal<Sale | null>(null)
@@ -369,6 +426,7 @@ export class SalesHistoryDialog {
       // se leen señales escritas aquí, así que no hay bucle de effect.
       if (!this.open() || !this.cashSessionId()) {
         this.sales.set([])
+        this.cashMovements.set([])
         this.loadError.set(null)
         this.expandedSaleId.set(null)
         // No dejar el dialog de motivo colgado si se cierra el historial.
@@ -448,6 +506,18 @@ export class SalesHistoryDialog {
     this.expandedSaleId.update((current) => (current === sale.id ? null : sale.id))
   }
 
+  async exportTurn(): Promise<void> {
+    this.exporting.set(true)
+    try {
+      await this.excel.download(buildTurnSalesWorkbook(this.sales(), this.cashMovements()))
+      this.toast.success('Ventas del turno descargadas')
+    } catch (error) {
+      this.toast.error(getErrorMessage(error, 'No se pudo generar el archivo'))
+    } finally {
+      this.exporting.set(false)
+    }
+  }
+
   async load(): Promise<void> {
     const sid = this.cashSessionId()
     if (!sid) return
@@ -456,10 +526,14 @@ export class SalesHistoryDialog {
     try {
       const auth = await this.session.getAuthContext()
       if (!auth) throw new Error('No autenticado')
-      const rows = await this.salesRepo.listBySession(sid, auth.tiendaId)
+      const [rows, cashMovements] = await Promise.all([
+        this.salesRepo.listBySession(sid, auth.tiendaId),
+        this.cashRepo.listMovements(sid),
+      ])
       // Segunda barrera pura sobre lo que devuelve el repo.
       const sessionSales = selectSessionSales(rows, sid)
       this.sales.set(sessionSales)
+      this.cashMovements.set(cashMovements)
       if (!sessionSales.some((sale) => sale.id === this.expandedSaleId())) {
         this.expandedSaleId.set(sessionSales[0]?.id ?? null)
       }

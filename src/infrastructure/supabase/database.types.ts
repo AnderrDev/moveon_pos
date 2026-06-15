@@ -552,6 +552,7 @@ export type Database = {
       sale_items: {
         Row: {
           discount_amount: number
+          global_discount_amount: number
           id: string
           producto_id: string
           producto_nombre: string
@@ -565,6 +566,7 @@ export type Database = {
         }
         Insert: {
           discount_amount?: number
+          global_discount_amount?: number
           id?: string
           producto_id: string
           producto_nombre: string
@@ -578,6 +580,7 @@ export type Database = {
         }
         Update: {
           discount_amount?: number
+          global_discount_amount?: number
           id?: string
           producto_id?: string
           producto_nombre?: string
@@ -616,7 +619,11 @@ export type Database = {
           cliente_id: string | null
           created_at: string
           discount_total: number
+          discount_approved_by: string | null
+          discount_reason: string | null
+          global_discount_total: number
           id: string
+          item_discount_total: number
           idempotency_key: string
           sale_number: string
           status: Database["public"]["Enums"]["sale_status"]
@@ -638,7 +645,11 @@ export type Database = {
           cliente_id?: string | null
           created_at?: string
           discount_total?: number
+          discount_approved_by?: string | null
+          discount_reason?: string | null
+          global_discount_total?: number
           id?: string
+          item_discount_total?: number
           idempotency_key: string
           sale_number: string
           status?: Database["public"]["Enums"]["sale_status"]
@@ -660,7 +671,11 @@ export type Database = {
           cliente_id?: string | null
           created_at?: string
           discount_total?: number
+          discount_approved_by?: string | null
+          discount_reason?: string | null
+          global_discount_total?: number
           id?: string
+          item_discount_total?: number
           idempotency_key?: string
           sale_number?: string
           status?: Database["public"]["Enums"]["sale_status"]
@@ -829,6 +844,8 @@ export type Database = {
           p_cashier_id: string
           p_cliente_id: string
           p_discount_total: number
+          p_discount_reason: string
+          p_global_discount_total: number
           p_idempotency_key: string
           p_items: Json
           p_payments: Json
