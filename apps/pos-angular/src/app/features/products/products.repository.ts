@@ -12,7 +12,7 @@ import type { CreateCategoriaDto, UpdateCategoriaDto } from '@/modules/products/
 import type { InventoryLocation } from '@/shared/types'
 
 const PRODUCT_COLS =
-  'id, tienda_id, nombre, sku, codigo_barras, categoria_id, para_que_sirve, recomendado_para, tipo, unidad, precio_venta, costo, iva_tasa, stock_minimo, is_active, created_at, updated_at'
+  'id, tienda_id, nombre, sku, codigo_barras, categoria_id, para_que_sirve, recomendado_para, tipo, unidad, precio_venta, costo, iva_tasa, stock_minimo, is_active, deleted_at, created_at, updated_at'
 const CATEGORIA_COLS = 'id, tienda_id, nombre, orden, is_active, created_at, updated_at'
 
 interface SearchProductsParams {
@@ -56,6 +56,7 @@ export class ProductsRepository {
       .from('productos')
       .select(PRODUCT_COLS)
       .eq('tienda_id', params.tiendaId)
+      .is('deleted_at', null)
 
     if (params.soloActivos) query = query.eq('is_active', true)
     if (params.categoriaId) query = query.eq('categoria_id', params.categoriaId)
@@ -156,6 +157,18 @@ export class ProductsRepository {
     if (error) throw new Error(error.message)
     if (!data) throw new Error('Producto actualizado sin respuesta')
     return rowToProduct(data)
+  }
+
+  async deleteProduct(id: string, tiendaId: string): Promise<void> {
+    const client = this.supabaseClient.supabase as unknown as UntypedClient
+    const result = await client
+      .from('productos')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('tienda_id', tiendaId)
+      .select(PRODUCT_COLS)
+      .single<ProductRow>()
+    if (result.error) throw new Error(result.error.message)
   }
 
   async deactivateProduct(id: string, tiendaId: string): Promise<void> {

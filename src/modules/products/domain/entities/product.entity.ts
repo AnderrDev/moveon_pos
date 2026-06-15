@@ -16,6 +16,7 @@ export interface Product {
   ivaTasa: IvaRate
   stockMinimo: number
   isActive: boolean
+  deletedAt: Date | null
   createdAt: Date
   updatedAt: Date
 }

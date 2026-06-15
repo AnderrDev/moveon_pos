@@ -17,6 +17,7 @@ export interface ProductRow {
   iva_tasa: number
   stock_minimo: number
   is_active: boolean
+  deleted_at: string | null
   created_at: string
   updated_at: string
 }
@@ -48,6 +49,7 @@ export function rowToProduct(row: ProductRow): Product {
     ivaTasa: row.iva_tasa as IvaRate,
     stockMinimo: row.stock_minimo,
     isActive: row.is_active,
+    deletedAt: row.deleted_at ? new Date(row.deleted_at) : null,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   }

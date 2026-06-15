@@ -28,6 +28,7 @@ function makeProduct(overrides: Partial<Product> = {}): Product {
     ivaTasa:       19,
     stockMinimo:   1,
     isActive:      true,
+    deletedAt:     null,
     createdAt:     now,
     updatedAt:     now,
     ...overrides,

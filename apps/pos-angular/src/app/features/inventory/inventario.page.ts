@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { getErrorMessage } from '@/shared/lib/error-message'
+import { formatCurrency } from '@/shared/lib/format'
 import { PageHeaderComponent } from '../../shared/layout/page-header.component'
 import { ButtonComponent } from '../../shared/ui/button.component'
 import { BadgeComponent } from '../../shared/ui/badge.component'
@@ -22,6 +23,9 @@ interface StockRow {
   id: string
   nombre: string
   sku: string | null
+  tipo: string
+  costo: number | null
+  precioVenta: number
   puntoVentaStock: number
   bodegaStock: number
   totalStock: number
@@ -85,7 +89,10 @@ interface StockRow {
             >
               <tr>
                 <th class="px-4 py-3">Producto</th>
+                <th class="px-4 py-3">Tipo</th>
                 <th class="px-4 py-3">SKU</th>
+                <th class="px-4 py-3 text-right">Costo</th>
+                <th class="px-4 py-3 text-right">Precio</th>
                 <th class="px-4 py-3 text-right">Punto venta</th>
                 <th class="px-4 py-3 text-right">Bodega</th>
                 <th class="px-4 py-3 text-right">Total</th>
@@ -98,8 +105,17 @@ interface StockRow {
               @for (row of filteredRows(); track row.id) {
                 <tr class="hover:bg-muted/30">
                   <td class="px-4 py-3 font-semibold">{{ row.nombre }}</td>
+                  <td class="text-muted-foreground px-4 py-3 text-xs">
+                    {{ tipoLabel(row.tipo) }}
+                  </td>
                   <td class="text-muted-foreground px-4 py-3 font-mono text-xs">
                     {{ row.sku ?? '—' }}
+                  </td>
+                  <td class="text-muted-foreground px-4 py-3 text-right tabular-nums">
+                    {{ row.costo != null ? money(row.costo) : '—' }}
+                  </td>
+                  <td class="px-4 py-3 text-right font-semibold tabular-nums">
+                    {{ money(row.precioVenta) }}
                   </td>
                   <td class="px-4 py-3 text-right font-bold tabular-nums">
                     {{ row.puntoVentaStock }}
@@ -218,6 +234,9 @@ export class InventarioPage {
         id: p.id,
         nombre: p.nombre,
         sku: p.sku,
+        tipo: p.tipo,
+        costo: p.costo,
+        precioVenta: p.precioVenta,
         puntoVentaStock,
         bodegaStock,
         totalStock,
@@ -239,6 +258,19 @@ export class InventarioPage {
 
   constructor() {
     void this.load()
+  }
+
+  money(amount: number): string {
+    return formatCurrency(amount)
+  }
+
+  tipoLabel(tipo: string): string {
+    const labels: Record<string, string> = {
+      simple: 'Simple',
+      prepared: 'Preparado',
+      ingredient: 'Ingrediente',
+    }
+    return labels[tipo] ?? tipo
   }
 
   onQuery(event: Event): void {

@@ -23,6 +23,7 @@ const product: Product = {
   isActive: true,
   createdAt: new Date('2026-01-01T00:00:00Z'),
   updatedAt: new Date('2026-01-02T00:00:00Z'),
+  deletedAt: null,
 }
 
 const formValue: ProductFormValue = {

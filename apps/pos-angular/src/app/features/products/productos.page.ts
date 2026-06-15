@@ -6,12 +6,15 @@ import { ButtonComponent } from '../../shared/ui/button.component'
 import { BadgeComponent } from '../../shared/ui/badge.component'
 import { EmptyStateComponent } from '../../shared/feedback/empty-state.component'
 import { ProductFormDialog } from './product-form.dialog'
+import { DialogComponent } from '../../shared/ui/dialog.component'
 import { ProductsRepository } from './products.repository'
 import { ProductsCacheStore } from './products-cache.store'
+import { InventoryRepository } from '../inventory/inventory.repository'
 import { SessionService } from '../../core/auth/session.service'
 import { ToastService } from '../../shared/feedback/toast.service'
 import { formatCurrency } from '@/shared/lib/format'
 import type { Product } from '@/modules/products/domain/entities/product.entity'
+import type { StockLevel } from '@/modules/inventory/domain/entities/inventory.entity'
 import { ExcelExportService } from '../../shared/export/excel-export.service'
 import { buildProductsWorkbook } from './product-export'
 
@@ -27,6 +30,7 @@ import { buildProductsWorkbook } from './product-export'
     BadgeComponent,
     EmptyStateComponent,
     ProductFormDialog,
+    DialogComponent,
   ],
   template: `
     <section class="flex h-full min-h-0 flex-col">
@@ -67,6 +71,25 @@ import { buildProductsWorkbook } from './product-export'
           placeholder="Buscar por nombre, SKU o codigo de barras"
           class="border-input bg-card focus:ring-ring h-10 flex-1 rounded-lg border px-3 text-sm focus:ring-2 focus:outline-none"
         />
+        <select
+          [value]="filterCategoria()"
+          (change)="filterCategoria.set(getSelectValue($event))"
+          class="border-input bg-card focus:ring-ring h-10 rounded-lg border px-3 text-sm focus:ring-2 focus:outline-none"
+        >
+          <option value="all">Todas las categorias</option>
+          @for (cat of categorias(); track cat.id) {
+            <option [value]="cat.id">{{ cat.nombre }}</option>
+          }
+        </select>
+        <select
+          [value]="filterEstado()"
+          (change)="onEstadoChange($event)"
+          class="border-input bg-card focus:ring-ring h-10 rounded-lg border px-3 text-sm focus:ring-2 focus:outline-none"
+        >
+          <option value="active">Solo activos</option>
+          <option value="inactive">Solo inactivos</option>
+          <option value="all">Todos</option>
+        </select>
       </div>
 
       @if (loading()) {
@@ -93,10 +116,14 @@ import { buildProductsWorkbook } from './product-export'
             >
               <tr>
                 <th class="px-4 py-3">Producto</th>
+                <th class="px-4 py-3">Tipo</th>
                 <th class="px-4 py-3">SKU</th>
+                <th class="px-4 py-3 text-right">Costo</th>
                 <th class="px-4 py-3 text-right">Precio</th>
                 <th class="px-4 py-3 text-right">IVA</th>
                 <th class="px-4 py-3 text-right">Stock min.</th>
+                <th class="px-4 py-3 text-right">Pto. venta</th>
+                <th class="px-4 py-3 text-right">Bodega</th>
                 <th class="px-4 py-3"></th>
                 <th class="px-4 py-3"></th>
               </tr>
@@ -112,8 +139,14 @@ import { buildProductsWorkbook } from './product-export'
                       </div>
                     }
                   </td>
+                  <td class="text-muted-foreground px-4 py-3 text-xs">
+                    {{ tipoLabel(product.tipo) }}
+                  </td>
                   <td class="text-muted-foreground px-4 py-3 font-mono text-xs">
                     {{ product.sku ?? '—' }}
+                  </td>
+                  <td class="text-muted-foreground px-4 py-3 text-right tabular-nums">
+                    {{ product.costo != null ? money(product.costo) : '—' }}
                   </td>
                   <td class="px-4 py-3 text-right font-semibold tabular-nums">
                     {{ money(product.precioVenta) }}
@@ -123,6 +156,12 @@ import { buildProductsWorkbook } from './product-export'
                   </td>
                   <td class="text-muted-foreground px-4 py-3 text-right tabular-nums">
                     {{ product.stockMinimo }}
+                  </td>
+                  <td class="px-4 py-3 text-right tabular-nums font-semibold">
+                    {{ stockMap().get(product.id)?.puntoVentaStock ?? '—' }}
+                  </td>
+                  <td class="text-muted-foreground px-4 py-3 text-right tabular-nums">
+                    {{ stockMap().get(product.id)?.bodegaStock ?? '—' }}
                   </td>
                   <td class="px-4 py-3">
                     @if (!product.isActive) {
@@ -139,6 +178,9 @@ import { buildProductsWorkbook } from './product-export'
                           Desactivar
                         </mo-button>
                       }
+                      <mo-button size="sm" variant="ghost" class="text-destructive hover:text-destructive" (click)="openDeleteConfirm(product)">
+                        Eliminar
+                      </mo-button>
                     </div>
                   </td>
                 </tr>
@@ -156,17 +198,59 @@ import { buildProductsWorkbook } from './product-export'
       (closed)="closeDialog()"
       (saved)="onSaved($event)"
     />
+
+    <mo-dialog
+      title="Eliminar producto"
+      width="sm"
+      [open]="deleteConfirmOpen()"
+      [busy]="deleting()"
+      (closed)="closeDeleteConfirm()"
+    >
+      @if (deletingProduct()) {
+        <div class="flex flex-col gap-4">
+          <p class="text-sm">
+            Esta acción ocultará el producto permanentemente. El historial de ventas se conserva.
+          </p>
+          <p class="text-sm font-medium">
+            Escribe <span class="text-destructive font-semibold">{{ deletingProduct()!.nombre }}</span> para confirmar:
+          </p>
+          <input
+            type="text"
+            [value]="deleteConfirmInput()"
+            (input)="deleteConfirmInput.set(getInputValue($event))"
+            placeholder="Nombre del producto"
+            class="border-input bg-card focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm focus:ring-2 focus:outline-none"
+          />
+          <div class="flex justify-end gap-2 pt-1">
+            <mo-button variant="outline" [disabled]="deleting()" (click)="closeDeleteConfirm()">
+              Cancelar
+            </mo-button>
+            <mo-button
+              variant="destructive"
+              [disabled]="deleteConfirmInput() !== deletingProduct()!.nombre || deleting()"
+              [loading]="deleting()"
+              loadingText="Eliminando..."
+              (click)="executeDelete()"
+            >
+              Eliminar
+            </mo-button>
+          </div>
+        </div>
+      }
+    </mo-dialog>
   `,
 })
 export class ProductosPage {
   private readonly repo = inject(ProductsRepository)
   private readonly store = inject(ProductsCacheStore)
+  private readonly inventoryRepo = inject(InventoryRepository)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
   private readonly excel = inject(ExcelExportService)
 
   readonly products = computed(() => this.store.products() ?? [])
   readonly categorias = computed(() => this.store.categorias() ?? [])
+  readonly stockLevels = signal<StockLevel[]>([])
   readonly loading = signal(true)
   readonly loadError = signal<string | null>(null)
   readonly query = signal('')
@@ -174,13 +258,26 @@ export class ProductosPage {
   readonly editingProduct = signal<Product | null>(null)
   readonly exporting = signal(false)
 
+  readonly stockMap = computed(() => new Map(this.stockLevels().map((s) => [s.productId, s])))
+
+  readonly filterCategoria = signal<string>('all')
+  readonly filterEstado = signal<'all' | 'active' | 'inactive'>('active')
+  readonly deleteConfirmOpen = signal(false)
+  readonly deletingProduct = signal<Product | null>(null)
+  readonly deleteConfirmInput = signal('')
+  readonly deleting = signal(false)
+
   readonly filteredProducts = computed(() => {
     const q = this.query().trim().toLowerCase()
-    const list = this.products()
-    if (!q) return list
-    return list.filter((p) =>
-      [p.nombre, p.sku ?? '', p.codigoBarras ?? ''].join(' ').toLowerCase().includes(q)
-    )
+    const cat = this.filterCategoria()
+    const estado = this.filterEstado()
+    return this.products().filter((p) => {
+      if (q && !([p.nombre, p.sku ?? '', p.codigoBarras ?? ''].join(' ').toLowerCase().includes(q))) return false
+      if (cat !== 'all' && p.categoriaId !== cat) return false
+      if (estado === 'active' && !p.isActive) return false
+      if (estado === 'inactive' && p.isActive) return false
+      return true
+    })
   })
 
   constructor() {
@@ -191,6 +288,15 @@ export class ProductosPage {
     return formatCurrency(amount)
   }
 
+  tipoLabel(tipo: string): string {
+    const labels: Record<string, string> = {
+      simple: 'Simple',
+      prepared: 'Preparado',
+      ingredient: 'Ingrediente',
+    }
+    return labels[tipo] ?? tipo
+  }
+
   categoriaName(id: string | null): string | null {
     if (!id) return null
     return this.categorias().find((c) => c.id === id)?.nombre ?? null
@@ -198,6 +304,51 @@ export class ProductosPage {
 
   onQueryInput(event: Event): void {
     this.query.set((event.target as HTMLInputElement).value)
+  }
+
+  getSelectValue(event: Event): string {
+    return (event.target as HTMLSelectElement).value
+  }
+
+  getInputValue(event: Event): string {
+    return (event.target as HTMLInputElement).value
+  }
+
+  openDeleteConfirm(product: Product): void {
+    this.deletingProduct.set(product)
+    this.deleteConfirmInput.set('')
+    this.deleteConfirmOpen.set(true)
+  }
+
+  closeDeleteConfirm(): void {
+    this.deleteConfirmOpen.set(false)
+    this.deletingProduct.set(null)
+    this.deleteConfirmInput.set('')
+  }
+
+  async executeDelete(): Promise<void> {
+    const product = this.deletingProduct()
+    if (!product || this.deleteConfirmInput() !== product.nombre) return
+    const auth = await this.session.getAuthContext()
+    if (!auth) return
+    this.deleting.set(true)
+    try {
+      await this.repo.deleteProduct(product.id, auth.tiendaId)
+      this.store.removeProduct(product.id)
+      this.toast.success(`"${product.nombre}" eliminado`)
+      this.closeDeleteConfirm()
+    } catch (error) {
+      this.toast.error(getErrorMessage(error, 'No se pudo eliminar el producto'))
+    } finally {
+      this.deleting.set(false)
+    }
+  }
+
+  onEstadoChange(event: Event): void {
+    const val = (event.target as HTMLSelectElement).value
+    if (val === 'active' || val === 'inactive' || val === 'all') {
+      this.filterEstado.set(val)
+    }
   }
 
   async exportProducts(): Promise<void> {
@@ -220,10 +371,12 @@ export class ProductosPage {
     try {
       const auth = await this.session.getAuthContext()
       if (!auth) throw new Error('No autenticado')
-      await Promise.all([
+      const [, , stockLevels] = await Promise.all([
         this.store.ensureProducts(auth.tiendaId, { force: options.force }),
         this.store.ensureCategorias(auth.tiendaId, { force: options.force }),
+        this.inventoryRepo.getStockLevels(auth.tiendaId),
       ])
+      this.stockLevels.set(stockLevels)
     } catch (error) {
       this.loadError.set(getErrorMessage(error, 'Error al cargar productos'))
     } finally {

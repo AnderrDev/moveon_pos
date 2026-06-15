@@ -65,6 +65,14 @@ export class ProductsCacheStore {
     this.productsCache.set(product.tiendaId, this._products() as Product[])
   }
 
+  removeProduct(id: string): void {
+    const list = this._products()
+    if (!list) return
+    const next = list.filter((p) => p.id !== id)
+    this._products.set(next)
+    if (next[0]) this.productsCache.set(next[0].tiendaId, next)
+  }
+
   patchProduct(id: string, patch: Partial<Product>): void {
     const list = this._products()
     if (!list) return
