@@ -48,6 +48,12 @@ export interface InitialStockInput {
   ubicacion: InventoryLocation
 }
 
+export interface ProductComponent {
+  componenteId: string
+  componenteNombre: string
+  cantidad: number
+}
+
 @Injectable({ providedIn: 'root' })
 export class ProductsRepository {
   private readonly supabaseClient = inject(SupabaseClientService)
@@ -242,6 +248,51 @@ export class ProductsRepository {
     if (error) throw new Error(error.message)
     if (!data) throw new Error('Categoria actualizada sin respuesta')
     return rowToCategoria(data)
+  }
+
+  async getComponents(productId: string, tiendaId: string): Promise<ProductComponent[]> {
+    const { data, error } = await (this.supabaseClient.supabase as any)
+      .from('product_components')
+      .select('componente_id, cantidad, productos!componente_id(nombre)')
+      .eq('producto_id', productId)
+      .eq('tienda_id', tiendaId)
+
+    if (error) throw new Error(error.message)
+    return (data ?? []).map((row: any) => ({
+      componenteId: row.componente_id as string,
+      componenteNombre: (row.productos?.nombre as string) ?? '',
+      cantidad: Number(row.cantidad),
+    }))
+  }
+
+  async saveComponents(
+    productId: string,
+    tiendaId: string,
+    components: { componenteId: string; cantidad: number }[],
+  ): Promise<void> {
+    const db = this.supabaseClient.supabase as any
+
+    const { error: delError } = await db
+      .from('product_components')
+      .delete()
+      .eq('producto_id', productId)
+      .eq('tienda_id', tiendaId)
+
+    if (delError) throw new Error(delError.message)
+    if (components.length === 0) return
+
+    const { error: insError } = await db
+      .from('product_components')
+      .insert(
+        components.map((c) => ({
+          tienda_id: tiendaId,
+          producto_id: productId,
+          componente_id: c.componenteId,
+          cantidad: c.cantidad,
+        })),
+      )
+
+    if (insError) throw new Error(insError.message)
   }
 
   async deactivateCategoria(id: string, tiendaId: string): Promise<void> {

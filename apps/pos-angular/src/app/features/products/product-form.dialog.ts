@@ -23,7 +23,8 @@ import { FormErrorComponent } from '../../shared/forms/form-error.component'
 import { ProductFormPresenter } from './product-form.presenter'
 import { productFormMapper } from '@/modules/products/forms/product-form.mapper'
 import type { Product, Categoria } from '@/modules/products/domain/entities/product.entity'
-import { ProductsRepository } from './products.repository'
+import { ProductsRepository, type ProductComponent } from './products.repository'
+import { ProductsCacheStore } from './products-cache.store'
 import { SessionService } from '../../core/auth/session.service'
 import { ToastService } from '../../shared/feedback/toast.service'
 import type { InventoryLocation } from '@/shared/types'
@@ -121,7 +122,7 @@ const INITIAL_STOCK_LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
 
             @if (selectedType() === 'prepared') {
               <div class="border-border bg-card text-muted-foreground mt-4 rounded-lg border px-3.5 py-3 text-xs">
-                Los productos preparados no controlan inventario. Su disponibilidad se maneja bajo pedido.
+                Los productos preparados no controlan stock propio. Asigna componentes consumibles abajo.
               </div>
             } @else {
               <div class="mt-4 grid gap-x-4 gap-y-5 sm:grid-cols-2">
@@ -147,6 +148,77 @@ const INITIAL_STOCK_LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
                 </p>
               }
             }
+          </section>
+        }
+
+        @if (selectedType() === 'prepared') {
+          <section class="rounded-xl border p-4 space-y-3">
+            <div>
+              <h3 class="text-sm font-semibold">Componentes consumibles</h3>
+              <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
+                Al vender este batido se descuenta el stock de cada componente (ej. vaso, ingredientes).
+              </p>
+            </div>
+
+            @for (comp of components(); track comp.componenteId) {
+              <div class="border-border flex items-center gap-3 rounded-lg border px-3 py-2">
+                <span class="min-w-0 flex-1 truncate text-sm font-medium">{{ comp.componenteNombre }}</span>
+                <span class="text-muted-foreground shrink-0 text-xs tabular-nums">× {{ comp.cantidad }}</span>
+                <button
+                  type="button"
+                  (click)="removeComponent(comp.componenteId)"
+                  class="text-muted-foreground hover:text-destructive shrink-0 transition-colors"
+                  aria-label="Quitar componente"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
+                    <path d="M18 6 6 18M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+            }
+
+            @if (components().length === 0) {
+              <p class="text-muted-foreground text-xs">Sin componentes asignados.</p>
+            }
+
+            <div class="flex gap-2 items-end pt-1">
+              <div class="flex-1 min-w-0">
+                <label class="text-muted-foreground mb-1 block text-[11px] font-semibold uppercase tracking-wide">
+                  Producto
+                </label>
+                <select
+                  [value]="pendingComponentId()"
+                  (change)="pendingComponentId.set($any($event.target).value)"
+                  class="border-input bg-background focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2"
+                >
+                  <option value="">Seleccionar...</option>
+                  @for (p of componentCandidates(); track p.id) {
+                    <option [value]="p.id">{{ p.nombre }}</option>
+                  }
+                </select>
+              </div>
+              <div class="w-24 shrink-0">
+                <label class="text-muted-foreground mb-1 block text-[11px] font-semibold uppercase tracking-wide">
+                  Cantidad
+                </label>
+                <input
+                  type="number"
+                  min="0.001"
+                  step="1"
+                  [value]="pendingComponentQty()"
+                  (input)="pendingComponentQty.set(+$any($event.target).value)"
+                  class="border-input bg-background focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2"
+                />
+              </div>
+              <button
+                type="button"
+                (click)="addComponent()"
+                [disabled]="!pendingComponentId()"
+                class="bg-primary text-primary-foreground disabled:opacity-40 h-10 shrink-0 rounded-lg px-3 text-sm font-semibold transition-opacity"
+              >
+                Agregar
+              </button>
+            </div>
           </section>
         }
 
@@ -229,6 +301,7 @@ const INITIAL_STOCK_LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
 })
 export class ProductFormDialog {
   private readonly repo = inject(ProductsRepository)
+  private readonly cache = inject(ProductsCacheStore)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
 
@@ -249,6 +322,19 @@ export class ProductFormDialog {
 
   readonly saving = signal(false)
 
+  // --- Componentes consumibles ---
+  readonly components = signal<ProductComponent[]>([])
+  readonly allProducts = signal<Product[]>([])
+  readonly pendingComponentId = signal('')
+  readonly pendingComponentQty = signal(1)
+
+  readonly componentCandidates = computed(() => {
+    const assigned = new Set(this.components().map((c) => c.componenteId))
+    const selfId = this.product()?.id
+    return this.allProducts().filter((p) => p.isActive && p.id !== selfId && !assigned.has(p.id))
+  })
+  // --------------------------------
+
   readonly categoriaOptions = computed<FormSelectOption<string>[]>(() =>
     this.categorias().map((c) => ({ value: c.id, label: c.nombre })),
   )
@@ -259,6 +345,10 @@ export class ProductFormDialog {
     effect(() => {
       if (this.open()) {
         this.presenter.reset(productFormMapper.toFormValue(this.product()))
+        this.components.set([])
+        this.pendingComponentId.set('')
+        this.pendingComponentQty.set(1)
+        void this.initComponents()
       }
     })
     effect(() => {
@@ -266,6 +356,38 @@ export class ProductFormDialog {
         this.presenter.form.controls.stockInicial.setValue(0, { emitEvent: false })
       }
     })
+  }
+
+  private async initComponents(): Promise<void> {
+    const auth = await this.session.getAuthContext()
+    if (!auth) return
+
+    const all = await this.cache.ensureProducts(auth.tiendaId)
+    this.allProducts.set(all)
+
+    const product = this.product()
+    if (product?.tipo === 'prepared') {
+      const comps = await this.repo.getComponents(product.id, auth.tiendaId)
+      this.components.set(comps)
+    }
+  }
+
+  addComponent(): void {
+    const id = this.pendingComponentId()
+    const qty = this.pendingComponentQty()
+    if (!id || qty <= 0) return
+    const product = this.allProducts().find((p) => p.id === id)
+    if (!product) return
+    this.components.update((prev) => [
+      ...prev,
+      { componenteId: id, componenteNombre: product.nombre, cantidad: qty },
+    ])
+    this.pendingComponentId.set('')
+    this.pendingComponentQty.set(1)
+  }
+
+  removeComponent(componenteId: string): void {
+    this.components.update((prev) => prev.filter((c) => c.componenteId !== componenteId))
   }
 
   async submit(): Promise<void> {
@@ -298,6 +420,14 @@ export class ProductFormDialog {
             },
           )
 
+      if (result.tipo === 'prepared') {
+        await this.repo.saveComponents(
+          result.id,
+          auth.tiendaId,
+          this.components().map((c) => ({ componenteId: c.componenteId, cantidad: c.cantidad })),
+        )
+      }
+
       this.toast.success(
         product
           ? 'Producto actualizado'
@@ -319,5 +449,4 @@ export class ProductFormDialog {
     if (this.saving()) return
     this.closed.emit()
   }
-
 }
