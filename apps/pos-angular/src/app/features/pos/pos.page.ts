@@ -211,6 +211,12 @@ interface PostSaleOutputJob {
                                   IVA {{ product.ivaTasa }}% incluido
                                 </span>
                               }
+                              @if (product.components.length > 0) {
+                                <span class="text-amber-600 mt-1.5 flex items-center gap-1 text-[10px] font-semibold">
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-3 w-3 shrink-0"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                                  Descuenta: {{ componentLabel(product.components) }}
+                                </span>
+                              }
                             </div>
 
                             @if (isOutOfStock(product)) {
@@ -351,6 +357,12 @@ interface PostSaleOutputJob {
                             @if (item.sku) {
                               <p class="text-muted-foreground font-mono text-[11px]">
                                 {{ item.sku }}
+                              </p>
+                            }
+                            @if (item.components.length > 0) {
+                              <p class="text-amber-600 mt-0.5 flex items-center gap-1 text-[11px] font-medium">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-3 w-3 shrink-0"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                                Descuenta {{ componentLabel(item.components) }} por unidad
                               </p>
                             }
                           </div>
@@ -889,6 +901,12 @@ export class PosPage {
 
   paymentLabel(method: PaymentMethod): string {
     return getPaymentMethodLabel(method)
+  }
+
+  componentLabel(components: { nombre: string; cantidad: number }[]): string {
+    return components
+      .map((c) => (c.cantidad === 1 ? `1 ${c.nombre}` : `${c.cantidad}× ${c.nombre}`))
+      .join(', ')
   }
 
   discountPercentage(): string {

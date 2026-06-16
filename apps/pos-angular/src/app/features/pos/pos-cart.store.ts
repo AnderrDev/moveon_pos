@@ -7,12 +7,13 @@ import {
 } from '@/modules/sales/domain/services/sale-calculator'
 import type { CartTotals } from '@/modules/sales/domain/services/sale-calculator'
 import { capQuantity } from './stock-cap'
-import type { PosProduct, PaymentEntry } from './pos.types'
+import type { PosProduct, PosProductComponent, PaymentEntry } from './pos.types'
 
 export interface PosCartItem extends CartItemCalculated {
   key: string
   /** Stock disponible. `null` = el producto no rastrea stock (ej. `prepared`). */
   maxQuantity: number | null
+  components: PosProductComponent[]
 }
 
 /**
@@ -26,10 +27,16 @@ export interface StockCapFeedback {
 
 interface ToCartItemInput extends CartItemInput {
   maxQuantity: number | null
+  components: PosProductComponent[]
 }
 
 function toCartItem(input: ToCartItemInput): PosCartItem {
-  return { ...calculateCartItem(input), key: input.productId, maxQuantity: input.maxQuantity }
+  return {
+    ...calculateCartItem(input),
+    key: input.productId,
+    maxQuantity: input.maxQuantity,
+    components: input.components,
+  }
 }
 
 function generateIdempotencyKey(): string {
@@ -80,7 +87,7 @@ export class PosCartStore {
         if (quantity === existing.quantity) return items
         return items.map((item) =>
           item.key === product.id
-            ? toCartItem({ ...item, quantity, maxQuantity: product.stockDisponible })
+            ? toCartItem({ ...item, quantity, maxQuantity: product.stockDisponible, components: item.components })
             : item,
         )
       }
@@ -101,6 +108,7 @@ export class PosCartStore {
           quantity,
           discountAmount: 0,
           maxQuantity: product.stockDisponible,
+          components: product.components,
         }),
       ]
     })

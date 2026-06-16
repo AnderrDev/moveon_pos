@@ -1,5 +1,10 @@
 import type { IvaRate, PaymentMethod, ProductType } from '@/shared/types'
 
+export interface PosProductComponent {
+  nombre: string
+  cantidad: number
+}
+
 export interface PosProduct {
   id: string
   nombre: string
@@ -15,6 +20,8 @@ export interface PosProduct {
   tipo: ProductType
   /** Stock disponible. `null` = el producto no rastrea stock (ej. `prepared`). */
   stockDisponible: number | null
+  /** Componentes que se descuentan automáticamente al vender este producto. */
+  components: PosProductComponent[]
 }
 
 export interface PosCategory {

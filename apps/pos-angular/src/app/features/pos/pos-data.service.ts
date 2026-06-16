@@ -3,11 +3,17 @@ import { ProductsCacheStore } from '../products/products-cache.store'
 import { InventoryRepository } from '../inventory/inventory.repository'
 import { SupabaseClientService } from '../../core/supabase/supabase-client.service'
 import { SessionService } from '../../core/auth/session.service'
-import type { OpenCashSession, PosCategory, PosProduct } from './pos.types'
+import type { OpenCashSession, PosCategory, PosProduct, PosProductComponent } from './pos.types'
 
 interface CashSessionRow {
   id: string
   opening_amount: number
+}
+
+interface ComponentRow {
+  producto_id: string
+  cantidad: number
+  componente: { nombre: string }
 }
 
 @Injectable({ providedIn: 'root' })
@@ -20,15 +26,22 @@ export class PosDataService {
   async listProducts(tiendaId: string): Promise<PosProduct[]> {
     const canViewCost = (await this.session.getRole()) === 'admin'
 
-    // 2 queries: catálogo (cache) + niveles de stock (getStockLevels). Sin N+1.
-    const [products, stockLevels] = await Promise.all([
+    const [products, stockLevels, componentRows] = await Promise.all([
       this.cache.ensureProducts(tiendaId),
       this.inventoryRepo.getStockLevels(tiendaId),
+      this.fetchComponents(tiendaId),
     ])
 
     const stockByProduct = new Map(
       stockLevels.map((level) => [level.productId, level.puntoVentaStock])
     )
+
+    const componentsByProduct = new Map<string, PosProductComponent[]>()
+    for (const row of componentRows) {
+      const list = componentsByProduct.get(row.producto_id) ?? []
+      list.push({ nombre: row.componente.nombre, cantidad: row.cantidad })
+      componentsByProduct.set(row.producto_id, list)
+    }
 
     return products
       .filter((p) => p.isActive)
@@ -47,7 +60,20 @@ export class PosDataService {
         // `prepared` no rastrea stock. Para simple/ingredient, stock real
         // acotado a >= 0 (RN-I06): el máximo nunca es negativo.
         stockDisponible: p.tipo === 'prepared' ? null : Math.max(0, stockByProduct.get(p.id) ?? 0),
+        components: componentsByProduct.get(p.id) ?? [],
       }))
+  }
+
+  private async fetchComponents(tiendaId: string): Promise<ComponentRow[]> {
+    // `as any`: product_components aún no está en los tipos generados de Supabase
+    const db = this.supabaseClient.supabase as any
+    const { data, error } = await db
+      .from('product_components')
+      .select('producto_id, cantidad, componente:componente_id(nombre)')
+      .eq('tienda_id', tiendaId)
+
+    if (error) throw new Error((error as { message: string }).message)
+    return (data ?? []) as ComponentRow[]
   }
 
   async listCategories(tiendaId: string): Promise<PosCategory[]> {
