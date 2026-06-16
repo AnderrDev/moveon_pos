@@ -9,18 +9,21 @@ function saleStatusLabel(status: string): string {
 
 export function buildDailyReportWorkbook(
   report: DailyReport,
-  dateIso: string
+  fromIso: string,
+  toIso = fromIso,
 ): ExcelWorkbookDefinition {
   const cashierEmailById = new Map(
     report.salesDetail.map((sale) => [sale.cashierId, sale.cashierEmail] as const)
   )
+  const periodLabel = fromIso === toIso ? fromIso : `${fromIso}_${toIso}`
+  const periodTitle = fromIso === toIso ? fromIso : `${fromIso} al ${toIso}`
 
   return {
-    filename: `moveonapp-reporte-diario-${dateIso}.xlsx`,
+    filename: `moveonapp-reporte-${periodLabel}.xlsx`,
     sheets: [
       {
         name: 'Resumen',
-        title: `Reporte diario · ${dateIso}`,
+        title: `Reporte · ${periodTitle}`,
         subtitle: 'Resumen de ventas, pagos y productos',
         columns: [
           { header: 'Sección', width: 20 },
@@ -61,7 +64,7 @@ export function buildDailyReportWorkbook(
       },
       {
         name: 'Ventas',
-        title: `Ventas · ${dateIso}`,
+        title: `Ventas · ${periodTitle}`,
         subtitle: `${report.salesDetail.length} ventas registradas`,
         columns: [
           { header: 'Fecha y hora', width: 22, format: 'datetime' },
@@ -102,7 +105,7 @@ export function buildDailyReportWorkbook(
       },
       {
         name: 'Productos',
-        title: `Productos vendidos · ${dateIso}`,
+        title: `Productos vendidos · ${periodTitle}`,
         subtitle: `${report.saleItems.length} líneas de venta`,
         columns: [
           { header: 'Fecha y hora', width: 22, format: 'datetime' },
@@ -139,7 +142,7 @@ export function buildDailyReportWorkbook(
       },
       {
         name: 'Descuentos',
-        title: `Control de descuentos · ${dateIso}`,
+        title: `Control de descuentos · ${periodTitle}`,
         subtitle: `${report.discountedSalesCount} ventas completadas con descuento`,
         columns: [
           { header: 'Fecha y hora', width: 22, format: 'datetime' },
@@ -172,7 +175,7 @@ export function buildDailyReportWorkbook(
       },
       {
         name: 'Pagos',
-        title: `Pagos recibidos · ${dateIso}`,
+        title: `Pagos recibidos · ${periodTitle}`,
         subtitle: `${report.salePayments.length} registros de pago`,
         columns: [
           { header: 'Fecha y hora', width: 22, format: 'datetime' },
@@ -195,7 +198,7 @@ export function buildDailyReportWorkbook(
       },
       {
         name: 'Cajeros',
-        title: `Ventas por cajero · ${dateIso}`,
+        title: `Ventas por cajero · ${periodTitle}`,
         subtitle: `${report.cashierBreakdown.length} usuarios`,
         columns: [
           { header: 'Usuario', width: 32 },
@@ -214,7 +217,7 @@ export function buildDailyReportWorkbook(
       },
       {
         name: 'Caja',
-        title: `Sesiones de caja · ${dateIso}`,
+        title: `Sesiones de caja · ${periodTitle}`,
         subtitle: `${report.sessions.length} sesiones`,
         columns: [
           { header: 'Apertura', width: 22, format: 'datetime' },
@@ -235,6 +238,23 @@ export function buildDailyReportWorkbook(
           session.expectedCashAmount,
           session.actualCashAmount,
           session.cashDifference,
+        ]),
+      },
+      {
+        name: 'IVA',
+        title: `Desglose IVA · ${periodTitle}`,
+        subtitle: 'Base gravable e IVA generado por tasa (ventas completadas)',
+        columns: [
+          { header: 'Tasa IVA', width: 14, format: 'percent' },
+          { header: 'Base gravable', width: 20, format: 'currency' },
+          { header: 'IVA generado', width: 20, format: 'currency' },
+          { header: 'Total (base + IVA)', width: 22, format: 'currency' },
+        ],
+        rows: report.taxBreakdown.map((row) => [
+          row.taxRate / 100,
+          row.baseAmount,
+          row.taxAmount,
+          row.baseAmount + row.taxAmount,
         ]),
       },
     ],

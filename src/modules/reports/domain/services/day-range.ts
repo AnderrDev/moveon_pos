@@ -83,3 +83,17 @@ export function getStoreDayRangeUtc(dateIso: string, timezone: string): DayRange
 
   return { start, end }
 }
+
+/**
+ * Rango semiabierto `[fromIso 00:00 local, toIso 23:59:59.999 local)` en UTC.
+ * Útil para reportes de períodos: semana, mes, trimestre, rango personalizado.
+ *
+ * @param fromIso  Primer día del período (`YYYY-MM-DD`, inclusivo).
+ * @param toIso    Último día del período (`YYYY-MM-DD`, inclusivo).
+ * @param timezone Zona horaria IANA.
+ */
+export function getStoreRangeUtc(fromIso: string, toIso: string, timezone: string): DayRangeUtc {
+  const { start } = getStoreDayRangeUtc(fromIso, timezone)
+  const { end } = getStoreDayRangeUtc(toIso, timezone)
+  return { start, end }
+}

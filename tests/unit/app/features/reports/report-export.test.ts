@@ -5,6 +5,7 @@ import type { DailyReport } from '../../../../../apps/pos-angular/src/app/featur
 function makeReport(): DailyReport {
   return {
     date: new Date('2026-06-15T05:00:00Z'),
+    dateTo: new Date('2026-06-15T05:00:00Z'),
     totalVentas: 90_000,
     countVentas: 1,
     countAnuladas: 0,
@@ -17,8 +18,10 @@ function makeReport(): DailyReport {
     averageDiscountPercentage: 10,
     avgVenta: 90_000,
     paymentBreakdown: [],
+    taxBreakdown: [],
     topProducts: [],
     cashierBreakdown: [],
+    sales: [],
     salesDetail: [
       {
         id: 'sale-1',
@@ -51,7 +54,7 @@ function makeReport(): DailyReport {
 
 describe('buildDailyReportWorkbook descuentos', () => {
   it('crea una hoja dedicada con desglose, porcentaje y motivo', () => {
-    const workbook = buildDailyReportWorkbook(makeReport(), '2026-06-15')
+    const workbook = buildDailyReportWorkbook(makeReport(), '2026-06-15', '2026-06-15')
     const sheet = workbook.sheets.find((candidate) => candidate.name === 'Descuentos')
 
     expect(sheet).toBeDefined()

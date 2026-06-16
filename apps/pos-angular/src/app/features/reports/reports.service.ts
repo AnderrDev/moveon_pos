@@ -4,7 +4,7 @@ import { CashRegisterRepository } from '../cash-register/cash-register.repositor
 import { InventoryRepository } from '../inventory/inventory.repository'
 import { ProductsRepository } from '../products/products.repository'
 import { TiendaInfoService } from '../../core/tienda/tienda-info.service'
-import { DEFAULT_TIMEZONE, getStoreDayRangeUtc } from '@/modules/reports/domain/services/day-range'
+import { DEFAULT_TIMEZONE, getStoreRangeUtc } from '@/modules/reports/domain/services/day-range'
 import { isLowStock } from '@/modules/inventory/domain/services/low-stock'
 import {
   groupSalesByCashier,
@@ -87,8 +87,17 @@ export interface DailySession {
   cashDifference: number | null
 }
 
+export interface TaxBreakdownRow {
+  taxRate: number
+  baseAmount: number
+  taxAmount: number
+}
+
 export interface DailyReport {
+  /** Primer día del período (UTC inicio del día local). */
   date: Date
+  /** Último día del período (UTC inicio del día local). Igual a `date` cuando es un solo día. */
+  dateTo: Date
   totalVentas: number
   countVentas: number
   countAnuladas: number
@@ -101,8 +110,10 @@ export interface DailyReport {
   averageDiscountPercentage: number
   avgVenta: number
   paymentBreakdown: DailyPaymentBreakdown[]
+  taxBreakdown: TaxBreakdownRow[]
   topProducts: DailyTopProduct[]
   cashierBreakdown: CashierSalesSummary[]
+  sales: Sale[]
   salesDetail: DailySaleDetail[]
   saleItems: DailySaleItemDetail[]
   salePayments: DailySalePaymentDetail[]
@@ -129,12 +140,11 @@ export class ReportsService {
   private readonly tiendaInfo = inject(TiendaInfoService)
 
   /**
-   * Reporte diario del día calendario `dateIso` (`YYYY-MM-DD`) en la zona
-   * horaria de la tienda. El rango UTC `[start, end)` se calcula con la función
-   * de dominio `getStoreDayRangeUtc` para que una venta a las 23:30 hora local
-   * caiga en el día local correcto y no en el día UTC.
+   * Reporte del período `[fromIso, toIso]` (ambos días inclusivos) en la zona
+   * horaria de la tienda. El rango UTC lo calcula `getStoreRangeUtc`.
+   * Si `toIso` se omite, se asume el mismo día que `fromIso` (compatibilidad).
    */
-  async getDailyReport(tiendaId: string, dateIso: string): Promise<DailyReport> {
+  async getDailyReport(tiendaId: string, fromIso: string, toIso = fromIso): Promise<DailyReport> {
     let timezone = DEFAULT_TIMEZONE
     try {
       timezone = (await this.tiendaInfo.get(tiendaId)).timezone
@@ -142,7 +152,7 @@ export class ReportsService {
       timezone = DEFAULT_TIMEZONE
     }
 
-    const { start: dayStart, end: dayEnd } = getStoreDayRangeUtc(dateIso, timezone)
+    const { start: dayStart, end: dayEnd } = getStoreRangeUtc(fromIso, toIso, timezone)
 
     const [sales, filteredSessions] = await Promise.all([
       this.salesRepo.listByDate(tiendaId, dayStart, dayEnd),
@@ -202,9 +212,24 @@ export class ReportsService {
       .slice(0, 5)
 
     // Desglose por cajero: agrupación en cliente sobre las ventas ya cargadas
-    // del día (completadas + anuladas). Cero queries nuevas. La función de
-    // dominio suma totales/IVA solo de completadas y cuenta las anuladas aparte.
+    // del período (completadas + anuladas). Cero queries nuevas.
     const cashierBreakdown = groupSalesByCashier(sales)
+
+    // Desglose de IVA por tasa: solo ventas completadas, agrupadas por taxRate.
+    const taxMap = new Map<number, { baseAmount: number; taxAmount: number }>()
+    for (const sale of completed) {
+      for (const item of sale.items) {
+        const cur = taxMap.get(item.taxRate) ?? { baseAmount: 0, taxAmount: 0 }
+        // La base gravable por ítem es (total del ítem − IVA del ítem).
+        taxMap.set(item.taxRate, {
+          baseAmount: cur.baseAmount + (item.total - item.taxAmount),
+          taxAmount: cur.taxAmount + item.taxAmount,
+        })
+      }
+    }
+    const taxBreakdown: TaxBreakdownRow[] = Array.from(taxMap.entries())
+      .map(([taxRate, v]) => ({ taxRate, ...v }))
+      .sort((a, b) => b.taxRate - a.taxRate)
 
     const salesDetail: DailySaleDetail[] = [...sales]
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
@@ -264,6 +289,7 @@ export class ReportsService {
 
     return {
       date: dayStart,
+      dateTo: dayEnd,
       totalVentas,
       countVentas: completed.length,
       countAnuladas: voided.length,
@@ -276,8 +302,10 @@ export class ReportsService {
       averageDiscountPercentage,
       avgVenta,
       paymentBreakdown,
+      taxBreakdown,
       topProducts,
       cashierBreakdown,
+      sales,
       salesDetail,
       saleItems,
       salePayments,
