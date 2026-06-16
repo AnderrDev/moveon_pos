@@ -25,6 +25,7 @@ import { productFormMapper } from '@/modules/products/forms/product-form.mapper'
 import type { Product, Categoria } from '@/modules/products/domain/entities/product.entity'
 import { ProductsRepository, type ProductComponent } from './products.repository'
 import { ProductsCacheStore } from './products-cache.store'
+import { filterComponentCandidates } from './product-component.helpers'
 import { SessionService } from '../../core/auth/session.service'
 import { ToastService } from '../../shared/feedback/toast.service'
 import type { InventoryLocation } from '@/shared/types'
@@ -328,11 +329,13 @@ export class ProductFormDialog {
   readonly pendingComponentId = signal('')
   readonly pendingComponentQty = signal(1)
 
-  readonly componentCandidates = computed(() => {
-    const assigned = new Set(this.components().map((c) => c.componenteId))
-    const selfId = this.product()?.id
-    return this.allProducts().filter((p) => p.isActive && p.id !== selfId && !assigned.has(p.id))
-  })
+  readonly componentCandidates = computed(() =>
+    filterComponentCandidates(
+      this.allProducts(),
+      new Set(this.components().map((c) => c.componenteId)),
+      this.product()?.id,
+    ),
+  )
   // --------------------------------
 
   readonly categoriaOptions = computed<FormSelectOption<string>[]>(() =>

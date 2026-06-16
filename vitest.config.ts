@@ -34,6 +34,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@angular-app': path.resolve(__dirname, './apps/pos-angular/src/app'),
     },
   },
 })

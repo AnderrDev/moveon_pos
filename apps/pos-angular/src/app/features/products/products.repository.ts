@@ -11,6 +11,11 @@ import type { Categoria, Product } from '@/modules/products/domain/entities/prod
 import type { CreateProductDto, UpdateProductDto } from '@/modules/products/application/dtos/product.dto'
 import type { CreateCategoriaDto, UpdateCategoriaDto } from '@/modules/products/application/dtos/categoria.dto'
 import type { InventoryLocation } from '@/shared/types'
+import {
+  rowToProductComponent,
+  buildComponentInsertRows,
+  type ProductComponentRow,
+} from './product-component.helpers'
 
 const PRODUCT_COLS =
   'id, tienda_id, nombre, sku, codigo_barras, categoria_id, para_que_sirve, recomendado_para, tipo, unidad, precio_venta, costo, iva_tasa, stock_minimo, is_active, deleted_at, created_at, updated_at'
@@ -258,11 +263,7 @@ export class ProductsRepository {
       .eq('tienda_id', tiendaId)
 
     if (error) throw new Error(error.message)
-    return (data ?? []).map((row: any) => ({
-      componenteId: row.componente_id as string,
-      componenteNombre: (row.productos?.nombre as string) ?? '',
-      cantidad: Number(row.cantidad),
-    }))
+    return (data ?? [] as ProductComponentRow[]).map(rowToProductComponent)
   }
 
   async saveComponents(
@@ -283,14 +284,7 @@ export class ProductsRepository {
 
     const { error: insError } = await db
       .from('product_components')
-      .insert(
-        components.map((c) => ({
-          tienda_id: tiendaId,
-          producto_id: productId,
-          componente_id: c.componenteId,
-          cantidad: c.cantidad,
-        })),
-      )
+      .insert(buildComponentInsertRows(productId, tiendaId, components))
 
     if (insError) throw new Error(insError.message)
   }

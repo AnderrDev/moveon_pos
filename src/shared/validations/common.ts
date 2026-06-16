@@ -38,9 +38,9 @@ export const moneySchema = z
   .max(100_000_000, 'El valor es demasiado alto')
 
 /**
- * Precio de venta — debe ser positivo (mayor a $0).
+ * Precio de venta — puede ser $0 (ej. ingredientes internos sin precio de venta directo).
  */
-export const salePriceSchema = moneySchema.min(1, 'El precio de venta debe ser mayor a $0')
+export const salePriceSchema = moneySchema.min(0, 'El precio de venta no puede ser negativo')
 
 /**
  * Porcentaje (0–100).

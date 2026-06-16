@@ -129,12 +129,9 @@ describe('productFormSchema', () => {
 
   // ── Precio de venta ─────────────────────────────────────────────────────────
 
-  it('rechaza precio de venta en cero', () => {
+  it('acepta precio de venta en cero', () => {
     const result = productFormSchema.safeParse({ ...validProduct, precioVenta: 0 })
-    expect(result.success).toBe(false)
-    if (!result.success) {
-      expect(result.error.issues[0].path).toEqual(['precioVenta'])
-    }
+    expect(result.success).toBe(true)
   })
 
   it('rechaza precio de venta negativo', () => {

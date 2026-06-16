@@ -21,7 +21,7 @@ export const createProductSchema = z.object({
     .optional(),
   tipo: productTypeSchema,
   unidad: z.string().default('und'),
-  precioVenta: z.number().positive('El precio debe ser mayor a 0'),
+  precioVenta: z.number().nonnegative('El precio no puede ser negativo'),
   costo: z.number().nonnegative().optional(),
   ivaTasa: ivaRateSchema,
   stockMinimo: z.number().int().nonnegative().default(0),

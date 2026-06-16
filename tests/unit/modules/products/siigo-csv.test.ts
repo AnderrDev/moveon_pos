@@ -170,10 +170,9 @@ describe('parseSiigoRow — filas inválidas', () => {
     if (!r.ok) expect(r.error.some((e) => e.column === 'iva_tasa')).toBe(true)
   })
 
-  it('precio 0 → error en columna precio_venta', () => {
+  it('precio 0 → válido (ingredientes sin precio de venta directo)', () => {
     const r = firstRow('Whey,WHY-001,,,simple,,0,70000,19,0')
-    expect(r.ok).toBe(false)
-    if (!r.ok) expect(r.error.some((e) => e.column === 'precio_venta')).toBe(true)
+    expect(r.ok).toBe(true)
   })
 
   it('precio -100 → error en columna precio_venta', () => {
@@ -274,14 +273,13 @@ describe('validateSiigoRows — archivo mixto', () => {
           'Whey,WHY-001,,Proteínas,simple,,110000,70000,19,5', // válida
           'Mala IVA,BAD-001,,,simple,,90000,,16,0', // iva 16 → error
           'Creatina,CRE-001,,,simple,,55000,,5,3', // válida
-          'Precio cero,ZERO-001,,,simple,,0,,0,0', // precio 0 → error
+          'Precio cero,ZERO-001,,,simple,,0,,0,0', // precio 0 → válido
         ),
       ),
     )
-    expect(valid).toHaveLength(2)
-    expect(valid.map((v: SiigoProductRow) => v.nombre).sort()).toEqual(['Creatina', 'Whey'])
+    expect(valid).toHaveLength(3)
+    expect(valid.map((v: SiigoProductRow) => v.nombre).sort()).toEqual(['Creatina', 'Precio cero', 'Whey'])
     expect(errors.some((e) => e.line === 3 && e.column === 'iva_tasa')).toBe(true)
-    expect(errors.some((e) => e.line === 5 && e.column === 'precio_venta')).toBe(true)
   })
 })
 

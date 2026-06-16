@@ -96,16 +96,17 @@ describe('moneySchema', () => {
 })
 
 describe('salePriceSchema', () => {
-  it('rechaza cero como precio de venta', () => {
-    const result = salePriceSchema.safeParse(0)
-    expect(result.success).toBe(false)
-    if (!result.success) {
-      expect(result.error.issues[0].message).toMatch(/mayor/)
-    }
+  it('acepta cero como precio de venta', () => {
+    expect(salePriceSchema.safeParse(0).success).toBe(true)
   })
 
-  it('acepta cualquier valor positivo entero', () => {
+  it('acepta cualquier valor no negativo entero', () => {
+    expect(salePriceSchema.safeParse(0).success).toBe(true)
     expect(salePriceSchema.safeParse(1).success).toBe(true)
     expect(salePriceSchema.safeParse(50_000).success).toBe(true)
+  })
+
+  it('rechaza valores negativos', () => {
+    expect(salePriceSchema.safeParse(-1).success).toBe(false)
   })
 })

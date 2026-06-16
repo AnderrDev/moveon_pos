@@ -35,8 +35,8 @@ describe('product DTO schemas', () => {
     expect(createProductSchema.safeParse(validProduct).success).toBe(true)
   })
 
-  it('rechaza precio de venta no positivo', () => {
-    expect(createProductSchema.safeParse({ ...validProduct, precioVenta: 0 }).success).toBe(false)
+  it('acepta precio de venta en cero', () => {
+    expect(createProductSchema.safeParse({ ...validProduct, precioVenta: 0 }).success).toBe(true)
   })
 
   it('rechaza informacion comercial demasiado larga', () => {
