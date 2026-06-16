@@ -41,7 +41,7 @@ drop function if exists public.create_sale_atomic(
   text, jsonb, jsonb
 );
 
-create function public.create_sale_atomic(
+create or replace function public.create_sale_atomic(
   p_tienda_id             uuid,
   p_cash_session_id       uuid,
   p_sale_number           text,
@@ -364,7 +364,7 @@ grant execute on function public.create_sale_atomic(
 -- Compatibilidad para clientes desplegados antes de esta migración. El
 -- descuento global se infiere del total recibido; las nuevas versiones deben
 -- usar la firma extendida para enviar el motivo explícito.
-create function public.create_sale_atomic(
+create or replace function public.create_sale_atomic(
   p_tienda_id uuid,
   p_cash_session_id uuid,
   p_sale_number text,
@@ -429,7 +429,7 @@ set search_path = public, pg_temp
 as $$
 begin
   if new.discount_total > 0 then
-    insert into public.audit_logs (tienda_id, user_id, action, entity_type, entity_id, metadata)
+    insert into public.audit_logs (tienda_id, user_id, action, entity_type, entity_id, changes)
     values (
       new.tienda_id,
       new.cashier_id,

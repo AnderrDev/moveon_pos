@@ -14,8 +14,15 @@ create table if not exists audit_logs (
 
 alter table audit_logs enable row level security;
 
-create policy "tenant_isolation" on audit_logs for all
-  using (tienda_id in (select get_user_tiendas()));
+do $$ begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'audit_logs' and policyname = 'tenant_isolation'
+  ) then
+    create policy "tenant_isolation" on audit_logs for all
+      using (tienda_id in (select get_user_tiendas()));
+  end if;
+end $$;
 
-create index audit_logs_tienda_created on audit_logs (tienda_id, created_at desc);
-create index audit_logs_entity on audit_logs (tienda_id, entity_type, entity_id);
+create index if not exists audit_logs_tienda_created on audit_logs (tienda_id, created_at desc);
+create index if not exists audit_logs_entity on audit_logs (tienda_id, entity_type, entity_id);

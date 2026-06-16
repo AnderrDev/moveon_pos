@@ -7,7 +7,7 @@
 -- negativo (opción B: advertir, no bloquear).
 -- =====================================================
 
-create table public.product_components (
+create table if not exists public.product_components (
   id           uuid          default gen_random_uuid() primary key,
   tienda_id    uuid          not null references public.tiendas(id)   on delete cascade,
   producto_id  uuid          not null references public.productos(id)  on delete cascade,
@@ -18,28 +18,37 @@ create table public.product_components (
 
 alter table public.product_components enable row level security;
 
--- Cualquier miembro activo de la tienda puede leer
-create policy "pc_read" on public.product_components
-  for select using (
-    exists (
-      select 1 from public.user_tiendas
-      where user_id  = auth.uid()
-        and tienda_id = product_components.tienda_id
-        and is_active = true
-    )
-  );
-
--- Solo admin puede escribir
-create policy "pc_admin_write" on public.product_components
-  for all using (
-    exists (
-      select 1 from public.user_tiendas
-      where user_id  = auth.uid()
-        and tienda_id = product_components.tienda_id
-        and is_active = true
-        and rol       = 'admin'
-    )
-  );
+do $$ begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'product_components' and policyname = 'pc_read'
+  ) then
+    create policy "pc_read" on public.product_components
+      for select using (
+        exists (
+          select 1 from public.user_tiendas
+          where user_id  = auth.uid()
+            and tienda_id = product_components.tienda_id
+            and is_active = true
+        )
+      );
+  end if;
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'product_components' and policyname = 'pc_admin_write'
+  ) then
+    create policy "pc_admin_write" on public.product_components
+      for all using (
+        exists (
+          select 1 from public.user_tiendas
+          where user_id  = auth.uid()
+            and tienda_id = product_components.tienda_id
+            and is_active = true
+            and rol       = 'admin'
+        )
+      );
+  end if;
+end $$;
 
 -- =====================================================
 -- Trigger: consumir componentes al insertar sale_item
@@ -94,6 +103,7 @@ begin
 end;
 $$;
 
+drop trigger if exists tr_consume_sale_components on public.sale_items;
 create trigger tr_consume_sale_components
   after insert on public.sale_items
   for each row

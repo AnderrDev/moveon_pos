@@ -76,7 +76,7 @@ begin
   set metodo = p_new_metodo
   where id = p_payment_id;
 
-  insert into public.audit_logs (tienda_id, user_id, action, entity_type, entity_id, metadata)
+  insert into public.audit_logs (tienda_id, user_id, action, entity_type, entity_id, changes)
   values (
     p_tienda_id,
     p_corrected_by,
