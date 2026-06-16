@@ -91,8 +91,8 @@ export class LoginPage {
 
   constructor() {
     this.form.patchValue({
-      email: 'admin@moveonpos.co',
-      password: 'Admin1234!',
+      email: 'cajero@moveonpos.co',
+      password: 'Cajero1234!',
     })
   }
 
