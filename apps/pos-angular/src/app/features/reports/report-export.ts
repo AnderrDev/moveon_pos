@@ -47,6 +47,7 @@ export function buildDailyReportWorkbook(
             `${report.averageDiscountPercentage.toFixed(2)}%`,
           ],
           ['Ventas', 'IVA incluido', null, report.taxTotal],
+          ['Ventas', 'Utilidad total (costo actual)', null, report.utilidadTotal],
           ...report.paymentBreakdown.map(
             (payment) =>
               [
@@ -56,9 +57,9 @@ export function buildDailyReportWorkbook(
                 payment.total,
               ] as const
           ),
-          ...report.topProducts.map(
+          ...report.productSales.map(
             (product) =>
-              ['Productos destacados', product.nombre, product.qty, product.total] as const
+              ['Productos vendidos', product.nombre, product.qty, product.total] as const
           ),
         ],
       },
@@ -138,6 +139,29 @@ export function buildDailyReportWorkbook(
           item.taxRate,
           item.taxAmount,
           item.total,
+        ]),
+      },
+      {
+        name: 'Utilidad',
+        title: `Utilidad por producto · ${periodTitle}`,
+        subtitle: 'Costo actual del producto, no histórico (ver docs/modules/reports.md)',
+        columns: [
+          { header: 'Producto', width: 38 },
+          { header: 'SKU', width: 16 },
+          { header: 'Cantidad', width: 12, format: 'integer' },
+          { header: 'Total vendido', width: 18, format: 'currency' },
+          { header: 'Costo', width: 18, format: 'currency' },
+          { header: 'Utilidad', width: 18, format: 'currency' },
+          { header: 'Margen', width: 14, format: 'percent' },
+        ],
+        rows: report.productSales.map((product) => [
+          product.nombre,
+          product.sku,
+          product.qty,
+          product.total,
+          product.costoTotal,
+          product.utilidad,
+          product.margenPct != null ? product.margenPct / 100 : null,
         ]),
       },
       {

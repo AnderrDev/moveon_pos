@@ -19,7 +19,8 @@ function makeReport(): DailyReport {
     avgVenta: 90_000,
     paymentBreakdown: [],
     taxBreakdown: [],
-    topProducts: [],
+    productSales: [],
+    utilidadTotal: 0,
     cashierBreakdown: [],
     sales: [],
     salesDetail: [
@@ -62,5 +63,45 @@ describe('buildDailyReportWorkbook descuentos', () => {
     expect(sheet?.rows[0]).toContain('Promoción del día')
     expect(sheet?.rows[0]).toContain(6_000)
     expect(sheet?.rows[0]).toContain(4_000)
+  })
+})
+
+describe('buildDailyReportWorkbook utilidad', () => {
+  it('crea la hoja Utilidad con costo/utilidad/margen, mostrando null para productos sin costo', () => {
+    const report = makeReport()
+    report.productSales = [
+      {
+        productId: 'p1',
+        nombre: 'Proteina',
+        sku: 'PRO-1',
+        qty: 2,
+        total: 200_000,
+        costoUnitario: 50_000,
+        costoTotal: 100_000,
+        utilidad: 100_000,
+        margenPct: 50,
+      },
+      {
+        productId: 'p2',
+        nombre: 'Sin costo',
+        sku: null,
+        qty: 1,
+        total: 10_000,
+        costoUnitario: null,
+        costoTotal: null,
+        utilidad: null,
+        margenPct: null,
+      },
+    ]
+    report.utilidadTotal = 100_000
+
+    const workbook = buildDailyReportWorkbook(report, '2026-06-15', '2026-06-15')
+    const sheet = workbook.sheets.find((candidate) => candidate.name === 'Utilidad')
+
+    expect(sheet).toBeDefined()
+    expect(sheet?.rows).toEqual([
+      ['Proteina', 'PRO-1', 2, 200_000, 100_000, 100_000, 0.5],
+      ['Sin costo', null, 1, 10_000, null, null, null],
+    ])
   })
 })

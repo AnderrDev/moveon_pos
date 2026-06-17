@@ -18,11 +18,17 @@ export interface DailyPaymentBreakdown {
   total: number
 }
 
-export interface DailyTopProduct {
+export interface DailyProductSale {
   productId: string
   nombre: string
+  sku: string | null
   qty: number
   total: number
+  /** `null` cuando el producto no tiene costo capturado — se excluye de utilidadTotal. */
+  costoUnitario: number | null
+  costoTotal: number | null
+  utilidad: number | null
+  margenPct: number | null
 }
 
 export interface DailySaleDetail {
@@ -111,7 +117,9 @@ export interface DailyReport {
   avgVenta: number
   paymentBreakdown: DailyPaymentBreakdown[]
   taxBreakdown: TaxBreakdownRow[]
-  topProducts: DailyTopProduct[]
+  productSales: DailyProductSale[]
+  /** Suma de `utilidad` solo de productos con costo conocido (no asume 0 para costo null). */
+  utilidadTotal: number
   cashierBreakdown: CashierSalesSummary[]
   sales: Sale[]
   salesDetail: DailySaleDetail[]
@@ -154,9 +162,10 @@ export class ReportsService {
 
     const { start: dayStart, end: dayEnd } = getStoreRangeUtc(fromIso, toIso, timezone)
 
-    const [sales, filteredSessions] = await Promise.all([
+    const [sales, filteredSessions, products] = await Promise.all([
       this.salesRepo.listByDate(tiendaId, dayStart, dayEnd),
       this.cashRepo.listSessionsByDateRange(tiendaId, dayStart, dayEnd),
+      this.productsRepo.listProducts({ tiendaId, soloActivos: false }),
     ])
 
     const completed = sales.filter((s) => s.status === 'completed')
@@ -191,25 +200,41 @@ export class ReportsService {
       .map(([metodo, v]) => ({ metodo, ...v }))
       .sort((a, b) => b.total - a.total)
 
-    const prodMap = new Map<string, { nombre: string; qty: number; total: number }>()
+    const prodMap = new Map<string, { nombre: string; sku: string | null; qty: number; total: number }>()
     for (const sale of completed) {
       for (const item of sale.items) {
         const cur = prodMap.get(item.productId) ?? {
           nombre: item.productoNombre,
+          sku: item.productoSku,
           qty: 0,
           total: 0,
         }
         prodMap.set(item.productId, {
           nombre: cur.nombre,
+          sku: cur.sku,
           qty: cur.qty + item.quantity,
           total: cur.total + item.total,
         })
       }
     }
-    const topProducts: DailyTopProduct[] = Array.from(prodMap.entries())
-      .map(([productId, v]) => ({ productId, ...v }))
+
+    // Costo actual del producto (no histórico, ver docs/modules/reports.md):
+    // suficiente para "cuánto se está ganando ahora", no exacto si el costo
+    // cambió desde que se vendió. Productos sin costo capturado quedan en
+    // `null` y se excluyen de utilidadTotal (no se asume costo 0).
+    const costMap = new Map(products.map((p) => [p.id, p.costo]))
+
+    let utilidadTotal = 0
+    const productSales: DailyProductSale[] = Array.from(prodMap.entries())
+      .map(([productId, v]) => {
+        const costoUnitario = costMap.get(productId) ?? null
+        const costoTotal = costoUnitario != null ? Math.round(costoUnitario * v.qty) : null
+        const utilidad = costoTotal != null ? v.total - costoTotal : null
+        const margenPct = utilidad != null && v.total > 0 ? (utilidad / v.total) * 100 : null
+        if (utilidad != null) utilidadTotal += utilidad
+        return { productId, ...v, costoUnitario, costoTotal, utilidad, margenPct }
+      })
       .sort((a, b) => b.qty - a.qty)
-      .slice(0, 5)
 
     // Desglose por cajero: agrupación en cliente sobre las ventas ya cargadas
     // del período (completadas + anuladas). Cero queries nuevas.
@@ -303,7 +328,8 @@ export class ReportsService {
       avgVenta,
       paymentBreakdown,
       taxBreakdown,
-      topProducts,
+      productSales,
+      utilidadTotal,
       cashierBreakdown,
       sales,
       salesDetail,

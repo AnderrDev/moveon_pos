@@ -20,6 +20,7 @@ Gestión de sesiones de caja: apertura, cierre, ingresos/egresos manuales, cuadr
 - RN-C08: `difference = expected_cash_amount - actual_cash_amount` mide solo descuadre de efectivo físico.
 - RN-C09: `sales_difference = expected_sales_amount - actual_sales_amount` mide descuadre total de ventas del turno.
 - RN-C10: diferencias mayores a $5.000 COP en efectivo físico o total ventas requieren nota de cierre.
+- RN-C11: la página de caja muestra una tabla "Ventas del turno" (todas las ventas de la sesión activa, con método de pago y estado) para que el cajero/admin pueda cruzar visualmente las ventas que componen el "Esperado" antes de cerrar — no solo confiar en el agregado por método. El diálogo de cierre además muestra el número de pagos detrás de cada "Esperado" (no solo el monto), para detectar si falta o sobra una transacción.
 
 ## Use cases
 

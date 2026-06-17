@@ -12,6 +12,7 @@ import { SessionService } from '../../core/auth/session.service'
 import { ToastService } from '../../shared/feedback/toast.service'
 import { AddMovementDialog } from './add-movement.dialog'
 import { CloseSessionDialog, type ExpectedByMethod } from './close-session.dialog'
+import { TurnSalesTableComponent } from './turn-sales-table.component'
 import { formatCurrency, formatTime, formatShortDate } from '@/shared/lib/format'
 import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
 import type {
@@ -37,6 +38,7 @@ import { buildTurnSalesWorkbook } from '../pos/sales-export'
     FormErrorComponent,
     AddMovementDialog,
     CloseSessionDialog,
+    TurnSalesTableComponent,
   ],
   template: `
     <section class="flex h-full min-h-0 flex-col gap-4">
@@ -187,6 +189,8 @@ import { buildTurnSalesWorkbook } from '../pos/sales-export'
             </div>
           }
         </div>
+
+        <mo-turn-sales-table [sales]="sales()" />
       }
     </section>
 
@@ -238,7 +242,7 @@ export class CajaPage {
   )
   readonly totalSales = computed(() => this.breakdown().reduce((sum, p) => sum + p.total, 0))
   readonly expectedByMethod = computed<ExpectedByMethod[]>(() =>
-    this.breakdown().map((p) => ({ metodo: p.metodo, total: p.total }))
+    this.breakdown().map((p) => ({ metodo: p.metodo, total: p.total, count: p.count }))
   )
   readonly expectedCashInDrawer = computed(() => {
     const opening = this.openSession()?.openingAmount ?? 0

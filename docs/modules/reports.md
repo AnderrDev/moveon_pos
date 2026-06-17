@@ -11,6 +11,7 @@ Lecturas agregadas para el negocio. **No tiene reglas de escritura.** Solo consu
 3. Cierre de caja imprimible con ventas esperadas/confirmadas, diferencia total y diferencia de efectivo físico.
 4. Stock actual con desglose `punto_venta` / `bodega` / total y bajo stock destacado.
 5. Control de descuentos: total diario, ventas afectadas, porcentaje promedio, desglose por producto/global, usuario y motivo.
+6. Productos vendidos con costo, utilidad y margen (`ReportsService.getDailyReport` → `productSales` / `utilidadTotal`). Usa el costo **actual** del producto (`productos.costo`), no un snapshot histórico — `sale_items` no guarda el costo al momento de la venta. Si un producto no tiene costo capturado, sus campos de utilidad quedan en `null` (se muestra "—" en UI/Excel) y se excluye de `utilidadTotal`, nunca se asume costo 0. Limitación conocida: el margen de períodos pasados no es exacto si el costo del producto cambió desde que se vendió — aceptado como trade-off de v1 (ver `docs/sessions/2026-06-17-caja-reportes-mejoras.md`); si esto se vuelve un problema real, la solución sería una migración que agregue `sale_items.unit_cost` capturado por `create_sale_atomic`.
 
 ## Implementación
 
@@ -30,10 +31,9 @@ Lecturas agregadas para el negocio. **No tiene reglas de escritura.** Solo consu
 
 ## Reportes post-MVP (v1.4)
 
-- Margen y utilidad por producto.
-- Top productos / batidos.
 - Comparativos por día/semana/mes.
 - Productos próximos a quedar sin stock por velocidad de venta.
+- Margen con costo histórico (snapshot al momento de la venta), si el costo actual (ver punto 6 arriba) resulta insuficiente en la práctica.
 
 ## Stock por ubicación (PLAN-23..26)
 

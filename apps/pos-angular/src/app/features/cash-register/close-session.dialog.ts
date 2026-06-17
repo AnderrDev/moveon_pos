@@ -34,6 +34,7 @@ import type { PaymentMethod } from '@/shared/types'
 export interface ExpectedByMethod {
   metodo: string
   total: number
+  count: number
 }
 
 /** Fila renderizada en el diálogo: esperado, conteo en vivo y diferencia. */
@@ -42,6 +43,8 @@ interface ClosureRow {
   label: string
   controlName: string
   expected: number
+  /** Número de pagos que componen `expected` (no confundir con `counted`: el monto físico contado). */
+  expectedCount: number
   counted: number
   /** `counted - expected`: positivo = sobra, negativo = falta. */
   difference: number
@@ -83,7 +86,8 @@ const NON_CASH_METHODS: { metodo: Exclude<PaymentMethod, 'cash'>; controlName: s
               <div class="flex items-center justify-between gap-3">
                 <span class="text-sm font-semibold">{{ row.label }}</span>
                 <span class="text-muted-foreground text-[11px] font-semibold uppercase tracking-wide">
-                  Esperado {{ money(row.expected) }}
+                  Esperado {{ money(row.expected) }} ({{ row.expectedCount }}
+                  {{ row.expectedCount === 1 ? 'pago' : 'pagos' }})
                 </span>
               </div>
               <div class="mt-2 grid items-end gap-3 sm:grid-cols-2">
@@ -166,11 +170,12 @@ export class CloseSessionDialog {
     initialValue: this.form.getRawValue(),
   })
 
-  /** Esperado por método (no efectivo), indexado para lookup O(1). */
+  /** Esperado por método, indexado para lookup O(1). */
   private readonly expectedMap = computed(() => {
-    const map = new Map<string, number>()
+    const map = new Map<string, { total: number; count: number }>()
     for (const item of this.expectedByMethod()) {
-      map.set(item.metodo, (map.get(item.metodo) ?? 0) + item.total)
+      const cur = map.get(item.metodo) ?? { total: 0, count: 0 }
+      map.set(item.metodo, { total: cur.total + item.total, count: cur.count + item.count })
     }
     return map
   })
@@ -180,25 +185,28 @@ export class CloseSessionDialog {
     const value = this.formValue()
     const cashCounted = value.actualCashAmount ?? 0
     const cashExpected = this.expectedCash()
+    const expectedMap = this.expectedMap()
 
     const cashRow: ClosureRow = {
       metodo: 'cash',
       label: getPaymentMethodLabel('cash'),
       controlName: 'actualCashAmount',
       expected: cashExpected,
+      expectedCount: expectedMap.get('cash')?.count ?? 0,
       counted: cashCounted,
       difference: computeMethodDifference(cashExpected, cashCounted),
     }
 
-    const expectedMap = this.expectedMap()
     const nonCashRows = NON_CASH_METHODS.map(({ metodo, controlName }): ClosureRow => {
-      const expected = expectedMap.get(metodo) ?? 0
+      const expected = expectedMap.get(metodo)?.total ?? 0
+      const expectedCount = expectedMap.get(metodo)?.count ?? 0
       const counted = (value[controlName as keyof typeof value] as number | undefined) ?? 0
       return {
         metodo,
         label: getPaymentMethodLabel(metodo),
         controlName,
         expected,
+        expectedCount,
         counted,
         difference: computeMethodDifference(expected, counted),
       }

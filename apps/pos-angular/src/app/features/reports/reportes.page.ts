@@ -5,6 +5,7 @@ import { ButtonComponent } from '../../shared/ui/button.component'
 import { BadgeComponent } from '../../shared/ui/badge.component'
 import { EmptyStateComponent } from '../../shared/feedback/empty-state.component'
 import { ReportsService, type DailyReport, type StockReportRow } from './reports.service'
+import { ProductMarginTableComponent } from './product-margin-table.component'
 import { SessionService } from '../../core/auth/session.service'
 import { TiendaInfoService } from '../../core/tienda/tienda-info.service'
 import { DEFAULT_TIMEZONE } from '@/modules/reports/domain/services/day-range'
@@ -64,7 +65,13 @@ type Preset = 'today' | 'week' | 'month' | 'prev-month'
   selector: 'mo-reportes-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [PageHeaderComponent, ButtonComponent, BadgeComponent, EmptyStateComponent],
+  imports: [
+    PageHeaderComponent,
+    ButtonComponent,
+    BadgeComponent,
+    EmptyStateComponent,
+    ProductMarginTableComponent,
+  ],
   template: `
     <section class="flex h-full min-h-0 flex-col gap-4">
       <mo-page-header title="Reportes" subtitle="Ventas, contabilidad y stock">
@@ -267,11 +274,11 @@ type Preset = 'today' | 'week' | 'month' | 'prev-month'
               <h3 class="font-display mb-3 text-sm font-bold tracking-wide uppercase">
                 Top productos
               </h3>
-              @if (d.topProducts.length === 0) {
+              @if (d.productSales.length === 0) {
                 <p class="text-muted-foreground text-sm">Sin ventas registradas.</p>
               } @else {
                 <ul class="space-y-2 text-sm">
-                  @for (p of d.topProducts; track p.productId) {
+                  @for (p of d.productSales.slice(0, 5); track p.productId) {
                     <li class="flex justify-between">
                       <span class="truncate pr-3"
                         >{{ p.nombre }}
@@ -748,27 +755,16 @@ type Preset = 'today' | 'week' | 'month' | 'prev-month'
               }
             </div>
 
-            <!-- Top productos (para margen futuro) -->
-            <div class="bg-card rounded-xl border p-6">
+            <!-- Productos vendidos con costo, utilidad y margen -->
+            <div class="bg-card rounded-xl border p-6 lg:col-span-2">
               <h3 class="font-display mb-1 text-sm font-bold tracking-wide uppercase">
-                Productos más vendidos
+                Productos vendidos y utilidad
               </h3>
-              <p class="text-muted-foreground mb-4 text-xs">Top 5 por cantidad (ventas completadas)</p>
-              @if (d.topProducts.length === 0) {
-                <p class="text-muted-foreground text-sm">Sin ventas en el período.</p>
-              } @else {
-                <ul class="space-y-3 text-sm">
-                  @for (p of d.topProducts; track p.productId) {
-                    <li class="flex items-center justify-between gap-3">
-                      <div class="min-w-0 flex-1">
-                        <p class="truncate font-semibold">{{ p.nombre }}</p>
-                        <p class="text-muted-foreground text-xs">{{ p.qty }} unidades</p>
-                      </div>
-                      <span class="font-mono font-bold tabular-nums">{{ money(p.total) }}</span>
-                    </li>
-                  }
-                </ul>
-              }
+              <p class="text-muted-foreground mb-4 text-xs">Ventas completadas del período</p>
+              <mo-product-margin-table
+                [productSales]="d.productSales"
+                [utilidadTotal]="d.utilidadTotal"
+              />
             </div>
           </div>
         }
