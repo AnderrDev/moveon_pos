@@ -8,6 +8,7 @@ import type { SaleRepository } from '../../domain/repositories/sale.repository'
 import {
   calculateCartItem,
   calculateCartTotals,
+  normalizePaymentsForPersistence,
   validateDiscountAuthorization,
   validatePaymentsForSale,
 } from '../../domain/services/sale-calculator'
@@ -114,7 +115,7 @@ export async function createSaleUseCase(
     cashierId:      input.cashierId,
     clienteId:      input.clienteId,
     items:          saleItems.map(({ productType: _productType, ...item }) => item),
-    payments:       input.payments,
+    payments:       normalizePaymentsForPersistence(input.payments, totals.total),
     subtotal:       totals.subtotal,
     discountTotal:  totals.discountTotal,
     taxTotal:       totals.taxTotal,

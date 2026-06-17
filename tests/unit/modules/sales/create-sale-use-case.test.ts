@@ -284,4 +284,16 @@ describe('createSaleUseCase', () => {
       change:   20_000,
     })
   })
+
+  it('persiste el pago en efectivo neto del vuelto, no el monto bruto recibido (regresión)', async () => {
+    const createdInputs: CreateSaleInput[] = []
+    const result = await createSaleUseCase(
+      makeInput({ payments: [{ metodo: 'cash', amount: 210_000 }] }),
+      makeDeps({ createdInputs }),
+    )
+
+    expect(result.ok).toBe(true)
+    expect(createdInputs[0].payments).toEqual([{ metodo: 'cash', amount: 190_000 }])
+    expect(createdInputs[0].change).toBe(20_000)
+  })
 })

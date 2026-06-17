@@ -97,6 +97,32 @@ export interface PaymentValidationInput {
   amount: number
 }
 
+/**
+ * Recorta el vuelto (cambio) de los pagos en efectivo antes de persistirlos.
+ * Si el cajero recibe más efectivo del que cubre el total (ej. paga $50.000
+ * por una venta de $26.000), el monto que se guarda como pago no debe
+ * incluir el vuelto entregado — de lo contrario cualquier suma de pagos
+ * (cierre de caja, reportes) queda inflada por el vuelto.
+ *
+ * Requiere que `payments` ya haya pasado `validatePaymentsForSale` (el
+ * cambio siempre sale de efectivo), por eso nunca deja un pago en negativo.
+ */
+export function normalizePaymentsForPersistence<T extends PaymentValidationInput>(
+  payments: T[],
+  saleTotal: number
+): T[] {
+  const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0)
+  let changeRemaining = calculateChange(totalPaid, saleTotal)
+  if (changeRemaining <= 0) return payments
+
+  return payments.map((payment) => {
+    if (payment.metodo !== 'cash' || changeRemaining <= 0) return payment
+    const reduction = Math.min(payment.amount, changeRemaining)
+    changeRemaining -= reduction
+    return { ...payment, amount: payment.amount - reduction }
+  })
+}
+
 export function validatePaymentsForSale(
   payments: PaymentValidationInput[],
   saleTotal: number

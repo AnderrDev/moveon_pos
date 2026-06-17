@@ -4,6 +4,7 @@ import {
   calculateCartItem,
   calculateCartTotals,
   calculateChange,
+  normalizePaymentsForPersistence,
   validateDiscountAuthorization,
   validatePaymentsForSale,
 } from '@/modules/sales/domain/services/sale-calculator'
@@ -188,6 +189,55 @@ describe('validatePaymentsForSale', () => {
     expect(validatePaymentsForSale([{ metodo: 'card', amount: 55000 }], 50000)).toBe(
       'El cambio solo puede generarse desde pagos en efectivo',
     )
+  })
+})
+
+describe('normalizePaymentsForPersistence', () => {
+  it('descuenta el vuelto del pago en efectivo (regresión V-000021: 50000 recibido, 26000 de venta)', () => {
+    const result = normalizePaymentsForPersistence([{ metodo: 'cash', amount: 50000 }], 26000)
+    expect(result).toEqual([{ metodo: 'cash', amount: 26000 }])
+  })
+
+  it('no toca los pagos cuando no hay vuelto', () => {
+    expect(normalizePaymentsForPersistence([{ metodo: 'cash', amount: 26000 }], 26000)).toEqual([
+      { metodo: 'cash', amount: 26000 },
+    ])
+  })
+
+  it('deja intactos los pagos que no son efectivo', () => {
+    const result = normalizePaymentsForPersistence(
+      [
+        { metodo: 'card', amount: 30000 },
+        { metodo: 'cash', amount: 25000 },
+      ],
+      50000,
+    )
+    expect(result).toEqual([
+      { metodo: 'card', amount: 30000 },
+      { metodo: 'cash', amount: 20000 },
+    ])
+  })
+
+  it('reparte la resta entre varios pagos en efectivo, en orden, hasta agotar el vuelto', () => {
+    const result = normalizePaymentsForPersistence(
+      [
+        { metodo: 'cash', amount: 10000 },
+        { metodo: 'cash', amount: 20000 },
+      ],
+      25000,
+    )
+    expect(result).toEqual([
+      { metodo: 'cash', amount: 5000 },
+      { metodo: 'cash', amount: 20000 },
+    ])
+  })
+
+  it('preserva campos extra como referencia', () => {
+    const result = normalizePaymentsForPersistence(
+      [{ metodo: 'cash', amount: 50000, referencia: 'nota' }],
+      26000,
+    )
+    expect(result).toEqual([{ metodo: 'cash', amount: 26000, referencia: 'nota' }])
   })
 })
 

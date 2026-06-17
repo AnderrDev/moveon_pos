@@ -13,7 +13,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(8);
+select plan(10);
 
 -- ----------------- Setup -----------------
 -- Datos aislados con UUIDs determinísticos para que la transacción rollback
@@ -207,7 +207,47 @@ select throws_ok(
   'El cambio solo puede generarse desde pagos en efectivo'
 );
 
--- 8. Caja cerrada: nueva venta falla
+-- 8. Pago en efectivo con vuelto: el monto persistido es neto, no el bruto
+-- recibido (regresión del descuadre de caja del 2026-06-16 / venta V-000021:
+-- total 26000 pagado con 50000 en efectivo, payments.amount quedaba en 50000).
+prepare crear_venta_con_cambio as
+  select public.create_sale_atomic(
+    '11111111-1111-1111-1111-111111111111'::uuid,
+    '33333333-3333-3333-3333-333333333333'::uuid,
+    'TST-006',
+    '22222222-2222-2222-2222-222222222222'::uuid,
+    null,
+    5000, 0, 0, 5000,
+    'idem-key-6',
+    jsonb_build_array(jsonb_build_object(
+      'producto_id', '55555555-5555-5555-5555-555555555555',
+      'producto_nombre', 'Producto pgTAP',
+      'producto_sku', null,
+      'quantity', 1,
+      'unit_price', 5000,
+      'discount_amount', 0,
+      'tax_rate', 0,
+      'tax_amount', 0,
+      'total', 5000
+    )),
+    jsonb_build_array(jsonb_build_object('metodo', 'cash', 'amount', 8000))
+  );
+
+select isnt(execute('crear_venta_con_cambio')::text, '', 'create_sale_atomic con vuelto retorna un UUID no vacío');
+
+-- 9. El pago guardado es 5000 (neto), no 8000 (bruto recibido)
+select is(
+  (
+    select p.amount
+    from public.payments p
+    join public.sales s on s.id = p.sale_id
+    where s.idempotency_key = 'idem-key-6'
+  ),
+  5000::numeric,
+  'el pago en efectivo con vuelto se persiste neto (5000), no el monto bruto recibido (8000)'
+);
+
+-- 10. Caja cerrada: nueva venta falla
 do $$
 begin
   update public.cash_sessions
