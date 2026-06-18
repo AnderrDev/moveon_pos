@@ -556,18 +556,49 @@ interface PostSaleOutputJob {
             }
 
             <div class="space-y-2">
-              <p class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
-                Descuento global
-              </p>
+              <div class="flex items-center justify-between gap-2">
+                <p class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+                  Descuento global
+                </p>
+                <div class="flex gap-1" role="group" aria-label="Tipo de descuento">
+                  <button
+                    type="button"
+                    [attr.aria-pressed]="discountMode() === 'amount'"
+                    [class]="discountModeClass('amount')"
+                    (click)="setDiscountMode('amount')"
+                  >
+                    $
+                  </button>
+                  <button
+                    type="button"
+                    [attr.aria-pressed]="discountMode() === 'percent'"
+                    [class]="discountModeClass('percent')"
+                    (click)="setDiscountMode('percent')"
+                  >
+                    %
+                  </button>
+                </div>
+              </div>
               <div class="flex gap-2">
-                <input
-                  type="text"
-                  inputmode="numeric"
-                  [value]="globalDiscountInput()"
-                  (input)="setGlobalDiscount($event)"
-                  placeholder="0"
-                  class="border-input bg-card focus:ring-ring h-10 min-w-0 flex-1 rounded-lg border px-3 text-sm tabular-nums outline-none focus:ring-2"
-                />
+                @if (discountMode() === 'amount') {
+                  <input
+                    type="text"
+                    inputmode="numeric"
+                    [value]="globalDiscountInput()"
+                    (input)="setGlobalDiscount($event)"
+                    placeholder="0"
+                    class="border-input bg-card focus:ring-ring h-10 min-w-0 flex-1 rounded-lg border px-3 text-sm tabular-nums outline-none focus:ring-2"
+                  />
+                } @else {
+                  <input
+                    type="text"
+                    inputmode="numeric"
+                    [value]="globalDiscountPercentInput()"
+                    (input)="setGlobalDiscountPercent($event)"
+                    placeholder="0"
+                    class="border-input bg-card focus:ring-ring h-10 min-w-0 flex-1 rounded-lg border px-3 text-sm tabular-nums outline-none focus:ring-2"
+                  />
+                }
                 @if (cart.globalDiscount() > 0) {
                   <button
                     type="button"
@@ -579,7 +610,11 @@ interface PostSaleOutputJob {
                 }
               </div>
               <p class="text-muted-foreground text-[11px]">
-                Monto en pesos distribuido entre los productos para recalcular correctamente el IVA.
+                @if (discountMode() === 'amount') {
+                  Monto en pesos distribuido entre los productos para recalcular correctamente el IVA.
+                } @else {
+                  Porcentaje sobre el subtotal ({{ money(cart.totals().subtotal) }}), distribuido entre los productos.
+                }
               </p>
             </div>
 
@@ -811,6 +846,8 @@ export class PosPage {
   readonly productInfo = signal<PosProduct | null>(null)
   readonly isAdmin = this.sessionService.isAdmin
   readonly globalDiscountInput = signal('')
+  readonly globalDiscountPercentInput = signal('')
+  readonly discountMode = signal<'amount' | 'percent'>('amount')
   readonly discountReason = signal('')
   readonly paymentMethods = PAYMENT_METHOD_OPTIONS
   readonly String = String
@@ -1027,12 +1064,47 @@ export class PosPage {
     this.cart.setGlobalDiscount(value === '' ? 0 : Number.parseInt(value, 10))
   }
 
+  setGlobalDiscountPercent(event: Event): void {
+    const digits = (event.target as HTMLInputElement).value.replace(/\D/g, '')
+    const clamped = digits === '' ? '' : String(Math.min(100, Number.parseInt(digits, 10)))
+    this.globalDiscountPercentInput.set(clamped)
+    const percent = clamped === '' ? 0 : Number.parseInt(clamped, 10)
+    this.cart.setGlobalDiscount(Math.round((this.cart.totals().subtotal * percent) / 100))
+  }
+
+  setDiscountMode(mode: 'amount' | 'percent'): void {
+    if (this.discountMode() === mode) return
+    this.discountMode.set(mode)
+
+    // Al cambiar de modo, refleja el monto actual del carrito en el input
+    // que se va a mostrar (la fuente de verdad sigue siendo el monto en pesos).
+    const amount = this.cart.globalDiscount()
+    const subtotal = this.cart.totals().subtotal
+    if (mode === 'percent') {
+      const percent = subtotal > 0 ? Math.round((amount / subtotal) * 100) : 0
+      this.globalDiscountPercentInput.set(percent > 0 ? String(percent) : '')
+    } else {
+      this.globalDiscountInput.set(amount > 0 ? String(amount) : '')
+    }
+  }
+
+  discountModeClass(mode: 'amount' | 'percent'): string {
+    const active = this.discountMode() === mode
+    return [
+      'h-8 min-w-9 rounded-md border px-2.5 text-xs font-semibold transition-colors',
+      active
+        ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+        : 'border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground',
+    ].join(' ')
+  }
+
   setDiscountReason(event: Event): void {
     this.discountReason.set((event.target as HTMLInputElement).value)
   }
 
   clearGlobalDiscount(): void {
     this.globalDiscountInput.set('')
+    this.globalDiscountPercentInput.set('')
     this.cart.setGlobalDiscount(0)
   }
 
@@ -1040,8 +1112,10 @@ export class PosPage {
     this.saleError.set(null)
     this.imprimirEstaVenta.set(this.imprimirAlFinalizarVenta())
     this.checkoutOpen.set(true)
+    this.discountMode.set('amount')
     const currentGlobal = this.cart.globalDiscount()
     this.globalDiscountInput.set(currentGlobal > 0 ? String(currentGlobal) : '')
+    this.globalDiscountPercentInput.set('')
     if (this.cart.remainingAmount() > 0) {
       this.paymentAmount.set(String(this.cart.remainingAmount()))
     }
@@ -1158,6 +1232,8 @@ export class PosPage {
         this.cart.payments().some((payment) => payment.metodo === 'cash' && payment.amount > 0)
       this.cart.clearCart()
       this.globalDiscountInput.set('')
+      this.globalDiscountPercentInput.set('')
+      this.discountMode.set('amount')
       this.discountReason.set('')
       this.paymentAmount.set('')
       this.paymentReference.set('')
