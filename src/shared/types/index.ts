@@ -40,7 +40,7 @@ export type BillingDocStatus =
 
 export type BillingDocType = 'invoice' | 'pos_document' | 'credit_note'
 
-export type PaymentMethod = 'cash' | 'card' | 'nequi' | 'daviplata' | 'transfer' | 'other'
+export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'other'
 
 export type CashSessionStatus = 'open' | 'closed'
 

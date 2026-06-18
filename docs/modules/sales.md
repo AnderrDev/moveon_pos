@@ -61,7 +61,7 @@ type SaleItem = {
 
 ```typescript
 type Payment = {
-  metodo: 'cash' | 'card' | 'nequi' | 'daviplata' | 'transfer' | 'other'
+  metodo: 'cash' | 'card' | 'transfer' | 'other'
   amount: Money
   referencia: string | null
 }

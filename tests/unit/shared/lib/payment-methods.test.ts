@@ -12,21 +12,13 @@ describe('payment methods', () => {
   })
 
   it('expone opciones visibles para el modal de pago', () => {
-    expect(PAYMENT_METHOD_OPTIONS.map((o) => o.value)).toEqual([
-      'cash',
-      'card',
-      'nequi',
-      'daviplata',
-      'transfer',
-    ])
+    expect(PAYMENT_METHOD_OPTIONS.map((o) => o.value)).toEqual(['cash', 'card', 'transfer'])
   })
 
   it('incluye otros medios en cierre de caja', () => {
     expect(PAYMENT_METHOD_CLOSURE_OPTIONS.map((o) => o.value)).toEqual([
       'cash',
       'card',
-      'nequi',
-      'daviplata',
       'transfer',
       'other',
     ])

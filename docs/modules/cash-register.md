@@ -15,7 +15,7 @@ Gestión de sesiones de caja: apertura, cierre, ingresos/egresos manuales, cuadr
   - − suma de `cash_movements` tipo `cash_out`, `expense`
 - RN-C04: el cierre calcula automáticamente `expected_sales_amount` como total de ventas completadas de la sesión, sumando todos los medios de pago.
 - RN-C05: `actual_cash_amount` lo ingresa el usuario al cerrar como efectivo físico contado en el cajón.
-- RN-C06: el usuario confirma los montos no efectivo por método (`card`, `nequi`, `daviplata`, `transfer`, `other`).
+- RN-C06: el usuario confirma los montos no efectivo por método (`card`, `transfer`, `other`).
 - RN-C07: `actual_sales_amount` se deriva de ventas efectivo confirmadas + medios no efectivo confirmados.
 - RN-C08: `difference = expected_cash_amount - actual_cash_amount` mide solo descuadre de efectivo físico.
 - RN-C09: `sales_difference = expected_sales_amount - actual_sales_amount` mide descuadre total de ventas del turno.

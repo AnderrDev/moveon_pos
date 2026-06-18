@@ -59,7 +59,7 @@ const rpcInputSchema = z.object({
   payments: z
     .array(
       z.object({
-        metodo: z.enum(['cash', 'card', 'nequi', 'daviplata', 'transfer', 'other']),
+        metodo: z.enum(['cash', 'card', 'transfer', 'other']),
         amount: z.number().positive(),
         referencia: z.string().nullable().optional(),
       })

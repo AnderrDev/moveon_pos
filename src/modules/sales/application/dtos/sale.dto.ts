@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-const paymentMethodEnum = z.enum(['cash', 'card', 'nequi', 'daviplata', 'transfer', 'other'])
+const paymentMethodEnum = z.enum(['cash', 'card', 'transfer', 'other'])
 
 const saleItemSchema = z.object({
   productId:      z.string().uuid(),
@@ -40,7 +40,7 @@ export const voidSaleSchema = z.object({
 
 export const correctPaymentSchema = z.object({
   paymentId: z.string().uuid('ID de pago inválido'),
-  newMetodo: z.enum(['cash', 'card', 'nequi', 'daviplata', 'transfer', 'other'], {
+  newMetodo: z.enum(['cash', 'card', 'transfer', 'other'], {
     errorMap: () => ({ message: 'Método de pago inválido' }),
   }),
   reason: z

@@ -43,7 +43,7 @@
 - Bloqueo de venta si caja no está abierta.
 
 ### M5. Pagos
-- Métodos: efectivo, tarjeta, Nequi/Daviplata, transferencia.
+- Métodos: efectivo, tarjeta, transferencia (incluye Nequi/Daviplata).
 - **Pagos mixtos** (cliente paga con varios métodos en una sola venta).
 - Registro de referencia para pagos no efectivo (últimos 4 dígitos, número de aprobación, etc.).
 - Cálculo de cambio para efectivo.

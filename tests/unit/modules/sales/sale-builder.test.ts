@@ -11,8 +11,6 @@ describe('requiresReference', () => {
 
   it('métodos no-efectivo admiten referencia', () => {
     expect(requiresReference('card')).toBe(true)
-    expect(requiresReference('nequi')).toBe(true)
-    expect(requiresReference('daviplata')).toBe(true)
     expect(requiresReference('transfer')).toBe(true)
     expect(requiresReference('other')).toBe(true)
   })
@@ -26,19 +24,19 @@ describe('buildPaymentEntry', () => {
   })
 
   it('recorta la referencia (trim) en métodos no-efectivo', () => {
-    const result = buildPaymentEntry({ metodo: 'nequi', amount: 50000, referencia: '  ABC123  ' })
-    expect(result).toEqual({ metodo: 'nequi', amount: 50000, referencia: 'ABC123' })
+    const result = buildPaymentEntry({ metodo: 'transfer', amount: 50000, referencia: '  ABC123  ' })
+    expect(result).toEqual({ metodo: 'transfer', amount: 50000, referencia: 'ABC123' })
   })
 
   it('normaliza referencia vacía a undefined', () => {
-    const result = buildPaymentEntry({ metodo: 'nequi', amount: 50000, referencia: '' })
-    expect(result).toEqual({ metodo: 'nequi', amount: 50000 })
+    const result = buildPaymentEntry({ metodo: 'transfer', amount: 50000, referencia: '' })
+    expect(result).toEqual({ metodo: 'transfer', amount: 50000 })
     expect(result?.referencia).toBeUndefined()
   })
 
   it('normaliza referencia de solo espacios a undefined', () => {
-    const result = buildPaymentEntry({ metodo: 'nequi', amount: 50000, referencia: '   ' })
-    expect(result).toEqual({ metodo: 'nequi', amount: 50000 })
+    const result = buildPaymentEntry({ metodo: 'transfer', amount: 50000, referencia: '   ' })
+    expect(result).toEqual({ metodo: 'transfer', amount: 50000 })
     expect(result?.referencia).toBeUndefined()
   })
 

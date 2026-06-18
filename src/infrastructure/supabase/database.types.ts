@@ -17,32 +17,41 @@ export type Database = {
       audit_logs: {
         Row: {
           action: string
+          changes: Json | null
           created_at: string
           entity_id: string | null
+          entity_label: string | null
           entity_type: string | null
           id: string
           metadata: Json | null
           tienda_id: string | null
+          user_email: string
           user_id: string | null
         }
         Insert: {
           action: string
+          changes?: Json | null
           created_at?: string
           entity_id?: string | null
+          entity_label?: string | null
           entity_type?: string | null
           id?: string
           metadata?: Json | null
           tienda_id?: string | null
+          user_email?: string
           user_id?: string | null
         }
         Update: {
           action?: string
+          changes?: Json | null
           created_at?: string
           entity_id?: string | null
+          entity_label?: string | null
           entity_type?: string | null
           id?: string
           metadata?: Json | null
           tienda_id?: string | null
+          user_email?: string
           user_id?: string | null
         }
         Relationships: [
@@ -451,12 +460,59 @@ export type Database = {
           },
         ]
       }
+      product_components: {
+        Row: {
+          cantidad: number
+          componente_id: string
+          id: string
+          producto_id: string
+          tienda_id: string
+        }
+        Insert: {
+          cantidad?: number
+          componente_id: string
+          id?: string
+          producto_id: string
+          tienda_id: string
+        }
+        Update: {
+          cantidad?: number
+          componente_id?: string
+          id?: string
+          producto_id?: string
+          tienda_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_components_componente_id_fkey"
+            columns: ["componente_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_components_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_components_tienda_id_fkey"
+            columns: ["tienda_id"]
+            isOneToOne: false
+            referencedRelation: "tiendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       productos: {
         Row: {
           categoria_id: string | null
           codigo_barras: string | null
           costo: number | null
           created_at: string
+          deleted_at: string | null
           id: string
           is_active: boolean
           iva_tasa: number
@@ -464,18 +520,21 @@ export type Database = {
           para_que_sirve: string | null
           precio_venta: number
           recomendado_para: string | null
+          recommended_audience: string | null
           sku: string | null
           stock_minimo: number
           tienda_id: string
           tipo: Database["public"]["Enums"]["product_type"]
           unidad: string
           updated_at: string
+          usage_guidance: string | null
         }
         Insert: {
           categoria_id?: string | null
           codigo_barras?: string | null
           costo?: number | null
           created_at?: string
+          deleted_at?: string | null
           id?: string
           is_active?: boolean
           iva_tasa?: number
@@ -483,18 +542,21 @@ export type Database = {
           para_que_sirve?: string | null
           precio_venta: number
           recomendado_para?: string | null
+          recommended_audience?: string | null
           sku?: string | null
           stock_minimo?: number
           tienda_id: string
           tipo?: Database["public"]["Enums"]["product_type"]
           unidad?: string
           updated_at?: string
+          usage_guidance?: string | null
         }
         Update: {
           categoria_id?: string | null
           codigo_barras?: string | null
           costo?: number | null
           created_at?: string
+          deleted_at?: string | null
           id?: string
           is_active?: boolean
           iva_tasa?: number
@@ -502,12 +564,14 @@ export type Database = {
           para_que_sirve?: string | null
           precio_venta?: number
           recomendado_para?: string | null
+          recommended_audience?: string | null
           sku?: string | null
           stock_minimo?: number
           tienda_id?: string
           tipo?: Database["public"]["Enums"]["product_type"]
           unidad?: string
           updated_at?: string
+          usage_guidance?: string | null
         }
         Relationships: [
           {
@@ -618,13 +682,13 @@ export type Database = {
           cashier_id: string
           cliente_id: string | null
           created_at: string
-          discount_total: number
           discount_approved_by: string | null
           discount_reason: string | null
+          discount_total: number
           global_discount_total: number
           id: string
-          item_discount_total: number
           idempotency_key: string
+          item_discount_total: number
           sale_number: string
           status: Database["public"]["Enums"]["sale_status"]
           subtotal: number
@@ -644,13 +708,13 @@ export type Database = {
           cashier_id: string
           cliente_id?: string | null
           created_at?: string
-          discount_total?: number
           discount_approved_by?: string | null
           discount_reason?: string | null
+          discount_total?: number
           global_discount_total?: number
           id?: string
-          item_discount_total?: number
           idempotency_key: string
+          item_discount_total?: number
           sale_number: string
           status?: Database["public"]["Enums"]["sale_status"]
           subtotal: number
@@ -670,13 +734,13 @@ export type Database = {
           cashier_id?: string
           cliente_id?: string | null
           created_at?: string
-          discount_total?: number
           discount_approved_by?: string | null
           discount_reason?: string | null
+          discount_total?: number
           global_discount_total?: number
           id?: string
-          item_discount_total?: number
           idempotency_key?: string
+          item_discount_total?: number
           sale_number?: string
           status?: Database["public"]["Enums"]["sale_status"]
           subtotal?: number
@@ -838,39 +902,30 @@ export type Database = {
         }
         Returns: string
       }
-      create_sale_atomic: {
+      correct_payment_atomic: {
         Args: {
-          p_cash_session_id: string
-          p_cashier_id: string
-          p_cliente_id: string
-          p_discount_total: number
-          p_discount_reason: string
-          p_global_discount_total: number
-          p_idempotency_key: string
-          p_items: Json
-          p_payments: Json
-          p_sale_number: string
-          p_subtotal: number
-          p_tax_total: number
+          p_corrected_by: string
+          p_new_metodo: Database["public"]["Enums"]["payment_method"]
+          p_payment_id: string
+          p_reason: string
           p_tienda_id: string
-          p_total: number
         }
-        Returns: string
+        Returns: undefined
       }
       create_product_with_initial_stock: {
         Args: {
-          p_categoria_id: string | null
-          p_codigo_barras: string | null
-          p_costo: number | null
+          p_categoria_id: string
+          p_codigo_barras: string
+          p_costo: number
           p_initial_location: Database["public"]["Enums"]["inventory_location"]
           p_initial_stock: number
           p_is_active: boolean
           p_iva_tasa: number
           p_nombre: string
-          p_para_que_sirve: string | null
+          p_para_que_sirve: string
           p_precio_venta: number
-          p_recomendado_para: string | null
-          p_sku: string | null
+          p_recomendado_para: string
+          p_sku: string
           p_stock_minimo: number
           p_tienda_id: string
           p_tipo: Database["public"]["Enums"]["product_type"]
@@ -878,6 +933,43 @@ export type Database = {
         }
         Returns: string
       }
+      create_sale_atomic:
+        | {
+            Args: {
+              p_cash_session_id: string
+              p_cashier_id: string
+              p_cliente_id: string
+              p_discount_total: number
+              p_idempotency_key: string
+              p_items: Json
+              p_payments: Json
+              p_sale_number: string
+              p_subtotal: number
+              p_tax_total: number
+              p_tienda_id: string
+              p_total: number
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_cash_session_id: string
+              p_cashier_id: string
+              p_cliente_id: string
+              p_discount_reason: string
+              p_discount_total: number
+              p_global_discount_total: number
+              p_idempotency_key: string
+              p_items: Json
+              p_payments: Json
+              p_sale_number: string
+              p_subtotal: number
+              p_tax_total: number
+              p_tienda_id: string
+              p_total: number
+            }
+            Returns: string
+          }
       get_stock: {
         Args: {
           p_producto_id: string
@@ -935,13 +1027,7 @@ export type Database = {
         | "void_return"
         | "transfer_out"
         | "transfer_in"
-      payment_method:
-        | "cash"
-        | "card"
-        | "nequi"
-        | "daviplata"
-        | "transfer"
-        | "other"
+      payment_method: "cash" | "card" | "transfer" | "other"
       product_type: "simple" | "prepared" | "ingredient"
       sale_status: "completed" | "voided"
       user_role: "admin" | "cajero"
@@ -1100,14 +1186,7 @@ export const Constants = {
         "transfer_out",
         "transfer_in",
       ],
-      payment_method: [
-        "cash",
-        "card",
-        "nequi",
-        "daviplata",
-        "transfer",
-        "other",
-      ],
+      payment_method: ["cash", "card", "transfer", "other"],
       product_type: ["simple", "prepared", "ingredient"],
       sale_status: ["completed", "voided"],
       user_role: ["admin", "cajero"],

@@ -12,7 +12,7 @@ export const ivaRateSchema = z.union([z.literal(0), z.literal(5), z.literal(19)]
 
 export const productTypeSchema = z.enum(['simple', 'prepared', 'ingredient'])
 
-export const paymentMethodSchema = z.enum(['cash', 'card', 'nequi', 'daviplata', 'transfer', 'other'])
+export const paymentMethodSchema = z.enum(['cash', 'card', 'transfer', 'other'])
 
 export const inventoryMovementTypeSchema = z.enum(['entry', 'sale_exit', 'adjustment', 'void_return'])
 

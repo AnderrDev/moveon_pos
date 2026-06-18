@@ -52,8 +52,6 @@ interface ClosureRow {
 
 const NON_CASH_METHODS: { metodo: Exclude<PaymentMethod, 'cash'>; controlName: string }[] = [
   { metodo: 'card', controlName: 'actualCardAmount' },
-  { metodo: 'nequi', controlName: 'actualNequiAmount' },
-  { metodo: 'daviplata', controlName: 'actualDaviplataAmount' },
   { metodo: 'transfer', controlName: 'actualTransferAmount' },
   { metodo: 'other', controlName: 'actualOtherAmount' },
 ]
@@ -158,8 +156,6 @@ export class CloseSessionDialog {
       validators: [Validators.required, Validators.min(0)],
     }),
     actualCardAmount: new FormControl<number>(0, { nonNullable: true }),
-    actualNequiAmount: new FormControl<number>(0, { nonNullable: true }),
-    actualDaviplataAmount: new FormControl<number>(0, { nonNullable: true }),
     actualTransferAmount: new FormControl<number>(0, { nonNullable: true }),
     actualOtherAmount: new FormControl<number>(0, { nonNullable: true }),
     notasCierre: new FormControl<string>('', { nonNullable: true }),
@@ -233,8 +229,6 @@ export class CloseSessionDialog {
         this.form.reset({
           actualCashAmount: this.cashSession()?.openingAmount ?? 0,
           actualCardAmount: 0,
-          actualNequiAmount: 0,
-          actualDaviplataAmount: 0,
           actualTransferAmount: 0,
           actualOtherAmount: 0,
           notasCierre: '',
@@ -295,8 +289,6 @@ export class CloseSessionDialog {
         actualCashAmount: value.actualCashAmount,
         actualPayments: [
           { metodo: 'card', total: value.actualCardAmount },
-          { metodo: 'nequi', total: value.actualNequiAmount },
-          { metodo: 'daviplata', total: value.actualDaviplataAmount },
           { metodo: 'transfer', total: value.actualTransferAmount },
           { metodo: 'other', total: value.actualOtherAmount },
         ],

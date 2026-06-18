@@ -51,12 +51,10 @@ describe('closeSessionSchema', () => {
 
   it('acepta cierre con confirmacion por medios de pago', () => {
     const result = closeSessionSchema.safeParse({
-      actualCashAmount:      50000,
-      actualCardAmount:      30000,
-      actualNequiAmount:     20000,
-      actualDaviplataAmount: 10000,
-      actualTransferAmount:  40000,
-      actualOtherAmount:     0,
+      actualCashAmount:     50000,
+      actualCardAmount:     30000,
+      actualTransferAmount: 40000,
+      actualOtherAmount:    0,
     })
 
     expect(result.success).toBe(true)

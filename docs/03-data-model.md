@@ -244,7 +244,7 @@ INDEX (producto_id, sale_id)
 ```
 id                  uuid PK
 sale_id             uuid not null  (FK sales)
-metodo              text not null  CHECK (metodo IN ('cash', 'card', 'nequi', 'daviplata', 'transfer', 'other'))
+metodo              text not null  CHECK (metodo IN ('cash', 'card', 'transfer', 'other'))
 amount              numeric(14,2) not null
 referencia          text  -- últimos 4 dígitos tarjeta, número aprobación, etc.
 created_at          timestamptz default now()

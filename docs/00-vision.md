@@ -20,7 +20,7 @@ MOVEONAPP es una tienda física en Colombia que vende suplementos y batidos para
 | Batidos en menú | < 5, personalizables |
 | Vencimientos | No críticos (rotación rápida) |
 | Internet | Estable, con plan de contingencia |
-| Métodos de pago | Efectivo, tarjeta, Nequi/Daviplata, transferencia, mixtos |
+| Métodos de pago | Efectivo, tarjeta, transferencia (incluye Nequi/Daviplata), mixtos |
 | Factura electrónica | Solo cuando el cliente la pide |
 
 ## Decisiones estratégicas tomadas
