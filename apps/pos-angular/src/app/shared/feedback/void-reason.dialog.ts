@@ -9,10 +9,10 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
-import { DialogComponent } from '../../shared/ui/dialog.component'
-import { ButtonComponent } from '../../shared/ui/button.component'
-import { FormTextareaComponent } from '../../shared/forms/form-textarea.component'
-import { FormErrorComponent } from '../../shared/forms/form-error.component'
+import { DialogComponent } from '../ui/dialog.component'
+import { ButtonComponent } from '../ui/button.component'
+import { FormTextareaComponent } from '../forms/form-textarea.component'
+import { FormErrorComponent } from '../forms/form-error.component'
 import { isValidVoidReason, VOID_REASON_MIN_LENGTH } from './void-reason'
 
 @Component({
@@ -23,7 +23,7 @@ import { isValidVoidReason, VOID_REASON_MIN_LENGTH } from './void-reason'
   template: `
     <mo-dialog
       [open]="open()"
-      title="Anular venta"
+      [title]="title()"
       [description]="dialogDescription()"
       width="sm"
       (closed)="onClose()"
@@ -34,7 +34,7 @@ import { isValidVoidReason, VOID_REASON_MIN_LENGTH } from './void-reason'
           label="Motivo de anulación"
           [rows]="3"
           [required]="true"
-          placeholder="Describe por qué se anula esta venta"
+          [placeholder]="placeholder()"
           [description]="hint"
         />
 
@@ -50,7 +50,10 @@ import { isValidVoidReason, VOID_REASON_MIN_LENGTH } from './void-reason'
 })
 export class VoidReasonDialog {
   readonly open = input<boolean>(false)
-  readonly saleNumber = input<string | null>(null)
+  readonly title = input<string>('Anular')
+  /** Etiqueta legible del elemento a anular (ej: "la venta V-000123"). */
+  readonly targetLabel = input<string | null>(null)
+  readonly placeholder = input<string>('Describe por qué se anula')
 
   readonly closed = output<void>()
   readonly confirmed = output<string>()
@@ -72,8 +75,8 @@ export class VoidReasonDialog {
   readonly canConfirm = computed(() => isValidVoidReason(this.reasonValue()))
 
   readonly dialogDescription = computed(() => {
-    const number = this.saleNumber()
-    return number ? `Vas a anular la venta ${number}.` : 'Vas a anular esta venta.'
+    const label = this.targetLabel()
+    return label ? `Vas a anular ${label}.` : 'Vas a anular este elemento.'
   })
 
   constructor() {

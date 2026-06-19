@@ -1,5 +1,5 @@
 import type { CashSession, CashMovement } from '../../domain/entities/cash-session.entity'
-import type { CashSessionStatus, CashMovementType } from '@/shared/types'
+import type { CashSessionStatus, CashMovementType, CashMovementStatus } from '@/shared/types'
 
 export interface CashSessionRow {
   id: string
@@ -28,6 +28,10 @@ export interface CashMovementRow {
   motivo: string
   created_by: string
   created_at: string
+  status: string
+  voided_by: string | null
+  voided_at: string | null
+  voided_reason: string | null
 }
 
 export function rowToCashSession(row: CashSessionRow): CashSession {
@@ -62,5 +66,9 @@ export function rowToCashMovement(row: CashMovementRow): CashMovement {
     motivo: row.motivo,
     createdBy: row.created_by,
     createdAt: new Date(row.created_at),
+    status: row.status as CashMovementStatus,
+    voidedBy: row.voided_by,
+    voidedAt: row.voided_at ? new Date(row.voided_at) : null,
+    voidedReason: row.voided_reason,
   }
 }

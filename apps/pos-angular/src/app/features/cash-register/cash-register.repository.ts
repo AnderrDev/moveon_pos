@@ -12,7 +12,8 @@ import type { CashMovementType, PaymentMethod } from '@/shared/types'
 
 const SESSION_COLS =
   'id, tienda_id, opened_by, closed_by, status, opening_amount, expected_cash_amount, actual_cash_amount, difference, expected_sales_amount, actual_sales_amount, sales_difference, payment_closure, notas_cierre, opened_at, closed_at'
-const MOV_COLS = 'id, cash_session_id, tipo, amount, motivo, created_by, created_at'
+const MOV_COLS =
+  'id, cash_session_id, tipo, amount, motivo, created_by, created_at, status, voided_by, voided_at, voided_reason'
 
 export interface PaymentBreakdown {
   metodo: string
@@ -32,6 +33,13 @@ export interface AddMovementInput {
   amount: number
   motivo: string
   createdBy: string
+}
+
+export interface VoidMovementInput {
+  movementId: string
+  tiendaId: string
+  voidedBy: string
+  voidedReason: string
 }
 
 export interface CloseSessionInput {
@@ -159,6 +167,24 @@ export class CashRegisterRepository {
     if (error) throw new Error(error.message)
     if (!data) throw new Error('Movimiento sin respuesta')
     return rowToCashMovement(data)
+  }
+
+  async voidMovement(input: VoidMovementInput): Promise<void> {
+    const rpc = this.supabaseClient.supabase as unknown as RpcClient
+    const { error } = await rpc.rpc<string>('void_cash_movement_atomic', {
+      p_movement_id: input.movementId,
+      p_tienda_id: input.tiendaId,
+      p_voided_by: input.voidedBy,
+      p_voided_reason: input.voidedReason,
+    })
+    if (error) throw new Error(error.message)
+    void this.audit.log({
+      tiendaId: input.tiendaId,
+      entityType: 'movimiento_caja',
+      entityId: input.movementId,
+      action: 'void',
+      changes: { reason: input.voidedReason },
+    })
   }
 
   async listMovements(sessionId: string): Promise<CashMovement[]> {

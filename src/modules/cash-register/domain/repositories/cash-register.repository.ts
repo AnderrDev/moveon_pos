@@ -27,6 +27,13 @@ export interface AddMovementParams {
   createdBy: UserId
 }
 
+export interface VoidMovementParams {
+  movementId: string
+  tiendaId: TiendaId
+  voidedBy: UserId
+  voidedReason: string
+}
+
 export interface CloseSessionParams {
   sessionId: string
   tiendaId: TiendaId
@@ -42,6 +49,7 @@ export interface CashRegisterRepository {
   listSessions(tiendaId: TiendaId, limit?: number): Promise<Result<CashSession[]>>
   openSession(params: OpenSessionParams): Promise<Result<CashSession>>
   addMovement(params: AddMovementParams): Promise<Result<CashMovement>>
+  voidMovement(params: VoidMovementParams): Promise<Result<CashMovement>>
   listMovements(sessionId: string): Promise<Result<CashMovement[]>>
   getCashPaymentsTotal(sessionId: string, tiendaId: TiendaId): Promise<Result<number>>
   getPaymentBreakdown(sessionId: string, tiendaId: TiendaId): Promise<Result<CashSessionPaymentBreakdown[]>>

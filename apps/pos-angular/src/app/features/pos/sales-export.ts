@@ -7,10 +7,16 @@ import { buildExportFilename } from '../../shared/export/export-filename'
 const CASH_MOVEMENT_LABELS: Record<string, string> = {
   cash_in: 'Ingreso',
   cash_out: 'Egreso',
+  expense: 'Gasto',
+  correction: 'Correccion',
 }
 
 function saleStatusLabel(status: Sale['status']): string {
   return status === 'voided' ? 'Anulada' : 'Completada'
+}
+
+function cashMovementStatusLabel(status: CashMovement['status']): string {
+  return status === 'voided' ? 'Anulado' : 'Activo'
 }
 
 function cashierLabel(sale: Sale): string {
@@ -194,14 +200,18 @@ export function buildTurnSalesWorkbook(
         columns: [
           { header: 'Fecha y hora', width: 22, format: 'datetime' },
           { header: 'Tipo', width: 16 },
+          { header: 'Estado', width: 14 },
           { header: 'Motivo', width: 42 },
           { header: 'Monto', width: 18, format: 'currency' },
+          { header: 'Motivo de anulación', width: 40 },
         ],
         rows: cashMovements.map((movement) => [
           movement.createdAt,
           CASH_MOVEMENT_LABELS[movement.tipo] ?? movement.tipo,
+          cashMovementStatusLabel(movement.status),
           movement.motivo,
           movement.tipo === 'cash_in' ? movement.amount : -movement.amount,
+          movement.voidedReason,
         ]),
       },
     ],

@@ -3,6 +3,7 @@ import {
   addMovementSchema,
   closeSessionSchema,
   openSessionSchema,
+  voidMovementSchema,
 } from '@/modules/cash-register/application/dtos/cash-register.dto'
 
 describe('openSessionSchema', () => {
@@ -39,6 +40,31 @@ describe('addMovementSchema', () => {
       tipo: 'expense',
       amount: 5000,
       motivo: 'ok',
+    })
+    expect(result.success).toBe(false)
+  })
+})
+
+describe('voidMovementSchema', () => {
+  const movementId = '11111111-1111-1111-1111-111111111111'
+
+  it('acepta un motivo de anulación válido', () => {
+    const result = voidMovementSchema.safeParse({
+      movementId,
+      reason: 'Registrado por error, se revierte',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('rechaza un motivo demasiado corto', () => {
+    const result = voidMovementSchema.safeParse({ movementId, reason: 'corto' })
+    expect(result.success).toBe(false)
+  })
+
+  it('rechaza un movementId que no es UUID', () => {
+    const result = voidMovementSchema.safeParse({
+      movementId: 'no-es-uuid',
+      reason: 'Registrado por error, se revierte',
     })
     expect(result.success).toBe(false)
   })

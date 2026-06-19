@@ -149,6 +149,7 @@ function makeDeps(options: {
       listSessions:          async () => ok([]),
       openSession:           async () => err(new Error('not implemented')),
       addMovement:           async () => err(new Error('not implemented')),
+      voidMovement:          async () => err(new Error('not implemented')),
       listMovements:         async () => ok([]),
       getCashPaymentsTotal:  async () => ok(0),
       getPaymentBreakdown:   async () => ok([]),

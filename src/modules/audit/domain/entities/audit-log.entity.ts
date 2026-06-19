@@ -1,4 +1,9 @@
-export type AuditEntityType = 'producto' | 'venta' | 'movimiento_inventario' | 'sesion_caja'
+export type AuditEntityType =
+  | 'producto'
+  | 'venta'
+  | 'movimiento_inventario'
+  | 'sesion_caja'
+  | 'movimiento_caja'
 
 export type AuditAction =
   | 'create'

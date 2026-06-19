@@ -24,3 +24,13 @@ export function canVoidSale(rol: Role | null): boolean {
 export function canCorrectPayment(rol: Role | null): boolean {
   return rol === 'admin'
 }
+
+/**
+ * Decide si un rol puede anular un movimiento de caja (entrada/salida/gasto).
+ * Solo `admin` — la caja es compartida (ADR 0007) pero anular requiere el
+ * mismo nivel de confianza que anular una venta: cualquier cajero puede
+ * registrar movimientos, pero no puede borrar su propio rastro.
+ */
+export function canVoidCashMovement(rol: Role | null): boolean {
+  return rol === 'admin'
+}

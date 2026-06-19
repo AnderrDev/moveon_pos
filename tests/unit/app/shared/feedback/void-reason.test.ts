@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 import {
   isValidVoidReason,
   VOID_REASON_MIN_LENGTH,
-} from '../../../../../apps/pos-angular/src/app/features/pos/void-reason'
+} from '../../../../../apps/pos-angular/src/app/shared/feedback/void-reason'
 
 describe('isValidVoidReason', () => {
   it('rechaza cadena vacía', () => {

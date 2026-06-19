@@ -10,6 +10,17 @@ export const addMovementSchema = z.object({
   motivo: z.string().min(3, 'Describe el motivo').max(200),
 })
 
+/** Mínimo de caracteres del motivo de anulación (mismo umbral que anular ventas). */
+export const VOID_MOVEMENT_REASON_MIN_LENGTH = 10
+
+export const voidMovementSchema = z.object({
+  movementId: z.string().uuid(),
+  reason: z
+    .string()
+    .trim()
+    .min(VOID_MOVEMENT_REASON_MIN_LENGTH, `El motivo debe tener al menos ${VOID_MOVEMENT_REASON_MIN_LENGTH} caracteres`),
+})
+
 export const closeSessionSchema = z.object({
   actualCashAmount: z.number().nonnegative('El conteo de efectivo no puede ser negativo'),
   actualCardAmount: z.number().nonnegative('El total de tarjeta no puede ser negativo').default(0),
@@ -18,6 +29,7 @@ export const closeSessionSchema = z.object({
   notasCierre:      z.string().max(500).optional(),
 })
 
-export type OpenSessionDto  = z.infer<typeof openSessionSchema>
-export type AddMovementDto  = z.infer<typeof addMovementSchema>
-export type CloseSessionDto = z.infer<typeof closeSessionSchema>
+export type OpenSessionDto   = z.infer<typeof openSessionSchema>
+export type AddMovementDto   = z.infer<typeof addMovementSchema>
+export type VoidMovementDto  = z.infer<typeof voidMovementSchema>
+export type CloseSessionDto  = z.infer<typeof closeSessionSchema>

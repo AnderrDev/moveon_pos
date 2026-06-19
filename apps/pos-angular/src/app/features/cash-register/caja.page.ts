@@ -23,6 +23,8 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
 import { SalesRepository } from '../sales/sales.repository'
 import { ExcelExportService } from '../../shared/export/excel-export.service'
 import { buildTurnSalesWorkbook } from '../pos/sales-export'
+import { VoidReasonDialog } from '../../shared/feedback/void-reason.dialog'
+import { canVoidCashMovement } from '../../core/auth/role-policy'
 
 @Component({
   selector: 'mo-caja-page',
@@ -39,6 +41,7 @@ import { buildTurnSalesWorkbook } from '../pos/sales-export'
     AddMovementDialog,
     CloseSessionDialog,
     TurnSalesTableComponent,
+    VoidReasonDialog,
   ],
   template: `
     <section class="flex h-full min-h-0 flex-col gap-4">
@@ -163,25 +166,48 @@ import { buildTurnSalesWorkbook } from '../pos/sales-export'
                     <th class="px-4 py-2">Tipo</th>
                     <th class="px-4 py-2">Motivo</th>
                     <th class="px-4 py-2 text-right">Monto</th>
+                    @if (canVoid()) {
+                      <th class="px-4 py-2"></th>
+                    }
                   </tr>
                 </thead>
                 <tbody class="divide-y">
                   @for (mov of movements(); track mov.id) {
-                    <tr>
+                    <tr [class.opacity-50]="mov.status === 'voided'">
                       <td class="text-muted-foreground px-4 py-2 text-xs">
                         {{ time(mov.createdAt) }}
                       </td>
                       <td class="px-4 py-2">
                         <mo-badge [variant]="movBadge(mov)">{{ movLabel(mov.tipo) }}</mo-badge>
+                        @if (mov.status === 'voided') {
+                          <mo-badge variant="default" class="ml-1">Anulado</mo-badge>
+                        }
                       </td>
-                      <td class="text-muted-foreground px-4 py-2">{{ mov.motivo }}</td>
+                      <td class="text-muted-foreground px-4 py-2">
+                        <span [class.line-through]="mov.status === 'voided'">{{ mov.motivo }}</span>
+                        @if (mov.status === 'voided') {
+                          <p class="text-destructive mt-0.5 text-xs">
+                            Motivo de anulación: {{ mov.voidedReason || 'Sin motivo registrado' }}
+                          </p>
+                        }
+                      </td>
                       <td
                         class="px-4 py-2 text-right font-semibold tabular-nums"
-                        [class.text-emerald-600]="mov.tipo === 'cash_in'"
-                        [class.text-destructive]="mov.tipo !== 'cash_in'"
+                        [class.line-through]="mov.status === 'voided'"
+                        [class.text-emerald-600]="mov.tipo === 'cash_in' && mov.status === 'active'"
+                        [class.text-destructive]="mov.tipo !== 'cash_in' && mov.status === 'active'"
                       >
                         {{ mov.tipo === 'cash_in' ? '+' : '−' }}{{ money(mov.amount) }}
                       </td>
+                      @if (canVoid()) {
+                        <td class="px-4 py-2 text-right">
+                          @if (mov.status === 'active') {
+                            <mo-button size="sm" variant="outline" (click)="confirmVoidMovement(mov)">
+                              Anular
+                            </mo-button>
+                          }
+                        </td>
+                      }
                     </tr>
                   }
                 </tbody>
@@ -209,6 +235,15 @@ import { buildTurnSalesWorkbook } from '../pos/sales-export'
       (closed)="closeOpen.set(false)"
       (saved)="onClosed()"
     />
+
+    <mo-void-reason-dialog
+      [open]="voidMovementDialogOpen()"
+      title="Anular movimiento de caja"
+      [targetLabel]="voidMovementTargetLabel()"
+      placeholder="Describe por qué se anula este movimiento"
+      (closed)="voidMovementDialogOpen.set(false)"
+      (confirmed)="onVoidMovementConfirmed($event)"
+    />
   `,
 })
 export class CajaPage {
@@ -230,6 +265,17 @@ export class CajaPage {
   readonly closeOpen = signal(false)
   readonly exporting = signal(false)
 
+  /** Movimiento seleccionado para anular y visibilidad del dialog de motivo. */
+  readonly voidMovementTarget = signal<CashMovement | null>(null)
+  readonly voidMovementDialogOpen = signal(false)
+  readonly voidMovementTargetLabel = computed(() => {
+    const mov = this.voidMovementTarget()
+    return mov ? `${this.movLabel(mov.tipo).toLowerCase()} de ${this.money(mov.amount)}` : null
+  })
+
+  /** Solo admin puede anular movimientos de caja (defensa en cliente; RLS/RPC protegen en servidor). */
+  readonly canVoid = computed(() => canVoidCashMovement(this.session.role()))
+
   readonly openForm = new FormGroup({
     openingAmount: new FormControl<number>(0, {
       nonNullable: true,
@@ -238,7 +284,9 @@ export class CajaPage {
   })
 
   readonly movementsTotal = computed(() =>
-    this.movements().reduce((sum, m) => sum + (m.tipo === 'cash_in' ? m.amount : -m.amount), 0)
+    this.movements()
+      .filter((m) => m.status === 'active')
+      .reduce((sum, m) => sum + (m.tipo === 'cash_in' ? m.amount : -m.amount), 0)
   )
   readonly totalSales = computed(() => this.breakdown().reduce((sum, p) => sum + p.total, 0))
   readonly expectedByMethod = computed<ExpectedByMethod[]>(() =>
@@ -372,5 +420,36 @@ export class CajaPage {
 
   onClosed(): void {
     void this.load()
+  }
+
+  confirmVoidMovement(mov: CashMovement): void {
+    // Defensa en profundidad: cortocircuitar si el rol no puede anular ANTES de abrir.
+    if (!this.canVoid()) return
+    this.voidMovementTarget.set(mov)
+    this.voidMovementDialogOpen.set(true)
+  }
+
+  async onVoidMovementConfirmed(reason: string): Promise<void> {
+    // Defensa en profundidad: re-verificar el rol antes de ejecutar la anulación.
+    if (!this.canVoid()) return
+    const mov = this.voidMovementTarget()
+    if (!mov) return
+
+    const auth = await this.session.getAuthContext()
+    if (!auth) return
+
+    try {
+      await this.repo.voidMovement({
+        movementId: mov.id,
+        tiendaId: auth.tiendaId,
+        voidedBy: auth.userId,
+        voidedReason: reason,
+      })
+      this.toast.success('Movimiento anulado')
+      this.voidMovementTarget.set(null)
+      await this.reloadMovements()
+    } catch (error) {
+      this.toast.error(getErrorMessage(error, 'No se pudo anular el movimiento'))
+    }
   }
 }

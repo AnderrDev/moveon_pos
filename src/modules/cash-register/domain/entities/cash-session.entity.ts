@@ -1,4 +1,10 @@
-import type { CashMovementType, CashSessionStatus, TiendaId, UserId } from '@/shared/types'
+import type {
+  CashMovementStatus,
+  CashMovementType,
+  CashSessionStatus,
+  TiendaId,
+  UserId,
+} from '@/shared/types'
 
 export interface CashSession {
   id: string
@@ -27,4 +33,8 @@ export interface CashMovement {
   motivo: string
   createdBy: UserId
   createdAt: Date
+  status: CashMovementStatus
+  voidedBy: UserId | null
+  voidedAt: Date | null
+  voidedReason: string | null
 }

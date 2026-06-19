@@ -17,7 +17,7 @@ import { SessionService } from '../../core/auth/session.service'
 import { canVoidSale, canCorrectPayment } from '../../core/auth/role-policy'
 import { ToastService } from '../../shared/feedback/toast.service'
 import { ReceiptPrintService } from './receipt-print.service'
-import { VoidReasonDialog } from './void-reason.dialog'
+import { VoidReasonDialog } from '../../shared/feedback/void-reason.dialog'
 import { CorrectPaymentDialog } from './correct-payment.dialog'
 import { selectSessionSales } from './sales-history.session-filter'
 import { formatCurrency, formatShortDate, formatTime } from '@/shared/lib/format'
@@ -395,7 +395,9 @@ import { buildTurnSalesWorkbook } from './sales-export'
 
     <mo-void-reason-dialog
       [open]="voidDialogOpen()"
-      [saleNumber]="voidTarget()?.saleNumber ?? null"
+      title="Anular venta"
+      [targetLabel]="voidTargetLabel()"
+      placeholder="Describe por qué se anula esta venta"
       (closed)="voidDialogOpen.set(false)"
       (confirmed)="onVoidConfirmed($event)"
     />
@@ -435,6 +437,10 @@ export class SalesHistoryDialog {
   /** Venta seleccionada para anular y visibilidad del dialog de motivo. */
   readonly voidTarget = signal<Sale | null>(null)
   readonly voidDialogOpen = signal(false)
+  readonly voidTargetLabel = computed(() => {
+    const number = this.voidTarget()?.saleNumber
+    return number ? `la venta ${number}` : null
+  })
 
   /** Solo admin puede anular ventas (defensa en cliente; RLS protege en servidor). */
   readonly canVoid = computed(() => canVoidSale(this.session.role()))
