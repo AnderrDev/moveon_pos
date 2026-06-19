@@ -24,7 +24,6 @@ import {
   type ReceiptOutputKind,
   type ReceiptOutputStatus,
 } from './receipt-output-status.dialog'
-import { ChangeDueDialog } from './change-due.dialog'
 import type { PosCartItem } from './pos-cart.store'
 import type { OpenCashSession, PosCategory, PosProduct } from './pos.types'
 import type { Cliente } from '@/modules/customers/domain/entities/cliente.entity'
@@ -47,7 +46,6 @@ interface PostSaleOutputJob {
     ItemDiscountDialog,
     ProductInfoDialog,
     ReceiptOutputStatusDialog,
-    ChangeDueDialog,
   ],
   template: `
     <section class="flex h-full min-h-0 flex-col">
@@ -728,6 +726,14 @@ interface PostSaleOutputJob {
               <p class="text-muted-foreground text-[11px]">
                 Esta eleccion aplica solamente a la venta actual.
               </p>
+              <button
+                type="button"
+                (click)="openCashDrawerManually()"
+                [disabled]="openingCashDrawer()"
+                class="text-muted-foreground hover:border-primary hover:text-primary w-full rounded-lg border border-dashed py-2 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {{ openingCashDrawer() ? 'Abriendo caja...' : 'Abrir caja' }}
+              </button>
             </div>
 
             @if (saleError()) {
@@ -802,12 +808,6 @@ interface PostSaleOutputJob {
       (retry)="retryReceiptOutput()"
       (closed)="dismissReceiptOutput()"
     />
-
-    <mo-change-due-dialog
-      [open]="pendingChangeAmount() !== null"
-      [amount]="pendingChangeAmount() ?? 0"
-      (confirmed)="confirmChangeDelivered()"
-    />
   `,
 })
 export class PosPage {
@@ -840,7 +840,7 @@ export class PosPage {
   readonly receiptOutputStatus = signal<ReceiptOutputStatus | null>(null)
   readonly receiptOutputError = signal<string | null>(null)
   readonly pendingReceiptOutput = signal<PostSaleOutputJob | null>(null)
-  readonly pendingChangeAmount = signal<number | null>(null)
+  readonly openingCashDrawer = signal(false)
   readonly customerPickerOpen = signal(false)
   readonly discountItem = signal<PosCartItem | null>(null)
   readonly productInfo = signal<PosProduct | null>(null)
@@ -1197,6 +1197,19 @@ export class PosPage {
     this.paymentAmount.set(remaining > 0 ? String(remaining) : '')
   }
 
+  async openCashDrawerManually(): Promise<void> {
+    if (this.openingCashDrawer()) return
+    this.openingCashDrawer.set(true)
+    try {
+      await this.receiptPrint.openCashDrawer()
+      this.toast.success('Caja abierta')
+    } catch (error) {
+      this.toast.error(getErrorMessage(error, 'No se pudo abrir la caja'))
+    } finally {
+      this.openingCashDrawer.set(false)
+    }
+  }
+
   async confirmSale(): Promise<void> {
     const cashSession = this.cashSession()
     if (!cashSession || !this.canConfirm()) return
@@ -1240,12 +1253,6 @@ export class PosPage {
       this.paymentMethod.set('cash')
       this.checkoutOpen.set(false)
 
-      if (change > 0) {
-        // Se mantiene visible hasta que el cajero confirme que entregó el vuelto.
-        // No bloquea la apertura del cajón ni la impresión: para entregar el
-        // cambio primero hay que abrir la caja, así que esa acción sigue su curso.
-        this.pendingChangeAmount.set(change)
-      }
       this.toast.success(
         change > 0 ? `Venta completada · cambio ${formatCurrency(change)}` : 'Venta completada'
       )
@@ -1262,10 +1269,6 @@ export class PosPage {
     } finally {
       this.isSaving.set(false)
     }
-  }
-
-  confirmChangeDelivered(): void {
-    this.pendingChangeAmount.set(null)
   }
 
   retryReceiptOutput(): void {
