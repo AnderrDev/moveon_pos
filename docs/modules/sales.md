@@ -107,7 +107,7 @@ Al anular una venta, por cada `sale_item` se crea un `inventory_movement` tipo `
 ### RN-S09: Descuentos
 
 - Todo descuento exige un motivo operativo de mínimo 3 caracteres.
-- El cajero puede aplicar hasta el 10% del subtotal bruto. La RPC rechaza cualquier monto superior.
+- El cajero puede aplicar hasta el 50% del subtotal bruto (subido desde 10% el 2026-06-23). La RPC rechaza cualquier monto superior.
 - El admin puede aplicar descuentos superiores; `sales.discount_approved_by` conserva la aprobación.
 - `sales.item_discount_total` y `sales.global_discount_total` separan el origen del descuento; su suma debe ser igual a `discount_total`.
 - El descuento global se prorratea entre líneas en `sale_items.global_discount_amount` para reconciliar total e IVA.

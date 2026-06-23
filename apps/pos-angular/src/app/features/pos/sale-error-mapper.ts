@@ -40,8 +40,8 @@ const KNOWN_MESSAGES: readonly { raw: string; display: string }[] = [
   },
   { raw: 'Producto no disponible', display: 'Producto no disponible' },
   {
-    raw: 'Descuentos mayores al 10% requieren aprobación de admin',
-    display: 'Descuentos mayores al 10% requieren aprobación de admin',
+    raw: 'Descuentos mayores al 50% requieren aprobación de admin',
+    display: 'Descuentos mayores al 50% requieren aprobación de admin',
   },
   {
     raw: 'El motivo del descuento es obligatorio',

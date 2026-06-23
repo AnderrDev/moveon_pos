@@ -146,11 +146,11 @@ export function validateDiscountAuthorization(
   role: Role,
   subtotal: number,
   discountTotal: number,
-  threshold = 0.1
+  threshold = 0.5
 ): string | null {
   if (role === 'admin') return null
   if (discountTotal > Math.round(subtotal * threshold)) {
-    return 'Descuentos mayores al 10% requieren aprobación de admin'
+    return 'Descuentos mayores al 50% requieren aprobación de admin'
   }
 
   return null

@@ -63,7 +63,7 @@ select isnt(
     'Promoción autorizada'
   )::text,
   '',
-  'admin crea venta con descuento mayor al 10%'
+  'admin crea venta con descuento por encima del umbral de cajero (50%)'
 );
 
 select is(
@@ -125,20 +125,20 @@ select throws_ok(
       '',
       'd2222222-2222-2222-2222-222222222223',
       null,
-      119000, 14000, 0, 105000,
+      119000, 65000, 0, 54000,
       'discount-cashier-sale',
       jsonb_build_array(jsonb_build_object(
         'producto_id', 'd5555555-5555-5555-5555-555555555555',
         'quantity', 1,
-        'discount_amount', 14000
+        'discount_amount', 65000
       )),
-      jsonb_build_array(jsonb_build_object('metodo', 'cash', 'amount', 105000)),
+      jsonb_build_array(jsonb_build_object('metodo', 'cash', 'amount', 119000)),
       0,
       'Descuento de cajero'
     )
   $$,
-  'Descuentos mayores al 10% requieren aprobación de admin',
-  'el cajero no puede superar el umbral del 10%'
+  'Descuentos mayores al 50% requieren aprobación de admin',
+  'el cajero no puede superar el umbral del 50%'
 );
 
 select * from finish();

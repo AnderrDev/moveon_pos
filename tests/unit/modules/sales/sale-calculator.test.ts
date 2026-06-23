@@ -242,17 +242,17 @@ describe('normalizePaymentsForPersistence', () => {
 })
 
 describe('validateDiscountAuthorization', () => {
-  it('permite descuento de cajero hasta 10%', () => {
-    expect(validateDiscountAuthorization('cajero', 100000, 10000)).toBeNull()
+  it('permite descuento de cajero hasta 50%', () => {
+    expect(validateDiscountAuthorization('cajero', 100000, 50000)).toBeNull()
   })
 
-  it('rechaza descuento de cajero mayor al 10%', () => {
-    expect(validateDiscountAuthorization('cajero', 100000, 10001)).toBe(
-      'Descuentos mayores al 10% requieren aprobación de admin',
+  it('rechaza descuento de cajero mayor al 50%', () => {
+    expect(validateDiscountAuthorization('cajero', 100000, 50001)).toBe(
+      'Descuentos mayores al 50% requieren aprobación de admin',
     )
   })
 
   it('permite descuento de admin por encima del umbral', () => {
-    expect(validateDiscountAuthorization('admin', 100000, 50000)).toBeNull()
+    expect(validateDiscountAuthorization('admin', 100000, 90000)).toBeNull()
   })
 })

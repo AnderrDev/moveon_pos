@@ -635,7 +635,7 @@ interface PostSaleOutputJob {
                 <p class="text-muted-foreground text-[11px]">
                   El motivo queda en el historial y la auditoría.
                   @if (!isAdmin()) {
-                    Descuentos mayores al 10% requieren un administrador.
+                    Descuentos mayores al 50% requieren un administrador.
                   }
                 </p>
                 @if (discountAuthorizationError()) {
