@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
 import { ControlContainer, FormGroupDirective, ReactiveFormsModule } from '@angular/forms'
 import { clampCurrency, formatCurrency, parseCurrency } from '@/shared/lib/format'
 import { FieldWrapperComponent } from './field-wrapper.component'
@@ -45,12 +45,29 @@ export class FormCurrencyInputComponent {
 
   private readonly focused = signal(false)
 
+  // `FormControl.value` no es una signal: leerla dentro de un `computed()` no
+  // lo hace reactivo a cambios externos (p. ej. `form.reset(...)`). Este
+  // signal se mantiene sincronizado vía `valueChanges` para que `display()`
+  // se reevalúe también cuando el valor cambia fuera del input (no solo al
+  // tipear, que sí dispara `focused`/`commit`).
+  private readonly controlValue = signal<number | null | undefined>(undefined)
+
   private get control() {
     return this.container.form.get(this.controlName())
   }
 
+  constructor() {
+    effect((onCleanup) => {
+      const ctrl = this.control
+      if (!ctrl) return
+      this.controlValue.set(ctrl.value as number | null | undefined)
+      const sub = ctrl.valueChanges.subscribe((value) => this.controlValue.set(value))
+      onCleanup(() => sub.unsubscribe())
+    })
+  }
+
   readonly display = computed(() => {
-    const value = this.control?.value as number | null | undefined
+    const value = this.controlValue()
     if (this.focused()) return value && value > 0 ? String(value) : ''
     return value && value > 0 ? formatCurrency(value) : ''
   })
