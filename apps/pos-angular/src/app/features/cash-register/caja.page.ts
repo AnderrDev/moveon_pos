@@ -13,7 +13,8 @@ import { ToastService } from '../../shared/feedback/toast.service'
 import { AddMovementDialog } from './add-movement.dialog'
 import { CloseSessionDialog, type ExpectedByMethod } from './close-session.dialog'
 import { CorrectOpeningDialog } from './correct-opening.dialog'
-import { TurnSalesTableComponent } from './turn-sales-table.component'
+import { ClosedSessionsListComponent } from './closed-sessions-list.component'
+import { SaleDetailListComponent } from '../../shared/sales/sale-detail-list.component'
 import { formatCurrency, formatTime, formatShortDate } from '@/shared/lib/format'
 import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
 import type {
@@ -25,7 +26,11 @@ import { SalesRepository } from '../sales/sales.repository'
 import { ExcelExportService } from '../../shared/export/excel-export.service'
 import { buildTurnSalesWorkbook } from '../pos/sales-export'
 import { VoidReasonDialog } from '../../shared/feedback/void-reason.dialog'
-import { canVoidCashMovement, canCorrectCashSessionOpening } from '../../core/auth/role-policy'
+import {
+  canVoidCashMovement,
+  canCorrectCashSessionOpening,
+  canViewClosedSessions,
+} from '../../core/auth/role-policy'
 
 @Component({
   selector: 'mo-caja-page',
@@ -42,11 +47,12 @@ import { canVoidCashMovement, canCorrectCashSessionOpening } from '../../core/au
     AddMovementDialog,
     CloseSessionDialog,
     CorrectOpeningDialog,
-    TurnSalesTableComponent,
+    SaleDetailListComponent,
+    ClosedSessionsListComponent,
     VoidReasonDialog,
   ],
   template: `
-    <section class="flex h-full min-h-0 flex-col gap-4">
+    <section class="flex flex-col gap-4">
       <mo-page-header title="Caja" subtitle="Apertura, movimientos y cierre">
         @if (openSession()) {
           <mo-button
@@ -150,7 +156,7 @@ import { canVoidCashMovement, canCorrectCashSessionOpening } from '../../core/au
           </div>
         </div>
 
-        <div class="bg-card flex flex-1 flex-col overflow-hidden rounded-xl border">
+        <div class="bg-card flex flex-col overflow-hidden rounded-xl border">
           <div class="flex shrink-0 items-center justify-between border-b px-4 py-3">
             <h3 class="font-display text-sm font-bold tracking-wide uppercase">
               Movimientos del turno
@@ -163,7 +169,7 @@ import { canVoidCashMovement, canCorrectCashSessionOpening } from '../../core/au
               Sin movimientos registrados.
             </p>
           } @else {
-            <div class="overflow-auto">
+            <div class="max-h-[28rem] overflow-auto">
               <table class="w-full text-sm">
                 <thead
                   class="bg-muted/50 text-muted-foreground sticky top-0 text-left text-xs uppercase"
@@ -223,7 +229,17 @@ import { canVoidCashMovement, canCorrectCashSessionOpening } from '../../core/au
           }
         </div>
 
-        <mo-turn-sales-table [sales]="sales()" />
+        <mo-sale-detail-list
+          [sales]="sales()"
+          [expandedSaleId]="expandedSaleId()"
+          title="Ventas del turno"
+          emptyMessage="Sin ventas registradas."
+          (toggleSale)="toggleSale($event)"
+        />
+
+        @if (canViewHistory()) {
+          <mo-closed-sessions-list />
+        }
       }
     </section>
 
@@ -293,6 +309,12 @@ export class CajaPage {
 
   /** Cualquier usuario activo de la tienda puede corregir la apertura (caja compartida, PLAN-44). */
   readonly canCorrectOpening = computed(() => canCorrectCashSessionOpening(this.session.role()))
+
+  /** Solo admin ve el historial de turnos cerrados (supervisión, no operación del cajero). */
+  readonly canViewHistory = computed(() => canViewClosedSessions(this.session.role()))
+
+  /** Venta expandida en "Ventas del turno" (mo-sale-detail-list). */
+  readonly expandedSaleId = signal<string | null>(null)
 
   readonly openForm = new FormGroup({
     openingAmount: new FormControl<number>(0, {
@@ -438,6 +460,10 @@ export class CajaPage {
 
   onClosed(): void {
     void this.load()
+  }
+
+  toggleSale(sale: Sale): void {
+    this.expandedSaleId.set(this.expandedSaleId() === sale.id ? null : sale.id)
   }
 
   onOpeningCorrected(session: CashSession): void {

@@ -1,15 +1,17 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core'
-import { BadgeComponent } from '../../shared/ui/badge.component'
+import { BadgeComponent } from '../ui/badge.component'
 import { formatCurrency, formatTime, formatShortDate } from '@/shared/lib/format'
 import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
 import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
 
 /**
- * Bloque "Detalle de ventas" expandible: lista de ventas del período con
- * resumen colapsado y detalle (items, pagos, registro) al expandir.
+ * Bloque "Detalle de ventas" expandible: lista de ventas con resumen
+ * colapsado y detalle (items, pagos, registro) al expandir.
  *
- * El estado de expansión vive en el padre (`ReportesPage`) — este componente
- * es puramente presentacional, recibe `expandedSaleId` y emite `toggleSale`.
+ * Compartido entre `/reportes` (ventas del período) y `/caja` (ventas del
+ * turno, abierto o histórico). El estado de expansión vive en el padre —
+ * este componente es puramente presentacional, recibe `expandedSaleId` y
+ * emite `toggleSale`.
  */
 @Component({
   selector: 'mo-sale-detail-list',
@@ -19,10 +21,10 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
   template: `
     <div>
       <h3 class="font-display mb-3 text-sm font-bold tracking-wide uppercase">
-        Detalle de ventas
+        {{ title() }}
       </h3>
       @if (sales().length === 0) {
-        <p class="text-muted-foreground text-sm">Sin ventas en el período.</p>
+        <p class="text-muted-foreground text-sm">{{ emptyMessage() }}</p>
       } @else {
         <div class="space-y-3">
           @for (sale of sales(); track sale.id) {
@@ -35,7 +37,7 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
                 type="button"
                 class="hover:bg-muted/30 focus:ring-ring w-full p-4 text-left transition-colors focus:ring-2 focus:outline-none sm:p-5"
                 [attr.aria-expanded]="isExpanded(sale)"
-                [attr.aria-controls]="'report-sale-' + sale.id"
+                [attr.aria-controls]="'sale-detail-' + sale.id"
                 (click)="toggleSale.emit(sale)"
               >
                 <div class="flex items-start justify-between gap-4">
@@ -94,7 +96,7 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
               </button>
 
               @if (isExpanded(sale)) {
-                <div [id]="'report-sale-' + sale.id" class="border-border bg-muted/20 border-t p-4 sm:p-5">
+                <div [id]="'sale-detail-' + sale.id" class="border-border bg-muted/20 border-t p-4 sm:p-5">
                   <div class="grid gap-4 md:grid-cols-[minmax(0,1.3fr)_minmax(16rem,0.7fr)]">
                     <section class="border-border bg-card overflow-hidden rounded-2xl border">
                       <div class="border-border flex items-center justify-between border-b px-4 py-3">
@@ -240,6 +242,8 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
 export class SaleDetailListComponent {
   readonly sales = input.required<Sale[]>()
   readonly expandedSaleId = input.required<string | null>()
+  readonly title = input<string>('Detalle de ventas')
+  readonly emptyMessage = input<string>('Sin ventas en el período.')
   readonly toggleSale = output<Sale>()
 
   isExpanded(sale: Sale): boolean {

@@ -4,6 +4,7 @@ import {
   canActivateForRole,
   canCorrectCashSessionOpening,
   canCorrectPayment,
+  canViewClosedSessions,
 } from '../../../../../apps/pos-angular/src/app/core/auth/role-policy'
 
 describe('canActivateForRole', () => {
@@ -54,5 +55,19 @@ describe('canCorrectCashSessionOpening', () => {
 
   it('niega corregir apertura a contexto sin rol (null)', () => {
     expect(canCorrectCashSessionOpening(null)).toBe(false)
+  })
+})
+
+describe('canViewClosedSessions', () => {
+  it('permite ver turnos cerrados a admin', () => {
+    expect(canViewClosedSessions('admin')).toBe(true)
+  })
+
+  it('niega ver turnos cerrados a cajero', () => {
+    expect(canViewClosedSessions('cajero')).toBe(false)
+  })
+
+  it('niega ver turnos cerrados a contexto sin rol (null)', () => {
+    expect(canViewClosedSessions(null)).toBe(false)
   })
 })

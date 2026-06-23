@@ -47,3 +47,14 @@ export function canCorrectCashSessionOpening(rol: Role | null): boolean {
   if (rol === null) return false
   return rol === 'admin' || rol === 'cajero'
 }
+
+/**
+ * Decide si un rol puede ver el historial de turnos de caja ya cerrados
+ * (movimientos y ventas de sesiones pasadas). Solo `admin` — es información
+ * de supervisión sobre el trabajo de todos los cajeros, no una operación que
+ * el cajero necesite para su propio turno (que ya ve en `/caja` mientras
+ * está abierto).
+ */
+export function canViewClosedSessions(rol: Role | null): boolean {
+  return rol === 'admin'
+}
