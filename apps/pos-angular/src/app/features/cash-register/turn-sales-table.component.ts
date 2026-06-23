@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core'
+import { ChangeDetectionStrategy, Component, input, signal } from '@angular/core'
 import { BadgeComponent } from '../../shared/ui/badge.component'
+import { SaleDetailComponent } from '../sales/sale-detail.component'
 import { formatCurrency, formatTime } from '@/shared/lib/format'
 import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
 import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
@@ -7,13 +8,14 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
 /**
  * Tabla de ventas de la sesión activa. Pensada para que el cajero/admin pueda
  * cruzar visualmente las ventas que componen el "Esperado" del cierre, en vez
- * de confiar solo en el agregado por método de pago.
+ * de confiar solo en el agregado por método de pago. Cada fila es expandible
+ * para ver el detalle completo (productos, pagos, registro) sin salir de Caja.
  */
 @Component({
   selector: 'mo-turn-sales-table',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BadgeComponent],
+  imports: [BadgeComponent, SaleDetailComponent],
   template: `
     <div class="bg-card flex flex-1 flex-col overflow-hidden rounded-xl border">
       <div class="flex shrink-0 items-center justify-between border-b px-4 py-3">
@@ -28,6 +30,7 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
           <table class="w-full text-sm">
             <thead class="bg-muted/50 text-muted-foreground sticky top-0 text-left text-xs uppercase">
               <tr>
+                <th class="px-4 py-2"></th>
                 <th class="px-4 py-2">Hora</th>
                 <th class="px-4 py-2"># Venta</th>
                 <th class="px-4 py-2">Cajero</th>
@@ -38,7 +41,25 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
             </thead>
             <tbody class="divide-y">
               @for (sale of sales(); track sale.id) {
-                <tr>
+                <tr
+                  class="hover:bg-muted/30 cursor-pointer"
+                  [attr.aria-expanded]="isExpanded(sale)"
+                  [attr.aria-controls]="'turn-sale-detail-' + sale.id"
+                  (click)="toggleSale(sale)"
+                >
+                  <td class="px-4 py-2">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      class="text-muted-foreground h-4 w-4 transition-transform duration-200"
+                      [class.rotate-180]="isExpanded(sale)"
+                      aria-hidden="true"
+                    >
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
+                  </td>
                   <td class="text-muted-foreground px-4 py-2 text-xs">{{ time(sale.createdAt) }}</td>
                   <td class="px-4 py-2 font-mono text-xs">{{ sale.saleNumber }}</td>
                   <td class="text-muted-foreground px-4 py-2 text-xs">
@@ -65,6 +86,13 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
                     }
                   </td>
                 </tr>
+                @if (isExpanded(sale)) {
+                  <tr [id]="'turn-sale-detail-' + sale.id">
+                    <td colspan="7" class="bg-muted/20 border-border border-t px-4 py-4">
+                      <mo-sale-detail [sale]="sale" />
+                    </td>
+                  </tr>
+                }
               }
             </tbody>
           </table>
@@ -76,6 +104,8 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
 export class TurnSalesTableComponent {
   readonly sales = input.required<Sale[]>()
 
+  readonly expandedSaleId = signal<string | null>(null)
+
   money(v: number): string {
     return formatCurrency(v)
   }
@@ -86,5 +116,13 @@ export class TurnSalesTableComponent {
 
   paymentLabel(metodo: string): string {
     return getPaymentMethodLabel(metodo)
+  }
+
+  isExpanded(sale: Sale): boolean {
+    return this.expandedSaleId() === sale.id
+  }
+
+  toggleSale(sale: Sale): void {
+    this.expandedSaleId.update((current) => (current === sale.id ? null : sale.id))
   }
 }
