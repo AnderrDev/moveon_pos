@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   addMovementSchema,
   closeSessionSchema,
+  correctOpeningSchema,
   openSessionSchema,
   voidMovementSchema,
 } from '@/modules/cash-register/application/dtos/cash-register.dto'
@@ -96,6 +97,72 @@ describe('closeSessionSchema', () => {
       actualCardAmount: -1,
     })
 
+    expect(result.success).toBe(false)
+  })
+})
+
+describe('correctOpeningSchema', () => {
+  const sessionId = '22222222-2222-2222-2222-222222222222'
+
+  it('acepta una corrección válida', () => {
+    const result = correctOpeningSchema.safeParse({
+      sessionId,
+      newAmount: 150000,
+      reason: 'Se digitó mal el monto de apertura del turno',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('acepta un nuevo monto en cero', () => {
+    const result = correctOpeningSchema.safeParse({
+      sessionId,
+      newAmount: 0,
+      reason: 'Se abrió la caja sin efectivo inicial por error',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('rechaza un monto negativo', () => {
+    const result = correctOpeningSchema.safeParse({
+      sessionId,
+      newAmount: -1000,
+      reason: 'Se digitó mal el monto de apertura del turno',
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('rechaza un motivo demasiado corto', () => {
+    const result = correctOpeningSchema.safeParse({
+      sessionId,
+      newAmount: 150000,
+      reason: 'corto',
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('rechaza cuando falta newAmount', () => {
+    const result = correctOpeningSchema.safeParse({
+      sessionId,
+      reason: 'Se digitó mal el monto de apertura del turno',
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('rechaza cuando newAmount no es numérico', () => {
+    const result = correctOpeningSchema.safeParse({
+      sessionId,
+      newAmount: 'mucho',
+      reason: 'Se digitó mal el monto de apertura del turno',
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('rechaza un sessionId que no es UUID', () => {
+    const result = correctOpeningSchema.safeParse({
+      sessionId: 'no-es-uuid',
+      newAmount: 150000,
+      reason: 'Se digitó mal el monto de apertura del turno',
+    })
     expect(result.success).toBe(false)
   })
 })

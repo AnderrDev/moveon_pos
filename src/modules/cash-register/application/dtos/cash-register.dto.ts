@@ -29,7 +29,17 @@ export const closeSessionSchema = z.object({
   notasCierre:      z.string().max(500).optional(),
 })
 
-export type OpenSessionDto   = z.infer<typeof openSessionSchema>
-export type AddMovementDto   = z.infer<typeof addMovementSchema>
-export type VoidMovementDto  = z.infer<typeof voidMovementSchema>
-export type CloseSessionDto  = z.infer<typeof closeSessionSchema>
+export const correctOpeningSchema = z.object({
+  sessionId: z.string().uuid(),
+  newAmount: z.number().nonnegative('El monto de apertura no puede ser negativo'),
+  reason: z
+    .string()
+    .trim()
+    .min(VOID_MOVEMENT_REASON_MIN_LENGTH, `El motivo debe tener al menos ${VOID_MOVEMENT_REASON_MIN_LENGTH} caracteres`),
+})
+
+export type OpenSessionDto    = z.infer<typeof openSessionSchema>
+export type AddMovementDto    = z.infer<typeof addMovementSchema>
+export type VoidMovementDto   = z.infer<typeof voidMovementSchema>
+export type CloseSessionDto   = z.infer<typeof closeSessionSchema>
+export type CorrectOpeningDto = z.infer<typeof correctOpeningSchema>

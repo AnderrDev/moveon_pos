@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 // Pure decision function extracted to role-policy.ts so it runs in node without TestBed.
 import {
   canActivateForRole,
+  canCorrectCashSessionOpening,
   canCorrectPayment,
 } from '../../../../../apps/pos-angular/src/app/core/auth/role-policy'
 
@@ -39,5 +40,19 @@ describe('canCorrectPayment', () => {
 
   it('niega corregir pago a contexto sin rol (null)', () => {
     expect(canCorrectPayment(null)).toBe(false)
+  })
+})
+
+describe('canCorrectCashSessionOpening', () => {
+  it('permite corregir apertura a admin', () => {
+    expect(canCorrectCashSessionOpening('admin')).toBe(true)
+  })
+
+  it('permite corregir apertura a cajero (caja compartida, no admin-only)', () => {
+    expect(canCorrectCashSessionOpening('cajero')).toBe(true)
+  })
+
+  it('niega corregir apertura a contexto sin rol (null)', () => {
+    expect(canCorrectCashSessionOpening(null)).toBe(false)
   })
 })

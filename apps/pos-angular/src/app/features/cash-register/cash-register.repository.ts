@@ -51,6 +51,14 @@ export interface CloseSessionInput {
   notasCierre?: string
 }
 
+export interface CorrectOpeningInput {
+  sessionId: string
+  tiendaId: string
+  newAmount: number
+  correctedBy: string
+  reason: string
+}
+
 interface UntypedClient {
   from(table: string): {
     insert(values: Record<string, unknown>): {
@@ -249,6 +257,29 @@ export class CashRegisterRepository {
       entityId: input.sessionId,
       action: 'close',
       changes: { actualCashAmount: input.actualCashAmount, notasCierre: input.notasCierre ?? null },
+    })
+    return session
+  }
+
+  async correctOpening(input: CorrectOpeningInput): Promise<CashSession> {
+    const rpc = this.supabaseClient.supabase as unknown as RpcClient
+    const { error } = await rpc.rpc<string>('correct_cash_session_opening_atomic', {
+      p_session_id: input.sessionId,
+      p_tienda_id: input.tiendaId,
+      p_new_amount: input.newAmount,
+      p_corrected_by: input.correctedBy,
+      p_reason: input.reason,
+    })
+    if (error) throw new Error(error.message)
+
+    const session = await this.getSessionById(input.sessionId, input.tiendaId)
+    if (!session) throw new Error('Correccion sin respuesta')
+    void this.audit.log({
+      tiendaId: input.tiendaId,
+      entityType: 'sesion_caja',
+      entityId: input.sessionId,
+      action: 'correct_opening',
+      changes: { newAmount: input.newAmount, reason: input.reason },
     })
     return session
   }

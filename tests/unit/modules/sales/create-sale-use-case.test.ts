@@ -154,6 +154,7 @@ function makeDeps(options: {
       getCashPaymentsTotal:  async () => ok(0),
       getPaymentBreakdown:   async () => ok([]),
       closeSession:          async () => err(new Error('not implemented')),
+      correctOpening:        async () => err(new Error('not implemented')),
     },
     inventoryRepository: {
       getStock:        async () => ok(stock),

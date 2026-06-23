@@ -12,6 +12,7 @@ import { SessionService } from '../../core/auth/session.service'
 import { ToastService } from '../../shared/feedback/toast.service'
 import { AddMovementDialog } from './add-movement.dialog'
 import { CloseSessionDialog, type ExpectedByMethod } from './close-session.dialog'
+import { CorrectOpeningDialog } from './correct-opening.dialog'
 import { TurnSalesTableComponent } from './turn-sales-table.component'
 import { formatCurrency, formatTime, formatShortDate } from '@/shared/lib/format'
 import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
@@ -24,7 +25,7 @@ import { SalesRepository } from '../sales/sales.repository'
 import { ExcelExportService } from '../../shared/export/excel-export.service'
 import { buildTurnSalesWorkbook } from '../pos/sales-export'
 import { VoidReasonDialog } from '../../shared/feedback/void-reason.dialog'
-import { canVoidCashMovement } from '../../core/auth/role-policy'
+import { canVoidCashMovement, canCorrectCashSessionOpening } from '../../core/auth/role-policy'
 
 @Component({
   selector: 'mo-caja-page',
@@ -40,6 +41,7 @@ import { canVoidCashMovement } from '../../core/auth/role-policy'
     FormErrorComponent,
     AddMovementDialog,
     CloseSessionDialog,
+    CorrectOpeningDialog,
     TurnSalesTableComponent,
     VoidReasonDialog,
   ],
@@ -56,6 +58,11 @@ import { canVoidCashMovement } from '../../core/auth/role-policy'
             Descargar Excel
           </mo-button>
           <mo-button variant="outline" (click)="movementOpen.set(true)">+ Movimiento</mo-button>
+          @if (canCorrectOpening()) {
+            <mo-button variant="outline" (click)="correctOpeningOpen.set(true)">
+              Corregir apertura
+            </mo-button>
+          }
           <mo-button variant="destructive" (click)="closeOpen.set(true)">Cerrar caja</mo-button>
         }
       </mo-page-header>
@@ -236,6 +243,13 @@ import { canVoidCashMovement } from '../../core/auth/role-policy'
       (saved)="onClosed()"
     />
 
+    <mo-correct-opening-dialog
+      [open]="correctOpeningOpen()"
+      [cashSession]="openSession()"
+      (closed)="correctOpeningOpen.set(false)"
+      (saved)="onOpeningCorrected($event)"
+    />
+
     <mo-void-reason-dialog
       [open]="voidMovementDialogOpen()"
       title="Anular movimiento de caja"
@@ -263,6 +277,7 @@ export class CajaPage {
   readonly opening = signal(false)
   readonly movementOpen = signal(false)
   readonly closeOpen = signal(false)
+  readonly correctOpeningOpen = signal(false)
   readonly exporting = signal(false)
 
   /** Movimiento seleccionado para anular y visibilidad del dialog de motivo. */
@@ -275,6 +290,9 @@ export class CajaPage {
 
   /** Solo admin puede anular movimientos de caja (defensa en cliente; RLS/RPC protegen en servidor). */
   readonly canVoid = computed(() => canVoidCashMovement(this.session.role()))
+
+  /** Cualquier usuario activo de la tienda puede corregir la apertura (caja compartida, PLAN-44). */
+  readonly canCorrectOpening = computed(() => canCorrectCashSessionOpening(this.session.role()))
 
   readonly openForm = new FormGroup({
     openingAmount: new FormControl<number>(0, {
@@ -420,6 +438,12 @@ export class CajaPage {
 
   onClosed(): void {
     void this.load()
+  }
+
+  onOpeningCorrected(session: CashSession): void {
+    // Actualiza la tarjeta de apertura de inmediato sin recargar toda la página;
+    // el nuevo opening_amount también recalcula "Esperado en caja" (computed).
+    this.openSession.set(session)
   }
 
   confirmVoidMovement(mov: CashMovement): void {

@@ -34,3 +34,16 @@ export function canCorrectPayment(rol: Role | null): boolean {
 export function canVoidCashMovement(rol: Role | null): boolean {
   return rol === 'admin'
 }
+
+/**
+ * Decide si un rol puede corregir el monto de apertura de la sesión de caja
+ * abierta. NO es admin-only: la caja es compartida (ADR 0007 / PLAN-19) y la
+ * corrección de apertura solo modifica `opening_amount` (queda auditada con
+ * valor anterior/nuevo), nunca borra rastro como sí lo hace anular un
+ * movimiento. Restringirlo a admin reintroduciría la fricción que causó el
+ * workaround manual del incidente 2026-06-22.
+ */
+export function canCorrectCashSessionOpening(rol: Role | null): boolean {
+  if (rol === null) return false
+  return rol === 'admin' || rol === 'cajero'
+}

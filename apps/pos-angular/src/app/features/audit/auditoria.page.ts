@@ -40,6 +40,7 @@ const ACTION_LABELS: Record<string, string> = {
   adjust: 'Ajuste',
   transfer: 'Traslado',
   correct_payment: 'Corregir pago',
+  correct_opening: 'Corregir apertura',
 }
 
 const MODULE_LABELS: Record<string, string> = {

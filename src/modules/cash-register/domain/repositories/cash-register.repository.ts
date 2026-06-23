@@ -43,6 +43,14 @@ export interface CloseSessionParams {
   notasCierre?: string
 }
 
+export interface CorrectOpeningParams {
+  sessionId: string
+  tiendaId: TiendaId
+  newAmount: number
+  correctedBy: UserId
+  reason: string
+}
+
 export interface CashRegisterRepository {
   getOpenSession(tiendaId: TiendaId): Promise<Result<CashSession | null>>
   getSessionById(id: string, tiendaId: TiendaId): Promise<Result<CashSession | null>>
@@ -54,4 +62,5 @@ export interface CashRegisterRepository {
   getCashPaymentsTotal(sessionId: string, tiendaId: TiendaId): Promise<Result<number>>
   getPaymentBreakdown(sessionId: string, tiendaId: TiendaId): Promise<Result<CashSessionPaymentBreakdown[]>>
   closeSession(params: CloseSessionParams): Promise<Result<CashSession>>
+  correctOpening(params: CorrectOpeningParams): Promise<Result<CashSession>>
 }
