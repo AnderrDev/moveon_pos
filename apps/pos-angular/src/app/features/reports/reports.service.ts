@@ -10,6 +10,13 @@ import {
   groupSalesByCashier,
   type CashierSalesSummary,
 } from '@/modules/reports/domain/services/group-sales-by-cashier'
+import {
+  groupSalesByLocalDay,
+  groupSalesByLocalHour,
+  type DailySalesSummary,
+  type HourlySalesSummary,
+} from '@/modules/reports/domain/services/sales-trend'
+import { groupSalesByProduct } from '@/modules/reports/domain/services/top-products'
 import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
 
 export interface DailyPaymentBreakdown {
@@ -22,8 +29,12 @@ export interface DailyProductSale {
   productId: string
   nombre: string
   sku: string | null
+  /** Cantidad de ventas DISTINTAS en las que aparece el producto (PLAN-39). */
+  numVentas: number
   qty: number
   total: number
+  /** Precio promedio simple de `unitPrice` entre líneas (PLAN-39, no ponderado por cantidad). */
+  avgPrice: number
   /** `null` cuando el producto no tiene costo capturado — se excluye de utilidadTotal. */
   costoUnitario: number | null
   costoTotal: number | null
@@ -121,6 +132,8 @@ export interface DailyReport {
   /** Suma de `utilidad` solo de productos con costo conocido (no asume 0 para costo null). */
   utilidadTotal: number
   cashierBreakdown: CashierSalesSummary[]
+  hourlySales: HourlySalesSummary[]
+  dailySales: DailySalesSummary[]
   sales: Sale[]
   salesDetail: DailySaleDetail[]
   saleItems: DailySaleItemDetail[]
@@ -200,23 +213,10 @@ export class ReportsService {
       .map(([metodo, v]) => ({ metodo, ...v }))
       .sort((a, b) => b.total - a.total)
 
-    const prodMap = new Map<string, { nombre: string; sku: string | null; qty: number; total: number }>()
-    for (const sale of completed) {
-      for (const item of sale.items) {
-        const cur = prodMap.get(item.productId) ?? {
-          nombre: item.productoNombre,
-          sku: item.productoSku,
-          qty: 0,
-          total: 0,
-        }
-        prodMap.set(item.productId, {
-          nombre: cur.nombre,
-          sku: cur.sku,
-          qty: cur.qty + item.quantity,
-          total: cur.total + item.total,
-        })
-      }
-    }
+    // Top productos (PLAN-39): agregación en cliente sobre las ventas ya
+    // cargadas del período (solo completadas, semántica de la sección 4 de
+    // scripts/reports/business-status-report.sql). Cero queries nuevas.
+    const productGroups = groupSalesByProduct(completed)
 
     // Costo actual del producto (no histórico, ver docs/modules/reports.md):
     // suficiente para "cuánto se está ganando ahora", no exacto si el costo
@@ -225,20 +225,23 @@ export class ReportsService {
     const costMap = new Map(products.map((p) => [p.id, p.costo]))
 
     let utilidadTotal = 0
-    const productSales: DailyProductSale[] = Array.from(prodMap.entries())
-      .map(([productId, v]) => {
-        const costoUnitario = costMap.get(productId) ?? null
-        const costoTotal = costoUnitario != null ? Math.round(costoUnitario * v.qty) : null
-        const utilidad = costoTotal != null ? v.total - costoTotal : null
-        const margenPct = utilidad != null && v.total > 0 ? (utilidad / v.total) * 100 : null
-        if (utilidad != null) utilidadTotal += utilidad
-        return { productId, ...v, costoUnitario, costoTotal, utilidad, margenPct }
-      })
-      .sort((a, b) => b.qty - a.qty)
+    const productSales: DailyProductSale[] = productGroups.map((v) => {
+      const costoUnitario = costMap.get(v.productId) ?? null
+      const costoTotal = costoUnitario != null ? Math.round(costoUnitario * v.qty) : null
+      const utilidad = costoTotal != null ? v.total - costoTotal : null
+      const margenPct = utilidad != null && v.total > 0 ? (utilidad / v.total) * 100 : null
+      if (utilidad != null) utilidadTotal += utilidad
+      return { ...v, costoUnitario, costoTotal, utilidad, margenPct }
+    })
 
     // Desglose por cajero: agrupación en cliente sobre las ventas ya cargadas
     // del período (completadas + anuladas). Cero queries nuevas.
     const cashierBreakdown = groupSalesByCashier(sales)
+
+    // Tendencia (PLAN-38): ventas por hora local y por día local, agrupación
+    // en cliente sobre las mismas ventas ya cargadas. Cero queries nuevas.
+    const hourlySales = groupSalesByLocalHour(sales, timezone)
+    const dailySales = groupSalesByLocalDay(sales, timezone)
 
     // Desglose de IVA por tasa: solo ventas completadas, agrupadas por taxRate.
     const taxMap = new Map<number, { baseAmount: number; taxAmount: number }>()
@@ -331,6 +334,8 @@ export class ReportsService {
       productSales,
       utilidadTotal,
       cashierBreakdown,
+      hourlySales,
+      dailySales,
       sales,
       salesDetail,
       saleItems,

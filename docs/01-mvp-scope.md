@@ -65,6 +65,16 @@
 - Detalle de ventas con filtros por fecha.
 - Reporte de cierre de caja.
 - Stock actual con alerta de bajo stock.
+- Ventas por hora y tendencia por día del periodo seleccionado.
+- Top productos por periodo (unidades y facturación).
+- Conciliación histórica de sesiones de caja (esperado vs. contado, diferencias resaltadas).
+- Ventas anuladas del periodo (auditoría).
+
+> Movido desde "Reportes avanzados" v1.4 el 2026-06-23: con ≥10 días de histórico real
+> de operación ya no aplica la justificación original ("requieren histórico primero").
+> Ver `docs/sessions/2026-06-23-analisis-horario-apertura-cierre.md` y
+> `docs/sessions/2026-06-22-reporte-sql-estado-negocio.md`. Quedan en v1.4 los reportes
+> que sí requieren más historia (comparativos semana/mes, margen con costo histórico).
 
 ### M9. Migración desde Siigo
 - Importar productos por CSV (formato definido en `/docs/modules/products.md`).
@@ -86,7 +96,7 @@
 | Facturación electrónica vía API | v1.1 | Sprint dedicado. Hasta entonces, facturas reales se emiten en Siigo en paralelo. |
 | Recetas de batidos con modificadores | v1.2 | Volumen bajo de batidos (<5), no es crítico. |
 | Fidelización con puntos | v1.3 | Mejora de negocio, no requisito operativo. |
-| Reportes avanzados (márgenes, comparativos, top productos) | v1.4 | Requieren histórico de datos primero. |
+| Reportes comparativos (semana vs. semana, mes vs. mes) y margen con costo histórico | v1.4 | Requieren más histórico de datos y, para margen, capturar costo en `sale_items` al momento de venta. |
 | Modo contingencia offline | v1.5 | Internet estable, no es prioridad inicial. |
 | UI multi-sede (selector, transferencias) | v2.0 | Cuando abran segunda tienda. |
 | App móvil nativa | No planeado | PWA cubre el caso. |
