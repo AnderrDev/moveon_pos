@@ -490,6 +490,27 @@ interface PostSaleOutputJob {
 
           <div class="min-h-0 space-y-4 overflow-y-auto p-4 sm:p-6">
             <div class="bg-muted/50 rounded-xl px-4 py-3">
+              <p class="text-muted-foreground mb-2 text-[10px] font-semibold tracking-wide uppercase">
+                Resumen de compra
+              </p>
+              <div class="border-border/50 mb-2.5 space-y-1 border-b pb-2.5">
+                @for (item of cart.items(); track item.key) {
+                  <div class="flex items-start justify-between gap-2">
+                    <span class="min-w-0 flex-1 text-sm leading-snug">
+                      {{ item.nombre }}
+                      <span class="text-muted-foreground">&nbsp;×&nbsp;{{ item.quantity }}</span>
+                    </span>
+                    <div class="shrink-0 text-right">
+                      <span class="text-sm font-semibold tabular-nums">{{ money(item.total) }}</span>
+                      @if (item.descuentoTotal > 0) {
+                        <span class="text-destructive ml-1.5 text-[11px] tabular-nums">
+                          −{{ money(item.descuentoTotal) }}
+                        </span>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
               @if (cart.totals().discountTotal > 0) {
                 <div class="flex justify-between text-sm">
                   <span class="text-muted-foreground">Descuentos</span>
