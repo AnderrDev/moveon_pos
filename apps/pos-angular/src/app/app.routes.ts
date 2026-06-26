@@ -19,6 +19,11 @@ export const routes: Routes = [
       import('./features/auth/reset-password.page').then((m) => m.ResetPasswordPage),
   },
   {
+    path: 'catalogo',
+    loadComponent: () =>
+      import('./features/catalog/catalogo.page').then((m) => m.CatalogoPage),
+  },
+  {
     path: '',
     component: ShellComponent,
     canActivate: [authGuard],
