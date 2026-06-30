@@ -16,7 +16,7 @@ import { CorrectOpeningDialog } from './correct-opening.dialog'
 import { ClosedSessionsListComponent } from './closed-sessions-list.component'
 import { SaleDetailListComponent } from '../../shared/sales/sale-detail-list.component'
 import { formatCurrency, formatTime, formatShortDate } from '@/shared/lib/format'
-import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
+import { PAYMENT_METHOD_CLOSURE_OPTIONS, getPaymentMethodLabel } from '@/shared/lib/payment-methods'
 import type {
   CashMovement,
   CashSession,
@@ -229,11 +229,39 @@ import {
           }
         </div>
 
+        <div class="bg-card rounded-xl border p-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="flex flex-wrap gap-1">
+              @for (m of paymentMethodOptions; track m.value) {
+                <button
+                  type="button"
+                  (click)="paymentFilter.set(m.value)"
+                  [class]="paymentFilterClass(m.value)"
+                >
+                  {{ m.label }}
+                </button>
+              }
+            </div>
+            @if (paymentFilter()) {
+              <button
+                type="button"
+                (click)="paymentFilter.set('')"
+                class="text-muted-foreground hover:text-foreground text-xs underline"
+              >
+                Limpiar filtro
+              </button>
+            }
+            <p class="text-muted-foreground ml-auto text-xs">
+              {{ filteredSales().length }} de {{ sales().length }} ventas
+            </p>
+          </div>
+        </div>
+
         <mo-sale-detail-list
-          [sales]="sales()"
+          [sales]="filteredSales()"
           [expandedSaleId]="expandedSaleId()"
           title="Ventas del turno"
-          emptyMessage="Sin ventas registradas."
+          [emptyMessage]="salesEmptyMessage()"
           (toggleSale)="toggleSale($event)"
         />
 
@@ -295,6 +323,18 @@ export class CajaPage {
   readonly closeOpen = signal(false)
   readonly correctOpeningOpen = signal(false)
   readonly exporting = signal(false)
+  readonly paymentFilter = signal('')
+
+  readonly paymentMethodOptions = [
+    { value: '', label: 'Todos los métodos' },
+    ...PAYMENT_METHOD_CLOSURE_OPTIONS,
+  ]
+
+  readonly filteredSales = computed<Sale[]>(() => {
+    const method = this.paymentFilter()
+    if (!method) return this.sales()
+    return this.sales().filter((s) => s.payments.some((p) => p.metodo === method))
+  })
 
   /** Movimiento seleccionado para anular y visibilidad del dialog de motivo. */
   readonly voidMovementTarget = signal<CashMovement | null>(null)
@@ -358,6 +398,19 @@ export class CajaPage {
     return getPaymentMethodLabel(metodo)
   }
 
+  paymentFilterClass(value: string): string {
+    return [
+      'rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors',
+      this.paymentFilter() === value
+        ? 'bg-secondary text-secondary-foreground'
+        : 'hover:bg-muted text-muted-foreground',
+    ].join(' ')
+  }
+
+  salesEmptyMessage(): string {
+    return this.paymentFilter() ? 'No hay ventas con ese método de pago.' : 'Sin ventas registradas.'
+  }
+
   movLabel(tipo: string): string {
     if (tipo === 'cash_in') return 'Entrada'
     if (tipo === 'cash_out') return 'Salida'
@@ -388,6 +441,7 @@ export class CajaPage {
   async load(): Promise<void> {
     this.loading.set(true)
     this.loadError.set(null)
+    this.paymentFilter.set('')
     try {
       const auth = await this.session.getAuthContext()
       if (!auth) throw new Error('No autenticado')

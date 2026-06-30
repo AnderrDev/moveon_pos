@@ -21,7 +21,7 @@ import { VoidReasonDialog } from '../../shared/feedback/void-reason.dialog'
 import { CorrectPaymentDialog } from './correct-payment.dialog'
 import { selectSessionSales } from './sales-history.session-filter'
 import { formatCurrency, formatShortDate, formatTime } from '@/shared/lib/format'
-import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
+import { PAYMENT_METHOD_CLOSURE_OPTIONS, getPaymentMethodLabel } from '@/shared/lib/payment-methods'
 import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
 import type { PaymentMethod } from '@/shared/types'
 import type { CashMovement } from '@/modules/cash-register/domain/entities/cash-session.entity'
@@ -114,8 +114,45 @@ import { buildTurnSalesWorkbook } from './sales-export'
           </div>
         </div>
 
+        <div class="mb-4 flex flex-wrap items-center gap-2">
+          <div class="flex flex-wrap gap-1">
+            @for (m of paymentMethodOptions; track m.value) {
+              <button
+                type="button"
+                (click)="paymentFilter.set(m.value)"
+                [class]="paymentFilterClass(m.value)"
+              >
+                {{ m.label }}
+              </button>
+            }
+          </div>
+          @if (paymentFilter()) {
+            <button
+              type="button"
+              (click)="paymentFilter.set('')"
+              class="text-muted-foreground hover:text-foreground text-xs underline"
+            >
+              Limpiar filtro
+            </button>
+          }
+          <p class="text-muted-foreground ml-auto text-xs">
+            {{ filteredSales().length }} de {{ sales().length }} ventas
+          </p>
+        </div>
+
+        @if (filteredSales().length === 0) {
+          <div
+            class="border-border bg-muted/20 rounded-2xl border border-dashed px-5 py-12 text-center"
+          >
+            <p class="font-bold">Sin ventas con ese método de pago</p>
+            <p class="text-muted-foreground mt-1 text-sm">
+              Prueba con otro filtro o límpialo para ver todas las ventas del turno.
+            </p>
+          </div>
+        }
+
         <div class="space-y-3">
-          @for (sale of sales(); track sale.id) {
+          @for (sale of filteredSales(); track sale.id) {
             <article
               class="border-border bg-card overflow-hidden rounded-2xl border transition-shadow"
               [class.border-destructive]="sale.status === 'voided'"
@@ -433,6 +470,18 @@ export class SalesHistoryDialog {
   readonly reprintingSaleId = signal<string | null>(null)
   readonly expandedSaleId = signal<string | null>(null)
   readonly exporting = signal(false)
+  readonly paymentFilter = signal('')
+
+  readonly paymentMethodOptions = [
+    { value: '', label: 'Todos los métodos' },
+    ...PAYMENT_METHOD_CLOSURE_OPTIONS,
+  ]
+
+  readonly filteredSales = computed<Sale[]>(() => {
+    const method = this.paymentFilter()
+    if (!method) return this.sales()
+    return this.sales().filter((s) => s.payments.some((p) => p.metodo === method))
+  })
 
   /** Venta seleccionada para anular y visibilidad del dialog de motivo. */
   readonly voidTarget = signal<Sale | null>(null)
@@ -469,6 +518,7 @@ export class SalesHistoryDialog {
         this.cashMovements.set([])
         this.loadError.set(null)
         this.expandedSaleId.set(null)
+        this.paymentFilter.set('')
         // No dejar el dialog de motivo colgado si se cierra el historial.
         this.voidDialogOpen.set(false)
         this.voidTarget.set(null)
@@ -520,6 +570,15 @@ export class SalesHistoryDialog {
 
   paymentLabel(method: string): string {
     return getPaymentMethodLabel(method)
+  }
+
+  paymentFilterClass(value: string): string {
+    return [
+      'rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors',
+      this.paymentFilter() === value
+        ? 'bg-secondary text-secondary-foreground'
+        : 'hover:bg-muted text-muted-foreground',
+    ].join(' ')
   }
 
   totalPaid(sale: Sale): number {
