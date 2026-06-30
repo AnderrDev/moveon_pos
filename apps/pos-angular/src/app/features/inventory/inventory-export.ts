@@ -10,6 +10,7 @@ export interface InventoryExportRow {
   totalStock: number
   minimumStock: number
   isLow: boolean
+  isOut: boolean
 }
 
 const MOVEMENT_LABELS: Record<string, string> = {
@@ -56,7 +57,7 @@ export function buildInventoryWorkbook(
           row.bodegaStock,
           row.totalStock,
           row.minimumStock,
-          row.isLow ? 'Stock bajo' : 'Disponible',
+          row.isOut ? 'Agotado' : row.isLow ? 'Stock bajo' : 'Disponible',
         ]),
       },
     ],

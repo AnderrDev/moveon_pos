@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isLowStock } from '@/modules/inventory/domain/services/low-stock'
+import { isLowStock, isOutOfStock } from '@/modules/inventory/domain/services/low-stock'
 
 describe('isLowStock', () => {
   it('prepared con stock 0 y mínimo 0 NO está bajo (bug exacto)', () => {
@@ -28,5 +28,27 @@ describe('isLowStock', () => {
 
   it('simple con mínimo 0 y stock 0 está bajo (no se altera la regla)', () => {
     expect(isLowStock({ tipo: 'simple', currentStock: 0, minimumStock: 0 })).toBe(true)
+  })
+})
+
+describe('isOutOfStock', () => {
+  it('prepared con stock 0 NO está agotado', () => {
+    expect(isOutOfStock({ tipo: 'prepared', currentStock: 0 })).toBe(false)
+  })
+
+  it('simple con stock 0 está agotado', () => {
+    expect(isOutOfStock({ tipo: 'simple', currentStock: 0 })).toBe(true)
+  })
+
+  it('simple con stock negativo está agotado', () => {
+    expect(isOutOfStock({ tipo: 'simple', currentStock: -1 })).toBe(true)
+  })
+
+  it('ingredient con stock 1 NO está agotado', () => {
+    expect(isOutOfStock({ tipo: 'ingredient', currentStock: 1 })).toBe(false)
+  })
+
+  it('simple con stock 1 NO está agotado', () => {
+    expect(isOutOfStock({ tipo: 'simple', currentStock: 1 })).toBe(false)
   })
 })

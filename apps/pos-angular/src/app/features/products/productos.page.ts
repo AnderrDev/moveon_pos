@@ -15,6 +15,7 @@ import { ToastService } from '../../shared/feedback/toast.service'
 import { formatCurrency } from '@/shared/lib/format'
 import type { Product } from '@/modules/products/domain/entities/product.entity'
 import type { StockLevel } from '@/modules/inventory/domain/entities/inventory.entity'
+import { isOutOfStock } from '@/modules/inventory/domain/services/low-stock'
 import { ExcelExportService } from '../../shared/export/excel-export.service'
 import { buildProductsWorkbook } from './product-export'
 
@@ -130,7 +131,7 @@ import { buildProductsWorkbook } from './product-export'
             </thead>
             <tbody class="divide-y">
               @for (product of filteredProducts(); track product.id) {
-                <tr class="hover:bg-muted/30">
+                <tr class="hover:bg-muted/30" [class.bg-red-50]="isOut(product)">
                   <td class="px-4 py-3">
                     <div class="font-semibold">{{ product.nombre }}</div>
                     @if (categoriaName(product.categoriaId)) {
@@ -157,16 +158,24 @@ import { buildProductsWorkbook } from './product-export'
                   <td class="text-muted-foreground px-4 py-3 text-right tabular-nums">
                     {{ product.stockMinimo }}
                   </td>
-                  <td class="px-4 py-3 text-right tabular-nums font-semibold">
+                  <td
+                    class="px-4 py-3 text-right tabular-nums font-semibold"
+                    [class.text-destructive]="isOut(product)"
+                  >
                     {{ stockMap().get(product.id)?.puntoVentaStock ?? '—' }}
                   </td>
                   <td class="text-muted-foreground px-4 py-3 text-right tabular-nums">
                     {{ stockMap().get(product.id)?.bodegaStock ?? '—' }}
                   </td>
                   <td class="px-4 py-3">
-                    @if (!product.isActive) {
-                      <mo-badge variant="warning">Inactivo</mo-badge>
-                    }
+                    <div class="flex flex-wrap gap-1">
+                      @if (isOut(product)) {
+                        <mo-badge variant="destructive">Agotado</mo-badge>
+                      }
+                      @if (!product.isActive) {
+                        <mo-badge variant="warning">Inactivo</mo-badge>
+                      }
+                    </div>
                   </td>
                   <td class="px-4 py-3 text-right">
                     <div class="flex justify-end gap-1">
@@ -295,6 +304,11 @@ export class ProductosPage {
       ingredient: 'Ingrediente',
     }
     return labels[tipo] ?? tipo
+  }
+
+  isOut(product: Product): boolean {
+    const puntoVentaStock = this.stockMap().get(product.id)?.puntoVentaStock ?? 0
+    return isOutOfStock({ tipo: product.tipo, currentStock: puntoVentaStock })
   }
 
   categoriaName(id: string | null): string | null {

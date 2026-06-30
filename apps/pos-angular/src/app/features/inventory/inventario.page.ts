@@ -14,7 +14,7 @@ import { TransferStockDialog } from './transfer-stock.dialog'
 import { KardexDialog } from './kardex.dialog'
 import type { Product } from '@/modules/products/domain/entities/product.entity'
 import type { StockLevel } from '@/modules/inventory/domain/entities/inventory.entity'
-import { isLowStock } from '@/modules/inventory/domain/services/low-stock'
+import { isLowStock, isOutOfStock } from '@/modules/inventory/domain/services/low-stock'
 import { ExcelExportService } from '../../shared/export/excel-export.service'
 import { ToastService } from '../../shared/feedback/toast.service'
 import { buildInventoryWorkbook } from './inventory-export'
@@ -31,6 +31,7 @@ interface StockRow {
   totalStock: number
   minimumStock: number
   isLow: boolean
+  isOut: boolean
 }
 
 @Component({
@@ -103,7 +104,11 @@ interface StockRow {
             </thead>
             <tbody class="divide-y">
               @for (row of filteredRows(); track row.id) {
-                <tr class="hover:bg-muted/30">
+                <tr
+                  class="hover:bg-muted/30"
+                  [class.bg-red-50]="row.isOut"
+                  [class.bg-amber-50]="row.isLow && !row.isOut"
+                >
                   <td class="px-4 py-3 font-semibold">{{ row.nombre }}</td>
                   <td class="text-muted-foreground px-4 py-3 text-xs">
                     {{ tipoLabel(row.tipo) }}
@@ -117,7 +122,10 @@ interface StockRow {
                   <td class="px-4 py-3 text-right font-semibold tabular-nums">
                     {{ money(row.precioVenta) }}
                   </td>
-                  <td class="px-4 py-3 text-right font-bold tabular-nums">
+                  <td
+                    class="px-4 py-3 text-right font-bold tabular-nums"
+                    [class.text-destructive]="row.isOut"
+                  >
                     {{ row.puntoVentaStock }}
                   </td>
                   <td class="px-4 py-3 text-right font-semibold tabular-nums">
@@ -130,7 +138,9 @@ interface StockRow {
                     {{ row.minimumStock }}
                   </td>
                   <td class="px-4 py-3">
-                    @if (row.isLow) {
+                    @if (row.isOut) {
+                      <mo-badge variant="destructive">Agotado</mo-badge>
+                    } @else if (row.isLow) {
                       <mo-badge variant="warning">Stock bajo</mo-badge>
                     }
                   </td>
@@ -246,6 +256,7 @@ export class InventarioPage {
           currentStock: puntoVentaStock,
           minimumStock: p.stockMinimo,
         }),
+        isOut: isOutOfStock({ tipo: p.tipo, currentStock: puntoVentaStock }),
       }
     })
   })

@@ -309,7 +309,7 @@ export function buildStockReportWorkbook(rows: readonly StockReportRow[]): Excel
           row.bodegaStock,
           row.totalStock,
           row.minimumStock,
-          row.isLow ? 'Stock bajo' : 'Disponible',
+          row.isOut ? 'Agotado' : row.isLow ? 'Stock bajo' : 'Disponible',
         ]),
       },
     ],

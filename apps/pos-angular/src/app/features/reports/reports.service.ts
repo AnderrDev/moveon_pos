@@ -5,7 +5,7 @@ import { InventoryRepository } from '../inventory/inventory.repository'
 import { ProductsRepository } from '../products/products.repository'
 import { TiendaInfoService } from '../../core/tienda/tienda-info.service'
 import { DEFAULT_TIMEZONE, getStoreRangeUtc } from '@/modules/reports/domain/services/day-range'
-import { isLowStock } from '@/modules/inventory/domain/services/low-stock'
+import { isLowStock, isOutOfStock } from '@/modules/inventory/domain/services/low-stock'
 import {
   groupSalesByCashier,
   type CashierSalesSummary,
@@ -152,6 +152,7 @@ export interface StockReportRow {
   totalStock: number
   minimumStock: number
   isLow: boolean
+  isOut: boolean
 }
 
 @Injectable({ providedIn: 'root' })
@@ -383,9 +384,11 @@ export class ReportsService {
             currentStock: sl.puntoVentaStock,
             minimumStock: sl.minimumStock,
           }),
+          isOut: isOutOfStock({ tipo: p.tipo, currentStock: sl.puntoVentaStock }),
         }
       })
       .sort((a, b) => {
+        if (a.isOut !== b.isOut) return a.isOut ? -1 : 1
         if (a.isLow !== b.isLow) return a.isLow ? -1 : 1
         return a.nombre.localeCompare(b.nombre)
       })

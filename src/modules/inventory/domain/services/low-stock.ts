@@ -29,3 +29,17 @@ export function isLowStock(params: {
   if (params.tipo === 'prepared') return false
   return params.currentStock <= params.minimumStock
 }
+
+/**
+ * Decide si un producto debe marcarse como "Agotado" (sin stock disponible
+ * en punto de venta). Misma exclusión que `isLowStock`: los preparados no
+ * llevan stock propio, por lo que nunca están agotados.
+ *
+ * @param tipo          Tipo de producto (`'simple' | 'prepared' | 'ingredient'`).
+ * @param currentStock  Stock actual.
+ * @returns `true` si el producto está agotado; `false` para preparados.
+ */
+export function isOutOfStock(params: { tipo: ProductType; currentStock: number }): boolean {
+  if (params.tipo === 'prepared') return false
+  return params.currentStock <= 0
+}
