@@ -67,6 +67,11 @@ type Payment = {
 }
 ```
 
+> El negocio solo acepta `cash` y `transfer` (2026-06-30). `card` y `other` se
+> conservan en el tipo/BD por compatibilidad con datos históricos, pero ningún
+> selector de la UI (modal de pago, corrección, cierre de caja, filtros) los
+> ofrece — ver `src/shared/lib/payment-methods.ts`.
+
 ---
 
 ## Reglas de negocio (no negociables)

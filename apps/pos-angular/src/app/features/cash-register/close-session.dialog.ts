@@ -51,9 +51,7 @@ interface ClosureRow {
 }
 
 const NON_CASH_METHODS: { metodo: Exclude<PaymentMethod, 'cash'>; controlName: string }[] = [
-  { metodo: 'card', controlName: 'actualCardAmount' },
   { metodo: 'transfer', controlName: 'actualTransferAmount' },
-  { metodo: 'other', controlName: 'actualOtherAmount' },
 ]
 
 @Component({
@@ -155,9 +153,7 @@ export class CloseSessionDialog {
       nonNullable: true,
       validators: [Validators.required, Validators.min(0)],
     }),
-    actualCardAmount: new FormControl<number>(0, { nonNullable: true }),
     actualTransferAmount: new FormControl<number>(0, { nonNullable: true }),
-    actualOtherAmount: new FormControl<number>(0, { nonNullable: true }),
     notasCierre: new FormControl<string>('', { nonNullable: true }),
   })
 
@@ -176,7 +172,7 @@ export class CloseSessionDialog {
     return map
   })
 
-  /** 6 filas fijas: efectivo (vs esperado en caja) + 5 no-efectivo (vs breakdown). */
+  /** 2 filas fijas: efectivo (vs esperado en caja) + transferencia (vs breakdown). */
   readonly rows = computed<ClosureRow[]>(() => {
     const value = this.formValue()
     const cashCounted = value.actualCashAmount ?? 0
@@ -228,9 +224,7 @@ export class CloseSessionDialog {
       if (this.open()) {
         this.form.reset({
           actualCashAmount: this.cashSession()?.openingAmount ?? 0,
-          actualCardAmount: 0,
           actualTransferAmount: 0,
-          actualOtherAmount: 0,
           notasCierre: '',
         })
         this.rootError.set(null)
@@ -287,11 +281,7 @@ export class CloseSessionDialog {
         tiendaId: auth.tiendaId,
         closedBy: auth.userId,
         actualCashAmount: value.actualCashAmount,
-        actualPayments: [
-          { metodo: 'card', total: value.actualCardAmount },
-          { metodo: 'transfer', total: value.actualTransferAmount },
-          { metodo: 'other', total: value.actualOtherAmount },
-        ],
+        actualPayments: [{ metodo: 'transfer', total: value.actualTransferAmount }],
         notasCierre: value.notasCierre.trim() || undefined,
       })
       this.toast.success('Caja cerrada')

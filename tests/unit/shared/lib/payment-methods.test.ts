@@ -11,16 +11,16 @@ describe('payment methods', () => {
     expect(getPaymentMethodLabel('wallet')).toBe('wallet')
   })
 
-  it('expone opciones visibles para el modal de pago', () => {
-    expect(PAYMENT_METHOD_OPTIONS.map((o) => o.value)).toEqual(['cash', 'card', 'transfer'])
+  it('expone solo efectivo y transferencia en el modal de pago', () => {
+    expect(PAYMENT_METHOD_OPTIONS.map((o) => o.value)).toEqual(['cash', 'transfer'])
   })
 
-  it('incluye otros medios en cierre de caja', () => {
-    expect(PAYMENT_METHOD_CLOSURE_OPTIONS.map((o) => o.value)).toEqual([
-      'cash',
-      'card',
-      'transfer',
-      'other',
-    ])
+  it('cierre de caja usa las mismas opciones (sin tarjeta ni otro)', () => {
+    expect(PAYMENT_METHOD_CLOSURE_OPTIONS.map((o) => o.value)).toEqual(['cash', 'transfer'])
+  })
+
+  it('mantiene el label de tarjeta/otro para mostrar datos históricos', () => {
+    expect(getPaymentMethodLabel('card')).toBe('Tarjeta')
+    expect(getPaymentMethodLabel('other')).toBe('Otro')
   })
 })

@@ -17,11 +17,7 @@ import { FormErrorComponent } from '../../shared/forms/form-error.component'
 import { correctPaymentSchema } from '@/modules/sales/application/dtos/sale.dto'
 import type { CorrectPaymentDto } from '@/modules/sales/application/dtos/sale.dto'
 import type { PaymentMethod } from '@/shared/types'
-import { PAYMENT_METHOD_LABELS } from '@/shared/lib/payment-methods'
-
-const PAYMENT_METHOD_OPTIONS = (
-  Object.entries(PAYMENT_METHOD_LABELS) as [PaymentMethod, string][]
-).map(([value, label]) => ({ value, label }))
+import { PAYMENT_METHOD_OPTIONS } from '@/shared/lib/payment-methods'
 
 @Component({
   selector: 'mo-correct-payment-dialog',
