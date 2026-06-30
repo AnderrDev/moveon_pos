@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { PageHeaderComponent } from '../../shared/layout/page-header.component'
 import { ButtonComponent } from '../../shared/ui/button.component'
@@ -6,7 +6,6 @@ import { EmptyStateComponent } from '../../shared/feedback/empty-state.component
 import { ReportsService, type DailyReport, type StockReportRow } from './reports.service'
 import { DailyKpiCardsComponent } from './daily-kpi-cards.component'
 import { DiscountControlTableComponent } from './discount-control-table.component'
-import { PaymentAndTopProductsComponent } from './payment-and-top-products.component'
 import { TopProductsTableComponent } from './top-products-table.component'
 import { CashierBreakdownListComponent } from './cashier-breakdown-list.component'
 import { CashClosuresTableComponent } from './cash-closures-table.component'
@@ -22,7 +21,15 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
 import { ToastService } from '../../shared/feedback/toast.service'
 import { ExcelExportService } from '../../shared/export/excel-export.service'
 import { buildDailyReportWorkbook, buildStockReportWorkbook } from './report-export'
-import { isoDate, resolvePreset, type Preset, type TabId } from './report-period.helpers'
+import {
+  isoDate,
+  resolvePreset,
+  type Preset,
+  type TabId,
+  type SalesSubTabId,
+  type SalesStatusFilter,
+} from './report-period.helpers'
+import { PAYMENT_METHOD_CLOSURE_OPTIONS, getPaymentMethodLabel } from '@/shared/lib/payment-methods'
 
 @Component({
   selector: 'mo-reportes-page',
@@ -34,7 +41,6 @@ import { isoDate, resolvePreset, type Preset, type TabId } from './report-period
     EmptyStateComponent,
     DailyKpiCardsComponent,
     DiscountControlTableComponent,
-    PaymentAndTopProductsComponent,
     TopProductsTableComponent,
     CashierBreakdownListComponent,
     CashClosuresTableComponent,
@@ -59,40 +65,42 @@ import { isoDate, resolvePreset, type Preset, type TabId } from './report-period
       </mo-page-header>
 
       <!-- Selector de período -->
-      <div class="bg-card rounded-xl border p-3">
-        <div class="flex flex-wrap items-center gap-2">
-          <div class="flex items-center gap-2">
-            <label class="text-muted-foreground text-xs font-semibold">Desde</label>
-            <input
-              type="date"
-              [value]="fromIso()"
-              (change)="onFromChange($event)"
-              class="border-input bg-background focus:ring-ring h-9 rounded-lg border px-2.5 text-sm focus:ring-2 focus:outline-none"
-            />
-          </div>
-          <div class="flex items-center gap-2">
-            <label class="text-muted-foreground text-xs font-semibold">Hasta</label>
-            <input
-              type="date"
-              [value]="toIso()"
-              (change)="onToChange($event)"
-              class="border-input bg-background focus:ring-ring h-9 rounded-lg border px-2.5 text-sm focus:ring-2 focus:outline-none"
-            />
-          </div>
-          <div class="ml-auto flex gap-1">
-            @for (p of presets; track p.id) {
-              <button
-                type="button"
-                (click)="applyPreset(p.id)"
-                [class]="presetClass(p.id)"
-              >
-                {{ p.label }}
-              </button>
-            }
-            <mo-button size="sm" variant="outline" (click)="reload()">Actualizar</mo-button>
+      @if (tab() !== 'stock') {
+        <div class="bg-card rounded-xl border p-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="flex items-center gap-2">
+              <label class="text-muted-foreground text-xs font-semibold">Desde</label>
+              <input
+                type="date"
+                [value]="fromIso()"
+                (change)="onFromChange($event)"
+                class="border-input bg-background focus:ring-ring h-9 rounded-lg border px-2.5 text-sm focus:ring-2 focus:outline-none"
+              />
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="text-muted-foreground text-xs font-semibold">Hasta</label>
+              <input
+                type="date"
+                [value]="toIso()"
+                (change)="onToChange($event)"
+                class="border-input bg-background focus:ring-ring h-9 rounded-lg border px-2.5 text-sm focus:ring-2 focus:outline-none"
+              />
+            </div>
+            <div class="ml-auto flex gap-1">
+              @for (p of presets; track p.id) {
+                <button
+                  type="button"
+                  (click)="applyPreset(p.id)"
+                  [class]="presetClass(p.id)"
+                >
+                  {{ p.label }}
+                </button>
+              }
+              <mo-button size="sm" variant="outline" (click)="reload()">Actualizar</mo-button>
+            </div>
           </div>
         </div>
-      </div>
+      }
 
       <!-- Tabs -->
       <nav class="flex gap-1 text-sm">
@@ -100,12 +108,22 @@ import { isoDate, resolvePreset, type Preset, type TabId } from './report-period
           Ventas
         </button>
         <button type="button" (click)="tab.set('accounting')" [class]="tabClass('accounting')">
-          Resumen contable
+          Financiero
         </button>
         <button type="button" (click)="tab.set('stock')" [class]="tabClass('stock')">
           Stock
         </button>
       </nav>
+
+      @if (tab() === 'daily' && !loading() && !loadError()) {
+        <nav class="flex gap-1 text-xs">
+          @for (st of salesSubTabs; track st.id) {
+            <button type="button" (click)="subTab.set(st.id)" [class]="subTabClass(st.id)">
+              {{ st.label }}
+            </button>
+          }
+        </nav>
+      }
 
       @if (loading()) {
         <div class="bg-card flex-1 animate-pulse rounded-xl border p-8">
@@ -117,19 +135,63 @@ import { isoDate, resolvePreset, type Preset, type TabId } from './report-period
         </mo-empty-state>
       } @else if (tab() === 'daily') {
         @if (daily(); as d) {
-          <mo-daily-kpi-cards [report]="d" />
-          <mo-discount-control-table [report]="d" />
-          <mo-payment-and-top-products [paymentBreakdown]="d.paymentBreakdown" />
-          <mo-top-products-table [productSales]="d.productSales" />
-          <mo-cashier-breakdown-list [cashierBreakdown]="d.cashierBreakdown" />
-          <mo-cash-closures-table [sessions]="d.sessions" />
-          <mo-sales-trend-tables [hourlySales]="d.hourlySales" [dailySales]="d.dailySales" />
-          <mo-product-sales-search [saleItems]="d.saleItems" />
-          <mo-sale-detail-list
-            [sales]="d.sales"
-            [expandedSaleId]="expandedSaleId()"
-            (toggleSale)="toggleSale($event)"
-          />
+          @if (subTab() === 'resumen') {
+            <mo-daily-kpi-cards [report]="d" />
+            <mo-discount-control-table [report]="d" />
+          } @else if (subTab() === 'productos') {
+            <mo-top-products-table [productSales]="d.productSales" />
+            <mo-product-sales-search [saleItems]="d.saleItems" />
+          } @else if (subTab() === 'cajeros') {
+            <mo-cashier-breakdown-list [cashierBreakdown]="d.cashierBreakdown" />
+            <mo-cash-closures-table [sessions]="d.sessions" />
+            <mo-sales-trend-tables [hourlySales]="d.hourlySales" [dailySales]="d.dailySales" />
+          } @else {
+            <!-- Filtros de ventas -->
+            <div class="bg-card rounded-xl border p-3">
+              <div class="flex flex-wrap items-center gap-2">
+                <input
+                  type="text"
+                  [value]="salesSearch()"
+                  (input)="onSalesSearchInput($event)"
+                  placeholder="Buscar por # venta, cajero, cliente..."
+                  class="border-input bg-background focus:ring-ring h-9 min-w-48 flex-1 rounded-lg border px-2.5 text-sm focus:ring-2 focus:outline-none"
+                />
+                <div class="flex flex-wrap gap-1">
+                  @for (f of salesStatusFilters; track f.id) {
+                    <button type="button" (click)="salesFilter.set(f.id)" [class]="salesFilterClass(f.id)">
+                      {{ f.label }}
+                    </button>
+                  }
+                </div>
+                <div class="flex flex-wrap gap-1">
+                  @for (m of paymentMethodOptions; track m.value) {
+                    <button type="button" (click)="paymentFilter.set(m.value)" [class]="paymentFilterClass(m.value)">
+                      {{ m.label }}
+                    </button>
+                  }
+                </div>
+                @if (hasActiveFilters()) {
+                  <button
+                    type="button"
+                    (click)="clearSalesFilters()"
+                    class="text-muted-foreground hover:text-foreground text-xs underline"
+                  >
+                    Limpiar filtros
+                  </button>
+                }
+              </div>
+              <p class="text-muted-foreground mt-2 text-xs">
+                {{ filteredSales().length }} de {{ daily()?.sales?.length ?? 0 }} ventas
+              </p>
+            </div>
+            <mo-sale-detail-list
+              [sales]="filteredSales()"
+              [title]="salesListTitle()"
+              [emptyMessage]="salesListEmptyMessage()"
+              [expandedSaleId]="expandedSaleId()"
+              (toggleSale)="toggleSale($event)"
+            />
+          }
         }
       } @else if (tab() === 'accounting') {
         @if (daily(); as d) {
@@ -152,12 +214,57 @@ export class ReportesPage {
   readonly toIso = signal(isoDate(new Date(), DEFAULT_TIMEZONE))
   readonly activePreset = signal<Preset | null>('today')
   readonly tab = signal<TabId>('daily')
+  readonly subTab = signal<SalesSubTabId>('resumen')
+  readonly salesFilter = signal<SalesStatusFilter>('all')
+  readonly salesSearch = signal('')
+  readonly paymentFilter = signal('')
   readonly daily = signal<DailyReport | null>(null)
   readonly stock = signal<StockReportRow[]>([])
   readonly loading = signal(true)
   readonly loadError = signal<string | null>(null)
   readonly exporting = signal(false)
   readonly expandedSaleId = signal<string | null>(null)
+
+  readonly filteredSales = computed<Sale[]>(() => {
+    const statusFilter = this.salesFilter()
+    const search = this.salesSearch().toLowerCase().trim()
+    const method = this.paymentFilter()
+    const report = this.daily()
+    if (!report) return []
+    return report.sales.filter((s) => {
+      if (statusFilter !== 'all' && s.status !== statusFilter) return false
+      if (method && !s.payments.some((p) => p.metodo === method)) return false
+      if (search) {
+        const matchNumber = s.saleNumber.toLowerCase().includes(search)
+        const matchCashier = (s.cashierEmail ?? '').toLowerCase().includes(search)
+        const matchCustomer = (s.clienteNombre ?? '').toLowerCase().includes(search)
+        if (!matchNumber && !matchCashier && !matchCustomer) return false
+      }
+      return true
+    })
+  })
+
+  readonly hasActiveFilters = computed(() =>
+    this.salesFilter() !== 'all' || this.salesSearch() !== '' || this.paymentFilter() !== '',
+  )
+
+  readonly paymentMethodOptions = [
+    { value: '', label: 'Todos los métodos' },
+    ...PAYMENT_METHOD_CLOSURE_OPTIONS,
+  ]
+
+  readonly salesSubTabs: { id: SalesSubTabId; label: string }[] = [
+    { id: 'resumen', label: 'Resumen' },
+    { id: 'productos', label: 'Productos' },
+    { id: 'cajeros', label: 'Cajeros y caja' },
+    { id: 'ventas', label: 'Ventas' },
+  ]
+
+  readonly salesStatusFilters: { id: SalesStatusFilter; label: string }[] = [
+    { id: 'all', label: 'Todas' },
+    { id: 'completed', label: 'Completadas' },
+    { id: 'voided', label: 'Anuladas' },
+  ]
 
   readonly presets: { id: Preset; label: string }[] = [
     { id: 'today', label: 'Hoy' },
@@ -190,6 +297,50 @@ export class ReportesPage {
       'rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors',
       this.activePreset() === id ? 'bg-secondary text-secondary-foreground' : 'hover:bg-muted text-muted-foreground',
     ].join(' ')
+  }
+
+  subTabClass(value: SalesSubTabId): string {
+    return [
+      'rounded-md px-2.5 py-1 font-semibold transition-colors',
+      this.subTab() === value ? 'bg-secondary text-secondary-foreground' : 'hover:bg-muted text-muted-foreground',
+    ].join(' ')
+  }
+
+  salesFilterClass(id: SalesStatusFilter): string {
+    return [
+      'rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors',
+      this.salesFilter() === id ? 'bg-secondary text-secondary-foreground' : 'hover:bg-muted text-muted-foreground',
+    ].join(' ')
+  }
+
+  salesListTitle(): string {
+    return this.salesFilter() === 'voided' ? 'Ventas anuladas' : 'Detalle de ventas'
+  }
+
+  salesListEmptyMessage(): string {
+    if (this.hasActiveFilters()) return 'No hay ventas que coincidan con los filtros.'
+    return this.salesFilter() === 'voided' ? 'No hay ventas anuladas en el período.' : 'Sin ventas en el período.'
+  }
+
+  paymentFilterClass(value: string): string {
+    return [
+      'rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors',
+      this.paymentFilter() === value ? 'bg-secondary text-secondary-foreground' : 'hover:bg-muted text-muted-foreground',
+    ].join(' ')
+  }
+
+  onSalesSearchInput(event: Event): void {
+    this.salesSearch.set((event.target as HTMLInputElement).value)
+  }
+
+  clearSalesFilters(): void {
+    this.salesFilter.set('all')
+    this.salesSearch.set('')
+    this.paymentFilter.set('')
+  }
+
+  paymentLabel(metodo: string): string {
+    return getPaymentMethodLabel(metodo)
   }
 
   canExport(): boolean {
@@ -249,6 +400,9 @@ export class ReportesPage {
     this.loading.set(true)
     this.loadError.set(null)
     this.expandedSaleId.set(null)
+    this.salesSearch.set('')
+    this.paymentFilter.set('')
+    this.salesFilter.set('all')
     try {
       const auth = await this.session.getAuthContext()
       if (!auth) throw new Error('No autenticado')

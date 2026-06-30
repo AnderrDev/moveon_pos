@@ -8,6 +8,10 @@
 
 export type TabId = 'daily' | 'accounting' | 'stock'
 export type Preset = 'today' | 'week' | 'month' | 'prev-month'
+/** Sub-secciones del tab "Ventas" (`TabId === 'daily'`). */
+export type SalesSubTabId = 'resumen' | 'productos' | 'cajeros' | 'ventas'
+/** Filtro de estado para el listado de ventas en la sub-sección "Ventas". */
+export type SalesStatusFilter = 'all' | 'completed' | 'voided'
 
 /** Formatea `date` a `YYYY-MM-DD` en la zona horaria indicada. */
 export function isoDate(date: Date, timezone: string): string {

@@ -30,7 +30,7 @@ export interface ProductSalesSummary {
   qty: number
   /** Facturación total (suma de `total` de todas las líneas del producto). */
   total: number
-  /** Precio promedio simple de `unitPrice` entre líneas (`avg(unit_price)` del SQL de referencia) — NO es `total / qty` (eso sería un promedio ponderado por cantidad). */
+  /** Precio promedio ponderado por cantidad: `total / qty`. */
   avgPrice: number
 }
 
@@ -44,9 +44,9 @@ export interface ProductSalesSummary {
  * veces al carrito) cuentan como 1 venta, no 2 — aunque sí suman ambas a
  * `qty`/`total`.
  *
- * `avgPrice` es el promedio simple de `unitPrice` por línea, NO `total / qty`
- * (que sería ponderado por cantidad) — replica exactamente
- * `round(avg(si.unit_price), 2)` del SQL de referencia.
+ * `avgPrice` es `total / qty` (promedio ponderado por cantidad): un promedio
+ * simple de `unitPrice` por línea distorsiona el precio efectivo cuando las
+ * cantidades vendidas a cada precio difieren mucho entre sí.
  *
  * Orden determinista por defecto: `total` descendente (mismo criterio que el
  * `ORDER BY total_facturado DESC` del SQL de referencia y que el sort previo
@@ -65,8 +65,6 @@ export function groupSalesByProduct(sales: Sale[]): ProductSalesSummary[] {
     saleIds: Set<string>
     qty: number
     total: number
-    unitPriceSum: number
-    lineCount: number
   }
 
   const byProduct = new Map<string, Accumulator>()
@@ -81,15 +79,11 @@ export function groupSalesByProduct(sales: Sale[]): ProductSalesSummary[] {
         saleIds: new Set<string>(),
         qty: 0,
         total: 0,
-        unitPriceSum: 0,
-        lineCount: 0,
       }
 
       current.saleIds.add(sale.id)
       current.qty += item.quantity
       current.total += item.total
-      current.unitPriceSum += item.unitPrice
-      current.lineCount += 1
 
       byProduct.set(item.productId, current)
     }
@@ -103,7 +97,7 @@ export function groupSalesByProduct(sales: Sale[]): ProductSalesSummary[] {
       numVentas: v.saleIds.size,
       qty: v.qty,
       total: v.total,
-      avgPrice: v.lineCount > 0 ? Math.round((v.unitPriceSum / v.lineCount) * 100) / 100 : 0,
+      avgPrice: v.qty > 0 ? Math.round((v.total / v.qty) * 100) / 100 : 0,
     }))
     .sort((a, b) => {
       if (b.total !== a.total) return b.total - a.total

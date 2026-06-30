@@ -61,8 +61,8 @@ la decisión de inventario por ubicación (ADR 0008).
 | PLAN-38 | ✅ Hecho — sección "Tendencia" en `/reportes` (ventas por hora + por día, dominio puro `sales-trend.ts`, sin nueva query) | `(sin commit aún)` |
 | PLAN-39 | ✅ Hecho — tabla completa "Top productos" en `/reportes`, ordenable por unidades/facturación (dominio puro `top-products.ts`, sin nueva query) | `(sin commit aún)` |
 | PLAN-40 | ⏳ Pendiente — método de pago por rango de fechas | `(pendiente)` |
-| PLAN-41 | ⏳ Pendiente — conciliación histórica de caja | `(pendiente)` |
-| PLAN-42 | ⏳ Pendiente — ventas anuladas en /reportes | `(pendiente)` |
+| PLAN-41 | ✅ Hecho — conciliación histórica de caja: `cash-closures-table.component.ts` extendida con cajero (UUID truncado), notas de cierre, badge "En curso" para sesiones abiertas, y resaltado de fila completa cuando hay diferencia | `(sin commit aún)` |
+| PLAN-42 | ✅ Hecho — ventas anuladas en `/reportes`: filtro de estado (Todas/Completadas/Anuladas) en la sub-sección "Ventas" del tab Ventas; reutiliza `mo-sale-detail-list` (ya mostraba motivo de anulación al expandir) sin componente nuevo | `(sin commit aún)` |
 | PLAN-43 | ⏳ Pendiente — vistas SQL para agregados pesados (evaluar cuando aplique) | `(pendiente)` |
 | PLAN-44 | ✅ Hecho (auditor PASS) y verificado end-to-end en producción — corregir apertura de caja (`opening_amount`) con auditoria. Migración `20260623_001_correct_cash_session_opening.sql` aplicada al remoto (versión `20260623174042`); pgTAP local sigue bloqueado por deuda técnica preexistente en nombres de archivo de migraciones `20260426_*` (ver sesión); de paso se corrigió un bug de reactividad preexistente en `form-currency-input.component.ts` que afectaba el prellenado de montos por defecto | `(sin commit aún)` |
 | PLAN-45 | ✅ Hecho — buscador de producto en `/reportes` (cuándo y en qué ventas se vendió) | `(sin commit aún)` |
@@ -131,8 +131,8 @@ seguir agregando secciones a un archivo que ya está sobre el límite de 300 lí
 | PLAN-38 | Ventas por hora + tendencia por día | P2 | Sección "Tendencia" en `/reportes`: tabla de ventas por hora del día y por día del periodo seleccionado; reusa `day-range.ts` |
 | PLAN-39 | Top productos por periodo | P2 | Tabla de productos del periodo seleccionado ordenable por unidades/facturación; reusa `SalesRepository` |
 | PLAN-40 | Método de pago por rango de fechas | P3 | Confirmar si el desglose por método ya soporta rango (hoy solo se confirmó para el día); extenderlo si no |
-| PLAN-41 | Conciliación histórica de caja | P2 | Tabla de sesiones del periodo con Esperado/Conteo/Diferencia; fila resaltada si diferencia ≠ 0 |
-| PLAN-42 | Ventas anuladas en `/reportes` | P3 | Tabla de ventas `voided` del periodo con motivo, fecha y quién anuló |
+| PLAN-41 | ✅ Hecho — Conciliación histórica de caja | P2 | Tabla de sesiones del periodo con Esperado/Conteo/Diferencia; fila resaltada si diferencia ≠ 0 |
+| PLAN-42 | ✅ Hecho — Ventas anuladas en `/reportes` | P3 | Filtro de estado sobre `mo-sale-detail-list` (sub-sección "Ventas"); motivo, fecha y cajero ya visibles al expandir una venta anulada |
 | PLAN-43 | Vistas SQL para agregados pesados | P3 | Solo evaluar si el cálculo client-side empieza a degradar rendimiento con más volumen; no bloquea los anteriores |
 | PLAN-45 | ✅ Hecho — Buscador de producto en `/reportes` | P2 | `product-sales-search.component.ts`: input de búsqueda por nombre/SKU sobre `saleItems` ya cargado (sin queries nuevas), tabla con fecha, venta, cantidad, total, cajero y estado de cada movimiento donde aparece el producto en el período seleccionado |
 

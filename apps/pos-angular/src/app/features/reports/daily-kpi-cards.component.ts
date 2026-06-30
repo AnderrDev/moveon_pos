@@ -2,13 +2,13 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core'
 import { formatCurrency } from '@/shared/lib/format'
 import type { DailyReport } from './reports.service'
 
-/** Las 5 tarjetas KPI del tab "Ventas": total, descuentos, ticket promedio, IVA, anuladas. */
+/** Las 6 tarjetas KPI del tab "Ventas": total, descuentos, ticket promedio, IVA, anuladas, utilidad. */
 @Component({
   selector: 'mo-daily-kpi-cards',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
       <div class="bg-card rounded-xl border p-5">
         <p class="text-muted-foreground text-xs font-semibold uppercase">Total ventas</p>
         <p class="font-display mt-2 text-2xl font-bold tabular-nums">
@@ -42,6 +42,17 @@ import type { DailyReport } from './reports.service'
         <p class="text-muted-foreground text-xs font-semibold uppercase">Anuladas</p>
         <p class="font-display mt-2 text-2xl font-bold tabular-nums">{{ report().countAnuladas }}</p>
       </div>
+      <div class="bg-card rounded-xl border p-5">
+        <p class="text-muted-foreground text-xs font-semibold uppercase">Utilidad</p>
+        @if (hasKnownCost()) {
+          <p class="font-display mt-2 text-2xl font-bold tabular-nums">
+            {{ money(report().utilidadTotal) }}
+          </p>
+        } @else {
+          <p class="font-display text-muted-foreground mt-2 text-2xl font-bold tabular-nums">—</p>
+          <p class="text-muted-foreground text-xs">Configura el costo de tus productos para verla</p>
+        }
+      </div>
     </div>
   `,
 })
@@ -54,5 +65,9 @@ export class DailyKpiCardsComponent {
 
   percent(value: number): string {
     return `${value.toFixed(2)}%`
+  }
+
+  hasKnownCost(): boolean {
+    return this.report().productSales.some((p) => p.costoUnitario !== null)
   }
 }
