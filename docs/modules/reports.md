@@ -20,26 +20,30 @@ Lecturas agregadas para el negocio. **No tiene reglas de escritura.** Solo consu
 - Las vistas operativas se pueden descargar como `.xlsx` en el navegador. La exportación recibe datos ya autorizados y filtrados; no consulta tablas SQL ni expone IDs técnicos. Ver ADR 0011.
 - El libro diario incluye una hoja `Descuentos` y columnas de descuento en `Ventas` y `Productos` para reconciliar el resumen con el detalle.
 
-### Layout de `/reportes`: un componente por sección (PLAN-33)
+### Layout de `/reportes`: sub-tabs + componentes presentacionales
 
-`reportes.page.ts` es un orquestador delgado (estado, carga vía `ReportsService`, export, tabs/período). Cada bloque visual del tab "Ventas"/"Resumen contable"/"Stock" vive en su propio componente standalone `mo-*` presentacional en `apps/pos-angular/src/app/features/reports/`, sin llamadas a Supabase ni a servicios Angular — todo entra por `input.required<T>()`:
+`reportes.page.ts` es un orquestador delgado (estado, carga vía `ReportsService`, export, tabs/período). Cada bloque visual vive en su propio componente standalone `mo-*` presentacional en `apps/pos-angular/src/app/features/reports/`, sin llamadas a Supabase ni a servicios Angular — todo entra por `input.required<T>()`.
 
-- `daily-kpi-cards.component.ts` — 5 tarjetas KPI del tab Ventas.
+El tab "Ventas" tiene 4 sub-secciones (signal `subTab: SalesSubTabId`, tipo definido en `report-period.helpers.ts`):
+- **Resumen**: `daily-kpi-cards.component.ts` + `discount-control-table.component.ts`.
+- **Productos**: `top-products-table.component.ts` + `product-sales-search.component.ts`.
+- **Cajeros y caja**: `cashier-breakdown-list.component.ts` + `cash-closures-table.component.ts` + `sales-trend-tables.component.ts`.
+- **Ventas**: `mo-sale-detail-list` con filtro de estado Todas/Completadas/Anuladas (PLAN-42).
+
+Componentes presentacionales:
+- `daily-kpi-cards.component.ts` — 6 tarjetas KPI (total ventas, descuentos, ticket promedio, IVA, anuladas, utilidad). La tarjeta Utilidad usa `report().utilidadTotal`; muestra "—" con texto aclaratorio si ningún producto tiene costo capturado.
 - `discount-control-table.component.ts` — tabla de control de descuentos.
-- `payment-and-top-products.component.ts` — por método de pago (el bloque "Top productos" que vivía aquí se extrajo a `top-products-table.component.ts` en PLAN-39).
-- `top-products-table.component.ts` — tabla completa (no top-5) de productos del período seleccionado, ordenable entre "Unidades" y "Facturación" (orden 100% local, sin queries nuevas). Ver sección "Top productos por periodo (PLAN-39)" más abajo.
+- `top-products-table.component.ts` — tabla completa de productos del período, ordenable entre "Unidades" y "Facturación" (orden 100% local). Ver sección PLAN-39 más abajo.
 - `cashier-breakdown-list.component.ts` — desglose por cajero.
-- `cash-closures-table.component.ts` — cierres de caja del período.
-- `sales-trend-tables.component.ts` — sección "Tendencia": tabla "Ventas por hora" (agregada entre todos los días del período) y "Ventas por día" del período seleccionado (PLAN-38).
-- `product-sales-search.component.ts` — buscador por producto (nombre o SKU) dentro del período seleccionado: filtra `saleItems` (ya cargado, sin queries nuevas) y muestra cada movimiento de venta donde aparece (fecha, venta, cajero, cantidad, total, estado). Compuesto entre "Tendencia" y "Detalle de ventas". Estado de búsqueda (`query`) local al componente, no vive en `ReportesPage` (no afecta el resto del reporte).
-- `shared/sales/sale-detail-list.component.ts` (`mo-sale-detail-list`) — detalle de ventas expandible. Promovido a `shared/` el 2026-06-23 al reutilizarse también en `/caja` ("Ventas del turno" y "Turnos anteriores"); el estado de expansión `expandedSaleId` vive en el padre (`ReportesPage` o `CajaPage`/`ClosedSessionsListComponent`), se pasa como input y se emite `toggleSale` como output.
-- `accounting-summary.component.ts` — tab "Resumen contable" completo (ingresos, IVA, pagos para cuadre, y compone `product-margin-table.component.ts` ya existente).
-- `stock-report-table.component.ts` — tabla del tab Stock.
-- `report-period.helpers.ts` — TS puro (sin Angular) con la lógica de fechas/presets (`isoDate`, `weekStart`, `monthStart`, `monthEnd`, `prevMonthStart`, `resolvePreset`). Testeado en `tests/unit/app/features/reports/report-period.helpers.test.ts` sin TestBed.
+- `cash-closures-table.component.ts` — cierres de caja del período (PLAN-41). Columnas: Sesión (apertura/cierre o badge "En curso" si abierta), Cajero (UUID truncado `id.slice(0,8)` — `cash_sessions` no tiene join a email), Ventas esperadas/reales/diferencia, Caja esperada/real/diferencia, Notas. Fila completa con `bg-destructive/5` si cualquier diferencia ≠ 0.
+- `sales-trend-tables.component.ts` — "Ventas por hora" y "Ventas por día" (PLAN-38).
+- `product-sales-search.component.ts` — buscador por nombre/SKU dentro del período (sin queries nuevas).
+- `shared/sales/sale-detail-list.component.ts` (`mo-sale-detail-list`) — detalle de ventas expandible. `expandedSaleId` en el padre; emite `toggleSale`. Motivo de anulación visible al expandir una venta `voided` (cubre PLAN-42).
+- `accounting-summary.component.ts` — tab "Financiero" completo (ingresos, IVA, pagos, `product-margin-table.component.ts`).
+- `stock-report-table.component.ts` — tabla del tab Stock. El selector de período está oculto en este tab (el stock es estado actual).
+- `report-period.helpers.ts` — TS puro con lógica de fechas/presets y tipos `TabId`, `Preset`, `SalesSubTabId`, `SalesStatusFilter`.
 
-**Patrón para PLAN-38..43 (nuevas secciones de reporte):** agregar un componente nuevo siguiendo este mismo patrón (presentacional, `input.required<T>()`, sin Supabase) + una línea de composición en el template de `reportes.page.ts`. No hacer crecer un componente de sección existente ni mover lógica de orquestación/inyección de servicios fuera de `ReportesPage`.
-
-`reports.service.ts` (384 líneas) no se tocó en este split — sigue siendo el único punto de acceso a datos del módulo; si se divide en el futuro (ventas / stock / sesiones) es un ticket aparte.
+`reports.service.ts` sigue siendo el único punto de acceso a datos del módulo; si se divide en el futuro es un ticket aparte.
 
 ## Tendencia: ventas por hora y por día (PLAN-38)
 
@@ -51,10 +55,10 @@ Lecturas agregadas para el negocio. **No tiene reglas de escritura.** Solo consu
 
 ## Top productos por periodo (PLAN-39)
 
-- `ReportsService.getDailyReport` agrega dos campos a `DailyProductSale`: `numVentas` (cantidad de ventas DISTINTAS en las que aparece el producto, no cantidad de líneas) y `avgPrice` (precio promedio simple de `unitPrice` entre líneas, NO `total / qty`). Replica exactamente la semántica de la sección 4 ("PRODUCTOS MÁS VENDIDOS") de `scripts/reports/business-status-report.sql`: solo `status = 'completed'`, `numVentas` = `count(distinct si.sale_id)`, `avgPrice` = `round(avg(si.unit_price), 2)`.
+- `ReportsService.getDailyReport` agrega dos campos a `DailyProductSale`: `numVentas` (cantidad de ventas DISTINTAS en las que aparece el producto, no cantidad de líneas) y `avgPrice` (precio promedio **ponderado**: `total / qty`, no `avg(unitPrice)` simple — refleja correctamente el precio efectivo cuando se venden distintas cantidades de la misma referencia).
 - La agregación pura vive en `src/modules/reports/domain/services/top-products.ts` (`groupSalesByProduct`), mismo patrón que `group-sales-by-cashier.ts`/`sales-trend.ts`: TS puro, sin Angular/Supabase, usa `Set<saleId>` por producto para contar ventas distintas. Se calcula en cliente sobre las mismas `sales` ya cargadas para el período — cero queries nuevas a Supabase.
 - El enriquecimiento de costo/utilidad/margen (`costoUnitario`, `costoTotal`, `utilidad`, `margenPct`) sigue resolviéndose en `reports.service.ts` después de llamar a `groupSalesByProduct`, porque depende de `products.costo` (fuente externa al dominio puro de ventas) — no se movió al servicio de dominio nuevo.
-- UI: `top-products-table.component.ts` reemplaza el bloque "Top productos" de 5 filas que vivía en `payment-and-top-products.component.ts`. Muestra **todos** los productos del período (no solo top 5), con un toggle "Unidades"/"Facturación" que reordena en cliente vía un `signal` local — no dispara ninguna petición de red. Compuesto en el tab "Ventas" justo después de "Por método de pago" y antes de "Desglose por cajero".
+- UI: `top-products-table.component.ts`. Muestra **todos** los productos del período (no solo top 5), con un toggle "Unidades"/"Facturación" que reordena en cliente vía un `signal` local — no dispara ninguna petición de red.
 
 ## Zona horaria del reporte diario (PLAN-01)
 

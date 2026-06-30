@@ -94,6 +94,7 @@ export interface DailySalePaymentDetail {
 
 export interface DailySession {
   id: string
+  openedBy: string
   openedAt: Date
   closedAt: Date | null
   expectedSalesAmount: number
@@ -102,6 +103,7 @@ export interface DailySession {
   expectedCashAmount: number
   actualCashAmount: number | null
   cashDifference: number | null
+  notasCierre: string | null
 }
 
 export interface TaxBreakdownRow {
@@ -342,6 +344,7 @@ export class ReportsService {
       salePayments,
       sessions: filteredSessions.map((s) => ({
         id: s.id,
+        openedBy: s.openedBy,
         openedAt: s.openedAt,
         closedAt: s.closedAt,
         expectedSalesAmount: s.expectedSalesAmount ?? 0,
@@ -350,6 +353,7 @@ export class ReportsService {
         expectedCashAmount: s.expectedCashAmount ?? 0,
         actualCashAmount: s.actualCashAmount,
         cashDifference: s.difference,
+        notasCierre: s.notasCierre,
       })),
     }
   }

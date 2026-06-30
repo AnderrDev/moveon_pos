@@ -77,7 +77,7 @@ function makeSale(overrides: { id: string; status: SaleStatus; items: SaleItem[]
 }
 
 describe('groupSalesByProduct', () => {
-  it('un producto vendido en 2 ventas distintas con cantidades distintas agrega numVentas, qty, total y avgPrice (simple, no ponderado)', () => {
+  it('un producto vendido en 2 ventas distintas con cantidades distintas agrega numVentas, qty, total y avgPrice (ponderado por cantidad)', () => {
     const result = groupSalesByProduct([
       makeSale({
         id: 'sale-1',
@@ -101,8 +101,8 @@ describe('groupSalesByProduct', () => {
       numVentas: 2,
       qty: 7,
       total: 8000,
-      // avg(unitPrice) simple: (1000 + 1200) / 2 = 1100 — NO total/qty (8000/7 ≈ 1142.86)
-      avgPrice: 1100,
+      // total/qty ponderado: 8000/7 ≈ 1142.86 — NO avg(unitPrice) simple ((1000+1200)/2 = 1100)
+      avgPrice: 1142.86,
     })
   })
 
