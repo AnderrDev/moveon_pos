@@ -8,6 +8,8 @@ export interface CatalogoProducto {
   tipo: string
   paraQueSirve: string | null
   imageUrl: string | null
+  marca: string | null
+  etiqueta: string | null
   categoriaId: string | null
   categoriaNombre: string | null
   categoriaOrden: number
@@ -20,16 +22,6 @@ export interface CatalogoCategoria {
   productos: CatalogoProducto[]
 }
 
-export interface ComboSemana {
-  id: string
-  nombre: string
-  descripcion: string | null
-  precio: number
-  precioOriginal: number | null
-  etiqueta: string | null
-  items: string[]
-}
-
 @Injectable({ providedIn: 'root' })
 export class CatalogoService {
   private readonly db = inject(SupabaseClientService)
@@ -39,7 +31,7 @@ export class CatalogoService {
     const { data, error } = await db
       .from('productos')
       .select(
-        'id, nombre, precio_venta, tipo, para_que_sirve, image_url, categoria_id, categorias(id, nombre, orden)',
+        'id, nombre, precio_venta, tipo, para_que_sirve, image_url, marca, etiqueta, categoria_id, categorias(id, nombre, orden)',
       )
       .eq('is_active', true)
       .is('deleted_at', null)
@@ -55,6 +47,8 @@ export class CatalogoService {
       tipo: string
       para_que_sirve: string | null
       image_url: string | null
+      marca: string | null
+      etiqueta: string | null
       categoria_id: string | null
       categorias: { id: string; nombre: string; orden: number } | null
     }
@@ -71,6 +65,8 @@ export class CatalogoService {
         tipo: row.tipo,
         paraQueSirve: row.para_que_sirve,
         imageUrl: row.image_url,
+        marca: row.marca,
+        etiqueta: row.etiqueta,
         categoriaId: row.categoria_id,
         categoriaNombre: row.categorias?.nombre ?? null,
         categoriaOrden: row.categorias?.orden ?? 999,
@@ -100,30 +96,5 @@ export class CatalogoService {
     }
 
     return categorias
-  }
-
-  async getCombos(tiendaId?: string): Promise<ComboSemana[]> {
-    const db = this.db.supabase as any
-    let query = db
-      .from('combos_semana')
-      .select('id, nombre, descripcion, precio, precio_original, etiqueta, items')
-      .eq('is_active', true)
-      .order('orden', { ascending: true })
-
-    if (tiendaId) query = query.eq('tienda_id', tiendaId)
-
-    const { data, error } = await query
-
-    if (error) throw new Error(error.message)
-
-    return (data ?? []).map((row: any) => ({
-      id: row.id,
-      nombre: row.nombre,
-      descripcion: row.descripcion,
-      precio: row.precio,
-      precioOriginal: row.precio_original,
-      etiqueta: row.etiqueta,
-      items: row.items ?? [],
-    }))
   }
 }
