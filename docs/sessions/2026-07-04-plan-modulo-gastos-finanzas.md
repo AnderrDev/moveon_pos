@@ -113,13 +113,22 @@ Orden: 47 → 48 → 49. Cada uno es un PR independiente. PLAN-47 ya deja valor 
 - Cuentas por pagar con vencimientos (si se necesita, ADR aparte).
 - Depreciación de activos, impuestos.
 
+## Resultado de la implementación (misma sesión)
+
+**PLAN-47 y PLAN-48 completos; PLAN-49 parcial.** Verificación: 431 tests pasan (48 archivos), `pnpm typecheck` y build OK, lint sin hallazgos en el módulo nuevo (los 7 errores de lint del repo son preexistentes en otros módulos).
+
+- **Migrations aplicadas al remoto (proyecto Supabase `POS`)**: `20260704_002_expenses_module.sql` (4 tablas + RLS admin-only + seed de 8 categorías por tienda) y `20260704_003_register_expense_atomic.sql` (RPC atómica gasto + egreso de caja; los parámetros opcionales van al final con `default null` para que los tipos generados los marquen opcionales — la primera versión sin defaults rompía el typecheck). Tipos regenerados con `pnpm db:types`.
+- **Dominio puro con tests**: `financial-summary.ts` (utilidad neta, % por categoría), `nomina.ts` (pago sugerido por tipo; quincenas suman el salario exacto), `monthly-comparison.ts` (últimos 6 meses).
+- **UI `/finanzas` (solo admin, nav "Finanzas")**: KPIs + estado del período + gastos por categoría con % sobre entradas, sección Nómina (empleados, pagado vs. acordado, diálogo de pago con monto precargado), tabla de gastos con anulación (motivo ≥10 chars, reutiliza `mo-void-reason-dialog`), comparativa mensual y navegación por mes.
+- **Decisiones**: entradas/costo se leen de `ReportsService.getDailyReport` (DRY con `/reportes`); gasto con `efectivo_caja` exige caja abierta (error amigable si no la hay); `expense_templates` se creó en DB pero su UI quedó pendiente.
+
 ## Próximos pasos
 
-1. Aprobar este plan y agregar PLAN-47..49 a `docs/plan-de-trabajo.md`.
-2. Crear `docs/modules/expenses.md` al implementar PLAN-47.
-3. Empezar PLAN-47 (migration + dominio + página `/finanzas`).
+1. Commit de todo el módulo (los archivos están sin commitear).
+2. Completar PLAN-49: UI de plantillas recurrentes + "Generar gastos del mes" + hoja `Gastos` en el Excel de reportes.
+3. QA manual: registrar un gasto con efectivo de caja abierta y verificar que el cierre cuadre.
 
 ## Bloqueos / preguntas abiertas
 
 - ¿Cuántos empleados hay hoy? (asumido 1–2; no cambia el diseño).
-- ¿Arriendo/servicios se pagan por transferencia o efectivo de caja? (solo afecta el default del form).
+- ¿Arriendo/servicios se pagan por transferencia o efectivo de caja? (default actual del form: efectivo fuera de caja).

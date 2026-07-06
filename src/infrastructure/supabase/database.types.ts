@@ -188,7 +188,11 @@ export type Database = {
           created_by: string
           id: string
           motivo: string
+          status: Database["public"]["Enums"]["cash_movement_status"]
           tipo: Database["public"]["Enums"]["cash_movement_type"]
+          voided_at: string | null
+          voided_by: string | null
+          voided_reason: string | null
         }
         Insert: {
           amount: number
@@ -197,7 +201,11 @@ export type Database = {
           created_by: string
           id?: string
           motivo: string
+          status?: Database["public"]["Enums"]["cash_movement_status"]
           tipo: Database["public"]["Enums"]["cash_movement_type"]
+          voided_at?: string | null
+          voided_by?: string | null
+          voided_reason?: string | null
         }
         Update: {
           amount?: number
@@ -206,7 +214,11 @@ export type Database = {
           created_by?: string
           id?: string
           motivo?: string
+          status?: Database["public"]["Enums"]["cash_movement_status"]
           tipo?: Database["public"]["Enums"]["cash_movement_type"]
+          voided_at?: string | null
+          voided_by?: string | null
+          voided_reason?: string | null
         }
         Relationships: [
           {
@@ -365,6 +377,294 @@ export type Database = {
           },
         ]
       }
+      combos_semana: {
+        Row: {
+          created_at: string
+          descripcion: string | null
+          etiqueta: string | null
+          id: string
+          is_active: boolean
+          items: string[]
+          nombre: string
+          orden: number
+          precio: number
+          precio_original: number | null
+          tienda_id: string
+          updated_at: string
+          vigente_hasta: string | null
+        }
+        Insert: {
+          created_at?: string
+          descripcion?: string | null
+          etiqueta?: string | null
+          id?: string
+          is_active?: boolean
+          items?: string[]
+          nombre: string
+          orden?: number
+          precio: number
+          precio_original?: number | null
+          tienda_id: string
+          updated_at?: string
+          vigente_hasta?: string | null
+        }
+        Update: {
+          created_at?: string
+          descripcion?: string | null
+          etiqueta?: string | null
+          id?: string
+          is_active?: boolean
+          items?: string[]
+          nombre?: string
+          orden?: number
+          precio?: number
+          precio_original?: number | null
+          tienda_id?: string
+          updated_at?: string
+          vigente_hasta?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "combos_semana_tienda_id_fkey"
+            columns: ["tienda_id"]
+            isOneToOne: false
+            referencedRelation: "tiendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      empleados: {
+        Row: {
+          cargo: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          nombre: string
+          salario_mensual: number
+          tienda_id: string
+          updated_at: string
+        }
+        Insert: {
+          cargo?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          nombre: string
+          salario_mensual?: number
+          tienda_id: string
+          updated_at?: string
+        }
+        Update: {
+          cargo?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          nombre?: string
+          salario_mensual?: number
+          tienda_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empleados_tienda_id_fkey"
+            columns: ["tienda_id"]
+            isOneToOne: false
+            referencedRelation: "tiendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expense_categories: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          nombre: string
+          slug: string
+          tienda_id: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          nombre: string
+          slug: string
+          tienda_id: string
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          nombre?: string
+          slug?: string
+          tienda_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_categories_tienda_id_fkey"
+            columns: ["tienda_id"]
+            isOneToOne: false
+            referencedRelation: "tiendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expense_templates: {
+        Row: {
+          category_id: string
+          concepto: string
+          created_at: string
+          empleado_id: string | null
+          frecuencia: string
+          id: string
+          is_active: boolean
+          monto_sugerido: number
+          tienda_id: string
+          updated_at: string
+        }
+        Insert: {
+          category_id: string
+          concepto: string
+          created_at?: string
+          empleado_id?: string | null
+          frecuencia?: string
+          id?: string
+          is_active?: boolean
+          monto_sugerido: number
+          tienda_id: string
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string
+          concepto?: string
+          created_at?: string
+          empleado_id?: string | null
+          frecuencia?: string
+          id?: string
+          is_active?: boolean
+          monto_sugerido?: number
+          tienda_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_templates_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_templates_empleado_id_fkey"
+            columns: ["empleado_id"]
+            isOneToOne: false
+            referencedRelation: "empleados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_templates_tienda_id_fkey"
+            columns: ["tienda_id"]
+            isOneToOne: false
+            referencedRelation: "tiendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expenses: {
+        Row: {
+          cash_movement_id: string | null
+          category_id: string
+          concepto: string
+          created_at: string
+          created_by: string
+          empleado_id: string | null
+          fecha_gasto: string
+          id: string
+          metodo_pago: string
+          monto: number
+          notas: string | null
+          periodo: string | null
+          status: string
+          tienda_id: string
+          voided_at: string | null
+          voided_by: string | null
+          voided_reason: string | null
+        }
+        Insert: {
+          cash_movement_id?: string | null
+          category_id: string
+          concepto: string
+          created_at?: string
+          created_by: string
+          empleado_id?: string | null
+          fecha_gasto?: string
+          id?: string
+          metodo_pago: string
+          monto: number
+          notas?: string | null
+          periodo?: string | null
+          status?: string
+          tienda_id: string
+          voided_at?: string | null
+          voided_by?: string | null
+          voided_reason?: string | null
+        }
+        Update: {
+          cash_movement_id?: string | null
+          category_id?: string
+          concepto?: string
+          created_at?: string
+          created_by?: string
+          empleado_id?: string | null
+          fecha_gasto?: string
+          id?: string
+          metodo_pago?: string
+          monto?: number
+          notas?: string | null
+          periodo?: string | null
+          status?: string
+          tienda_id?: string
+          voided_at?: string | null
+          voided_by?: string | null
+          voided_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_cash_movement_id_fkey"
+            columns: ["cash_movement_id"]
+            isOneToOne: false
+            referencedRelation: "cash_movements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_empleado_id_fkey"
+            columns: ["empleado_id"]
+            isOneToOne: false
+            referencedRelation: "empleados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_tienda_id_fkey"
+            columns: ["tienda_id"]
+            isOneToOne: false
+            referencedRelation: "tiendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_movements: {
         Row: {
           cantidad: number
@@ -513,9 +813,12 @@ export type Database = {
           costo: number | null
           created_at: string
           deleted_at: string | null
+          etiqueta: string | null
           id: string
+          image_url: string | null
           is_active: boolean
           iva_tasa: number
+          marca: string | null
           nombre: string
           para_que_sirve: string | null
           precio_venta: number
@@ -535,9 +838,12 @@ export type Database = {
           costo?: number | null
           created_at?: string
           deleted_at?: string | null
+          etiqueta?: string | null
           id?: string
+          image_url?: string | null
           is_active?: boolean
           iva_tasa?: number
+          marca?: string | null
           nombre: string
           para_que_sirve?: string | null
           precio_venta: number
@@ -557,9 +863,12 @@ export type Database = {
           costo?: number | null
           created_at?: string
           deleted_at?: string | null
+          etiqueta?: string | null
           id?: string
+          image_url?: string | null
           is_active?: boolean
           iva_tasa?: number
+          marca?: string | null
           nombre?: string
           para_que_sirve?: string | null
           precio_venta?: number
@@ -902,6 +1211,16 @@ export type Database = {
         }
         Returns: string
       }
+      correct_cash_session_opening_atomic: {
+        Args: {
+          p_corrected_by: string
+          p_new_amount: number
+          p_reason: string
+          p_session_id: string
+          p_tienda_id: string
+        }
+        Returns: string
+      }
       correct_payment_atomic: {
         Args: {
           p_corrected_by: string
@@ -979,6 +1298,44 @@ export type Database = {
         Returns: number
       }
       get_user_tiendas: { Args: never; Returns: string[] }
+      register_expense_atomic: {
+        Args: {
+          p_category_id: string
+          p_concepto: string
+          p_empleado_id?: string
+          p_fecha_gasto?: string
+          p_metodo_pago: string
+          p_monto: number
+          p_notas?: string
+          p_periodo?: string
+          p_tienda_id: string
+        }
+        Returns: {
+          cash_movement_id: string | null
+          category_id: string
+          concepto: string
+          created_at: string
+          created_by: string
+          empleado_id: string | null
+          fecha_gasto: string
+          id: string
+          metodo_pago: string
+          monto: number
+          notas: string | null
+          periodo: string | null
+          status: string
+          tienda_id: string
+          voided_at: string | null
+          voided_by: string | null
+          voided_reason: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "expenses"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       transfer_stock_atomic: {
         Args: {
           p_cantidad: number
@@ -988,6 +1345,15 @@ export type Database = {
           p_producto_id: string
           p_tienda_id: string
           p_to_ubicacion: Database["public"]["Enums"]["inventory_location"]
+        }
+        Returns: string
+      }
+      void_cash_movement_atomic: {
+        Args: {
+          p_movement_id: string
+          p_tienda_id: string
+          p_voided_by: string
+          p_voided_reason: string
         }
         Returns: string
       }
@@ -1017,6 +1383,7 @@ export type Database = {
         | "accepted"
         | "rejected"
         | "failed"
+      cash_movement_status: "active" | "voided"
       cash_movement_type: "cash_in" | "cash_out" | "expense" | "correction"
       cash_session_status: "open" | "closed"
       inventory_location: "punto_venta" | "bodega"
@@ -1175,6 +1542,7 @@ export const Constants = {
         "rejected",
         "failed",
       ],
+      cash_movement_status: ["active", "voided"],
       cash_movement_type: ["cash_in", "cash_out", "expense", "correction"],
       cash_session_status: ["open", "closed"],
       inventory_location: ["punto_venta", "bodega"],
