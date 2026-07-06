@@ -36,6 +36,7 @@ El v4 es la **misma estructura** que el v3 con re-skin de identidad:
   - **Paleta:** `#0C0C0A`→`#000000`, `#EDEBE3`→`#FFFFFF`, `#9C9A8E`→`#9A9A9A`, `#4A493F`→`#606060`, `#F2C400`→`#F9D128`, hover `#FFDC33`→`#FFE159`, `#1A1913`→`#161616`, `#12110C`→`#0E0E0E`, `#161510`→`#141414`, `#33322B`→`#3A3A3A`, bordes `rgba(237,235,227,…)`→`rgba(255,255,255,…)`.
   - **Logo:** el texto "MOVE ON→" del header y el outline gigante del footer se reemplazaron por la **imagen del logo oficial** (header 30px de alto; footer centrado `min(560px,84vw)` con opacidad .9).
   - **Hero H1:** nuevo copy "Más energía. Más fuerza. **Más resultados.**" (span amarillo, sin itálica), `clamp(34px,6.8vw,92px)`.
+  - **Fix scroll del acordeón** (bug reportado por el usuario): al abrir una categoría estando otra larga abierta arriba, la página se acortaba y el scroll quedaba colgado al final. Ahora `toggle()` reancla la fila tocada con `scrollIntoView` + `scroll-margin-top` (70px desktop, 150px móvil por el header más alto). Ojo: la regla del media query debe ir DESPUÉS de la base en el CSS o la pisa (misma especificidad).
 
 ### 2.3 Archivos eliminados
 - Ninguno.

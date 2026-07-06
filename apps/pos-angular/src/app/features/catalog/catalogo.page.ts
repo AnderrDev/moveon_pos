@@ -86,6 +86,8 @@ interface FilaCategoria {
   .mo3-btn-outline{background:#161616;color:#FFFFFF;font-weight:700;letter-spacing:1px;text-transform:uppercase;text-decoration:none;border:1px solid rgba(255,255,255,.15);transition:all .12s;}
   .mo3-btn-outline:hover{border-color:#F9D128;color:#F9D128;}
 
+  .mo3-catblock{scroll-margin-top:70px;}
+  @media (max-width:719px){.mo3-catblock{scroll-margin-top:150px;}}
   .mo3-catrow{width:100%;text-align:left;text-decoration:none;display:grid;grid-template-columns:3.2em 1fr auto;align-items:baseline;gap:clamp(10px,2vw,24px);padding:clamp(14px,2vw,20px) clamp(8px,1.5vw,16px);background:transparent;color:#FFFFFF;border:0;transition:background .12s,color .12s;cursor:pointer;font-family:inherit;}
   .mo3-catrow:hover,.mo3-catrow.mo3-open{background:#F9D128;color:#000000;}
 
@@ -189,7 +191,7 @@ interface FilaCategoria {
       @if (!loading() && !loadError()) {
         <div style="display:flex;flex-direction:column;border-top:1px solid rgba(255,255,255,.12);">
           @for (cat of filas(); track cat.id) {
-            <div style="border-bottom:1px solid rgba(255,255,255,.12);">
+            <div class="mo3-catblock" [id]="'cat-' + cat.id" style="border-bottom:1px solid rgba(255,255,255,.12);">
               <button type="button" (click)="toggle(cat.id)" class="mo3-catrow" [class.mo3-open]="cat.abierta">
                 <span class="mo3-display" style="font-size:clamp(13px,1.4vw,15px);letter-spacing:1px;opacity:.55;">{{ cat.num }}</span>
                 <span style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;">
@@ -408,6 +410,11 @@ export class CatalogoPage implements OnInit {
 
   toggle(catId: string): void {
     this.abierta.set(this.abierta() === catId ? null : catId)
+    // Al cerrarse un panel largo por encima, la página se acorta y el scroll
+    // queda colgado más abajo; se reancla la fila tocada bajo el header sticky.
+    setTimeout(() => {
+      document.getElementById(`cat-${catId}`)?.scrollIntoView({ block: 'start' })
+    })
   }
 
   marcaDe(p: CatalogoProducto): string {
