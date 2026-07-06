@@ -19,6 +19,7 @@ function makeProduct(overrides: Partial<Product> = {}): Product {
     sku:           'PRO-1',
     codigoBarras:  null,
     categoriaId:   null,
+    proveedor:     null,
     paraQueSirve:  null,
     recomendadoPara: null,
     tipo:          'simple',

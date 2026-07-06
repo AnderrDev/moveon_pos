@@ -37,6 +37,7 @@ describe('productFormSchema', () => {
     sku: 'WHY-001',
     codigoBarras: '',
     categoriaId: '',
+    proveedor: 'Distribuidora Healthy',
     paraQueSirve: 'Apoya la recuperacion muscular.',
     recomendadoPara: 'Personas activas que buscan complementar su proteina diaria.',
     tipo: 'simple',
@@ -178,6 +179,26 @@ describe('productFormSchema', () => {
     if (!result.success) expect(result.error.issues[0].path).toEqual(['stockInicial'])
   })
 
+  // ── Proveedor (opcional) ──────────────────────────────────────────────────────
+
+  it('acepta proveedor vacío y lo conserva como string vacío', () => {
+    const result = productFormSchema.safeParse({ ...validProduct, proveedor: '' })
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data.proveedor).toBe('')
+  })
+
+  it('trimmea el proveedor', () => {
+    const result = productFormSchema.safeParse({ ...validProduct, proveedor: '  Megaplex  ' })
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data.proveedor).toBe('Megaplex')
+  })
+
+  it('rechaza proveedor que supera el límite', () => {
+    const result = productFormSchema.safeParse({ ...validProduct, proveedor: 'a'.repeat(101) })
+    expect(result.success).toBe(false)
+    if (!result.success) expect(result.error.issues[0].path).toEqual(['proveedor'])
+  })
+
   it('rechaza categorías que no son uuid cuando se envían', () => {
     const result = productFormSchema.safeParse({ ...validProduct, categoriaId: 'no-es-uuid' })
     expect(result.success).toBe(false)
@@ -205,6 +226,7 @@ describe('createProductFormDefaults', () => {
     const defaults = createProductFormDefaults()
     expect(defaults.nombre).toBe('')
     expect(defaults.sku).toBe('')
+    expect(defaults.proveedor).toBe('')
     expect(defaults.paraQueSirve).toBe('')
     expect(defaults.recomendadoPara).toBe('')
     expect(defaults.precioVenta).toBe(0)
@@ -237,6 +259,7 @@ describe('createProductFormDefaults', () => {
       sku: 'BAR-001',
       codigoBarras: '770000000001',
       categoriaId: '11111111-1111-4111-8111-111111111111',
+      proveedor: 'Distribuidora Healthy',
       paraQueSirve: 'Aporta proteina.',
       recomendadoPara: 'Personas activas.',
       tipo: 'ingredient' as const,

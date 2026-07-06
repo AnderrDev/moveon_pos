@@ -23,6 +23,7 @@ interface StockRow {
   id: string
   nombre: string
   sku: string | null
+  proveedor: string | null
   tipo: string
   costo: number | null
   precioVenta: number
@@ -58,6 +59,29 @@ interface StockRow {
           placeholder="Buscar producto"
           class="border-input bg-card focus:ring-ring h-10 w-56 rounded-lg border px-3 text-sm focus:ring-2 focus:outline-none"
         />
+        <select
+          [value]="proveedorFilter()"
+          (change)="onProveedorFilter($event)"
+          class="border-input bg-card focus:ring-ring h-10 w-48 rounded-lg border px-3 text-sm focus:ring-2 focus:outline-none"
+          aria-label="Filtrar por proveedor"
+        >
+          <option value="">Todos los proveedores</option>
+          @for (prov of proveedores(); track prov) {
+            <option [value]="prov">{{ prov }}</option>
+          }
+          <option value="__sin__">Sin proveedor</option>
+        </select>
+        <label
+          class="border-input bg-card flex h-10 cursor-pointer items-center gap-2 rounded-lg border px-3 text-sm select-none"
+        >
+          <input
+            type="checkbox"
+            [checked]="soloFaltantes()"
+            (change)="soloFaltantes.set(!soloFaltantes())"
+            class="accent-primary h-4 w-4"
+          />
+          Solo faltantes
+        </label>
         <mo-button
           variant="outline"
           [loading]="exporting()"
@@ -92,6 +116,7 @@ interface StockRow {
                 <th class="px-4 py-3">Producto</th>
                 <th class="px-4 py-3">Tipo</th>
                 <th class="px-4 py-3">SKU</th>
+                <th class="px-4 py-3">Proveedor</th>
                 <th class="px-4 py-3 text-right">Costo</th>
                 <th class="px-4 py-3 text-right">Precio</th>
                 <th class="px-4 py-3 text-right">Punto venta</th>
@@ -115,6 +140,9 @@ interface StockRow {
                   </td>
                   <td class="text-muted-foreground px-4 py-3 font-mono text-xs">
                     {{ row.sku ?? '—' }}
+                  </td>
+                  <td class="text-muted-foreground px-4 py-3 text-xs">
+                    {{ row.proveedor ?? '—' }}
                   </td>
                   <td class="text-muted-foreground px-4 py-3 text-right tabular-nums">
                     {{ row.costo != null ? money(row.costo) : '—' }}
@@ -208,6 +236,8 @@ export class InventarioPage {
   readonly loading = signal(true)
   readonly loadError = signal<string | null>(null)
   readonly query = signal('')
+  readonly proveedorFilter = signal('')
+  readonly soloFaltantes = signal(false)
   readonly exporting = signal(false)
 
   readonly entryOpen = signal(false)
@@ -244,6 +274,7 @@ export class InventarioPage {
         id: p.id,
         nombre: p.nombre,
         sku: p.sku,
+        proveedor: p.proveedor,
         tipo: p.tipo,
         costo: p.costo,
         precioVenta: p.precioVenta,
@@ -261,10 +292,23 @@ export class InventarioPage {
     })
   })
 
+  readonly proveedores = computed(() => {
+    const names = new Set<string>()
+    for (const p of this.products()) if (p.proveedor) names.add(p.proveedor)
+    return [...names].sort((a, b) => a.localeCompare(b, 'es'))
+  })
+
   readonly filteredRows = computed(() => {
     const q = this.query().trim().toLowerCase()
-    if (!q) return this.rows()
-    return this.rows().filter((r) => [r.nombre, r.sku ?? ''].join(' ').toLowerCase().includes(q))
+    const proveedor = this.proveedorFilter()
+    const soloFaltantes = this.soloFaltantes()
+    return this.rows().filter((r) => {
+      if (q && ![r.nombre, r.sku ?? ''].join(' ').toLowerCase().includes(q)) return false
+      if (proveedor === '__sin__' && r.proveedor) return false
+      if (proveedor && proveedor !== '__sin__' && r.proveedor !== proveedor) return false
+      if (soloFaltantes && !r.isLow && !r.isOut) return false
+      return true
+    })
   })
 
   constructor() {
@@ -286,6 +330,10 @@ export class InventarioPage {
 
   onQuery(event: Event): void {
     this.query.set((event.target as HTMLInputElement).value)
+  }
+
+  onProveedorFilter(event: Event): void {
+    this.proveedorFilter.set((event.target as HTMLSelectElement).value)
   }
 
   async exportInventory(): Promise<void> {

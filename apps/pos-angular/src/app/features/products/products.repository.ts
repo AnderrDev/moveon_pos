@@ -18,7 +18,7 @@ import {
 } from './product-component.helpers'
 
 const PRODUCT_COLS =
-  'id, tienda_id, nombre, sku, codigo_barras, categoria_id, para_que_sirve, recomendado_para, tipo, unidad, precio_venta, costo, iva_tasa, stock_minimo, is_active, deleted_at, created_at, updated_at'
+  'id, tienda_id, nombre, sku, codigo_barras, categoria_id, proveedor, para_que_sirve, recomendado_para, tipo, unidad, precio_venta, costo, iva_tasa, stock_minimo, is_active, deleted_at, created_at, updated_at'
 const CATEGORIA_COLS = 'id, tienda_id, nombre, orden, is_active, created_at, updated_at'
 
 interface SearchProductsParams {
@@ -110,6 +110,7 @@ export class ProductsRepository {
         p_sku: dto.sku ?? null,
         p_codigo_barras: dto.codigoBarras ?? null,
         p_categoria_id: dto.categoriaId ?? null,
+        p_proveedor: dto.proveedor ?? null,
         p_para_que_sirve: dto.paraQueSirve ?? null,
         p_recomendado_para: dto.recomendadoPara ?? null,
         p_tipo: dto.tipo,
@@ -157,6 +158,7 @@ export class ProductsRepository {
     if (dto.sku !== undefined) patch['sku'] = dto.sku ?? null
     if (dto.codigoBarras !== undefined) patch['codigo_barras'] = dto.codigoBarras ?? null
     if (dto.categoriaId !== undefined) patch['categoria_id'] = dto.categoriaId ?? null
+    if (dto.proveedor !== undefined) patch['proveedor'] = dto.proveedor ?? null
     if (dto.paraQueSirve !== undefined) patch['para_que_sirve'] = dto.paraQueSirve ?? null
     if (dto.recomendadoPara !== undefined) patch['recomendado_para'] = dto.recomendadoPara ?? null
     if (dto.tipo !== undefined) patch['tipo'] = dto.tipo

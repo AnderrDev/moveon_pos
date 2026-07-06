@@ -8,6 +8,7 @@ export const PRODUCT_NAME_MIN = 2
 export const PRODUCT_NAME_MAX = 100
 export const PRODUCT_SKU_MAX  = 50
 export const PRODUCT_INFO_MAX = 800
+export const PRODUCT_PROVEEDOR_MAX = 100
 
 // ── Schema del formulario ─────────────────────────────────────────────────────
 // Distinto del DTO del backend:
@@ -34,6 +35,13 @@ export const productFormSchema = z.object({
   categoriaId: z
     .string()
     .uuid('Selecciona una categoría válida')
+    .optional()
+    .or(z.literal('')),
+
+  proveedor: z
+    .string()
+    .trim()
+    .max(PRODUCT_PROVEEDOR_MAX, `El proveedor no puede superar ${PRODUCT_PROVEEDOR_MAX} caracteres`)
     .optional()
     .or(z.literal('')),
 
@@ -122,6 +130,7 @@ export function createProductFormDefaults(
     sku:          initial.sku          ?? '',
     codigoBarras: initial.codigoBarras ?? '',
     categoriaId:  initial.categoriaId  ?? '',
+    proveedor:    initial.proveedor    ?? '',
     paraQueSirve: initial.paraQueSirve ?? '',
     recomendadoPara: initial.recomendadoPara ?? '',
     tipo:         initial.tipo         ?? 'simple',

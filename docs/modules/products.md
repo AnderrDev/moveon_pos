@@ -18,6 +18,7 @@ Ver `/docs/03-data-model.md` tablas `categorias` y `productos`.
 - RN-P05: `para_que_sirve` y `recomendado_para` son informacion comercial opcional, de maximo 800 caracteres cada una, basada en la ficha oficial del fabricante.
 - RN-P06: La taxonomia operativa del POS separa proteinas, creatinas, pre-entrenos, aminoacidos y recuperacion, bienestar y salud, termogenicos, ganadores de peso, energizantes, alimentos proteicos, batidos e ingredientes para batidos.
 - RN-P07: Al crear un producto se puede registrar inventario inicial opcional. Producto y movimiento `entry` se crean en una sola transaccion; el costo unitario usa el costo del producto y la ubicacion por defecto es `bodega`.
+- RN-P08: `proveedor` es un campo de texto libre opcional (max 100 caracteres) en `productos`. Se usa para filtrar el inventario por proveedor y ver faltantes al armar el siguiente pedido. No hay tabla de proveedores en el MVP; si el caso de uso crece (contactos, condiciones de pago), se normaliza en una tabla propia.
 
 ## Informacion para recomendacion
 

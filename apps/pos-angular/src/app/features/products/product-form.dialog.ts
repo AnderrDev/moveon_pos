@@ -112,6 +112,14 @@ const INITIAL_STOCK_LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
           />
         </div>
 
+        <mo-form-input
+          controlName="proveedor"
+          label="Proveedor"
+          placeholder="Ej. Distribuidora Healthy Sports"
+          description="Se usa para filtrar el inventario y armar pedidos por proveedor."
+          [error]="presenter.errors().proveedor ?? null"
+        />
+
         @if (!product()) {
           <section class="border-primary/20 bg-primary/[0.035] rounded-xl border p-4">
             <div>

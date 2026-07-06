@@ -100,8 +100,13 @@ Para cargar stock inicial desde Siigo, se usa el importador CSV. Cada fila gener
 - Permisos: cajero no puede crear `entry`.
 - Stock bulk de N productos en una sola query.
 
+## Filtros de la página de inventario
+
+- Búsqueda por nombre/SKU, filtro por proveedor (incluye "Sin proveedor") y toggle **Solo faltantes** (stock bajo o agotado).
+- Combinando proveedor + solo faltantes se obtiene la lista de qué ordenar en el siguiente pedido a ese proveedor.
+
 ## Exportación Excel
 
-- Inventario descarga las filas filtradas con stock por ubicación, total, mínimo y alerta.
+- Inventario descarga las filas filtradas con stock por ubicación, proveedor, total, mínimo y alerta.
 - El kardex descarga todos los movimientos cargados del producto, con fecha, ubicación, cantidad, costo y motivo.
 - La funcionalidad permanece restringida a `admin` porque el módulo de inventario usa `roleGuard('admin')`.

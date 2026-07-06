@@ -8,6 +8,7 @@ export interface ProductRow {
   sku: string | null
   codigo_barras: string | null
   categoria_id: string | null
+  proveedor: string | null
   para_que_sirve: string | null
   recomendado_para: string | null
   tipo: string
@@ -40,6 +41,7 @@ export function rowToProduct(row: ProductRow): Product {
     sku: row.sku,
     codigoBarras: row.codigo_barras,
     categoriaId: row.categoria_id,
+    proveedor: row.proveedor,
     paraQueSirve: row.para_que_sirve,
     recomendadoPara: row.recomendado_para,
     tipo: row.tipo as ProductType,

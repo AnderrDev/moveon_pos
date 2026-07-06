@@ -7,6 +7,12 @@ export const createProductSchema = z.object({
   sku: z.string().optional(),
   codigoBarras: z.string().optional(),
   categoriaId: z.string().uuid().optional(),
+  proveedor: z
+    .string()
+    .trim()
+    .max(100, 'El proveedor no puede superar 100 caracteres')
+    .nullable()
+    .optional(),
   paraQueSirve: z
     .string()
     .trim()

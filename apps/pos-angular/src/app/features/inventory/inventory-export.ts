@@ -5,6 +5,7 @@ import { buildExportFilename } from '../../shared/export/export-filename'
 export interface InventoryExportRow {
   nombre: string
   sku: string | null
+  proveedor: string | null
   puntoVentaStock: number
   bodegaStock: number
   totalStock: number
@@ -44,6 +45,7 @@ export function buildInventoryWorkbook(
         columns: [
           { header: 'Producto', width: 36 },
           { header: 'SKU', width: 16 },
+          { header: 'Proveedor', width: 24 },
           { header: 'Punto de venta', width: 18, format: 'integer' },
           { header: 'Bodega', width: 14, format: 'integer' },
           { header: 'Stock total', width: 15, format: 'integer' },
@@ -53,6 +55,7 @@ export function buildInventoryWorkbook(
         rows: rows.map((row) => [
           row.nombre,
           row.sku,
+          row.proveedor,
           row.puntoVentaStock,
           row.bodegaStock,
           row.totalStock,
