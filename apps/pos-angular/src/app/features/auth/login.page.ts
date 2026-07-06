@@ -89,13 +89,6 @@ export class LoginPage {
   readonly isSubmitting = signal(false)
   readonly form = this.presenter.form
 
-  constructor() {
-    this.form.patchValue({
-      email: 'cajero@moveonpos.co',
-      password: 'Cajero1234!',
-    })
-  }
-
   async submit(): Promise<void> {
     const value = this.presenter.validate()
     if (!value) return

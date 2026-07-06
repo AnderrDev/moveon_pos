@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Crea (idempotente) un usuario cajero de prueba en Supabase staging y lo
 # enlaza a la tienda con rol 'cajero'. Uso de service role -> ejecutar local.
-#   bash scripts/create-cajero-test-user.sh
+#   CAJERO_PASSWORD='...' bash scripts/create-cajero-test-user.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -10,7 +10,7 @@ DB_URL=$(grep -E '^SUPABASE_DB_URL=' .env.local | cut -d= -f2-)
 SB_URL="https://rmaieqyscchtxxkgxgik.supabase.co"
 TIENDA_ID="a1b2c3d4-0000-0000-0000-000000000001"
 EMAIL="cajero@moveonpos.co"
-PASSWORD="Cajero1234!"
+PASSWORD="${CAJERO_PASSWORD:?Define CAJERO_PASSWORD en el entorno (no se hardcodea en el repo)}"
 
 echo "==> Creando usuario auth (si no existe) via Admin API"
 curl -s -X POST "$SB_URL/auth/v1/admin/users" \
@@ -36,4 +36,4 @@ psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into user_tiendas (id, user_id, tie
 echo "==> Verificación"
 psql "$DB_URL" -P pager=off -c "select u.email, ut.rol, ut.is_active
   from user_tiendas ut join auth.users u on u.id = ut.user_id order by ut.rol;"
-echo "==> Listo. Cajero: $EMAIL / $PASSWORD"
+echo "==> Listo. Cajero: $EMAIL (contraseña: la de CAJERO_PASSWORD)"

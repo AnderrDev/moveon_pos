@@ -35,7 +35,7 @@
 - Confirmado en vivo: V-000001/V-000002/V-000003 correlativos; reporte por día local (TZ); form de producto (IVA/costo); cliente + descuentos (persistido en DB); paste en moneda (evento real); tope de stock; historial por sesión; anulación repone stock; cierre atómico; guard por rol (admin y cajero).
 
 ### 2.3 Usuario cajero
-- Creado `cajero@moveonpos.co` / `Cajero1234!` (rol `cajero`, activo) vía `scripts/create-cajero-test-user.sh` (ejecutado por el usuario con `!` por política de seguridad sobre service role).
+- Creado `cajero@moveonpos.co` (rol `cajero`, activo) vía `scripts/create-cajero-test-user.sh` (ejecutado por el usuario con `!` por política de seguridad sobre service role). Contraseña rotada el 2026-07-06; ya no se documenta en texto plano.
 
 ### 2.4 Archivos creados
 - `scripts/create-cajero-test-user.sh` — helper idempotente para el cajero de prueba.
