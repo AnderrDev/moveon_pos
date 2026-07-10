@@ -1,6 +1,9 @@
+# Nota: aunque este archivo vive en apps/landing-web (Package directory del
+# sitio), Netlify resuelve "publish" relativo a la RAÍZ del repo, no a esta
+# carpeta. Ver ADR 0012.
 [build]
   command = "pnpm build:landing"
-  publish = "dist/browser"
+  publish = "apps/landing-web/dist/browser"
 
 [build.environment]
   NODE_VERSION = "20.19.0"

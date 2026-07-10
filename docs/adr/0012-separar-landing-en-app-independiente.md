@@ -54,8 +54,9 @@ Un mismo repo con dos sitios Netlify, cada uno con su propio `netlify.toml`, req
 
 Configuración final que funcionó:
 - **Package directory** del sitio `moveon-catalogo-web`: `apps/landing-web` (dashboard, manual).
-- `apps/landing-web/netlify.toml` propio (no uno en la raíz) con `publish = "dist/browser"`.
-- **outputPath de `landing-web` en `angular.json` cambiado de `dist/landing-web` a `apps/landing-web/dist`** — necesario porque Netlify valida que `publish` no pueda usar `../` para salir del árbol del "package directory" (aunque la ruta resuelta matemáticamente cayera dentro del repo, el build falló con `Configuration property "build.publish" ... must be inside the repository root directory`). Manteniendo la salida del build dentro de `apps/landing-web/`, `publish` no necesita subir ningún nivel.
+- `apps/landing-web/netlify.toml` propio (no uno en la raíz) con `publish = "apps/landing-web/dist/browser"`.
+- **Gotcha clave de rutas:** aunque el `netlify.toml` viva en el package directory, Netlify resuelve `publish` **relativo a la raíz del repo** (base directory), no relativo a esa carpeta. Por eso `publish = "../../dist/landing-web/browser"` falló con `must be inside the repository root directory` (el `../../` escapaba de la raíz del repo, no del package directory), y `publish = "dist/browser"` falló con `Deploy directory 'dist/browser' does not exist` (buscó `/opt/build/repo/dist/browser`). La ruta correcta es la completa desde la raíz.
+- El `outputPath` de `landing-web` en `angular.json` se movió de `dist/landing-web` a `apps/landing-web/dist` durante este debugging; se mantiene así porque deja el artefacto de la landing junto a su app (autocontenida), aunque con el gotcha ya entendido también habría funcionado la ruta original.
 - `_redirects`/`_headers` en `apps/landing-web/public/` (se mantienen como refuerzo, no dependen de qué `netlify.toml` se lea).
 
 ## Plan de Implementación
