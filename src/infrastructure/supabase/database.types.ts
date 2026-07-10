@@ -822,6 +822,7 @@ export type Database = {
           nombre: string
           para_que_sirve: string | null
           precio_venta: number
+          proveedor: string | null
           recomendado_para: string | null
           recommended_audience: string | null
           sku: string | null
@@ -847,6 +848,7 @@ export type Database = {
           nombre: string
           para_que_sirve?: string | null
           precio_venta: number
+          proveedor?: string | null
           recomendado_para?: string | null
           recommended_audience?: string | null
           sku?: string | null
@@ -872,6 +874,7 @@ export type Database = {
           nombre?: string
           para_que_sirve?: string | null
           precio_venta?: number
+          proveedor?: string | null
           recomendado_para?: string | null
           recommended_audience?: string | null
           sku?: string | null
@@ -894,6 +897,38 @@ export type Database = {
             foreignKeyName: "productos_tienda_id_fkey"
             columns: ["tienda_id"]
             isOneToOne: false
+            referencedRelation: "tiendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reinvestment_fund_settings: {
+        Row: {
+          created_at: string
+          fecha_inicio: string
+          saldo_inicial: number
+          tienda_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          fecha_inicio: string
+          saldo_inicial?: number
+          tienda_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          fecha_inicio?: string
+          saldo_inicial?: number
+          tienda_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reinvestment_fund_settings_tienda_id_fkey"
+            columns: ["tienda_id"]
+            isOneToOne: true
             referencedRelation: "tiendas"
             referencedColumns: ["id"]
           },
@@ -1121,6 +1156,47 @@ export type Database = {
           },
         ]
       }
+      storefront_contact_settings: {
+        Row: {
+          created_at: string
+          instagram_handle: string
+          instagram_url: string
+          is_active: boolean
+          tienda_id: string
+          updated_at: string
+          whatsapp_display: string
+          whatsapp_number: string
+        }
+        Insert: {
+          created_at?: string
+          instagram_handle: string
+          instagram_url: string
+          is_active?: boolean
+          tienda_id: string
+          updated_at?: string
+          whatsapp_display: string
+          whatsapp_number: string
+        }
+        Update: {
+          created_at?: string
+          instagram_handle?: string
+          instagram_url?: string
+          is_active?: boolean
+          tienda_id?: string
+          updated_at?: string
+          whatsapp_display?: string
+          whatsapp_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "storefront_contact_settings_tienda_id_fkey"
+            columns: ["tienda_id"]
+            isOneToOne: true
+            referencedRelation: "tiendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tiendas: {
         Row: {
           ciudad: string | null
@@ -1243,6 +1319,7 @@ export type Database = {
           p_nombre: string
           p_para_que_sirve: string
           p_precio_venta: number
+          p_proveedor?: string
           p_recomendado_para: string
           p_sku: string
           p_stock_minimo: number
@@ -1289,6 +1366,22 @@ export type Database = {
             }
             Returns: string
           }
+      get_reinvestment_fund_totals: {
+        Args: {
+          p_desde: string
+          p_mes_desde: string
+          p_mes_hasta: string
+          p_tienda_id: string
+        }
+        Returns: {
+          cogs_acumulado: number
+          cogs_mes: number
+          compras_acumuladas: number
+          compras_mes: number
+          ventas_sin_costo: number
+          entradas_sin_costo: number
+        }[]
+      }
       get_stock: {
         Args: {
           p_producto_id: string

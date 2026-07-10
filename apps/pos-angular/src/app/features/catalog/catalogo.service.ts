@@ -22,13 +22,26 @@ export interface CatalogoCategoria {
   productos: CatalogoProducto[]
 }
 
+export interface CatalogoContactSettings {
+  whatsappNumber: string
+  whatsappDisplay: string
+  instagramUrl: string
+  instagramHandle: string
+}
+
+interface StorefrontContactSettingsRow {
+  whatsapp_number: string
+  whatsapp_display: string
+  instagram_url: string
+  instagram_handle: string
+}
+
 @Injectable({ providedIn: 'root' })
 export class CatalogoService {
   private readonly db = inject(SupabaseClientService)
 
   async getCatalogo(): Promise<CatalogoCategoria[]> {
-    const db = this.db.supabase as any
-    const { data, error } = await db
+    const { data, error } = await this.db.supabase
       .from('productos')
       .select(
         'id, nombre, precio_venta, tipo, para_que_sirve, image_url, marca, etiqueta, categoria_id, categorias(id, nombre, orden)',
@@ -96,5 +109,25 @@ export class CatalogoService {
     }
 
     return categorias
+  }
+
+  async getContactSettings(): Promise<CatalogoContactSettings | null> {
+    const { data, error } = await this.db.supabase
+      .from('storefront_contact_settings')
+      .select('whatsapp_number, whatsapp_display, instagram_url, instagram_handle')
+      .eq('is_active', true)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle<StorefrontContactSettingsRow>()
+
+    if (error) throw new Error(error.message)
+    if (!data) return null
+
+    return {
+      whatsappNumber: data.whatsapp_number,
+      whatsappDisplay: data.whatsapp_display,
+      instagramUrl: data.instagram_url,
+      instagramHandle: data.instagram_handle,
+    }
   }
 }

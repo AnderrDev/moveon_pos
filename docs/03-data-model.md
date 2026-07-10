@@ -46,6 +46,25 @@ created_at      timestamptz default now()
 UNIQUE (user_id, tienda_id)
 ```
 
+#### `storefront_contact_settings`
+Configuración pública de contacto usada por el catálogo web. Permite cambiar WhatsApp
+e Instagram desde base de datos sin recompilar Angular.
+```
+tienda_id         uuid PK/FK tiendas(id)
+whatsapp_number  text not null   -- formato internacional sin +, ej: 573012244006
+whatsapp_display text not null   -- formato visible, ej: +57 301 224 4006
+instagram_url    text not null
+instagram_handle text not null
+is_active         boolean default true
+created_at        timestamptz default now()
+updated_at        timestamptz default now()
+```
+
+RLS:
+- `anon` solo puede leer filas activas.
+- usuarios autenticados leen su tienda.
+- solo `admin` puede insertar o actualizar.
+
 ---
 
 ### Productos y catálogo

@@ -4,6 +4,17 @@
 
 Administrar parametros operativos por tienda. La primera seccion implementada configura el comprobante termico sin cambiar codigo ni sobrescribir otros bloques del JSON `settings.data`.
 
+## Contacto publico del catalogo
+
+Los datos publicos de WhatsApp e Instagram viven en `storefront_contact_settings`, una fila por tienda:
+
+- `whatsapp_number`, formato internacional sin `+`, usado para construir enlaces `wa.me`.
+- `whatsapp_display`, formato visible para el footer.
+- `instagram_url` e `instagram_handle`.
+- `is_active`, para controlar que el catalogo publico lea solo configuraciones activas.
+
+RLS permite lectura anonima de filas activas para `/catalogo`; usuarios autenticados pueden leer su tienda y solo `admin` puede insertar o actualizar. El catalogo mantiene fallback local con los valores reales actuales para no romper ambientes donde la migration aun no se haya aplicado.
+
 ## Configuracion del comprobante
 
 Los valores viven en `settings.data.recibo`:
