@@ -51,10 +51,8 @@ interface CategoryChip {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
-<!-- ── FUENTES Y ESTILOS (diseño oficial: Catalogo Move On v4) ─────────── -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,900&display=swap" rel="stylesheet">
+<!-- ── ESTILOS (diseño oficial: Catalogo Move On v4) ─────────── -->
+<!-- Las fuentes de Google (Montserrat) se cargan desde index.html -->
 <style>
   .mo3{min-height:100vh;background:#000000;color:#FFFFFF;font-family:'Montserrat',system-ui,sans-serif;-webkit-font-smoothing:antialiased;--mo-fs-micro:10px;--mo-fs-eyebrow:11px;--mo-fs-caption:12px;--mo-fs-small:13px;--mo-fs-body:15px;--mo-fs-body-lg:16px;--mo-fs-card-title:14px;--mo-fs-card-price:16px;--mo-fs-button:12px;--mo-fs-nav:11px;--mo-fs-h2:28px;--mo-fs-h3:22px;--mo-fs-section:30px;--mo-fs-hero:36px;}
   .mo3 *{box-sizing:border-box;}

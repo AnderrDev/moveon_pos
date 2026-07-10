@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * Genera apps/pos-angular/public/runtime-config.json a partir de .env.local
- * El archivo NO se committea — la app lo carga al bootstrap.
+ * Genera runtime-config.json para cada app Angular del workspace (pos-angular
+ * y landing-web) a partir de .env.local. Los archivos NO se committean — cada
+ * app lo carga al bootstrap.
  *
  * Acepta tanto las variables nuevas (SUPABASE_URL) como las legacy de Next
  * (NEXT_PUBLIC_SUPABASE_URL) para compatibilidad con el .env.local existente.
@@ -14,7 +15,11 @@ import { fileURLToPath } from 'node:url'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..')
 const ENV_FILE = join(ROOT, '.env.local')
-const OUTPUT = join(ROOT, 'apps/pos-angular/public/runtime-config.json')
+
+const OUTPUTS = [
+  { path: join(ROOT, 'apps/pos-angular/public/runtime-config.json'), appNameKey: 'APP_NAME', appNameDefault: 'MOVEONAPP POS' },
+  { path: join(ROOT, 'apps/landing-web/public/runtime-config.json'), appNameKey: 'LANDING_APP_NAME', appNameDefault: 'Move On Nutrition — Catálogo' },
+]
 
 function parseEnvFile(path) {
   if (!existsSync(path)) return {}
@@ -42,7 +47,6 @@ const supabaseUrl =
   env.SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey =
   env.SUPABASE_ANON_KEY || env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-const appName = env.APP_NAME || 'MOVEONAPP POS'
 const sentryDsn = env.SENTRY_DSN || ''
 const environment = env.APP_ENV || env.NODE_ENV || 'development'
 
@@ -52,8 +56,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
   process.exit(1)
 }
 
-const config = { supabaseUrl, supabaseAnonKey, appName, environment }
-if (sentryDsn) config.sentryDsn = sentryDsn
+for (const { path, appNameKey, appNameDefault } of OUTPUTS) {
+  const appName = env[appNameKey] || appNameDefault
+  const config = { supabaseUrl, supabaseAnonKey, appName, environment }
+  if (sentryDsn) config.sentryDsn = sentryDsn
 
-writeFileSync(OUTPUT, JSON.stringify(config, null, 2) + '\n')
-console.log(`[runtime-config] escrito en ${OUTPUT}`)
+  writeFileSync(path, JSON.stringify(config, null, 2) + '\n')
+  console.log(`[runtime-config] escrito en ${path}`)
+}

@@ -1,0 +1,37 @@
+/*
+  Reset mínimo — landing-web NO usa Tailwind a propósito: catalogo.page.ts
+  no tiene ninguna clase de utilidad, todo su CSS vive en un <style> propio
+  dentro del componente (sistema "mo3-*"). Importar Tailwind aquí solo
+  agregaría peso al bundle sin beneficio (ver ADR 0012).
+*/
+*,
+::before,
+::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family:
+    'Montserrat',
+    system-ui,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

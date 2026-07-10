@@ -27,7 +27,7 @@
 | Linter           | ESLint + @angular-eslint | Pendiente de cablear (ver TODO en sesión 05-02) |
 | Formatter        | Prettier               | Config estándar                                   |
 | Package manager  | pnpm                   | Obligatorio (no npm/yarn)                         |
-| Hosting frontend | TBD                    | Build estático Angular; target post-cleanup       |
+| Hosting frontend | Netlify                | Dos sitios: `pos-angular` (ADR 0009) y `landing-web` (ADR 0012), mismo repo |
 | CI/CD            | GitHub Actions         | Deploy automático en main (re-cablear post-cleanup)|
 
 **Justificación de elecciones clave:** ver ADRs en `/docs/adr/`.

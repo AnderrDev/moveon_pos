@@ -1,0 +1,17 @@
+[build]
+  command = "pnpm build:landing"
+  publish = "dist/landing-web/browser"
+
+[build.environment]
+  NODE_VERSION = "20.19.0"
+  PNPM_VERSION = "9.0.0"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/runtime-config.json"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

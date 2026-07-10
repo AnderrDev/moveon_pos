@@ -6,6 +6,19 @@
   NODE_VERSION = "20.19.0"
   PNPM_VERSION = "9.0.0"
 
+# Proxy hacia el sitio Netlify de landing-web (ver docs/adr/0012-*.md).
+[[redirects]]
+  from = "/catalogo"
+  to = "https://moveon-catalogo-web.netlify.app/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/catalogo/*"
+  to = "https://moveon-catalogo-web.netlify.app/:splat"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

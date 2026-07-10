@@ -19,8 +19,12 @@ package-lock.json
 /dist
 /.angular
 
+# graphify (grafo de conocimiento generado, ver evaluación en sesión 2026-07-10)
+/graphify-out
+
 # Angular runtime config (generado por scripts/generate-runtime-config.mjs)
 apps/pos-angular/public/runtime-config.json
+apps/landing-web/public/runtime-config.json
 
 # misc
 .DS_Store
@@ -45,3 +49,6 @@ yarn-error.log*
 # supabase
 /supabase/.branches
 /supabase/.temp
+
+# Local Netlify folder
+.netlify
