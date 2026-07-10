@@ -69,8 +69,9 @@ import { PAYMENT_METHOD_CLOSURE_OPTIONS, getPaymentMethodLabel } from '@/shared/
         <div class="bg-card rounded-xl border p-3">
           <div class="flex flex-wrap items-center gap-2">
             <div class="flex items-center gap-2">
-              <label class="text-muted-foreground text-xs font-semibold">Desde</label>
+              <label for="report-from-date" class="text-muted-foreground text-xs font-semibold">Desde</label>
               <input
+                id="report-from-date"
                 type="date"
                 [value]="fromIso()"
                 (change)="onFromChange($event)"
@@ -78,8 +79,9 @@ import { PAYMENT_METHOD_CLOSURE_OPTIONS, getPaymentMethodLabel } from '@/shared/
               />
             </div>
             <div class="flex items-center gap-2">
-              <label class="text-muted-foreground text-xs font-semibold">Hasta</label>
+              <label for="report-to-date" class="text-muted-foreground text-xs font-semibold">Hasta</label>
               <input
+                id="report-to-date"
                 type="date"
                 [value]="toIso()"
                 (change)="onToChange($event)"

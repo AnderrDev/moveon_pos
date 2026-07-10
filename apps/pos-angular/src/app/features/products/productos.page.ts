@@ -147,7 +147,7 @@ import { buildProductsWorkbook } from './product-export'
                     {{ product.sku ?? '—' }}
                   </td>
                   <td class="text-muted-foreground px-4 py-3 text-right tabular-nums">
-                    {{ product.costo != null ? money(product.costo) : '—' }}
+                    {{ product.costo !== null ? money(product.costo) : '—' }}
                   </td>
                   <td class="px-4 py-3 text-right font-semibold tabular-nums">
                     {{ money(product.precioVenta) }}

@@ -48,6 +48,25 @@ interface RpcClient {
   ): Promise<{ data: T | null; error: { message: string } | null }>
 }
 
+interface ProductComponentsClient {
+  from(table: 'product_components'): {
+    select(cols: string): {
+      eq(col: 'producto_id', value: string): {
+        eq(col: 'tienda_id', value: string): Promise<{
+          data: ProductComponentRow[] | null
+          error: { message: string } | null
+        }>
+      }
+    }
+    delete(): {
+      eq(col: 'producto_id', value: string): {
+        eq(col: 'tienda_id', value: string): Promise<{ error: { message: string } | null }>
+      }
+    }
+    insert(values: Record<string, unknown>[]): Promise<{ error: { message: string } | null }>
+  }
+}
+
 export interface InitialStockInput {
   cantidad: number
   ubicacion: InventoryLocation
@@ -258,7 +277,8 @@ export class ProductsRepository {
   }
 
   async getComponents(productId: string, tiendaId: string): Promise<ProductComponent[]> {
-    const { data, error } = await (this.supabaseClient.supabase as any)
+    const client = this.supabaseClient.supabase as unknown as ProductComponentsClient
+    const { data, error } = await client
       .from('product_components')
       .select('componente_id, cantidad, productos!componente_id(nombre)')
       .eq('producto_id', productId)
@@ -273,7 +293,7 @@ export class ProductsRepository {
     tiendaId: string,
     components: { componenteId: string; cantidad: number }[],
   ): Promise<void> {
-    const db = this.supabaseClient.supabase as any
+    const db = this.supabaseClient.supabase as unknown as ProductComponentsClient
 
     const { error: delError } = await db
       .from('product_components')

@@ -192,10 +192,11 @@ const INITIAL_STOCK_LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
 
             <div class="flex gap-2 items-end pt-1">
               <div class="flex-1 min-w-0">
-                <label class="text-muted-foreground mb-1 block text-[11px] font-semibold uppercase tracking-wide">
+                <label for="product-component-id" class="text-muted-foreground mb-1 block text-[11px] font-semibold uppercase tracking-wide">
                   Producto
                 </label>
                 <select
+                  id="product-component-id"
                   [value]="pendingComponentId()"
                   (change)="pendingComponentId.set($any($event.target).value)"
                   class="border-input bg-background focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2"
@@ -207,10 +208,11 @@ const INITIAL_STOCK_LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
                 </select>
               </div>
               <div class="w-24 shrink-0">
-                <label class="text-muted-foreground mb-1 block text-[11px] font-semibold uppercase tracking-wide">
+                <label for="product-component-qty" class="text-muted-foreground mb-1 block text-[11px] font-semibold uppercase tracking-wide">
                   Cantidad
                 </label>
                 <input
+                  id="product-component-qty"
                   type="number"
                   min="0.001"
                   step="1"

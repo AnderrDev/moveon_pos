@@ -16,6 +16,17 @@ interface ComponentRow {
   componente: { nombre: string }
 }
 
+interface ProductComponentsClient {
+  from(table: 'product_components'): {
+    select(cols: string): {
+      eq(col: 'tienda_id', value: string): Promise<{
+        data: ComponentRow[] | null
+        error: { message: string } | null
+      }>
+    }
+  }
+}
+
 @Injectable({ providedIn: 'root' })
 export class PosDataService {
   private readonly supabaseClient = inject(SupabaseClientService)
@@ -65,8 +76,7 @@ export class PosDataService {
   }
 
   private async fetchComponents(tiendaId: string): Promise<ComponentRow[]> {
-    // `as any`: product_components aún no está en los tipos generados de Supabase
-    const db = this.supabaseClient.supabase as any
+    const db = this.supabaseClient.supabase as unknown as ProductComponentsClient
     const { data, error } = await db
       .from('product_components')
       .select('producto_id, cantidad, componente:componente_id(nombre)')
