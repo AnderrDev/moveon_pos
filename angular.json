@@ -106,7 +106,7 @@
         "build": {
           "builder": "@angular/build:application",
           "options": {
-            "outputPath": "dist/landing-web",
+            "outputPath": "apps/landing-web/dist",
             "index": "apps/landing-web/src/index.html",
             "browser": "apps/landing-web/src/main.ts",
             "tsConfig": "apps/landing-web/tsconfig.app.json",

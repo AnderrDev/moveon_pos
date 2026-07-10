@@ -92,17 +92,18 @@ Detalle de fallos (si los hay):
 
 ---
 
-## 6. Bloqueos y preguntas pendientes
+## 6. Bloqueos y preguntas pendientes (resueltos en esta misma sesión)
 
-- **Falta crear el segundo sitio Netlify** en el dashboard (fuera del repo): apuntar al mismo repo, "Configuration file path" = `netlify.landing.toml`, copiar env vars públicas (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `APP_NAME`/`LANDING_APP_NAME`). Una vez creado, reemplazar `<landing-site>` en `netlify.toml` por el subdominio real asignado.
-- Hasta que eso pase, `/catalogo` en producción **no funcionará** con el redirect (los placeholders `<landing-site>` no resuelven) — el deploy de este cambio a producción debe coordinarse con la creación del sitio Netlify.
+- **Deploy inicial sirvió el build equivocado.** El primer sitio Netlify creado (`moveon-catalogo-web`) leyó el `netlify.toml` de la raíz (POS) en vez de la config de la landing — el título de la página mostraba "MOVEONAPP POS". Causa: el campo "Package directory" (qué `netlify.toml` usa un sitio en un monorepo) **solo es configurable desde el dashboard de Netlify**, no vía API. Se probaron `build_settings.config_path`, `build_settings.configuration_file_path` y `repo.config_path` por API — todos se guardaban sin error pero sin efecto real en el build.
+- **Fix:** usuario configuró "Package directory" = `apps/landing-web` en el dashboard. Con eso, Netlify empezó a leer `apps/landing-web/netlify.toml` — pero ese archivo falló con `"build.publish" ... must be inside the repository root directory"` porque usaba `../../dist/landing-web/browser` (Netlify no permite que `publish` escape del árbol del "package directory" con `..`, aunque la ruta resuelta matemáticamente cayera dentro del repo). Se resolvió cambiando el `outputPath` de `landing-web` en `angular.json` de `dist/landing-web` a `apps/landing-web/dist`, para que el build viva dentro de esa carpeta y `publish` no necesite subir niveles.
+- Se eliminó `netlify.landing.toml` de la raíz (nunca se leyó) y se creó `apps/landing-web/netlify.toml` en su lugar.
 
 ---
 
 ## 7. Próximos pasos
 
-1. Crear el segundo sitio Netlify y reemplazar `<landing-site>` en `netlify.toml`.
-2. Validar en producción: `https://<dominio-actual>/catalogo` sirve el build de `landing-web`, en desktop y mobile.
+1. Confirmar en el dashboard de Netlify que el redeploy final de `moveon-catalogo-web` (tras el fix de `outputPath`) terminó en estado `ready` y sirve el título correcto.
+2. Validar en producción: `https://moveon-client.netlify.app/catalogo` sirve el build de `landing-web`, en desktop y mobile.
 3. Validar lecturas anon a Supabase desde el nuevo origen (Network tab, sin errores CORS) en producción real (ya validado en local/dev).
 4. Considerar, a futuro, un subdominio propio para la landing en vez de servirla por proxy bajo `/catalogo`.
 

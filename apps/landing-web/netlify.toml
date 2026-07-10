@@ -1,6 +1,6 @@
 [build]
   command = "pnpm build:landing"
-  publish = "../../dist/landing-web/browser"
+  publish = "dist/browser"
 
 [build.environment]
   NODE_VERSION = "20.19.0"

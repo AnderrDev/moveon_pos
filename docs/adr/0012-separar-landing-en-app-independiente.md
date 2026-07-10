@@ -31,22 +31,32 @@ La URL pública sigue siendo `/catalogo` — solo cambia el nombre del proyecto/
 
 Ya vigente desde ADR 0009 (Netlify, no Vercel). Se agrega:
 
-- Un **segundo sitio Netlify** apuntando al mismo repo, con "Configuration file path" = `netlify.landing.toml` (build `pnpm build:landing`, publish `dist/landing-web/browser`). Netlify le asigna un subdominio propio `*.netlify.app`.
+- Un **segundo sitio Netlify** (`moveon-catalogo-web`, https://moveon-catalogo-web.netlify.app) apuntando al mismo repo (`AnderrDev/moveon_pos`, rama `main`).
 - En el sitio principal (`netlify.toml`, POS), se agregan reglas de redirect/proxy **antes** del catch-all SPA existente:
   ```toml
   [[redirects]]
     from = "/catalogo"
-    to = "https://<landing-site>.netlify.app/:splat"
+    to = "https://moveon-catalogo-web.netlify.app/:splat"
     status = 200
     force = true
   [[redirects]]
     from = "/catalogo/*"
-    to = "https://<landing-site>.netlify.app/:splat"
+    to = "https://moveon-catalogo-web.netlify.app/:splat"
     status = 200
     force = true
   ```
   El orden importa: Netlify evalúa redirects en orden y usa el primer match.
 - Por ahora la landing sigue en el **mismo dominio** que el POS (vía este proxy) — no se provisiona un subdominio custom todavía. Es la topología más simple que logra "cero código POS en el bundle del cliente" sin tocar DNS.
+
+**Cómo hacer que el segundo sitio lea un `netlify.toml` distinto (lección aprendida):**
+
+Un mismo repo con dos sitios Netlify, cada uno con su propio `netlify.toml`, requiere el campo **"Package directory"** en *Build & deploy → Continuous deployment → Build settings* del sitio. Esto **solo se puede configurar desde el dashboard** — no existe un campo equivalente en la API clásica (`PATCH /api/v1/sites/:id`); se probó `build_settings.config_path`, `build_settings.configuration_file_path` y el objeto `repo.config_path` sin éxito (se guardaban sin error pero no tenían efecto en el build real). Mientras ese campo quede sin configurar, el sitio lee el `netlify.toml` de la **raíz del repo** sin importar qué `cmd`/`dir` se haya seteado por API o dashboard.
+
+Configuración final que funcionó:
+- **Package directory** del sitio `moveon-catalogo-web`: `apps/landing-web` (dashboard, manual).
+- `apps/landing-web/netlify.toml` propio (no uno en la raíz) con `publish = "dist/browser"`.
+- **outputPath de `landing-web` en `angular.json` cambiado de `dist/landing-web` a `apps/landing-web/dist`** — necesario porque Netlify valida que `publish` no pueda usar `../` para salir del árbol del "package directory" (aunque la ruta resuelta matemáticamente cayera dentro del repo, el build falló con `Configuration property "build.publish" ... must be inside the repository root directory`). Manteniendo la salida del build dentro de `apps/landing-web/`, `publish` no necesita subir ningún nivel.
+- `_redirects`/`_headers` en `apps/landing-web/public/` (se mantienen como refuerzo, no dependen de qué `netlify.toml` se lea).
 
 ## Plan de Implementación
 

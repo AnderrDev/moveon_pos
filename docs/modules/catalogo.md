@@ -24,23 +24,25 @@ La landing pública que se muestra a clientes finales (no staff): catálogo de p
 
 ```bash
 pnpm dev:landing         # ng serve landing-web (puerto por defecto de Angular CLI)
-pnpm build:landing       # ng build landing-web (producción) -> dist/landing-web/browser
+pnpm build:landing       # ng build landing-web (producción) -> apps/landing-web/dist/browser
 pnpm lint:landing        # ng lint landing-web
 pnpm typecheck:landing   # ng build landing-web --configuration development
 ```
 
 `pnpm predev`/`prebuild`/`pretypecheck` de `pos-angular` y sus equivalentes `:landing` corren `scripts/generate-runtime-config.mjs`, que escribe `runtime-config.json` para **ambas** apps a partir del mismo `.env.local` (mismo proyecto Supabase, misma anon key).
 
+Nota: el `outputPath` de `landing-web` en `angular.json` es `apps/landing-web/dist` (no `dist/landing-web` como pos-angular) — Netlify no permite que `publish` en un `netlify.toml` de subcarpeta use `../` para salir de esa subcarpeta, así que la salida del build vive dentro de `apps/landing-web/` a propósito. Ver ADR 0012.
+
 ## Hosting (Netlify)
 
-Dos sitios Netlify sobre el mismo repo:
+Dos sitios Netlify sobre el mismo repo (`AnderrDev/moveon_pos`, rama `main`):
 
-| Sitio | Config file | Build | Publish |
-|---|---|---|---|
-| POS (`pos-angular`) | `netlify.toml` | `pnpm build` | `dist/pos-angular/browser` |
-| Landing (`landing-web`) | `netlify.landing.toml` | `pnpm build:landing` | `dist/landing-web/browser` |
+| Sitio | netlify.toml | Build | Publish | Package directory (dashboard) |
+|---|---|---|---|---|
+| POS (`pos-angular`) — `moveon-client` | `/netlify.toml` (raíz) | `pnpm build` | `dist/pos-angular/browser` | (sin usar) |
+| Landing (`landing-web`) — `moveon-catalogo-web` | `apps/landing-web/netlify.toml` | `pnpm build:landing` | `dist/browser` (relativo a esa carpeta) | `apps/landing-web` |
 
-El sitio del POS tiene reglas de redirect/proxy que reenvían `/catalogo` y `/catalogo/*` hacia el sitio de la landing, para que el cliente vea todo bajo el mismo dominio. Ver ADR 0012 para el detalle y el estado pendiente de conectar el segundo sitio en el dashboard de Netlify.
+El campo "Package directory" (qué `netlify.toml` lee cada sitio en un monorepo) **solo se configura desde el dashboard de Netlify**, no hay campo equivalente en la API. Sin eso seteado, cualquier sitio nuevo cae por defecto al `netlify.toml` de la raíz del repo (le pasó al primer intento de este sitio — sirvió el build del POS hasta corregirlo). El sitio del POS tiene reglas de redirect/proxy que reenvían `/catalogo` y `/catalogo/*` hacia `moveon-catalogo-web.netlify.app`, para que el cliente vea todo bajo el mismo dominio. Ver ADR 0012 para el detalle completo.
 
 ## Qué NO hacer
 

@@ -17,6 +17,7 @@ package-lock.json
 
 # build
 /dist
+/apps/landing-web/dist
 /.angular
 
 # graphify (grafo de conocimiento generado, ver evaluación en sesión 2026-07-10)
