@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
+import { Router } from '@angular/router'
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { formatCurrency } from '@/shared/lib/format'
 import { getPaymentMethodLabel, PAYMENT_METHOD_OPTIONS } from '@/shared/lib/payment-methods'
@@ -70,6 +71,14 @@ interface PostSaleOutputJob {
               class="hover:bg-muted h-8 rounded-lg border px-3 text-xs font-semibold transition-colors"
             >
               Ventas del turno
+            </button>
+          } @else {
+            <button
+              type="button"
+              (click)="goToCaja()"
+              class="bg-primary text-primary-foreground hover:bg-primary/90 h-8 rounded-lg px-3 text-xs font-bold transition-colors"
+            >
+              Abrir caja
             </button>
           }
           <span
@@ -838,6 +847,7 @@ export class PosPage {
   private readonly saleService = inject(PosSaleService)
   private readonly receiptPrint = inject(ReceiptPrintService)
   private readonly toast = inject(ToastService)
+  private readonly router = inject(Router)
 
   readonly cart = inject(PosCartStore)
   readonly products = signal<PosProduct[]>([])
@@ -1229,6 +1239,10 @@ export class PosPage {
     } finally {
       this.openingCashDrawer.set(false)
     }
+  }
+
+  async goToCaja(): Promise<void> {
+    await this.router.navigateByUrl('/caja')
   }
 
   async confirmSale(): Promise<void> {

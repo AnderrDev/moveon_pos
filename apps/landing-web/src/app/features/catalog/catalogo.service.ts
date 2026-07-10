@@ -4,7 +4,6 @@ import { SupabaseClientService } from '../../core/supabase/supabase-client.servi
 export interface CatalogoProducto {
   id: string
   nombre: string
-  precioVenta: number
   tipo: string
   paraQueSirve: string | null
   imageUrl: string | null
@@ -42,13 +41,10 @@ export class CatalogoService {
 
   async getCatalogo(): Promise<CatalogoCategoria[]> {
     const { data, error } = await this.db.supabase
-      .from('productos')
+      .from('storefront_productos_publicos')
       .select(
-        'id, nombre, precio_venta, tipo, para_que_sirve, image_url, marca, etiqueta, categoria_id, categorias(id, nombre, orden)',
+        'id, nombre, tipo, para_que_sirve, image_url, marca, etiqueta, categoria_id, categoria_nombre, categoria_orden',
       )
-      .eq('is_active', true)
-      .is('deleted_at', null)
-      .neq('tipo', 'ingredient')
       .order('nombre', { ascending: true })
 
     if (error) throw new Error(error.message)
@@ -56,14 +52,14 @@ export class CatalogoService {
     interface ProductRow {
       id: string
       nombre: string
-      precio_venta: number
       tipo: string
       para_que_sirve: string | null
       image_url: string | null
       marca: string | null
       etiqueta: string | null
       categoria_id: string | null
-      categorias: { id: string; nombre: string; orden: number } | null
+      categoria_nombre: string | null
+      categoria_orden: number | null
     }
     const rows: ProductRow[] = data ?? []
 
@@ -74,28 +70,27 @@ export class CatalogoService {
       const producto: CatalogoProducto = {
         id: row.id,
         nombre: row.nombre,
-        precioVenta: row.precio_venta,
         tipo: row.tipo,
         paraQueSirve: row.para_que_sirve,
         imageUrl: row.image_url,
         marca: row.marca,
         etiqueta: row.etiqueta,
         categoriaId: row.categoria_id,
-        categoriaNombre: row.categorias?.nombre ?? null,
-        categoriaOrden: row.categorias?.orden ?? 999,
+        categoriaNombre: row.categoria_nombre,
+        categoriaOrden: row.categoria_orden ?? 999,
       }
 
-      if (!row.categorias) {
+      if (!row.categoria_id || !row.categoria_nombre) {
         sinCategoria.push(producto)
         continue
       }
 
-      const catId = row.categorias.id
+      const catId = row.categoria_id
       if (!categoriaMap.has(catId)) {
         categoriaMap.set(catId, {
           id: catId,
-          nombre: row.categorias.nombre,
-          orden: row.categorias.orden,
+          nombre: row.categoria_nombre,
+          orden: row.categoria_orden ?? 999,
           productos: [],
         })
       }

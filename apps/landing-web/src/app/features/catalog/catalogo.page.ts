@@ -35,10 +35,6 @@ const BADGE_STYLES: Record<string, [string, string]> = {
 }
 const BADGE_DEFAULT: [string, string] = ['#161616', '#F9D128']
 
-function formatCOP(v: number): string {
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(v)
-}
-
 interface CategoryChip {
   id: string
   nombre: string
@@ -414,7 +410,6 @@ interface CategoryChip {
                   @if (p.paraQueSirve) {
                     <p class="mo3-carddesc">{{ shortText(p.paraQueSirve) }}</p>
                   }
-                  <span class="mo3-display mo3-cardprice">{{ formatPrice(p.precioVenta) }}</span>
                 </div>
                 <a [href]="waProducto(p)" target="_blank" rel="noopener" class="mo3-cardwa">
                   <span>Preguntar por WhatsApp</span><span>→</span>
@@ -887,10 +882,6 @@ export class CatalogoPage implements OnInit {
 
   waProducto(p: CatalogoProducto): string {
     return this.wa(`Hola Move On 👋 Quiero preguntar por: ${p.nombre}. ¿Está disponible?`)
-  }
-
-  formatPrice(v: number): string {
-    return formatCOP(v)
   }
 
   shortText(value: string): string {

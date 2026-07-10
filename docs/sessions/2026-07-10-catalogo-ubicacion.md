@@ -36,6 +36,12 @@ Actualización posterior 7: revertir el panel negro de adicionales/toppings a su
 
 Actualización posterior 8: agregar al catálogo el menú real de café, snacks proteicos y combos visto en la captura del usuario (`Captura de pantalla 2026-07-09 a la(s) 11.26.08 p.m..png`), como nueva sección `#cafe` después de Batidos. Ajuste posterior del usuario: quitar el botón "Pedir por WhatsApp" de esa sección y mejorar el diseño (se veía plano).
 
+Actualización posterior 9: quitar precios de productos de la sección 1 del catálogo público y evitar que `precio_venta` viaje o pueda consultarse desde Network con la anon key.
+
+Actualización posterior 10: usar el logo entregado (`WhatsApp Image 2026-07-02 at 12.39.37 (1) (1).jpeg`) como icono de navegador de la landing.
+
+Actualización posterior 11: agregar en el encabezado del POS un botón `Abrir caja` cuando no hay sesión abierta, que lleva a `/caja` para iniciar el turno con monto de apertura.
+
 ---
 
 ## 2. Lo que se implementó
@@ -55,9 +61,19 @@ Actualización posterior 8: agregar al catálogo el menú real de café, snacks 
 - `apps/pos-angular/src/app/features/catalog/catalogo.page.ts` — actualiza etiquetas y valores de horarios en la sección de ubicación.
 - `apps/pos-angular/src/app/features/catalog/catalogo.page.ts` — agrega sección `#cafe` (índice `03`, renumerando Ubicación a `04`): menú de Café y Snacks Proteicos en columnas con precio destacado en amarillo y badges de proteína por producto, y Combos como cards con esquina editorial (reutilizando `.mo3-shakebase`). Agrega el link "Café" a la navegación desktop/mobile y al footer. Se removió el CTA "Pedir por WhatsApp" de esta sección a pedido del usuario (el catálogo ya tiene CTA global en el header).
 - `apps/pos-angular/src/app/features/catalog/catalogo.service.ts` — agrega lectura de `storefront_contact_settings`.
+- `apps/landing-web/src/app/features/catalog/catalogo.page.ts` — quita el precio visible de las cards de productos en la sección 1.
+- `apps/landing-web/src/app/features/catalog/catalogo.service.ts` — deja de consultar `productos.precio_venta` y consume `storefront_productos_publicos`.
 - `src/infrastructure/supabase/database.types.ts` — snapshot local de tipos Supabase actualizado.
+- `supabase/migrations/20260710_002_storefront_productos_publicos_sin_precios.sql` — crea vista pública sin precios para suplementos, revoca lectura anon directa de `productos` y mantiene `authenticated` con SELECT para el POS.
 - `docs/03-data-model.md` — documenta `storefront_contact_settings`.
 - `docs/modules/settings.md` — documenta el contacto público del catálogo.
+- `docs/03-data-model.md` — documenta `storefront_productos_publicos`.
+- `docs/modules/catalogo.md` — documenta que la landing no debe consultar `productos` directamente ni exponer `precio_venta`.
+- `apps/landing-web/public/assets/catalog/moveon-icon.png` — regenerado desde el logo entregado como favicon 512x512.
+- `apps/landing-web/public/assets/catalog/apple-touch-icon.png` — creado desde el logo entregado como icono Apple 180x180.
+- `apps/landing-web/public/favicon-32x32.png` — creado desde el logo entregado como favicon 32x32.
+- `apps/landing-web/src/index.html` — declara explícitamente favicon 32x32, favicon 512x512 y Apple touch icon.
+- `apps/pos-angular/src/app/features/pos/pos.page.ts` — agrega botón `Abrir caja` junto al estado `Caja cerrada`; navega a `/caja` y no reemplaza el botón de apertura física del cajón monedero en checkout.
 
 ### 2.3 Archivos eliminados
 - (no aplica)
@@ -77,6 +93,8 @@ Actualización posterior 8: agregar al catálogo el menú real de café, snacks 
 | Redibujar el menú como HTML/CSS dentro de la franja amarilla | Pegar la foto del menú como imagen | Mantiene el texto legible, responsive y editable sin depender de una foto borrosa. |
 | Sustituir emojis por tratamiento gráfico CSS | Mantener gota/vaso como iconos | Evita una señal visual genérica/de IA y mantiene el estilo brutalista de marca. |
 | Convertir el bloque izquierdo en guía de armado | Mantener solo un titular grande y precios | Hace más claro el flujo de compra sin agregar interacción innecesaria. |
+| Crear `storefront_productos_publicos` sin `precio_venta` | Ocultar el precio solo en HTML/CSS | Si el servicio seguía consultando `precio_venta`, el dato quedaba visible en Network. La vista limita el contrato público y se revoca lectura anon directa de `productos`. |
+| Botón `Abrir caja` del POS navega a `/caja` | Abrir directamente el cajón monedero o duplicar el formulario en POS | En el POS, "caja cerrada" significa que falta sesión de turno; el formulario oficial de apertura vive en `/caja` y captura el monto inicial auditado. |
 
 ---
 
@@ -103,19 +121,22 @@ Detalle de fallos (si los hay):
 - Ajuste visual bases batidos: `pnpm exec tsc --noEmit` pasó; `pnpm exec ngc -p apps/pos-angular/tsconfig.app.json` pasó; Chrome headless en desktop 1440 y mobile 390 sin overflow horizontal. Capturas: `catalogo-base-corner-desktop.png`, `catalogo-base-corner-mobile.png`.
 - Horarios catálogo: `pnpm exec tsc --noEmit` pasó; `pnpm exec ngc -p apps/pos-angular/tsconfig.app.json` pasó.
 - Menú café/snacks/combos: `pnpm exec tsc --noEmit` pasó; `pnpm exec ngc -p apps/pos-angular/tsconfig.app.json` pasó; `pnpm test` 52 archivos / 446 tests pasaron. Validado con Chrome en `ng serve` desktop 1440px: sección `#cafe` visible desde el nav, precios y badges correctos contra la captura del usuario, sin errores de consola. Verificación de mobile se apoyó en el mismo patrón `grid-template-columns:repeat(auto-fit,minmax(...))` ya validado en 390px para las bases del batido (Codex, actualización posterior 3), dado que la herramienta de resize de ventana no reflejó el viewport en esta sesión.
+- Precios ocultos sección 1: `pnpm exec tsc --noEmit` pasó; `pnpm exec ngc -p apps/landing-web/tsconfig.app.json` pasó; `pnpm lint:landing` pasó; `pnpm test` pasó (52 archivos / 446 tests). `pnpm typecheck:landing` y `pnpm build:landing` abortaron con código 134 justo después de iniciar `ng build` sin diagnóstico adicional; el chequeo aislado de TypeScript/Angular sí pasó.
+- Favicon catálogo: `file` confirma PNGs 512x512, 180x180 y 32x32; `pnpm lint:landing` pasó; `pnpm exec ngc -p apps/landing-web/tsconfig.app.json` pasó.
+- Botón `Abrir caja` en POS: `pnpm exec tsc --noEmit` pasó; `pnpm exec ngc -p apps/pos-angular/tsconfig.app.json` pasó; `pnpm test` pasó (52 archivos / 446 tests). `pnpm lint` sigue fallando por issues existentes en `auditoria.page.ts`, `product-form.dialog.ts`, `productos.page.ts`, `reportes.page.ts` y warnings `any`; `pnpm build` abortó por deadlock de esbuild; `pnpm build:landing` abortó con código 134 sin diagnóstico adicional.
 
 ---
 
 ## 6. Bloqueos y preguntas pendientes
 
-- La migration `20260710_001_storefront_contact_settings.sql` no se pudo aplicar al Supabase remoto porque `SUPABASE_DB_URL` en `.env.local` fue rechazado por password authentication failed para `postgres`. En sandbox sin red primero falló DNS; con red aprobada llegó a Supabase y falló autenticación.
+- Las migrations `20260710_001_storefront_contact_settings.sql` y `20260710_002_storefront_productos_publicos_sin_precios.sql` no se han aplicado al Supabase remoto. Los intentos con `SUPABASE_DB_URL` en `.env.local` fueron rechazados por password authentication failed para `postgres`. En sandbox sin red primero falla DNS; con red aprobada llega a Supabase y falla autenticación.
 - El conector MCP de Supabase tampoco pudo usarse: respondió `Unauthorized` porque no tiene `SUPABASE_ACCESS_TOKEN` configurado.
 
 ---
 
 ## 7. Próximos pasos
 
-1. Actualizar `SUPABASE_DB_URL` o configurar `SUPABASE_ACCESS_TOKEN` para aplicar `supabase/migrations/20260710_001_storefront_contact_settings.sql`.
+1. Actualizar `SUPABASE_DB_URL` o configurar `SUPABASE_ACCESS_TOKEN` para aplicar `supabase/migrations/20260710_001_storefront_contact_settings.sql` y `supabase/migrations/20260710_002_storefront_productos_publicos_sin_precios.sql`.
 2. Revisar visualmente en dispositivo real antes de publicar.
 
 ---

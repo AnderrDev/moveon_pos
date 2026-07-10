@@ -1273,7 +1273,31 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      storefront_productos_publicos: {
+        Row: {
+          categoria_id: string | null
+          categoria_nombre: string | null
+          categoria_orden: number | null
+          etiqueta: string | null
+          id: string
+          image_url: string | null
+          marca: string | null
+          nombre: string
+          para_que_sirve: string | null
+          tipo: Database["public"]["Enums"]["product_type"]
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          {
+            foreignKeyName: "productos_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       close_cash_session_atomic: {

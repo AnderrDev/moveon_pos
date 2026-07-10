@@ -16,9 +16,9 @@ La landing pública que se muestra a clientes finales (no staff): catálogo de p
 
 ## Fuentes de datos (Supabase, solo lectura anon)
 
-- `productos` + `categorias`: catálogo de suplementos, filtrado por `is_active = true`, `deleted_at is null`, `tipo != 'ingredient'`. La categoría `Ingredientes para batidos` se oculta explícitamente en el frontend (`HIDDEN_CATEGORIES`).
+- `storefront_productos_publicos`: catálogo de suplementos, filtrado en base de datos por `productos.is_active = true`, `deleted_at is null`, `tipo != 'ingredient'` y categorías activas. Esta vista **no expone `precio_venta`, `costo`, SKU ni códigos internos**; la landing no debe consultar `productos` directamente para evitar que esos campos aparezcan en Network o puedan pedirse con la anon key.
 - `storefront_contact_settings`: WhatsApp e Instagram públicos, editable sin recompilar (RLS: `anon` lee solo filas `is_active`; solo `admin` inserta/actualiza). Fallback local en el componente si la tabla no responde.
-- Menús de Batidos, Café, Snacks Proteicos y Combos están **hardcodeados** en `catalogo.page.ts` (no vienen de la tabla `productos`) — son secciones de diseño fijo, no inventario dinámico.
+- Menús de Batidos, Café, Snacks Proteicos y Combos están **hardcodeados** en `catalogo.page.ts` (no vienen de la tabla `productos`) — son secciones de diseño fijo, no inventario dinámico. Sus precios siguen siendo públicos porque pertenecen al menú fijo, no a la sección 1 de suplementos.
 
 ## Comandos
 
@@ -49,3 +49,4 @@ El campo "Package directory" (qué `netlify.toml` lee cada sitio en un monorepo)
 - No agregar rutas, guards ni imports de `pos-angular` a `landing-web` — el objetivo del split es que este bundle no tenga nada del POS.
 - No agregar `@import 'tailwindcss'` a `landing-web/src/styles.css` — el componente no usa clases de utilidad, es una excepción deliberada (ver ADR 0012).
 - No mover los menús de Batidos/Café/Snacks/Combos a la tabla `productos` sin discutirlo antes — hoy son secciones de diseño fijo a propósito.
+- No volver a exponer `productos.precio_venta` en el catálogo público. Si la sección de suplementos necesita más campos, agregarlos explícitamente a `storefront_productos_publicos` solo si son seguros para clientes anónimos.

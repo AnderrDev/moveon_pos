@@ -110,6 +110,29 @@ INDEX (tienda_id, codigo_barras)
 
 > **Nota tipo `prepared`:** representa batidos. En v1.0 se manejan como producto simple con su propio stock o stock infinito. La descomposición en ingredientes (recetas) llega en v1.2.
 
+#### Vista `storefront_productos_publicos`
+Vista de lectura pública para la landing de catálogo. Expone únicamente campos comerciales seguros para clientes anónimos:
+```
+id
+nombre
+tipo
+para_que_sirve
+image_url
+marca
+etiqueta
+categoria_id
+categoria_nombre
+categoria_orden
+```
+
+Filtros incluidos en la vista:
+- productos activos (`is_active = true`)
+- productos no archivados (`deleted_at is null`)
+- excluye ingredientes (`tipo <> 'ingredient'`)
+- solo une categorías activas
+
+No expone `precio_venta`, `costo`, SKU, código de barras, IVA, proveedor, `tienda_id` ni campos técnicos. El rol `anon` no debe consultar `productos` directamente para el catálogo público.
+
 ---
 
 ### Inventario
