@@ -25,6 +25,8 @@ import type { InventoryLocation } from '@/shared/types'
 interface ProductSummary {
   id: string
   nombre: string
+  /** Costo actual del producto — se precarga para que las compras alimenten el fondo de reinversión. */
+  costo?: number | null
 }
 
 const LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
@@ -111,7 +113,12 @@ export class RegisterEntryDialog {
   constructor() {
     effect(() => {
       if (this.open()) {
-        this.form.reset({ cantidad: 1, ubicacion: 'bodega', costoUnitario: 0, motivo: '' })
+        this.form.reset({
+          cantidad: 1,
+          ubicacion: 'bodega',
+          costoUnitario: this.product()?.costo ?? 0,
+          motivo: '',
+        })
         this.rootError.set(null)
       }
     })

@@ -5,11 +5,13 @@ import type {
 } from '@/modules/expenses/domain/entities/expense.entity'
 import type { FinancialSummary } from '@/modules/expenses/domain/services/financial-summary'
 import type { MonthlyComparisonRow } from '@/modules/expenses/domain/services/monthly-comparison'
+import type { ReinvestmentFund } from '@/modules/expenses/domain/services/reinvestment-fund'
 import type {
   ExcelCellValue,
   ExcelWorkbookDefinition,
 } from '../../shared/export/excel-export.service'
 import { buildExportFilename } from '../../shared/export/export-filename'
+import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
 
 const METODO_LABEL: Record<ExpenseMetodoPago, string> = {
   efectivo_caja: 'Efectivo (caja)',
@@ -24,6 +26,8 @@ export interface FinanzasExportInput {
   expenses: readonly Expense[]
   categorias: readonly ExpenseCategory[]
   comparison: readonly MonthlyComparisonRow[]
+  /** `null` mientras la tienda no configure el fondo de reinversión. */
+  fund: ReinvestmentFund | null
 }
 
 /** Libro de finanzas del mes: Resumen, Gastos y Comparativa (datos ya cargados — ADR 0011). */
@@ -33,6 +37,11 @@ export function buildFinanzasWorkbook(input: FinanzasExportInput): ExcelWorkbook
 
   const resumenRows: (readonly ExcelCellValue[])[] = [
     ['Entradas totales (ventas completadas)', summary.entradasTotales, null],
+    ...summary.entradasPorMetodo.map((payment) => [
+      `Entradas — ${getPaymentMethodLabel(payment.metodo)}`,
+      payment.total,
+      payment.pctSobreEntradas,
+    ]),
     ['Costo de productos vendidos', summary.costoProductosVendidos, null],
     ['Gastos del negocio', summary.gastosTotal, summary.pctGastosSobreEntradas],
     ...summary.porCategoria.map((cat) => [
@@ -42,6 +51,17 @@ export function buildFinanzasWorkbook(input: FinanzasExportInput): ExcelWorkbook
     ]),
     ['Utilidad neta', summary.utilidadNeta, summary.margenNeto],
   ]
+
+  if (input.fund) {
+    resumenRows.push(
+      ['Fondo de reinversión — Saldo inicial', input.fund.saldoInicial, null],
+      ['Fondo de reinversión — Apartado por ventas (acumulado)', input.fund.apartadoAcumulado, null],
+      ['Fondo de reinversión — Invertido en mercancía (acumulado)', input.fund.invertidoAcumulado, null],
+      ['Fondo de reinversión — Disponible para reinvertir', input.fund.disponible, null],
+      ['Fondo de reinversión — Apartado este mes', input.fund.apartadoMes, null],
+      ['Fondo de reinversión — Invertido este mes', input.fund.invertidoMes, null],
+    )
+  }
 
   return {
     filename: buildExportFilename('finanzas'),

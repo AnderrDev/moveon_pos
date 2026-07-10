@@ -13,14 +13,20 @@ Relacionar los **gastos del negocio con las entradas totales** del período: nó
 - **Gasto pagado con `efectivo_caja`** exige caja abierta: la RPC `register_expense_atomic` crea el `cash_movement` tipo `expense` y el gasto **en la misma transacción** (el cierre de caja sigue cuadrando). Sin caja abierta la RPC falla con `NO_OPEN_CASH_SESSION` (mensaje amigable en UI).
 - **Nómina:** pagos tipo mes completo / quincena 1 / quincena 2 / adelanto. Las dos quincenas siempre suman el salario exacto (`buildNominaPagoSugerido`). El gasto lleva `empleado_id` y `periodo` (`YYYY-MM` o `YYYY-MM-Q1/Q2`).
 - **Entradas totales** = `DailyReport.totalVentas` (ReportsService, misma fuente que `/reportes`). **Costo de productos** = suma de `productSales.costoTotal` (null si ningún producto tiene costo capturado — se muestra "—", nunca se asume 0).
+- Las entradas del período se muestran además por método de pago (`paymentBreakdown` de reportes), principalmente efectivo y transferencia, para control operativo.
+- **Fondo de reinversión de mercancía:** el costo de lo vendido no se trata como gasto operativo ni utilidad disponible. Desde una fecha configurable por tienda:
+  `disponible = saldo_inicial + costo_vendido_acumulado - compras_mercancia_acumuladas`.
+  Las compras de mercancía se registran como entradas de inventario con `costo_unitario`; si una entrada no tiene costo, no descuenta del fondo y se muestra advertencia.
 
-## Datos (migrations `20260704_002` y `20260704_003`)
+## Datos (migrations `20260704_002`, `20260704_003` y `20260708_001`)
 
 - `empleados` — nombre, cargo, `salario_mensual` (costo total acordado), `is_active`.
 - `expense_categories` — seed por tienda: nomina, arriendo, servicios, mantenimiento, insumos, marketing, transporte, otros (`tipo` fijo/variable, editable).
 - `expenses` — categoría, empleado opcional, concepto, monto, `fecha_gasto` (date local), `metodo_pago` (`efectivo_caja|efectivo_externo|transferencia|tarjeta`), `cash_movement_id`, `periodo`, status + campos de anulación.
 - `expense_templates` — plantillas recurrentes de gastos fijos. Son **configuración**, no registros transaccionales: borrado físico permitido (mismo criterio que clientes).
+- `reinvestment_fund_settings` — configuración por tienda del fondo (`saldo_inicial`, `fecha_inicio`), solo admin.
 - RPC `register_expense_atomic(...)` — security invoker, parámetros opcionales con `default null`.
+- RPC `get_reinvestment_fund_totals(...)` — devuelve costo vendido y compras de mercancía acumuladas desde la fecha de inicio del fondo, más desglose del mes visible. Usa RLS/security invoker.
 
 ## Estructura
 
@@ -31,13 +37,16 @@ src/modules/expenses/
   domain/services/financial-summary.ts     buildFinancialSummary (núcleo, puro + tests)
   domain/services/nomina.ts                buildNominaPagoSugerido, pagadoPorEmpleado (+ tests)
   domain/services/monthly-comparison.ts    lastMonths, buildMonthlyComparison (+ tests)
+  domain/services/reinvestment-fund.ts     buildReinvestmentFund (+ tests)
   application/dtos/expense.dto.ts          createExpenseSchema, voidExpenseSchema (Zod)
   application/dtos/empleado.dto.ts         saveEmpleadoSchema
+  application/dtos/fund-settings.dto.ts    saveFundSettingsSchema
   application/use-cases/register-expense.use-case.ts   Result<Expense, {code:'validation'}>
   application/use-cases/void-expense.use-case.ts
   forms/expense-form.{factory,mapper}.ts   patrón 3 archivos
   forms/empleado-form.{factory,mapper}.ts
   forms/nomina-pago-form.{factory,mapper}.ts
+  forms/fund-settings-form.{factory,mapper}.ts
 
 apps/pos-angular/src/app/features/expenses/
   finanzas.page.ts                orquestador (mes visible, carga, diálogos)
@@ -50,12 +59,15 @@ apps/pos-angular/src/app/features/expenses/
   nomina-section.component.ts     empleados con pagado vs. acordado (presentacional)
   expense-list.component.ts       tabla de gastos con anulación (presentacional)
   monthly-comparison.component.ts últimos 6 meses (presentacional)
+  reinvestment-fund.component.ts  fondo de reinversión (presentacional)
+  fund-settings.dialog.ts        configurar saldo inicial y fecha de inicio
 ```
 
 ## Recurrentes y export (PLAN-49)
 
 - **"Gastos del mes"** (`recurrentes.dialog.ts`): lista las plantillas activas cruzadas con los gastos del mes visible (`templateStatusForMonth`, dominio puro). "Registrar" abre el form de gasto **prellenado** (categoría/concepto/monto) con `periodo = mes visible`; al guardarse, la plantilla pasa a "Registrado este mes". Coincidencia por concepto + categoría + período (las quincenas cuentan para su mes).
 - **Export Excel** desde `/finanzas` (`expense-export.ts`): hojas `Resumen` (estado del período + % por categoría), `Gastos` (incluye anulados con motivo) y `Comparativa`. Se exporta desde el módulo con datos ya cargados (ADR 0011) — no se tocó el Excel de `/reportes`.
+- La hoja `Resumen` incluye entradas por método de pago. Si el fondo está configurado, también incluye saldo inicial, apartado por ventas, invertido en mercancía y disponible para reinvertir.
 
 ## Limitaciones conocidas
 

@@ -9,10 +9,13 @@ import type {
   ExpenseStatus,
   ExpenseTemplate,
   ExpenseTemplateFrecuencia,
+  ReinvestmentFundSettings,
 } from '@/modules/expenses/domain/entities/expense.entity'
 import type { ExpenseRepository } from '@/modules/expenses/domain/repositories/expense.repository'
+import type { ReinvestmentFundTotals } from '@/modules/expenses/domain/services/reinvestment-fund'
 import type { CreateExpenseDto, VoidExpenseDto } from '@/modules/expenses/application/dtos/expense.dto'
 import type { SaveEmpleadoDto } from '@/modules/expenses/application/dtos/empleado.dto'
+import type { SaveFundSettingsDto } from '@/modules/expenses/application/dtos/fund-settings.dto'
 import type { SaveTemplateDto } from '@/modules/expenses/application/dtos/template.dto'
 
 interface ExpenseRow {
@@ -256,6 +259,73 @@ export class ExpensesRepository implements ExpenseRepository {
       .eq('id', id)
       .eq('tienda_id', tiendaId)
     if (error) throw new Error(error.message)
+  }
+
+  async getFundSettings(tiendaId: string): Promise<ReinvestmentFundSettings | null> {
+    const { data, error } = await this.supabaseClient.supabase
+      .from('reinvestment_fund_settings')
+      .select('tienda_id, saldo_inicial, fecha_inicio, updated_at')
+      .eq('tienda_id', tiendaId)
+      .maybeSingle()
+    if (error) throw new Error(error.message)
+    if (!data) return null
+    return {
+      tiendaId: data.tienda_id,
+      saldoInicial: Number(data.saldo_inicial),
+      fechaInicio: data.fecha_inicio,
+      updatedAt: new Date(data.updated_at),
+    }
+  }
+
+  async saveFundSettings(dto: SaveFundSettingsDto): Promise<ReinvestmentFundSettings> {
+    const { data, error } = await this.supabaseClient.supabase
+      .from('reinvestment_fund_settings')
+      .upsert(
+        {
+          tienda_id: dto.tiendaId,
+          saldo_inicial: dto.saldoInicial,
+          fecha_inicio: dto.fechaInicio,
+        },
+        { onConflict: 'tienda_id' },
+      )
+      .select('tienda_id, saldo_inicial, fecha_inicio, updated_at')
+      .single()
+    if (error) throw new Error(error.message)
+    if (!data) throw new Error('Configuración del fondo guardada sin respuesta')
+    return {
+      tiendaId: data.tienda_id,
+      saldoInicial: Number(data.saldo_inicial),
+      fechaInicio: data.fecha_inicio,
+      updatedAt: new Date(data.updated_at),
+    }
+  }
+
+  async getFundTotals(
+    tiendaId: string,
+    desdeIso: string,
+    mesDesdeIso: string,
+    mesHastaIso: string,
+  ): Promise<ReinvestmentFundTotals> {
+    const { data, error } = await this.supabaseClient.supabase.rpc(
+      'get_reinvestment_fund_totals',
+      {
+        p_tienda_id: tiendaId,
+        p_desde: desdeIso,
+        p_mes_desde: mesDesdeIso,
+        p_mes_hasta: mesHastaIso,
+      },
+    )
+    if (error) throw new Error(error.message)
+    const row = data?.[0]
+    if (!row) throw new Error('El fondo de reinversión no devolvió totales')
+    return {
+      cogsAcumulado: Number(row.cogs_acumulado),
+      comprasAcumuladas: Number(row.compras_acumuladas),
+      cogsMes: Number(row.cogs_mes),
+      comprasMes: Number(row.compras_mes),
+      ventasSinCosto: Number(row.ventas_sin_costo),
+      entradasSinCosto: Number(row.entradas_sin_costo),
+    }
   }
 
   async listTemplates(tiendaId: string): Promise<ExpenseTemplate[]> {

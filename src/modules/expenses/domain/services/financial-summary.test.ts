@@ -50,6 +50,24 @@ describe('buildFinancialSummary', () => {
     expect(summary.pctGastosSobreEntradas).toBe(20)
   })
 
+  it('separa las entradas por método de pago', () => {
+    const summary = buildFinancialSummary({
+      entradasTotales: 1_000_000,
+      paymentBreakdown: [
+        { metodo: 'transfer', total: 650_000 },
+        { metodo: 'cash', total: 350_000 },
+      ],
+      costoProductosVendidos: null,
+      gastos: [],
+      categorias: CATEGORIAS,
+    })
+
+    expect(summary.entradasPorMetodo).toEqual([
+      { metodo: 'cash', total: 350_000, pctSobreEntradas: 35 },
+      { metodo: 'transfer', total: 650_000, pctSobreEntradas: 65 },
+    ])
+  })
+
   it('excluye los gastos anulados de todos los totales', () => {
     const summary = buildFinancialSummary({
       entradasTotales: 1_000_000,

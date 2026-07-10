@@ -3,9 +3,12 @@ import type {
   Expense,
   ExpenseCategory,
   ExpenseTemplate,
+  ReinvestmentFundSettings,
 } from '../entities/expense.entity'
+import type { ReinvestmentFundTotals } from '../services/reinvestment-fund'
 import type { CreateExpenseDto, VoidExpenseDto } from '../../application/dtos/expense.dto'
 import type { SaveEmpleadoDto } from '../../application/dtos/empleado.dto'
+import type { SaveFundSettingsDto } from '../../application/dtos/fund-settings.dto'
 import type { SaveTemplateDto } from '../../application/dtos/template.dto'
 
 /**
@@ -28,4 +31,18 @@ export interface ExpenseRepository {
   saveTemplate(dto: SaveTemplateDto): Promise<ExpenseTemplate>
   /** Las plantillas son configuración (no registros transaccionales): borrado físico permitido. */
   deleteTemplate(id: string, tiendaId: string): Promise<void>
+
+  /** `null` cuando la tienda aún no configuró el fondo de reinversión. */
+  getFundSettings(tiendaId: string): Promise<ReinvestmentFundSettings | null>
+  saveFundSettings(dto: SaveFundSettingsDto): Promise<ReinvestmentFundSettings>
+  /**
+   * Totales del fondo desde `desdeIso` (fecha de inicio del fondo) más el
+   * desglose del mes visible `[mesDesdeIso, mesHastaIso)` — fin exclusivo.
+   */
+  getFundTotals(
+    tiendaId: string,
+    desdeIso: string,
+    mesDesdeIso: string,
+    mesHastaIso: string,
+  ): Promise<ReinvestmentFundTotals>
 }

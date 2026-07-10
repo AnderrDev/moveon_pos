@@ -15,6 +15,8 @@ import { NominaSectionComponent } from './nomina-section.component'
 import { MonthlyComparisonComponent } from './monthly-comparison.component'
 import { RecurrentesDialog } from './recurrentes.dialog'
 import { TemplateFormDialog } from './template-form.dialog'
+import { ReinvestmentFundComponent } from './reinvestment-fund.component'
+import { FundSettingsDialog } from './fund-settings.dialog'
 import { ExcelExportService } from '../../shared/export/excel-export.service'
 import { buildFinanzasWorkbook } from './expense-export'
 import type { ExpenseFormValue } from '@/modules/expenses/forms/expense-form.factory'
@@ -24,7 +26,13 @@ import { voidExpense } from '@/modules/expenses/application/use-cases/void-expen
 import {
   buildFinancialSummary,
   type FinancialSummary,
+  type PaymentBreakdownInput,
 } from '@/modules/expenses/domain/services/financial-summary'
+import {
+  buildReinvestmentFund,
+  type ReinvestmentFund,
+  type ReinvestmentFundTotals,
+} from '@/modules/expenses/domain/services/reinvestment-fund'
 import { pagadoPorEmpleado } from '@/modules/expenses/domain/services/nomina'
 import {
   buildMonthlyComparison,
@@ -36,6 +44,7 @@ import type {
   Expense,
   ExpenseCategory,
   ExpenseTemplate,
+  ReinvestmentFundSettings,
 } from '@/modules/expenses/domain/entities/expense.entity'
 
 function currentMonthLocal(): string {
@@ -73,6 +82,8 @@ function monthRange(month: string): { from: string; to: string } {
     MonthlyComparisonComponent,
     RecurrentesDialog,
     TemplateFormDialog,
+    ReinvestmentFundComponent,
+    FundSettingsDialog,
   ],
   template: `
     <section class="flex h-full min-h-0 flex-col">
@@ -126,6 +137,11 @@ function monthRange(month: string): { from: string; to: string } {
       } @else {
         <div class="min-h-0 flex-1 space-y-4 overflow-auto pb-4">
           <mo-financial-summary [s]="summary()" />
+
+          <mo-reinvestment-fund
+            [fund]="fund()"
+            (configureRequested)="fundDialogOpen.set(true)"
+          />
 
           <mo-nomina-section
             [empleados]="empleados()"
@@ -188,6 +204,13 @@ function monthRange(month: string): { from: string; to: string } {
       (saved)="onTemplateSaved($event)"
     />
 
+    <mo-fund-settings-dialog
+      [open]="fundDialogOpen()"
+      [settings]="fundSettings()"
+      (closed)="fundDialogOpen.set(false)"
+      (saved)="onFundSettingsSaved($event)"
+    />
+
     <mo-empleado-form-dialog
       [open]="empleadoDialogOpen()"
       [empleado]="editingEmpleado()"
@@ -227,7 +250,10 @@ export class FinanzasPage {
   readonly expenses = signal<Expense[]>([])
   readonly empleados = signal<Empleado[]>([])
   readonly entradasTotales = signal(0)
+  readonly entradasPorMetodo = signal<PaymentBreakdownInput[]>([])
   readonly costoProductos = signal<number | null>(null)
+  readonly ventasSinCosto = signal(0)
+  readonly unidadesSinCosto = signal(0)
   readonly dialogOpen = signal(false)
   readonly voiding = signal<Expense | null>(null)
   readonly empleadoDialogOpen = signal(false)
@@ -240,6 +266,9 @@ export class FinanzasPage {
   readonly expenseInitial = signal<Partial<ExpenseFormValue> | null>(null)
   readonly expensePeriodo = signal<string | null>(null)
   readonly exporting = signal(false)
+  readonly fundSettings = signal<ReinvestmentFundSettings | null>(null)
+  readonly fundTotals = signal<ReinvestmentFundTotals | null>(null)
+  readonly fundDialogOpen = signal(false)
 
   readonly pagadoEmpleados = computed(() => pagadoPorEmpleado(this.expenses()))
 
@@ -257,11 +286,21 @@ export class FinanzasPage {
   readonly summary = computed<FinancialSummary>(() =>
     buildFinancialSummary({
       entradasTotales: this.entradasTotales(),
+      paymentBreakdown: this.entradasPorMetodo(),
       costoProductosVendidos: this.costoProductos(),
+      ventasSinCosto: this.ventasSinCosto(),
+      unidadesSinCosto: this.unidadesSinCosto(),
       gastos: this.expenses(),
       categorias: this.categorias(),
     }),
   )
+
+  readonly fund = computed<ReinvestmentFund | null>(() => {
+    const settings = this.fundSettings()
+    const totals = this.fundTotals()
+    if (!settings || !totals) return null
+    return buildReinvestmentFund({ saldoInicial: settings.saldoInicial, ...totals })
+  })
 
   readonly voidTargetLabel = computed(() => {
     const gasto = this.voiding()
@@ -290,29 +329,61 @@ export class FinanzasPage {
       const auth = await this.session.getAuthContext()
       if (!auth) throw new Error('No autenticado')
       const { from, to } = monthRange(this.month())
-      const [categorias, expenses, empleados, templates, report] = await Promise.all([
-        this.repo.listCategories(auth.tiendaId),
-        this.repo.listExpenses(auth.tiendaId, from, to),
-        this.repo.listEmpleados(auth.tiendaId),
-        this.repo.listTemplates(auth.tiendaId),
-        this.reportsService.getDailyReport(auth.tiendaId, from, to),
-      ])
+      const [categorias, expenses, empleados, templates, report, fundSettings] =
+        await Promise.all([
+          this.repo.listCategories(auth.tiendaId),
+          this.repo.listExpenses(auth.tiendaId, from, to),
+          this.repo.listEmpleados(auth.tiendaId),
+          this.repo.listTemplates(auth.tiendaId),
+          this.reportsService.getDailyReport(auth.tiendaId, from, to),
+          this.repo.getFundSettings(auth.tiendaId),
+        ])
       this.categorias.set(categorias)
       this.expenses.set(expenses)
       this.empleados.set(empleados)
       this.templates.set(templates)
       this.entradasTotales.set(report.totalVentas)
+      this.entradasPorMetodo.set(report.paymentBreakdown.map((p) => ({ metodo: p.metodo, total: p.total })))
+      this.fundSettings.set(fundSettings)
+      await this.loadFundTotals(auth.tiendaId)
 
       const costos = report.productSales
         .map((p) => p.costoTotal)
         .filter((c): c is number => c !== null)
       this.costoProductos.set(costos.length > 0 ? costos.reduce((s, c) => s + c, 0) : null)
+      const sinCosto = report.productSales.filter((p) => p.costoTotal === null && p.qty > 0)
+      this.ventasSinCosto.set(sinCosto.length)
+      this.unidadesSinCosto.set(sinCosto.reduce((sum, p) => sum + p.qty, 0))
 
       await this.loadComparison(auth.tiendaId)
     } catch (error) {
       this.loadError.set(getErrorMessage(error, 'Error al cargar'))
     } finally {
       this.loading.set(false)
+    }
+  }
+
+  /** Totales del fondo desde su fecha de inicio + desglose del mes visible. */
+  private async loadFundTotals(tiendaId: string): Promise<void> {
+    const settings = this.fundSettings()
+    if (!settings) {
+      this.fundTotals.set(null)
+      return
+    }
+    const month = this.month()
+    const desdeIso = new Date(`${settings.fechaInicio}T00:00:00`).toISOString()
+    const mesDesdeIso = new Date(`${month}-01T00:00:00`).toISOString()
+    const mesHastaIso = new Date(`${shiftMonth(month, 1)}-01T00:00:00`).toISOString()
+    this.fundTotals.set(await this.repo.getFundTotals(tiendaId, desdeIso, mesDesdeIso, mesHastaIso))
+  }
+
+  async onFundSettingsSaved(settings: ReinvestmentFundSettings): Promise<void> {
+    this.fundSettings.set(settings)
+    try {
+      const auth = await this.session.getAuthContext()
+      if (auth) await this.loadFundTotals(auth.tiendaId)
+    } catch (error) {
+      this.toast.error(getErrorMessage(error, 'No se pudo actualizar el fondo'))
     }
   }
 
@@ -382,6 +453,7 @@ export class FinanzasPage {
           expenses: this.expenses(),
           categorias: this.categorias(),
           comparison: this.comparison(),
+          fund: this.fund(),
         }),
       )
       this.toast.success('Archivo de finanzas descargado')

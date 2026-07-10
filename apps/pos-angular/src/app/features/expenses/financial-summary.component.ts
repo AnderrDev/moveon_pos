@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core'
 import { formatCurrency } from '@/shared/lib/format'
+import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
 import type { FinancialSummary } from '@/modules/expenses/domain/services/financial-summary'
 
 /**
@@ -15,7 +16,23 @@ import type { FinancialSummary } from '@/modules/expenses/domain/services/financ
       <div class="bg-card rounded-xl border p-4">
         <p class="text-muted-foreground text-xs tracking-wide uppercase">Entradas totales</p>
         <p class="mt-1 text-2xl font-bold">{{ money(s().entradasTotales) }}</p>
-        <p class="text-muted-foreground mt-1 text-xs">Ventas completadas del período</p>
+        @if (s().entradasPorMetodo.length > 0) {
+          <dl class="mt-3 space-y-1.5 border-t pt-2 text-xs">
+            @for (payment of s().entradasPorMetodo; track payment.metodo) {
+              <div class="flex items-center justify-between gap-3">
+                <dt class="text-muted-foreground">{{ paymentLabel(payment.metodo) }}</dt>
+                <dd class="font-semibold tabular-nums">
+                  {{ money(payment.total) }}
+                  @if (payment.pctSobreEntradas !== null) {
+                    <span class="text-muted-foreground ml-1">({{ payment.pctSobreEntradas }}%)</span>
+                  }
+                </dd>
+              </div>
+            }
+          </dl>
+        } @else {
+          <p class="text-muted-foreground mt-1 text-xs">Ventas completadas del período</p>
+        }
       </div>
       <div class="bg-card rounded-xl border p-4">
         <p class="text-muted-foreground text-xs tracking-wide uppercase">Gastos del negocio</p>
@@ -54,6 +71,12 @@ import type { FinancialSummary } from '@/modules/expenses/domain/services/financ
           <dt class="text-muted-foreground">Entradas totales</dt>
           <dd class="font-semibold">{{ money(s().entradasTotales) }}</dd>
         </div>
+        @for (payment of s().entradasPorMetodo; track payment.metodo) {
+          <div class="flex items-center justify-between pl-3 text-xs">
+            <dt class="text-muted-foreground">• {{ paymentLabel(payment.metodo) }}</dt>
+            <dd class="font-semibold">{{ money(payment.total) }}</dd>
+          </div>
+        }
         <div class="flex items-center justify-between">
           <dt class="text-muted-foreground">− Costo de productos vendidos</dt>
           <dd class="font-semibold">
@@ -64,6 +87,14 @@ import type { FinancialSummary } from '@/modules/expenses/domain/services/financ
             }
           </dd>
         </div>
+        @if (s().ventasSinCosto > 0) {
+          <p class="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+            {{ s().ventasSinCosto }}
+            {{ s().ventasSinCosto === 1 ? 'producto vendido' : 'productos vendidos' }}
+            sin costo capturado ({{ s().unidadesSinCosto }} unidades): no entran en el costo de
+            productos vendidos ni en la utilidad neta.
+          </p>
+        }
         <div class="flex items-center justify-between">
           <dt class="text-muted-foreground">− Gastos del negocio</dt>
           <dd class="font-semibold">{{ money(s().gastosTotal) }}</dd>
@@ -115,6 +146,10 @@ export class FinancialSummaryComponent {
 
   money(v: number): string {
     return formatCurrency(v)
+  }
+
+  paymentLabel(metodo: string): string {
+    return getPaymentMethodLabel(metodo)
   }
 
   barWidth(total: number): number {

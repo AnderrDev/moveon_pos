@@ -145,7 +145,7 @@ interface StockRow {
                     {{ row.proveedor ?? '—' }}
                   </td>
                   <td class="text-muted-foreground px-4 py-3 text-right tabular-nums">
-                    {{ row.costo != null ? money(row.costo) : '—' }}
+                    {{ row.costo !== null ? money(row.costo) : '—' }}
                   </td>
                   <td class="px-4 py-3 text-right font-semibold tabular-nums">
                     {{ money(row.precioVenta) }}
@@ -248,7 +248,7 @@ export class InventarioPage {
 
   readonly selected = computed(() => {
     const row = this.selectedRow()
-    return row ? { id: row.id, nombre: row.nombre } : null
+    return row ? { id: row.id, nombre: row.nombre, costo: row.costo } : null
   })
 
   readonly selectedWithStock = computed(() => {

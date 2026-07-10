@@ -49,6 +49,15 @@ export interface Expense {
   createdAt: Date
 }
 
+export interface ReinvestmentFundSettings {
+  tiendaId: TiendaId
+  /** Dinero destinado a mercancía al momento de arrancar el fondo. */
+  saldoInicial: number
+  /** Fecha local `YYYY-MM-DD` desde la que cuentan ventas y compras. */
+  fechaInicio: string
+  updatedAt: Date
+}
+
 export interface ExpenseTemplate {
   id: string
   tiendaId: TiendaId
