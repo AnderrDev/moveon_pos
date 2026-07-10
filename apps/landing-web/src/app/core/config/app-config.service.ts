@@ -15,7 +15,10 @@ export class AppConfigService {
   async load(): Promise<RuntimeConfig> {
     if (this.config) return this.config
 
-    const response = await fetch('/runtime-config.json', { cache: 'no-store' })
+    // Ruta relativa (no "/runtime-config.json"): la app se sirve con
+    // baseHref /catalogo/ detrás del proxy del POS, y la URL debe resolverse
+    // contra ese base tanto en el proxy como en el dominio directo.
+    const response = await fetch('runtime-config.json', { cache: 'no-store' })
     if (!response.ok) {
       throw new Error(
         '[AppConfig] No se pudo cargar /runtime-config.json. Ejecuta `pnpm config:generate`.',

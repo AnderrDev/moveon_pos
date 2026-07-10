@@ -1,1 +1,6 @@
-/*  /index.html  200
+# La app se compila con baseHref /catalogo/ (para servirse proxeada bajo el
+# dominio del POS). Estas reglas hacen que el prefijo también funcione cuando
+# se accede al sitio directo: /catalogo/main-X.js -> /main-X.js, etc.
+/catalogo/*  /:splat      200
+/catalogo    /index.html  200
+/*           /index.html  200
