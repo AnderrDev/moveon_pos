@@ -56,10 +56,30 @@ interface CategoryChip {
   .mo3-display{font-family:'Montserrat',sans-serif;font-weight:900;}
   .mo3-wrap{max-width:1280px;margin:0 auto;padding-left:clamp(16px,4vw,40px);padding-right:clamp(16px,4vw,40px);}
   .mo3-sectionindex{font-family:'Montserrat',sans-serif;font-size:clamp(18px,1.9vw,28px);font-weight:900;letter-spacing:1.5px;line-height:1;}
+  .mo3 section[id],.mo3 footer[id]{scroll-margin-top:61px;}
 
   @keyframes mo-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
   @keyframes mo-reveal{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
   @keyframes mo-pulse{0%,100%{opacity:.35}50%{opacity:.7}}
+  @keyframes mo-heroglow{from{transform:translate(0,0) scale(1);opacity:.75}to{transform:translate(-7%,9%) scale(1.18);opacity:1}}
+  @keyframes mo-herodots{from{background-position:0 0}to{background-position:280px 140px}}
+
+  /* Los @keyframes de un componente Angular (encapsulación emulada) se renombran:
+     referenciarlos desde style="" inline no funciona — siempre usar estas clases. */
+  .mo3-tickertrack{display:flex;width:max-content;animation:mo-marquee 26s linear infinite;}
+  .mo3-skelpulse{animation:mo-pulse 1.4s ease-in-out infinite;}
+
+  /* Fondo dinámico del hero: resplandor amarillo + trama halftone en movimiento (CSS puro, 0 KB de red) */
+  .mo3-hero{position:relative;overflow:hidden;background:radial-gradient(120% 90% at 85% 0%,#0C0B07 0%,#000000 55%);}
+  .mo3-hero>.mo3-wrap,.mo3-hero .mo3-heroticker{position:relative;z-index:1;}
+  .mo3-herobg{position:absolute;inset:0;z-index:0;pointer-events:none;}
+  .mo3-heroglow{position:absolute;top:-32%;right:-14%;width:min(78vw,920px);aspect-ratio:1;background:radial-gradient(circle,rgba(249,209,40,.17) 0%,rgba(249,209,40,.05) 46%,transparent 70%);animation:mo-heroglow 13s ease-in-out infinite alternate;will-change:transform,opacity;}
+  .mo3-herodots{position:absolute;inset:0;background-image:radial-gradient(rgba(249,209,40,.16) 1.5px,transparent 1.5px);background-size:28px 28px;animation:mo-herodots 34s linear infinite;-webkit-mask-image:linear-gradient(102deg,transparent 38%,#000 78%);mask-image:linear-gradient(102deg,transparent 38%,#000 78%);}
+  .mo3-herograin{position:absolute;inset:0;opacity:.05;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/><feColorMatrix type='saturate' values='0'/></filter><rect width='140' height='140' filter='url(%23n)'/></svg>");}
+  @media (max-width:719px){
+    .mo3-heroglow{top:-18%;right:-38%;width:120vw;}
+    .mo3-herodots{-webkit-mask-image:linear-gradient(160deg,transparent 45%,#000 85%);mask-image:linear-gradient(160deg,transparent 45%,#000 85%);}
+  }
 
   .mo3-header{position:sticky;top:0;z-index:50;background:rgba(12,12,10,.96);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.12);}
   .mo3-headwrap{display:flex;align-items:stretch;justify-content:space-between;gap:16px;min-height:60px;}
@@ -117,6 +137,7 @@ interface CategoryChip {
   .mo3-pagebtn:focus-visible{outline:2px solid #F9D128;outline-offset:3px;}
   .mo3-pagecount{color:#9A9A9A;font-size:var(--mo-fs-caption);font-weight:800;letter-spacing:1.4px;text-transform:uppercase;text-align:center;}
   @media (max-width:719px){
+    .mo3 section[id],.mo3 footer[id]{scroll-margin-top:8px;}
     .mo3-header{position:static;background:#050505;backdrop-filter:none;}
     .mo3-headwrap{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px 10px;min-height:0;padding-top:8px;padding-bottom:8px;}
     .mo3-brand{grid-column:1;grid-row:1;min-height:44px;}
@@ -270,7 +291,12 @@ interface CategoryChip {
   </header>
 
   <!-- ══ HERO ══ -->
-  <section id="inicio">
+  <section id="inicio" class="mo3-hero">
+    <div class="mo3-herobg" aria-hidden="true">
+      <div class="mo3-heroglow"></div>
+      <div class="mo3-herodots"></div>
+      <div class="mo3-herograin"></div>
+    </div>
     <div class="mo3-wrap" style="padding-top:clamp(56px,9vw,110px);padding-bottom:clamp(40px,6vw,72px);">
       <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:clamp(20px,3vw,32px);font-size:var(--mo-fs-caption);font-weight:600;letter-spacing:2px;text-transform:uppercase;">
         <span style="color:#F9D128;">Tienda de suplementos deportivos</span>
@@ -292,8 +318,8 @@ interface CategoryChip {
       </div>
     </div>
     <!-- ticker -->
-    <div style="background:#F9D128;overflow:hidden;border-top:1px solid #000000;">
-      <div style="display:flex;width:max-content;animation:mo-marquee 26s linear infinite;">
+    <div class="mo3-heroticker" style="background:#F9D128;overflow:hidden;border-top:1px solid #000000;">
+      <div class="mo3-tickertrack">
         <div style="display:flex;gap:0;padding:10px 0;white-space:nowrap;">
           <span class="mo3-display" style="color:#000000;font-size:var(--mo-fs-body);text-transform:uppercase;letter-spacing:2px;padding:0 22px;">Proteínas ✦ Creatinas ✦ Pre entrenos ✦ Aminoácidos ✦ Quemadores ✦ Vitaminas ✦ Batidos preparados ✦ Sachets ✦ Bebidas ✦</span>
           <span class="mo3-display" style="color:#000000;font-size:var(--mo-fs-body);text-transform:uppercase;letter-spacing:2px;padding:0 22px;">Proteínas ✦ Creatinas ✦ Pre entrenos ✦ Aminoácidos ✦ Quemadores ✦ Vitaminas ✦ Batidos preparados ✦ Sachets ✦ Bebidas ✦</span>
@@ -318,7 +344,7 @@ interface CategoryChip {
         <div style="display:flex;flex-direction:column;border-top:1px solid rgba(255,255,255,.12);">
           @for (i of [1,2,3,4,5,6]; track i) {
             <div style="border-bottom:1px solid rgba(255,255,255,.12);padding:clamp(14px,2vw,20px) clamp(8px,1.5vw,16px);">
-              <div style="height:clamp(24px,2.6vw,34px);width:min(46%, 320px);background:#161616;animation:mo-pulse 1.4s ease-in-out infinite;"></div>
+              <div class="mo3-skelpulse" style="height:clamp(24px,2.6vw,34px);width:min(46%, 320px);background:#161616;"></div>
             </div>
           }
         </div>
@@ -855,7 +881,14 @@ export class CatalogoPage implements OnInit {
   }
 
   closeMobileMenu(): void {
+    if (!this.mobileMenuOpen()) return
     this.mobileMenuOpen.set(false)
+    // El colapso del menú (transición .18s) resta altura por encima del ancla
+    // mientras el scroll suave está en vuelo; re-alinear al destino al terminar.
+    setTimeout(() => {
+      const id = window.location.hash.slice(1)
+      if (id) document.getElementById(id)?.scrollIntoView({ block: 'start' })
+    }, 240)
   }
 
   prevPage(): void {

@@ -16,6 +16,12 @@ body {
   margin: 0;
 }
 
+/* Scroll suave para los anclajes del navbar (#catalogo, #batidos, …).
+   El offset del header sticky se compensa con scroll-margin-top en el componente. */
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   font-family:
     'Montserrat',
