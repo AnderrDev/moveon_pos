@@ -262,6 +262,7 @@ describe('createProductFormDefaults', () => {
       proveedor: 'Distribuidora Healthy',
       paraQueSirve: 'Aporta proteina.',
       recomendadoPara: 'Personas activas.',
+      imageUrl: 'https://example.com/barra.jpg',
       tipo: 'ingredient' as const,
       unidad: 'kg',
       precioVenta: 5000,

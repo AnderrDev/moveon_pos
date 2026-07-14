@@ -18,6 +18,7 @@ const product: Product = {
   proveedor:    null,
   paraQueSirve: null,
   recomendadoPara: null,
+  imageUrl:     null,
   tipo:         'simple',
   unidad:       'unidad',
   precioVenta:  100_000,

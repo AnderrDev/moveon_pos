@@ -22,6 +22,7 @@ function makeProduct(overrides: Partial<Product> = {}): Product {
     proveedor: null,
     paraQueSirve: null,
     recomendadoPara: null,
+    imageUrl: null,
     tipo: 'ingredient',
     unidad: 'und',
     precioVenta: 0,

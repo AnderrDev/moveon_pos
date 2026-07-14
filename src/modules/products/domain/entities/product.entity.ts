@@ -10,6 +10,7 @@ export interface Product {
   proveedor: string | null
   paraQueSirve: string | null
   recomendadoPara: string | null
+  imageUrl: string | null
   tipo: ProductType
   unidad: string
   precioVenta: number

@@ -21,6 +21,7 @@ import { FormCheckboxComponent } from '../../shared/forms/form-checkbox.componen
 import { FormTextareaComponent } from '../../shared/forms/form-textarea.component'
 import { FormErrorComponent } from '../../shared/forms/form-error.component'
 import { ProductFormPresenter } from './product-form.presenter'
+import { ProductImageFieldComponent } from './product-image-field.component'
 import { productFormMapper } from '@/modules/products/forms/product-form.mapper'
 import type { Product, Categoria } from '@/modules/products/domain/entities/product.entity'
 import { ProductsRepository, type ProductComponent } from './products.repository'
@@ -63,6 +64,7 @@ const INITIAL_STOCK_LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
     FormCheckboxComponent,
     FormTextareaComponent,
     FormErrorComponent,
+    ProductImageFieldComponent,
   ],
   template: `
     <mo-dialog
@@ -119,6 +121,9 @@ const INITIAL_STOCK_LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
           description="Se usa para filtrar el inventario y armar pedidos por proveedor."
           [error]="presenter.errors().proveedor ?? null"
         />
+
+        <mo-product-image-field formControlName="imageUrl" [tiendaId]="tiendaId()" />
+        <mo-form-error [message]="presenter.errors().imageUrl ?? null" />
 
         @if (!product()) {
           <section class="border-primary/20 bg-primary/[0.035] rounded-xl border p-4">
@@ -332,6 +337,7 @@ export class ProductFormDialog {
   readonly saved = output<Product>()
 
   readonly saving = signal(false)
+  readonly tiendaId = signal('')
 
   // --- Componentes consumibles ---
   readonly components = signal<ProductComponent[]>([])
@@ -374,6 +380,7 @@ export class ProductFormDialog {
   private async initComponents(): Promise<void> {
     const auth = await this.session.getAuthContext()
     if (!auth) return
+    this.tiendaId.set(auth.tiendaId)
 
     const all = await this.cache.ensureProducts(auth.tiendaId)
     this.allProducts.set(all)

@@ -1336,6 +1336,7 @@ export type Database = {
           p_categoria_id: string
           p_codigo_barras: string
           p_costo: number
+          p_image_url?: string
           p_initial_location: Database["public"]["Enums"]["inventory_location"]
           p_initial_stock: number
           p_is_active: boolean

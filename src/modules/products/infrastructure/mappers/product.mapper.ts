@@ -11,6 +11,7 @@ export interface ProductRow {
   proveedor: string | null
   para_que_sirve: string | null
   recomendado_para: string | null
+  image_url: string | null
   tipo: string
   unidad: string
   precio_venta: number
@@ -44,6 +45,7 @@ export function rowToProduct(row: ProductRow): Product {
     proveedor: row.proveedor,
     paraQueSirve: row.para_que_sirve,
     recomendadoPara: row.recomendado_para,
+    imageUrl: row.image_url,
     tipo: row.tipo as ProductType,
     unidad: row.unidad,
     precioVenta: row.precio_venta,

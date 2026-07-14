@@ -18,7 +18,7 @@ import {
 } from './product-component.helpers'
 
 const PRODUCT_COLS =
-  'id, tienda_id, nombre, sku, codigo_barras, categoria_id, proveedor, para_que_sirve, recomendado_para, tipo, unidad, precio_venta, costo, iva_tasa, stock_minimo, is_active, deleted_at, created_at, updated_at'
+  'id, tienda_id, nombre, sku, codigo_barras, categoria_id, proveedor, para_que_sirve, recomendado_para, image_url, tipo, unidad, precio_venta, costo, iva_tasa, stock_minimo, is_active, deleted_at, created_at, updated_at'
 const CATEGORIA_COLS = 'id, tienda_id, nombre, orden, is_active, created_at, updated_at'
 
 interface SearchProductsParams {
@@ -132,6 +132,7 @@ export class ProductsRepository {
         p_proveedor: dto.proveedor ?? null,
         p_para_que_sirve: dto.paraQueSirve ?? null,
         p_recomendado_para: dto.recomendadoPara ?? null,
+        p_image_url: dto.imageUrl ?? null,
         p_tipo: dto.tipo,
         p_unidad: dto.unidad,
         p_precio_venta: dto.precioVenta,
@@ -180,6 +181,7 @@ export class ProductsRepository {
     if (dto.proveedor !== undefined) patch['proveedor'] = dto.proveedor ?? null
     if (dto.paraQueSirve !== undefined) patch['para_que_sirve'] = dto.paraQueSirve ?? null
     if (dto.recomendadoPara !== undefined) patch['recomendado_para'] = dto.recomendadoPara ?? null
+    if (dto.imageUrl !== undefined) patch['image_url'] = dto.imageUrl ?? null
     if (dto.tipo !== undefined) patch['tipo'] = dto.tipo
     if (dto.unidad !== undefined) patch['unidad'] = dto.unidad
     if (dto.precioVenta !== undefined) patch['precio_venta'] = dto.precioVenta

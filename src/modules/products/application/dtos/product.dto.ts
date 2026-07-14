@@ -25,6 +25,13 @@ export const createProductSchema = z.object({
     .max(800, 'La recomendación no puede superar 800 caracteres')
     .nullable()
     .optional(),
+  imageUrl: z
+    .string()
+    .trim()
+    .url('La URL de imagen no es válida')
+    .max(1000, 'La URL de imagen es demasiado larga')
+    .nullable()
+    .optional(),
   tipo: productTypeSchema,
   unidad: z.string().default('und'),
   precioVenta: z.number().nonnegative('El precio no puede ser negativo'),

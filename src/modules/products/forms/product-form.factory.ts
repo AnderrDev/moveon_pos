@@ -59,6 +59,16 @@ export const productFormSchema = z.object({
     .optional()
     .or(z.literal('')),
 
+  // URL pública de la imagen del producto. La UI de subida escribe aquí la URL
+  // devuelta por Supabase Storage; '' representa "sin imagen".
+  imageUrl: z
+    .string()
+    .trim()
+    .url('La URL de imagen no es válida')
+    .max(1000, 'La URL de imagen es demasiado larga')
+    .optional()
+    .or(z.literal('')),
+
   tipo: productTypeSchema,
 
   unidad: z
@@ -133,6 +143,7 @@ export function createProductFormDefaults(
     proveedor:    initial.proveedor    ?? '',
     paraQueSirve: initial.paraQueSirve ?? '',
     recomendadoPara: initial.recomendadoPara ?? '',
+    imageUrl:     initial.imageUrl     ?? '',
     tipo:         initial.tipo         ?? 'simple',
     unidad:       initial.unidad       ?? 'und',
     precioVenta:  initial.precioVenta  ?? 0,
