@@ -120,10 +120,10 @@ export class ReceiptOutputStatusDialog {
     this.status() === 'error'
       ? this.kind() === 'receipt'
         ? 'No pudimos imprimir la tirilla'
-        : 'No pudimos abrir la caja'
+        : 'No pudimos abrir la caja fuerte'
       : this.kind() === 'receipt'
         ? 'Imprimiendo tirilla'
-        : 'Abriendo caja',
+        : 'Abriendo caja fuerte',
   )
 
   readonly description = computed(() =>

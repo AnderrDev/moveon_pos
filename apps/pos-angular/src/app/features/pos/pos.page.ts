@@ -756,13 +756,19 @@ interface PostSaleOutputJob {
               <p class="text-muted-foreground text-[11px]">
                 Esta eleccion aplica solamente a la venta actual.
               </p>
+            </div>
+
+            <div class="space-y-2">
+              <p class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+                Caja fuerte
+              </p>
               <button
                 type="button"
                 (click)="openCashDrawerManually()"
                 [disabled]="openingCashDrawer()"
                 class="text-muted-foreground hover:border-primary hover:text-primary w-full rounded-lg border border-dashed py-2 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {{ openingCashDrawer() ? 'Abriendo caja...' : 'Abrir caja' }}
+                {{ openingCashDrawer() ? 'Abriendo caja fuerte...' : 'Abrir caja fuerte' }}
               </button>
             </div>
 
@@ -1233,9 +1239,9 @@ export class PosPage {
     this.openingCashDrawer.set(true)
     try {
       await this.receiptPrint.openCashDrawer()
-      this.toast.success('Caja abierta')
+      this.toast.success('Caja fuerte abierta')
     } catch (error) {
-      this.toast.error(getErrorMessage(error, 'No se pudo abrir la caja'))
+      this.toast.error(getErrorMessage(error, 'No se pudo abrir la caja fuerte'))
     } finally {
       this.openingCashDrawer.set(false)
     }
@@ -1333,7 +1339,7 @@ export class PosPage {
         this.toast.success('Tirilla enviada a la impresora')
       } else {
         await this.receiptPrint.openCashDrawer()
-        this.toast.success('Caja abierta')
+        this.toast.success('Caja fuerte abierta')
       }
 
       this.receiptOutputStatus.set(null)
@@ -1344,7 +1350,7 @@ export class PosPage {
           error,
           job.printReceipt
             ? 'La venta se guardó, pero la tirilla no se imprimió.'
-            : 'La venta se guardó, pero la caja no se pudo abrir.'
+            : 'La venta se guardó, pero la caja fuerte no se pudo abrir.'
         )
       )
       this.receiptOutputStatus.set('error')
