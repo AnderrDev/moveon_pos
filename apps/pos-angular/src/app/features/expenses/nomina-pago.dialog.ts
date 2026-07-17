@@ -16,6 +16,7 @@ import { FormSelectComponent, type FormSelectOption } from '../../shared/molecul
 import { FormCurrencyInputComponent } from '../../shared/molecules/form-currency-input.component'
 import { FormTextareaComponent } from '../../shared/molecules/form-textarea.component'
 import { FormErrorComponent } from '../../shared/molecules/form-error.component'
+import { DialogFooterComponent } from '../../shared/molecules/dialog-footer.component'
 import { SessionService } from '../../core/auth/session.service'
 import { ToastService } from '../../shared/organisms/toast/toast.service'
 import { ExpensesRepository } from './expenses.repository'
@@ -57,6 +58,7 @@ type FormErrors = Partial<Record<keyof NominaPagoFormValue | 'root', string>>
     FormCurrencyInputComponent,
     FormTextareaComponent,
     FormErrorComponent,
+    DialogFooterComponent,
   ],
   template: `
     <mo-dialog
@@ -121,14 +123,14 @@ type FormErrors = Partial<Record<keyof NominaPagoFormValue | 'root', string>>
 
         <mo-form-error [message]="errors().root ?? null" />
 
-        <div class="flex justify-end gap-2 pt-2">
+        <mo-dialog-footer>
           <mo-button variant="outline" type="button" [disabled]="saving()" (click)="onClose()">
             Cancelar
           </mo-button>
           <mo-button type="submit" [loading]="saving()" loadingText="Registrando...">
             Registrar pago
           </mo-button>
-        </div>
+        </mo-dialog-footer>
       </form>
     </mo-dialog>
   `,

@@ -13,6 +13,7 @@ import { DialogComponent } from '../../shared/organisms/dialog.component'
 import { ButtonComponent } from '../../shared/atoms/button.component'
 import { FormCurrencyInputComponent } from '../../shared/molecules/form-currency-input.component'
 import { FormErrorComponent } from '../../shared/molecules/form-error.component'
+import { DialogFooterComponent } from '../../shared/molecules/dialog-footer.component'
 import { SessionService } from '../../core/auth/session.service'
 import { ToastService } from '../../shared/organisms/toast/toast.service'
 import { ExpensesRepository } from './expenses.repository'
@@ -36,6 +37,7 @@ type FundSettingsFormErrors = Partial<Record<keyof FundSettingsFormValue | 'root
     ButtonComponent,
     FormCurrencyInputComponent,
     FormErrorComponent,
+    DialogFooterComponent,
   ],
   template: `
     <mo-dialog
@@ -74,14 +76,14 @@ type FundSettingsFormErrors = Partial<Record<keyof FundSettingsFormValue | 'root
 
         <mo-form-error [message]="errors().root ?? null" />
 
-        <div class="flex justify-end gap-2 pt-2">
+        <mo-dialog-footer>
           <mo-button variant="outline" type="button" [disabled]="saving()" (click)="onClose()">
             Cancelar
           </mo-button>
           <mo-button type="submit" [loading]="saving()" loadingText="Guardando...">
             Guardar fondo
           </mo-button>
-        </div>
+        </mo-dialog-footer>
       </form>
     </mo-dialog>
   `,

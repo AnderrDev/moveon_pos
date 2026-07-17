@@ -3,6 +3,8 @@ import { getErrorMessage } from '@/shared/lib/error-message'
 import { PageHeaderComponent } from '../../shared/molecules/page-header.component'
 import { ButtonComponent } from '../../shared/atoms/button.component'
 import { EmptyStateComponent } from '../../shared/molecules/empty-state.component'
+import { TableShellComponent } from '../../shared/molecules/table/table-shell.component'
+import { MO_TABLE } from '../../shared/molecules/table/table.directives'
 import { ClienteFormDialog } from './cliente-form.dialog'
 import { ClienteLoyaltyDialog } from '../loyalty/cliente-loyalty.dialog'
 import { CustomersRepository } from './customers.repository'
@@ -22,6 +24,8 @@ import { buildCustomersWorkbook } from './customer-export'
     EmptyStateComponent,
     ClienteFormDialog,
     ClienteLoyaltyDialog,
+    TableShellComponent,
+    MO_TABLE,
   ],
   template: `
     <section class="flex h-full min-h-0 flex-col">
@@ -63,33 +67,31 @@ import { buildCustomersWorkbook } from './customer-export'
           <mo-button (click)="openCreate()">+ Nuevo cliente</mo-button>
         </mo-empty-state>
       } @else {
-        <div class="bg-card flex-1 overflow-auto rounded-xl border">
-          <table class="w-full text-sm">
-            <thead
-              class="bg-muted/50 text-muted-foreground sticky top-0 text-left text-xs tracking-wide uppercase"
-            >
+        <mo-table-shell class="flex-1">
+          <table moTable>
+            <thead moThead>
               <tr>
-                <th class="px-4 py-3">Nombre</th>
-                <th class="px-4 py-3">Documento</th>
-                <th class="px-4 py-3">Email</th>
-                <th class="px-4 py-3">Telefono</th>
-                <th class="px-4 py-3 text-right">Acciones</th>
+                <th moTh>Nombre</th>
+                <th moTh>Documento</th>
+                <th moTh>Email</th>
+                <th moTh>Telefono</th>
+                <th moTh class="text-right">Acciones</th>
               </tr>
             </thead>
             <tbody class="divide-y">
               @for (c of filtered(); track c.id) {
                 <tr class="hover:bg-muted/30">
-                  <td class="px-4 py-3 font-semibold">{{ c.nombre }}</td>
-                  <td class="text-muted-foreground px-4 py-3 text-xs">
+                  <td moTd class="font-semibold">{{ c.nombre }}</td>
+                  <td moTd class="text-muted-foreground text-xs">
                     @if (c.tipoDocumento && c.numeroDocumento) {
                       {{ c.tipoDocumento }} · {{ c.numeroDocumento }}
                     } @else {
                       —
                     }
                   </td>
-                  <td class="text-muted-foreground px-4 py-3">{{ c.email ?? '—' }}</td>
-                  <td class="text-muted-foreground px-4 py-3">{{ c.telefono ?? '—' }}</td>
-                  <td class="px-4 py-3 text-right">
+                  <td moTd class="text-muted-foreground">{{ c.email ?? '—' }}</td>
+                  <td moTd class="text-muted-foreground">{{ c.telefono ?? '—' }}</td>
+                  <td moTd class="text-right">
                     <div class="flex justify-end gap-1">
                       <mo-button size="sm" variant="outline" (click)="openLoyalty(c)"
                         >Club</mo-button
@@ -106,7 +108,7 @@ import { buildCustomersWorkbook } from './customer-export'
               }
             </tbody>
           </table>
-        </div>
+        </mo-table-shell>
       }
     </section>
 

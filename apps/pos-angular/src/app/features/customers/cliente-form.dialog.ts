@@ -16,6 +16,7 @@ import { FormInputComponent } from '../../shared/molecules/form-input.component'
 import { FormSelectComponent, type FormSelectOption } from '../../shared/molecules/form-select.component'
 import { FormErrorComponent } from '../../shared/molecules/form-error.component'
 import { FormCheckboxComponent } from '../../shared/molecules/form-checkbox.component'
+import { DialogFooterComponent } from '../../shared/molecules/dialog-footer.component'
 import { CustomersRepository } from './customers.repository'
 import { SessionService } from '../../core/auth/session.service'
 import { ToastService } from '../../shared/organisms/toast/toast.service'
@@ -41,6 +42,7 @@ const TIPO_OPTIONS: FormSelectOption<string>[] = [
     FormSelectComponent,
     FormErrorComponent,
     FormCheckboxComponent,
+    DialogFooterComponent,
   ],
   template: `
     <mo-dialog
@@ -93,14 +95,14 @@ const TIPO_OPTIONS: FormSelectOption<string>[] = [
 
         <mo-form-error [message]="rootError()" />
 
-        <div class="flex justify-end gap-2 pt-2">
+        <mo-dialog-footer>
           <mo-button variant="outline" type="button" [disabled]="saving()" (click)="onClose()"
             >Cancelar</mo-button
           >
           <mo-button type="submit" [loading]="saving()" loadingText="Guardando...">{{
             cliente() ? 'Guardar cambios' : 'Crear cliente'
           }}</mo-button>
-        </div>
+        </mo-dialog-footer>
       </form>
     </mo-dialog>
   `,

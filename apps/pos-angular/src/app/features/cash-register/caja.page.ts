@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
 import { PageHeaderComponent } from '../../shared/molecules/page-header.component'
+import { CardComponent } from '../../shared/atoms/card.component'
 import { ButtonComponent } from '../../shared/atoms/button.component'
 import { BadgeComponent } from '../../shared/atoms/badge.component'
 import { EmptyStateComponent } from '../../shared/molecules/empty-state.component'
@@ -39,6 +40,7 @@ import {
   imports: [
     ReactiveFormsModule,
     PageHeaderComponent,
+    CardComponent,
     ButtonComponent,
     BadgeComponent,
     EmptyStateComponent,
@@ -229,7 +231,7 @@ import {
           }
         </div>
 
-        <div class="bg-card rounded-xl border p-3">
+        <mo-card padding="sm">
           <div class="flex flex-wrap items-center gap-2">
             <div class="flex flex-wrap gap-1">
               @for (m of paymentMethodOptions; track m.value) {
@@ -255,7 +257,7 @@ import {
               {{ filteredSales().length }} de {{ sales().length }} ventas
             </p>
           </div>
-        </div>
+        </mo-card>
 
         <mo-sale-detail-list
           [sales]="filteredSales()"

@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core'
 import { formatCurrency } from '@/shared/lib/format'
+import { CardComponent } from '../../shared/atoms/card.component'
+import { MO_TABLE } from '../../shared/molecules/table/table.directives'
 import type { DailyProductSale } from './reports.service'
 
 type SortCriterion = 'qty' | 'total'
@@ -17,8 +19,9 @@ type SortCriterion = 'qty' | 'total'
   selector: 'mo-top-products-table',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [CardComponent, MO_TABLE],
   template: `
-    <div class="bg-card rounded-xl border p-5">
+    <mo-card>
       <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h3 class="font-display text-sm font-bold tracking-wide uppercase">Top productos</h3>
         <div class="flex gap-1">
@@ -43,38 +46,36 @@ type SortCriterion = 'qty' | 'total'
         <p class="text-muted-foreground text-sm">Sin ventas registradas.</p>
       } @else {
         <div class="overflow-x-auto rounded-xl border">
-          <table class="w-full text-sm">
-            <thead class="bg-muted/50 text-muted-foreground text-xs uppercase">
+          <table moTable density="compact">
+            <thead moThead>
               <tr>
-                <th class="px-3 py-2 text-left font-bold">Producto</th>
-                <th class="px-3 py-2 text-right font-bold">Ventas</th>
-                <th class="px-3 py-2 text-right font-bold">Unidades</th>
-                <th class="px-3 py-2 text-right font-bold">Facturación</th>
-                <th class="px-3 py-2 text-right font-bold">Precio prom.</th>
+                <th moTh class="text-left">Producto</th>
+                <th moTh class="text-right">Ventas</th>
+                <th moTh class="text-right">Unidades</th>
+                <th moTh class="text-right">Facturación</th>
+                <th moTh class="text-right">Precio prom.</th>
               </tr>
             </thead>
             <tbody class="divide-border divide-y">
               @for (p of rows(); track p.productId) {
                 <tr>
-                  <td class="min-w-40 px-3 py-2">
+                  <td moTd class="min-w-40">
                     <p class="font-semibold">{{ p.nombre }}</p>
                     @if (p.sku) {
                       <p class="text-muted-foreground text-xs">SKU {{ p.sku }}</p>
                     }
                   </td>
-                  <td class="px-3 py-2 text-right tabular-nums">{{ p.numVentas }}</td>
-                  <td class="px-3 py-2 text-right tabular-nums">{{ p.qty }}</td>
-                  <td class="px-3 py-2 text-right font-semibold tabular-nums">
-                    {{ money(p.total) }}
-                  </td>
-                  <td class="px-3 py-2 text-right tabular-nums">{{ money(p.avgPrice) }}</td>
+                  <td moTd class="text-right tabular-nums">{{ p.numVentas }}</td>
+                  <td moTd class="text-right tabular-nums">{{ p.qty }}</td>
+                  <td moTd class="text-right font-semibold tabular-nums">{{ money(p.total) }}</td>
+                  <td moTd class="text-right tabular-nums">{{ money(p.avgPrice) }}</td>
                 </tr>
               }
             </tbody>
           </table>
         </div>
       }
-    </div>
+    </mo-card>
   `,
 })
 export class TopProductsTableComponent {

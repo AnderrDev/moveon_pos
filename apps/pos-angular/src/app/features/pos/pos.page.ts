@@ -12,6 +12,8 @@ import type { PaymentMethod } from '@/shared/types'
 import { SessionService } from '../../core/auth/session.service'
 import { TiendaInfoService } from '../../core/tienda/tienda-info.service'
 import { ToastService } from '../../shared/organisms/toast/toast.service'
+import { ButtonComponent } from '../../shared/atoms/button.component'
+import { SpinnerComponent } from '../../shared/atoms/spinner.component'
 import { PosCartStore } from './pos-cart.store'
 import { PosDataService } from './pos-data.service'
 import { PosSaleService } from './pos-sale.service'
@@ -52,6 +54,8 @@ interface PostSaleOutputJob {
     ItemDiscountDialog,
     ProductInfoDialog,
     ReceiptOutputStatusDialog,
+    ButtonComponent,
+    SpinnerComponent,
   ],
   template: `
     <section class="flex h-full min-h-0 flex-col">
@@ -70,21 +74,11 @@ interface PostSaleOutputJob {
         </div>
         <div class="flex shrink-0 items-center gap-2">
           @if (cashSession()) {
-            <button
-              type="button"
-              (click)="historyOpen.set(true)"
-              class="hover:bg-muted h-8 rounded-lg border px-3 text-xs font-semibold transition-colors"
-            >
+            <mo-button size="xs" variant="outline" (click)="historyOpen.set(true)">
               Ventas del turno
-            </button>
+            </mo-button>
           } @else {
-            <button
-              type="button"
-              (click)="goToCaja()"
-              class="bg-primary text-primary-foreground hover:bg-primary/90 h-8 rounded-lg px-3 text-xs font-bold transition-colors"
-            >
-              Abrir caja
-            </button>
+            <mo-button size="xs" (click)="goToCaja()">Abrir caja</mo-button>
           }
           <span
             [class]="
@@ -117,13 +111,7 @@ interface PostSaleOutputJob {
         >
           <div>
             <p class="text-destructive text-sm font-semibold">{{ loadError() }}</p>
-            <button
-              type="button"
-              (click)="load()"
-              class="bg-primary text-primary-foreground mt-4 h-10 rounded-lg px-4 text-sm font-bold"
-            >
-              Reintentar
-            </button>
+            <mo-button class="mt-4 inline-block" (click)="load()">Reintentar</mo-button>
           </div>
         </div>
       } @else {
@@ -863,10 +851,7 @@ interface PostSaleOutputJob {
                 class="bg-primary text-primary-foreground h-10 rounded-lg px-4 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-50"
               >
                 @if (isSaving()) {
-                  <span
-                    class="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent align-[-2px]"
-                    aria-hidden="true"
-                  ></span>
+                  <mo-spinner size="sm" class="mr-2 inline-block align-[-2px]" />
                   Guardando venta...
                 } @else {
                   Confirmar · {{ money(cart.totals().total) }}

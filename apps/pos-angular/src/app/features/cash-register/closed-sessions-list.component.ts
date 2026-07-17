@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { BadgeComponent } from '../../shared/atoms/badge.component'
+import { CardComponent } from '../../shared/atoms/card.component'
+import { MO_TABLE } from '../../shared/molecules/table/table.directives'
 import { SaleDetailListComponent } from '../../shared/organisms/sale-detail-list.component'
 import { CashRegisterRepository } from './cash-register.repository'
 import { SalesRepository } from '../sales/sales.repository'
@@ -21,9 +23,9 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
   selector: 'mo-closed-sessions-list',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BadgeComponent, SaleDetailListComponent],
+  imports: [BadgeComponent, CardComponent, MO_TABLE, SaleDetailListComponent],
   template: `
-    <div class="bg-card rounded-xl border">
+    <mo-card padding="none">
       <div class="flex items-center justify-between border-b px-4 py-3">
         <div>
           <h3 class="font-display text-sm font-bold tracking-wide uppercase">Turnos anteriores</h3>
@@ -88,22 +90,22 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
                         <p class="text-muted-foreground text-sm">Sin movimientos registrados.</p>
                       } @else {
                         <div class="bg-card overflow-auto rounded-lg border">
-                          <table class="w-full text-sm">
-                            <thead class="bg-muted/50 text-muted-foreground text-left text-xs uppercase">
+                          <table moTable density="compact">
+                            <thead moThead class="text-left">
                               <tr>
-                                <th class="px-3 py-2">Hora</th>
-                                <th class="px-3 py-2">Tipo</th>
-                                <th class="px-3 py-2">Motivo</th>
-                                <th class="px-3 py-2 text-right">Monto</th>
+                                <th moTh>Hora</th>
+                                <th moTh>Tipo</th>
+                                <th moTh>Motivo</th>
+                                <th moTh class="text-right">Monto</th>
                               </tr>
                             </thead>
                             <tbody class="divide-y">
                               @for (mov of expandedMovements(); track mov.id) {
                                 <tr [class.opacity-50]="mov.status === 'voided'">
-                                  <td class="text-muted-foreground px-3 py-2 text-xs">{{ time(mov.createdAt) }}</td>
-                                  <td class="px-3 py-2">{{ movLabel(mov.tipo) }}</td>
-                                  <td class="text-muted-foreground px-3 py-2">{{ mov.motivo }}</td>
-                                  <td class="px-3 py-2 text-right font-semibold tabular-nums">
+                                  <td moTd class="text-muted-foreground text-xs">{{ time(mov.createdAt) }}</td>
+                                  <td moTd>{{ movLabel(mov.tipo) }}</td>
+                                  <td moTd class="text-muted-foreground">{{ mov.motivo }}</td>
+                                  <td moTd class="text-right font-semibold tabular-nums">
                                     {{ mov.tipo === 'cash_in' ? '+' : '−' }}{{ money(mov.amount) }}
                                   </td>
                                 </tr>
@@ -128,7 +130,7 @@ import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
           }
         </ul>
       }
-    </div>
+    </mo-card>
   `,
 })
 export class ClosedSessionsListComponent {

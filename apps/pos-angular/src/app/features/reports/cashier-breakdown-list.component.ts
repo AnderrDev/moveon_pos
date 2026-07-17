@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core'
 import { formatCurrency } from '@/shared/lib/format'
+import { CardComponent } from '../../shared/atoms/card.component'
 import type { CashierSalesSummary } from '@/modules/reports/domain/services/group-sales-by-cashier'
 
 /** Lista "Por cajero": ventas/IVA agregados por cajero. */
@@ -7,8 +8,9 @@ import type { CashierSalesSummary } from '@/modules/reports/domain/services/grou
   selector: 'mo-cashier-breakdown-list',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [CardComponent],
   template: `
-    <div class="bg-card rounded-xl border p-5">
+    <mo-card>
       <h3 class="font-display mb-3 text-sm font-bold tracking-wide uppercase">Por cajero</h3>
       @if (cashierBreakdown().length === 0) {
         <p class="text-muted-foreground text-sm">Sin ventas registradas.</p>
@@ -38,7 +40,7 @@ import type { CashierSalesSummary } from '@/modules/reports/domain/services/grou
           }
         </ul>
       }
-    </div>
+    </mo-card>
   `,
 })
 export class CashierBreakdownListComponent {

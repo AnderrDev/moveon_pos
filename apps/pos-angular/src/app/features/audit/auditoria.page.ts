@@ -4,6 +4,8 @@ import { PageHeaderComponent } from '../../shared/molecules/page-header.componen
 import { ButtonComponent } from '../../shared/atoms/button.component'
 import { BadgeComponent } from '../../shared/atoms/badge.component'
 import { EmptyStateComponent } from '../../shared/molecules/empty-state.component'
+import { TableShellComponent } from '../../shared/molecules/table/table-shell.component'
+import { MO_TABLE } from '../../shared/molecules/table/table.directives'
 import { AuditLogRepository } from './audit-log.repository'
 import { SessionService } from '../../core/auth/session.service'
 import type { AuditLog, AuditEntityType } from '@/modules/audit/domain/entities/audit-log.entity'
@@ -60,7 +62,14 @@ const ACTION_VARIANT: Record<string, 'default' | 'warning' | 'destructive'> = {
   selector: 'mo-auditoria-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [PageHeaderComponent, ButtonComponent, BadgeComponent, EmptyStateComponent],
+  imports: [
+    PageHeaderComponent,
+    ButtonComponent,
+    BadgeComponent,
+    EmptyStateComponent,
+    TableShellComponent,
+    MO_TABLE,
+  ],
   template: `
     <section class="flex h-full min-h-0 flex-col">
       <mo-page-header title="Auditoría" subtitle="Registro de actividad del sistema">
@@ -107,37 +116,37 @@ const ACTION_VARIANT: Record<string, 'default' | 'warning' | 'destructive'> = {
           description="No hay actividad registrada para los filtros seleccionados."
         />
       } @else {
-        <div class="bg-card flex-1 overflow-auto rounded-xl border">
-          <table class="w-full text-sm">
-            <thead class="bg-muted/50 text-muted-foreground sticky top-0 text-left text-xs tracking-wide uppercase">
+        <mo-table-shell class="flex-1">
+          <table moTable>
+            <thead moThead>
               <tr>
-                <th class="px-4 py-3">Fecha</th>
-                <th class="px-4 py-3">Usuario</th>
-                <th class="px-4 py-3">Módulo</th>
-                <th class="px-4 py-3">Acción</th>
-                <th class="px-4 py-3">Entidad</th>
-                <th class="px-4 py-3">Detalle</th>
+                <th moTh>Fecha</th>
+                <th moTh>Usuario</th>
+                <th moTh>Módulo</th>
+                <th moTh>Acción</th>
+                <th moTh>Entidad</th>
+                <th moTh>Detalle</th>
               </tr>
             </thead>
             <tbody class="divide-y">
               @for (log of logs(); track log.id) {
                 <tr class="hover:bg-muted/30">
-                  <td class="text-muted-foreground px-4 py-3 tabular-nums text-xs whitespace-nowrap">
+                  <td moTd class="text-muted-foreground tabular-nums text-xs whitespace-nowrap">
                     {{ formatDate(log.createdAt) }}
                   </td>
-                  <td class="px-4 py-3 text-xs">
+                  <td moTd class="text-xs">
                     {{ log.userEmail || '—' }}
                   </td>
-                  <td class="px-4 py-3">
+                  <td moTd>
                     <span class="text-muted-foreground text-xs">{{ moduleLabel(log.entityType) }}</span>
                   </td>
-                  <td class="px-4 py-3">
+                  <td moTd>
                     <mo-badge [variant]="actionVariant(log.action)">{{ actionLabel(log.action) }}</mo-badge>
                   </td>
-                  <td class="px-4 py-3 font-medium text-xs max-w-[180px] truncate">
+                  <td moTd class="font-medium text-xs max-w-[180px] truncate">
                     {{ log.entityLabel || log.entityId }}
                   </td>
-                  <td class="text-muted-foreground px-4 py-3 text-xs max-w-[240px]">
+                  <td moTd class="text-muted-foreground text-xs max-w-[240px]">
                     {{ changesLabel(log) }}
                   </td>
                 </tr>
@@ -147,7 +156,7 @@ const ACTION_VARIANT: Record<string, 'default' | 'warning' | 'destructive'> = {
           <p class="text-muted-foreground px-4 py-3 text-xs">
             Mostrando {{ logs().length }} registros más recientes
           </p>
-        </div>
+        </mo-table-shell>
       }
     </section>
   `,

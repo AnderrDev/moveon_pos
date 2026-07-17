@@ -14,6 +14,7 @@ import { DialogComponent } from '../../shared/organisms/dialog.component'
 import { ButtonComponent } from '../../shared/atoms/button.component'
 import { FormInputComponent } from '../../shared/molecules/form-input.component'
 import { FormErrorComponent } from '../../shared/molecules/form-error.component'
+import { DialogFooterComponent } from '../../shared/molecules/dialog-footer.component'
 import { CategoriaFormPresenter } from './categoria-form.presenter'
 import { categoriaFormMapper } from '@/modules/products/forms/categoria-form.mapper'
 import { ProductsRepository } from './products.repository'
@@ -32,6 +33,7 @@ import type { Categoria } from '@/modules/products/domain/entities/product.entit
     ButtonComponent,
     FormInputComponent,
     FormErrorComponent,
+    DialogFooterComponent,
   ],
   template: `
     <mo-dialog
@@ -50,14 +52,14 @@ import type { Categoria } from '@/modules/products/domain/entities/product.entit
 
         <mo-form-error [message]="presenter.errors().root ?? null" />
 
-        <div class="flex justify-end gap-2 pt-2">
+        <mo-dialog-footer>
           <mo-button variant="outline" type="button" [disabled]="saving()" (click)="onClose()">
             Cancelar
           </mo-button>
           <mo-button type="submit" [loading]="saving()" loadingText="Guardando...">
             {{ categoria() ? 'Guardar cambios' : 'Crear categoria' }}
           </mo-button>
-        </div>
+        </mo-dialog-footer>
       </form>
     </mo-dialog>
   `,

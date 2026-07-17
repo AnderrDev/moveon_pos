@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core'
 import { BadgeComponent } from '../../shared/atoms/badge.component'
 import { EmptyStateComponent } from '../../shared/molecules/empty-state.component'
+import { TableShellComponent } from '../../shared/molecules/table/table-shell.component'
 import type { StockReportRow } from './reports.service'
 
 /** Tabla del tab "Stock": punto de venta / bodega / total / mínimo, con badge de stock bajo. */
@@ -8,12 +9,12 @@ import type { StockReportRow } from './reports.service'
   selector: 'mo-stock-report-table',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BadgeComponent, EmptyStateComponent],
+  imports: [BadgeComponent, EmptyStateComponent, TableShellComponent],
   template: `
     @if (rows().length === 0) {
       <mo-empty-state title="Sin productos" description="Crea productos para ver el reporte." />
     } @else {
-      <div class="bg-card flex-1 overflow-auto rounded-xl border">
+      <mo-table-shell class="flex-1">
         <table class="w-full text-sm">
           <thead
             class="bg-muted/50 text-muted-foreground sticky top-0 text-left text-xs uppercase"
@@ -61,7 +62,7 @@ import type { StockReportRow } from './reports.service'
             }
           </tbody>
         </table>
-      </div>
+      </mo-table-shell>
     }
   `,
 })

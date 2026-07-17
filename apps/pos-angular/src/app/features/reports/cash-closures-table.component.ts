@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core'
 import { formatCurrency, formatTime } from '@/shared/lib/format'
 import { BadgeComponent } from '../../shared/atoms/badge.component'
+import { CardComponent } from '../../shared/atoms/card.component'
 import type { DailySession } from './reports.service'
 
 /**
@@ -12,10 +13,10 @@ import type { DailySession } from './reports.service'
   selector: 'mo-cash-closures-table',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BadgeComponent],
+  imports: [BadgeComponent, CardComponent],
   template: `
     @if (sessions().length > 0) {
-      <div class="bg-card rounded-xl border p-5">
+      <mo-card>
         <h3 class="font-display mb-3 text-sm font-bold tracking-wide uppercase">
           Cierres de caja
         </h3>
@@ -82,7 +83,7 @@ import type { DailySession } from './reports.service'
             </tbody>
           </table>
         </div>
-      </div>
+      </mo-card>
     }
   `,
 })

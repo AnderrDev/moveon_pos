@@ -19,6 +19,9 @@ const TONE_CLASSES: Record<CardTone, string> = {
   selector: 'mo-card',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // host block + div h-full: el card llena la celda cuando es hijo de un grid,
+  // igual que el <div> original que reemplaza
+  host: { class: 'block' },
   template: `<div [class]="classes()"><ng-content /></div>`,
 })
 export class CardComponent {
@@ -26,6 +29,6 @@ export class CardComponent {
   readonly tone = input<CardTone>('default')
 
   readonly classes = computed(() =>
-    ['rounded-xl', TONE_CLASSES[this.tone()], PADDING_CLASSES[this.padding()]].join(' '),
+    ['h-full rounded-xl', TONE_CLASSES[this.tone()], PADDING_CLASSES[this.padding()]].join(' '),
   )
 }

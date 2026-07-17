@@ -31,7 +31,8 @@ Antes de programar, **lee siempre**:
 Estos principios **no se discuten en cada tarea**. Si la solución que vas a proponer los rompe, busca otra solución.
 
 ### 2.1 Arquitectura
-- **Clean Architecture por módulos.** Cada módulo (`sales`, `inventory`, `billing`, etc.) tiene su propio dominio, DTOs y use-cases en `src/modules/<modulo>`. La UI/orquestación Angular vive en `apps/pos-angular/src/app/features/<modulo>`.
+- **Clean Architecture por módulos con capas data/domain/presentation (ADR 0014).** Cada módulo (`sales`, `inventory`, `billing`, etc.) tiene `domain/` (entities, value-objects, services, repositories-interfaces, use-cases) y `data/` (dtos, mappers) en `src/modules/<modulo>` — TypeScript puro. La parte Angular vive en `apps/pos-angular/src/app/features/<modulo>`: `data/` (repositorios Supabase que `implements` las interfaces de dominio) y `presentation/` (pages, dialogs, components, presenters, services).
+- **Cableado hexagonal obligatorio:** todo repositorio Angular implementa su interfaz de dominio; las páginas/diálogos invocan use-cases (no llaman repos directo para escrituras). Módulos aún no migrados conservan `application/`/`infrastructure/` — ver checklist en `docs/sessions/2026-07-17-reestructura-clean-atomic.md`.
 - **El dominio no depende de Angular, ni de Supabase, ni de proveedores externos.** El dominio es TypeScript puro.
 - **Patrón Adapter para integraciones externas** (facturación electrónica, impresión, pagos). Define interfaces en el dominio, implementaciones en infraestructura Angular.
 - **Inyección de dependencias** vía argumentos de funciones / factories en use-cases puros, y vía Angular `@Injectable` + tokens en presenters/servicios.
@@ -69,7 +70,7 @@ Estos principios **no se discuten en cada tarea**. Si la solución que vas a pro
 
 ### 3.2 Al implementar
 - **Pequeños incrementos.** Una tarea = un PR mental. No mezcles refactors grandes con features nuevas.
-- **Sigue la estructura existente.** Dominio + DTOs + use-cases + forms factory/mapper en `src/modules/<modulo>`. UI Angular en `apps/pos-angular/src/app/features/<modulo>`.
+- **Sigue la estructura existente.** `domain/` + `data/` + `forms/` en `src/modules/<modulo>`; `data/` + `presentation/` en `apps/pos-angular/src/app/features/<modulo>` (ADR 0014). Componentes UI reutilizables → design system atómico en `apps/pos-angular/src/app/shared/{atoms,molecules,organisms}`.
 - **Usa los tipos compartidos en `/src/shared/types/`**. No redefinas entidades en cada módulo.
 - **Componentes reutilizables Angular** van en `apps/pos-angular/src/app/shared/` cuando se justifique.
 - **Migrations versionadas** en `/supabase/migrations/`. Nombres con timestamp.
@@ -154,8 +155,8 @@ Los estándares están en `/docs/standards/`. **Léelos antes de crear cualquier
 ### Resumen de reglas críticas
 
 **UI:**
-- Todo componente reutilizable Angular va en `apps/pos-angular/src/app/shared/`.
-- Standalone components con selector `mo-*`.
+- Design system atómico propio en `apps/pos-angular/src/app/shared/{atoms,molecules,organisms,services}` (ADR 0014). Prohibido recrear inline card, tabla, skeleton, stat-card, dialog-footer, badge, spinner o botón — consume el componente del catálogo (`docs/standards/ui-components.md` §3).
+- Standalone components con selector `mo-*`, OnPush, API de signals (`input()`/`output()`).
 - Tailwind v4 (`@import 'tailwindcss'` + `@theme` en CSS). Sin shadcn/Radix.
 
 **Formularios:**
@@ -164,9 +165,9 @@ Los estándares están en `/docs/standards/`. **Léelos antes de crear cualquier
 - Patrón 3 archivos: `factory.ts` + `mapper.ts` (en `src/modules/.../forms/`) + `presenter.ts` (en `apps/pos-angular/src/app/features/<modulo>/`).
 
 **Arquitectura:**
-- Domain → Application → Infrastructure (dirección de dependencias: de arriba hacia abajo).
-- Use-case = función con deps inyectadas como argumento (TS puro, sin Angular).
-- Repository: interfaz en `src/modules/.../domain/repositories/`, implementación Angular en `apps/pos-angular/src/app/features/<modulo>/infrastructure/`. Nunca expone tipos de Supabase al dominio.
+- Capas: `domain/` (con use-cases) y `data/` (dtos, mappers) en `src/modules/`; `data/` (repos impl) y `presentation/` en features (ADR 0014). `domain/use-cases` puede importar `data/dtos` (schemas Zod puros).
+- Use-case = función con deps inyectadas como argumento (TS puro, sin Angular), valida con Zod, devuelve `Result`.
+- Repository: interfaz en `src/modules/.../domain/repositories/`, implementación Angular en `apps/pos-angular/src/app/features/<modulo>/data/` con `implements`. Nunca expone tipos de Supabase al dominio.
 - Errores de dominio: `Result<T, E>`. Errores técnicos: `throw`.
 
 ---

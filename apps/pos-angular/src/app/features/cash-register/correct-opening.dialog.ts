@@ -14,6 +14,7 @@ import { ButtonComponent } from '../../shared/atoms/button.component'
 import { FormCurrencyInputComponent } from '../../shared/molecules/form-currency-input.component'
 import { FormTextareaComponent } from '../../shared/molecules/form-textarea.component'
 import { FormErrorComponent } from '../../shared/molecules/form-error.component'
+import { DialogFooterComponent } from '../../shared/molecules/dialog-footer.component'
 import { CashRegisterRepository } from './cash-register.repository'
 import { SessionService } from '../../core/auth/session.service'
 import { ToastService } from '../../shared/organisms/toast/toast.service'
@@ -31,6 +32,7 @@ import { VOID_MOVEMENT_REASON_MIN_LENGTH } from '@/modules/cash-register/applica
     FormCurrencyInputComponent,
     FormTextareaComponent,
     FormErrorComponent,
+    DialogFooterComponent,
   ],
   template: `
     <mo-dialog
@@ -57,14 +59,14 @@ import { VOID_MOVEMENT_REASON_MIN_LENGTH } from '@/modules/cash-register/applica
 
         <mo-form-error [message]="rootError()" />
 
-        <div class="flex justify-end gap-2 pt-2">
+        <mo-dialog-footer>
           <mo-button variant="outline" type="button" [disabled]="saving()" (click)="onClose()"
             >Cancelar</mo-button
           >
           <mo-button type="submit" [loading]="saving()" loadingText="Guardando..."
             >Corregir apertura</mo-button
           >
-        </div>
+        </mo-dialog-footer>
       </form>
     </mo-dialog>
   `,

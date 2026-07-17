@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { PageHeaderComponent } from '../../shared/molecules/page-header.component'
 import { ButtonComponent } from '../../shared/atoms/button.component'
+import { CardComponent } from '../../shared/atoms/card.component'
 import { EmptyStateComponent } from '../../shared/molecules/empty-state.component'
 import { ReportsService, type DailyReport, type StockReportRow } from './reports.service'
 import { DailyKpiCardsComponent } from './daily-kpi-cards.component'
@@ -41,6 +42,7 @@ import { PAYMENT_METHOD_CLOSURE_OPTIONS, getPaymentMethodLabel } from '@/shared/
   imports: [
     PageHeaderComponent,
     ButtonComponent,
+    CardComponent,
     EmptyStateComponent,
     DailyKpiCardsComponent,
     DiscountControlTableComponent,
@@ -70,7 +72,7 @@ import { PAYMENT_METHOD_CLOSURE_OPTIONS, getPaymentMethodLabel } from '@/shared/
 
       <!-- Selector de período -->
       @if (tab() !== 'stock') {
-        <div class="bg-card rounded-xl border p-3">
+        <mo-card padding="sm">
           <div class="flex flex-wrap items-center gap-2">
             <div class="flex items-center gap-2">
               <label for="report-from-date" class="text-muted-foreground text-xs font-semibold">Desde</label>
@@ -105,7 +107,7 @@ import { PAYMENT_METHOD_CLOSURE_OPTIONS, getPaymentMethodLabel } from '@/shared/
               <mo-button size="sm" variant="outline" (click)="reload()">Actualizar</mo-button>
             </div>
           </div>
-        </div>
+        </mo-card>
       }
 
       <!-- Tabs -->
@@ -156,7 +158,7 @@ import { PAYMENT_METHOD_CLOSURE_OPTIONS, getPaymentMethodLabel } from '@/shared/
             <mo-sales-trend-tables [hourlySales]="d.hourlySales" [dailySales]="d.dailySales" />
           } @else {
             <!-- Filtros de ventas -->
-            <div class="bg-card rounded-xl border p-3">
+            <mo-card padding="sm">
               <div class="flex flex-wrap items-center gap-2">
                 <input
                   type="text"
@@ -192,7 +194,7 @@ import { PAYMENT_METHOD_CLOSURE_OPTIONS, getPaymentMethodLabel } from '@/shared/
               <p class="text-muted-foreground mt-2 text-xs">
                 {{ filteredSales().length }} de {{ daily()?.sales?.length ?? 0 }} ventas
               </p>
-            </div>
+            </mo-card>
             <mo-sale-detail-list
               [sales]="filteredSales()"
               [title]="salesListTitle()"

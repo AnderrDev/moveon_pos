@@ -6,6 +6,8 @@ import { ButtonComponent } from '../../shared/atoms/button.component'
 import { BadgeComponent } from '../../shared/atoms/badge.component'
 import { EmptyStateComponent } from '../../shared/molecules/empty-state.component'
 import { CategoriaFormDialog } from './categoria-form.dialog'
+import { TableShellComponent } from '../../shared/molecules/table/table-shell.component'
+import { MO_TABLE } from '../../shared/molecules/table/table.directives'
 import { ProductsRepository } from './products.repository'
 import { ProductsCacheStore } from './products-cache.store'
 import { SessionService } from '../../core/auth/session.service'
@@ -26,6 +28,8 @@ import { buildCategoriesWorkbook } from './product-export'
     BadgeComponent,
     EmptyStateComponent,
     CategoriaFormDialog,
+    TableShellComponent,
+    MO_TABLE,
   ],
   template: `
     <section class="flex h-full min-h-0 flex-col">
@@ -75,29 +79,27 @@ import { buildCategoriesWorkbook } from './product-export'
           <mo-button (click)="openCreate()">+ Nueva categoria</mo-button>
         </mo-empty-state>
       } @else {
-        <div class="bg-card flex-1 overflow-auto rounded-xl border">
-          <table class="w-full text-sm">
-            <thead
-              class="bg-muted/50 text-muted-foreground sticky top-0 text-left text-xs tracking-wide uppercase"
-            >
+        <mo-table-shell class="flex-1">
+          <table moTable>
+            <thead moThead>
               <tr>
-                <th class="px-4 py-3">Categoria</th>
-                <th class="px-4 py-3">Estado</th>
-                <th class="px-4 py-3 text-right">Acciones</th>
+                <th moTh>Categoria</th>
+                <th moTh>Estado</th>
+                <th moTh class="text-right">Acciones</th>
               </tr>
             </thead>
             <tbody class="divide-y">
               @for (cat of categorias(); track cat.id) {
                 <tr class="hover:bg-muted/30">
-                  <td class="px-4 py-3 font-semibold">{{ cat.nombre }}</td>
-                  <td class="px-4 py-3">
+                  <td moTd class="font-semibold">{{ cat.nombre }}</td>
+                  <td moTd>
                     @if (cat.isActive) {
                       <mo-badge variant="success">Activa</mo-badge>
                     } @else {
                       <mo-badge variant="warning">Inactiva</mo-badge>
                     }
                   </td>
-                  <td class="px-4 py-3 text-right">
+                  <td moTd class="text-right">
                     <div class="flex justify-end gap-1">
                       <mo-button size="sm" variant="outline" (click)="openEdit(cat)">
                         Editar
@@ -113,7 +115,7 @@ import { buildCategoriesWorkbook } from './product-export'
               }
             </tbody>
           </table>
-        </div>
+        </mo-table-shell>
       }
     </section>
 

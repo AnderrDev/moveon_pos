@@ -5,6 +5,8 @@ import { PageHeaderComponent } from '../../shared/molecules/page-header.componen
 import { ButtonComponent } from '../../shared/atoms/button.component'
 import { BadgeComponent } from '../../shared/atoms/badge.component'
 import { EmptyStateComponent } from '../../shared/molecules/empty-state.component'
+import { TableShellComponent } from '../../shared/molecules/table/table-shell.component'
+import { MO_TABLE } from '../../shared/molecules/table/table.directives'
 import { InventoryRepository } from './inventory.repository'
 import { ProductsRepository } from '../products/products.repository'
 import { SessionService } from '../../core/auth/session.service'
@@ -44,6 +46,8 @@ interface StockRow {
     ButtonComponent,
     BadgeComponent,
     EmptyStateComponent,
+    TableShellComponent,
+    MO_TABLE,
     RegisterEntryDialog,
     AdjustStockDialog,
     TransferStockDialog,
@@ -107,24 +111,22 @@ interface StockRow {
           description="Crea productos en el modulo Productos para gestionar stock."
         />
       } @else {
-        <div class="bg-card flex-1 overflow-auto rounded-xl border">
-          <table class="w-full text-sm">
-            <thead
-              class="bg-muted/50 text-muted-foreground sticky top-0 text-left text-xs tracking-wide uppercase"
-            >
+        <mo-table-shell class="flex-1">
+          <table moTable>
+            <thead moThead>
               <tr>
-                <th class="px-4 py-3">Producto</th>
-                <th class="px-4 py-3">Tipo</th>
-                <th class="px-4 py-3">SKU</th>
-                <th class="px-4 py-3">Proveedor</th>
-                <th class="px-4 py-3 text-right">Costo</th>
-                <th class="px-4 py-3 text-right">Precio</th>
-                <th class="px-4 py-3 text-right">Punto venta</th>
-                <th class="px-4 py-3 text-right">Bodega</th>
-                <th class="px-4 py-3 text-right">Total</th>
-                <th class="px-4 py-3 text-right">Min</th>
-                <th class="px-4 py-3"></th>
-                <th class="px-4 py-3"></th>
+                <th moTh>Producto</th>
+                <th moTh>Tipo</th>
+                <th moTh>SKU</th>
+                <th moTh>Proveedor</th>
+                <th moTh class="text-right">Costo</th>
+                <th moTh class="text-right">Precio</th>
+                <th moTh class="text-right">Punto venta</th>
+                <th moTh class="text-right">Bodega</th>
+                <th moTh class="text-right">Total</th>
+                <th moTh class="text-right">Min</th>
+                <th moTh></th>
+                <th moTh></th>
               </tr>
             </thead>
             <tbody class="divide-y">
@@ -134,45 +136,46 @@ interface StockRow {
                   [class.bg-red-50]="row.isOut"
                   [class.bg-amber-50]="row.isLow && !row.isOut"
                 >
-                  <td class="px-4 py-3 font-semibold">{{ row.nombre }}</td>
-                  <td class="text-muted-foreground px-4 py-3 text-xs">
+                  <td moTd class="font-semibold">{{ row.nombre }}</td>
+                  <td moTd class="text-muted-foreground text-xs">
                     {{ tipoLabel(row.tipo) }}
                   </td>
-                  <td class="text-muted-foreground px-4 py-3 font-mono text-xs">
+                  <td moTd class="text-muted-foreground font-mono text-xs">
                     {{ row.sku ?? '—' }}
                   </td>
-                  <td class="text-muted-foreground px-4 py-3 text-xs">
+                  <td moTd class="text-muted-foreground text-xs">
                     {{ row.proveedor ?? '—' }}
                   </td>
-                  <td class="text-muted-foreground px-4 py-3 text-right tabular-nums">
+                  <td moTd class="text-muted-foreground text-right tabular-nums">
                     {{ row.costo !== null ? money(row.costo) : '—' }}
                   </td>
-                  <td class="px-4 py-3 text-right font-semibold tabular-nums">
+                  <td moTd class="text-right font-semibold tabular-nums">
                     {{ money(row.precioVenta) }}
                   </td>
                   <td
-                    class="px-4 py-3 text-right font-bold tabular-nums"
+                    moTd
+                    class="text-right font-bold tabular-nums"
                     [class.text-destructive]="row.isOut"
                   >
                     {{ row.puntoVentaStock }}
                   </td>
-                  <td class="px-4 py-3 text-right font-semibold tabular-nums">
+                  <td moTd class="text-right font-semibold tabular-nums">
                     {{ row.bodegaStock }}
                   </td>
-                  <td class="text-muted-foreground px-4 py-3 text-right tabular-nums">
+                  <td moTd class="text-muted-foreground text-right tabular-nums">
                     {{ row.totalStock }}
                   </td>
-                  <td class="text-muted-foreground px-4 py-3 text-right tabular-nums">
+                  <td moTd class="text-muted-foreground text-right tabular-nums">
                     {{ row.minimumStock }}
                   </td>
-                  <td class="px-4 py-3">
+                  <td moTd>
                     @if (row.isOut) {
                       <mo-badge variant="destructive">Agotado</mo-badge>
                     } @else if (row.isLow) {
                       <mo-badge variant="warning">Stock bajo</mo-badge>
                     }
                   </td>
-                  <td class="px-4 py-3 text-right">
+                  <td moTd class="text-right">
                     <div class="flex justify-end gap-1">
                       <mo-button size="sm" variant="outline" (click)="openEntry(row)"
                         >+ Entrada</mo-button
@@ -192,7 +195,7 @@ interface StockRow {
               }
             </tbody>
           </table>
-        </div>
+        </mo-table-shell>
       }
     </section>
 

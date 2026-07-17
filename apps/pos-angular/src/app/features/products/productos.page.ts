@@ -7,6 +7,8 @@ import { BadgeComponent } from '../../shared/atoms/badge.component'
 import { EmptyStateComponent } from '../../shared/molecules/empty-state.component'
 import { ProductFormDialog } from './product-form.dialog'
 import { DialogComponent } from '../../shared/organisms/dialog.component'
+import { TableShellComponent } from '../../shared/molecules/table/table-shell.component'
+import { MO_TABLE } from '../../shared/molecules/table/table.directives'
 import { ProductsRepository } from './products.repository'
 import { ProductsCacheStore } from './products-cache.store'
 import { InventoryRepository } from '../inventory/inventory.repository'
@@ -32,6 +34,8 @@ import { buildProductsWorkbook } from './product-export'
     EmptyStateComponent,
     ProductFormDialog,
     DialogComponent,
+    TableShellComponent,
+    MO_TABLE,
   ],
   template: `
     <section class="flex h-full min-h-0 flex-col">
@@ -110,29 +114,27 @@ import { buildProductsWorkbook } from './product-export'
           <mo-button (click)="openCreate()">+ Nuevo producto</mo-button>
         </mo-empty-state>
       } @else {
-        <div class="bg-card flex-1 overflow-auto rounded-xl border">
-          <table class="w-full text-sm">
-            <thead
-              class="bg-muted/50 text-muted-foreground sticky top-0 text-left text-xs tracking-wide uppercase"
-            >
+        <mo-table-shell class="flex-1">
+          <table moTable>
+            <thead moThead>
               <tr>
-                <th class="px-4 py-3">Producto</th>
-                <th class="px-4 py-3">Tipo</th>
-                <th class="px-4 py-3">SKU</th>
-                <th class="px-4 py-3 text-right">Costo</th>
-                <th class="px-4 py-3 text-right">Precio</th>
-                <th class="px-4 py-3 text-right">IVA</th>
-                <th class="px-4 py-3 text-right">Stock min.</th>
-                <th class="px-4 py-3 text-right">Pto. venta</th>
-                <th class="px-4 py-3 text-right">Bodega</th>
-                <th class="px-4 py-3"></th>
-                <th class="px-4 py-3"></th>
+                <th moTh>Producto</th>
+                <th moTh>Tipo</th>
+                <th moTh>SKU</th>
+                <th moTh class="text-right">Costo</th>
+                <th moTh class="text-right">Precio</th>
+                <th moTh class="text-right">IVA</th>
+                <th moTh class="text-right">Stock min.</th>
+                <th moTh class="text-right">Pto. venta</th>
+                <th moTh class="text-right">Bodega</th>
+                <th moTh></th>
+                <th moTh></th>
               </tr>
             </thead>
             <tbody class="divide-y">
               @for (product of filteredProducts(); track product.id) {
                 <tr class="hover:bg-muted/30" [class.bg-red-50]="isOut(product)">
-                  <td class="px-4 py-3">
+                  <td moTd>
                     <div class="font-semibold">{{ product.nombre }}</div>
                     @if (categoriaName(product.categoriaId)) {
                       <div class="text-muted-foreground text-xs">
@@ -140,34 +142,35 @@ import { buildProductsWorkbook } from './product-export'
                       </div>
                     }
                   </td>
-                  <td class="text-muted-foreground px-4 py-3 text-xs">
+                  <td moTd class="text-muted-foreground text-xs">
                     {{ tipoLabel(product.tipo) }}
                   </td>
-                  <td class="text-muted-foreground px-4 py-3 font-mono text-xs">
+                  <td moTd class="text-muted-foreground font-mono text-xs">
                     {{ product.sku ?? '—' }}
                   </td>
-                  <td class="text-muted-foreground px-4 py-3 text-right tabular-nums">
+                  <td moTd class="text-muted-foreground text-right tabular-nums">
                     {{ product.costo !== null ? money(product.costo) : '—' }}
                   </td>
-                  <td class="px-4 py-3 text-right font-semibold tabular-nums">
+                  <td moTd class="text-right font-semibold tabular-nums">
                     {{ money(product.precioVenta) }}
                   </td>
-                  <td class="text-muted-foreground px-4 py-3 text-right tabular-nums">
+                  <td moTd class="text-muted-foreground text-right tabular-nums">
                     {{ product.ivaTasa }}%
                   </td>
-                  <td class="text-muted-foreground px-4 py-3 text-right tabular-nums">
+                  <td moTd class="text-muted-foreground text-right tabular-nums">
                     {{ product.stockMinimo }}
                   </td>
                   <td
-                    class="px-4 py-3 text-right tabular-nums font-semibold"
+                    moTd
+                    class="text-right tabular-nums font-semibold"
                     [class.text-destructive]="isOut(product)"
                   >
                     {{ stockMap().get(product.id)?.puntoVentaStock ?? '—' }}
                   </td>
-                  <td class="text-muted-foreground px-4 py-3 text-right tabular-nums">
+                  <td moTd class="text-muted-foreground text-right tabular-nums">
                     {{ stockMap().get(product.id)?.bodegaStock ?? '—' }}
                   </td>
-                  <td class="px-4 py-3">
+                  <td moTd>
                     <div class="flex flex-wrap gap-1">
                       @if (isOut(product)) {
                         <mo-badge variant="destructive">Agotado</mo-badge>
@@ -177,7 +180,7 @@ import { buildProductsWorkbook } from './product-export'
                       }
                     </div>
                   </td>
-                  <td class="px-4 py-3 text-right">
+                  <td moTd class="text-right">
                     <div class="flex justify-end gap-1">
                       <mo-button size="sm" variant="outline" (click)="openEdit(product)">
                         Editar
@@ -196,7 +199,7 @@ import { buildProductsWorkbook } from './product-export'
               }
             </tbody>
           </table>
-        </div>
+        </mo-table-shell>
       }
     </section>
 

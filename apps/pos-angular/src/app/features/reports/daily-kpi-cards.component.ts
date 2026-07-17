@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core'
 import { formatCurrency } from '@/shared/lib/format'
+import { StatCardComponent } from '../../shared/molecules/stat-card.component'
 import type { DailyReport } from './reports.service'
 
 /** Las 6 tarjetas KPI del tab "Ventas": total, descuentos, ticket promedio, IVA, anuladas, utilidad. */
@@ -7,52 +8,37 @@ import type { DailyReport } from './reports.service'
   selector: 'mo-daily-kpi-cards',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [StatCardComponent],
   template: `
     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
-      <div class="bg-card rounded-xl border p-5">
-        <p class="text-muted-foreground text-xs font-semibold uppercase">Total ventas</p>
-        <p class="font-display mt-2 text-2xl font-bold tabular-nums">
-          {{ money(report().totalVentas) }}
-        </p>
-        <p class="text-muted-foreground text-xs">{{ report().countVentas }} ventas</p>
-      </div>
-      <div class="rounded-xl border border-amber-500/30 bg-amber-500/8 p-5">
-        <p class="text-xs font-semibold text-amber-800 uppercase">Descuentos</p>
-        <p class="font-display mt-2 text-2xl font-bold tabular-nums">
-          {{ money(report().discountTotal) }}
-        </p>
-        <p class="text-muted-foreground text-xs">
-          {{ report().discountedSalesCount }} ventas · promedio
-          {{ percent(report().averageDiscountPercentage) }}
-        </p>
-      </div>
-      <div class="bg-card rounded-xl border p-5">
-        <p class="text-muted-foreground text-xs font-semibold uppercase">Ticket promedio</p>
-        <p class="font-display mt-2 text-2xl font-bold tabular-nums">
-          {{ money(report().avgVenta) }}
-        </p>
-      </div>
-      <div class="bg-card rounded-xl border p-5">
-        <p class="text-muted-foreground text-xs font-semibold uppercase">IVA</p>
-        <p class="font-display mt-2 text-2xl font-bold tabular-nums">
-          {{ money(report().taxTotal) }}
-        </p>
-      </div>
-      <div class="bg-card rounded-xl border p-5">
-        <p class="text-muted-foreground text-xs font-semibold uppercase">Anuladas</p>
-        <p class="font-display mt-2 text-2xl font-bold tabular-nums">{{ report().countAnuladas }}</p>
-      </div>
-      <div class="bg-card rounded-xl border p-5">
-        <p class="text-muted-foreground text-xs font-semibold uppercase">Utilidad</p>
-        @if (hasKnownCost()) {
-          <p class="font-display mt-2 text-2xl font-bold tabular-nums">
-            {{ money(report().utilidadTotal) }}
-          </p>
-        } @else {
-          <p class="font-display text-muted-foreground mt-2 text-2xl font-bold tabular-nums">—</p>
-          <p class="text-muted-foreground text-xs">Configura el costo de tus productos para verla</p>
-        }
-      </div>
+      <mo-stat-card
+        label="Total ventas"
+        [value]="money(report().totalVentas)"
+        [hint]="report().countVentas + ' ventas'"
+      />
+      <mo-stat-card
+        label="Descuentos"
+        tone="warning"
+        [value]="money(report().discountTotal)"
+        [hint]="
+          report().discountedSalesCount +
+          ' ventas · promedio ' +
+          percent(report().averageDiscountPercentage)
+        "
+      />
+      <mo-stat-card label="Ticket promedio" [value]="money(report().avgVenta)" />
+      <mo-stat-card label="IVA" [value]="money(report().taxTotal)" />
+      <mo-stat-card label="Anuladas" [value]="'' + report().countAnuladas" />
+      @if (hasKnownCost()) {
+        <mo-stat-card label="Utilidad" [value]="money(report().utilidadTotal)" />
+      } @else {
+        <mo-stat-card
+          label="Utilidad"
+          tone="muted"
+          value="—"
+          hint="Configura el costo de tus productos para verla"
+        />
+      }
     </div>
   `,
 })

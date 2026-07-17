@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core'
 import { formatCurrency } from '@/shared/lib/format'
+import { CardComponent } from '../../shared/atoms/card.component'
 import type { DailySalesSummary, HourlySalesSummary } from '@/modules/reports/domain/services/sales-trend'
 
 /**
@@ -13,9 +14,10 @@ import type { DailySalesSummary, HourlySalesSummary } from '@/modules/reports/do
   selector: 'mo-sales-trend-tables',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [CardComponent],
   template: `
     <div class="grid gap-4 md:grid-cols-2">
-      <div class="bg-card rounded-xl border p-5">
+      <mo-card>
         <h3 class="font-display mb-3 text-sm font-bold tracking-wide uppercase">
           Ventas por hora
         </h3>
@@ -45,9 +47,9 @@ import type { DailySalesSummary, HourlySalesSummary } from '@/modules/reports/do
         } @else {
           <p class="text-muted-foreground text-sm">Sin ventas en el período.</p>
         }
-      </div>
+      </mo-card>
 
-      <div class="bg-card rounded-xl border p-5">
+      <mo-card>
         <h3 class="font-display mb-3 text-sm font-bold tracking-wide uppercase">
           Ventas por día
         </h3>
@@ -77,7 +79,7 @@ import type { DailySalesSummary, HourlySalesSummary } from '@/modules/reports/do
         } @else {
           <p class="text-muted-foreground text-sm">Sin ventas en el período.</p>
         }
-      </div>
+      </mo-card>
     </div>
   `,
 })

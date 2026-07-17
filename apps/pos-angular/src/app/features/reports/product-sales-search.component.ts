@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core'
 import { BadgeComponent } from '../../shared/atoms/badge.component'
+import { MO_TABLE } from '../../shared/molecules/table/table.directives'
 import { formatCurrency, formatShortDate, formatTime } from '@/shared/lib/format'
 import type { DailySaleItemDetail } from './reports.service'
 
@@ -13,7 +14,7 @@ import type { DailySaleItemDetail } from './reports.service'
   selector: 'mo-product-sales-search',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BadgeComponent],
+  imports: [BadgeComponent, MO_TABLE],
   template: `
     <div>
       <h3 class="font-display mb-3 text-sm font-bold tracking-wide uppercase">
@@ -36,41 +37,41 @@ import type { DailySaleItemDetail } from './reports.service'
         </p>
       } @else {
         <div class="overflow-x-auto rounded-xl border">
-          <table class="w-full text-sm">
-            <thead class="bg-muted/50 text-muted-foreground text-xs uppercase">
+          <table moTable density="compact">
+            <thead moThead>
               <tr>
-                <th class="px-3 py-2 text-left font-bold">Fecha</th>
-                <th class="px-3 py-2 text-left font-bold">Venta</th>
-                <th class="px-3 py-2 text-left font-bold">Producto</th>
-                <th class="px-3 py-2 text-right font-bold">Cant.</th>
-                <th class="px-3 py-2 text-right font-bold">Total</th>
-                <th class="px-3 py-2 text-left font-bold">Cajero</th>
-                <th class="px-3 py-2 text-left font-bold">Estado</th>
+                <th moTh class="text-left">Fecha</th>
+                <th moTh class="text-left">Venta</th>
+                <th moTh class="text-left">Producto</th>
+                <th moTh class="text-right">Cant.</th>
+                <th moTh class="text-right">Total</th>
+                <th moTh class="text-left">Cajero</th>
+                <th moTh class="text-left">Estado</th>
               </tr>
             </thead>
             <tbody class="divide-border divide-y">
               @for (row of rows(); track $index) {
                 <tr [class.opacity-60]="row.status === 'voided'">
-                  <td class="text-muted-foreground px-3 py-2 whitespace-nowrap">
+                  <td moTd class="text-muted-foreground whitespace-nowrap">
                     {{ date(row.createdAt) }} · {{ time(row.createdAt) }}
                   </td>
-                  <td class="px-3 py-2 font-mono font-semibold whitespace-nowrap">
+                  <td moTd class="font-mono font-semibold whitespace-nowrap">
                     {{ row.saleNumber }}
                   </td>
-                  <td class="min-w-40 px-3 py-2">
+                  <td moTd class="min-w-40">
                     <p class="font-semibold">{{ row.productName }}</p>
                     @if (row.productSku) {
                       <p class="text-muted-foreground text-xs">SKU {{ row.productSku }}</p>
                     }
                   </td>
-                  <td class="px-3 py-2 text-right tabular-nums">{{ row.quantity }}</td>
-                  <td class="px-3 py-2 text-right font-semibold tabular-nums">
+                  <td moTd class="text-right tabular-nums">{{ row.quantity }}</td>
+                  <td moTd class="text-right font-semibold tabular-nums">
                     {{ money(row.total) }}
                   </td>
-                  <td class="text-muted-foreground px-3 py-2">
+                  <td moTd class="text-muted-foreground">
                     {{ row.cashierEmail || 'Sin registrar' }}
                   </td>
-                  <td class="px-3 py-2">
+                  <td moTd>
                     @if (row.status === 'voided') {
                       <mo-badge variant="destructive">Anulada</mo-badge>
                     } @else {

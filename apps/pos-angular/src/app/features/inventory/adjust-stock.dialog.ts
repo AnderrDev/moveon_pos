@@ -15,6 +15,7 @@ import { FormNumberInputComponent } from '../../shared/molecules/form-number-inp
 import { FormSelectComponent, type FormSelectOption } from '../../shared/molecules/form-select.component'
 import { FormTextareaComponent } from '../../shared/molecules/form-textarea.component'
 import { FormErrorComponent } from '../../shared/molecules/form-error.component'
+import { DialogFooterComponent } from '../../shared/molecules/dialog-footer.component'
 import { InventoryRepository } from './inventory.repository'
 import { SessionService } from '../../core/auth/session.service'
 import { ToastService } from '../../shared/organisms/toast/toast.service'
@@ -45,6 +46,7 @@ const LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
     FormSelectComponent,
     FormTextareaComponent,
     FormErrorComponent,
+    DialogFooterComponent,
   ],
   template: `
     <mo-dialog
@@ -84,14 +86,14 @@ const LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
 
         <mo-form-error [message]="rootError()" />
 
-        <div class="flex justify-end gap-2 pt-2">
+        <mo-dialog-footer>
           <mo-button variant="outline" type="button" [disabled]="saving()" (click)="onClose()"
             >Cancelar</mo-button
           >
           <mo-button type="submit" [loading]="saving()" loadingText="Guardando..."
             >Guardar ajuste</mo-button
           >
-        </div>
+        </mo-dialog-footer>
       </form>
     </mo-dialog>
   `,

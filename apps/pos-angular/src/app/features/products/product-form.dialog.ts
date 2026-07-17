@@ -20,6 +20,7 @@ import { FormSelectComponent, type FormSelectOption } from '../../shared/molecul
 import { FormCheckboxComponent } from '../../shared/molecules/form-checkbox.component'
 import { FormTextareaComponent } from '../../shared/molecules/form-textarea.component'
 import { FormErrorComponent } from '../../shared/molecules/form-error.component'
+import { DialogFooterComponent } from '../../shared/molecules/dialog-footer.component'
 import { ProductFormPresenter } from './product-form.presenter'
 import { ProductImageFieldComponent } from './product-image-field.component'
 import { productFormMapper } from '@/modules/products/forms/product-form.mapper'
@@ -64,6 +65,7 @@ const INITIAL_STOCK_LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
     FormCheckboxComponent,
     FormTextareaComponent,
     FormErrorComponent,
+    DialogFooterComponent,
     ProductImageFieldComponent,
   ],
   template: `
@@ -308,14 +310,14 @@ const INITIAL_STOCK_LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
 
         <mo-form-error [message]="presenter.errors().root ?? null" />
 
-        <div class="flex justify-end gap-2 pt-2">
+        <mo-dialog-footer>
           <mo-button variant="outline" type="button" [disabled]="saving()" (click)="onClose()">
             Cancelar
           </mo-button>
           <mo-button type="submit" [loading]="saving()" loadingText="Guardando...">
             {{ product() ? 'Guardar cambios' : 'Crear producto' }}
           </mo-button>
-        </div>
+        </mo-dialog-footer>
       </form>
     </mo-dialog>
   `,

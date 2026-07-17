@@ -16,6 +16,7 @@ import { FormInputComponent } from '../../shared/molecules/form-input.component'
 import { FormCurrencyInputComponent } from '../../shared/molecules/form-currency-input.component'
 import { FormCheckboxComponent } from '../../shared/molecules/form-checkbox.component'
 import { FormErrorComponent } from '../../shared/molecules/form-error.component'
+import { DialogFooterComponent } from '../../shared/molecules/dialog-footer.component'
 import { SessionService } from '../../core/auth/session.service'
 import { ToastService } from '../../shared/organisms/toast/toast.service'
 import { ExpensesRepository } from './expenses.repository'
@@ -41,6 +42,7 @@ type EmpleadoFormErrors = Partial<Record<keyof EmpleadoFormValue | 'root', strin
     FormCurrencyInputComponent,
     FormCheckboxComponent,
     FormErrorComponent,
+    DialogFooterComponent,
   ],
   template: `
     <mo-dialog
@@ -82,14 +84,14 @@ type EmpleadoFormErrors = Partial<Record<keyof EmpleadoFormValue | 'root', strin
 
         <mo-form-error [message]="errors().root ?? null" />
 
-        <div class="flex justify-end gap-2 pt-2">
+        <mo-dialog-footer>
           <mo-button variant="outline" type="button" [disabled]="saving()" (click)="onClose()">
             Cancelar
           </mo-button>
           <mo-button type="submit" [loading]="saving()" loadingText="Guardando...">
             {{ empleado() ? 'Guardar cambios' : 'Crear empleado' }}
           </mo-button>
-        </div>
+        </mo-dialog-footer>
       </form>
     </mo-dialog>
   `,

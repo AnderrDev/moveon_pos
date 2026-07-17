@@ -92,7 +92,7 @@ primero PLAN-46 (nombres de migrations rotos que impedían `supabase db reset`).
 
 ## 6. Bloqueos y preguntas pendientes
 
-- **`expire_loyalty_rewards` NO está en el remoto** — la migración `20260716000100` (y el registro de `20260716000200`) quedan listas para aplicar cuando el dueño confirme. Mientras tanto la UI las invoca con catch silencioso: todo funciona, solo que las recompensas vencidas siguen mostrándose por evaluación perezosa.
+- ~~**`expire_loyalty_rewards` NO está en el remoto**~~ — **RESUELTO 2026-07-17**: `20260716000100` y `20260716000200` aplicadas al remoto vía MCP y verificadas con smoke test (JWT simulado + rollback): el barrido marca `expired`, deja rastro `expire` en el ledger, es idempotente; `anon` sigue leyendo la vista del catálogo pero no `productos` crudos, y no puede ejecutar el barrido. Sin residuo de datos.
 - Los fixes de migraciones "prod-data en base vacía" no cambian nada en remoto (ya aplicadas); solo importan para resets locales.
 - Drift documental: en remoto existen sin registro de migración las 4 de catalogo/storefront; si algún día se usa `db push`, hará falta `supabase migration repair`.
 - El CLI de Supabase se actualizó 2.34.3 → 2.109.1 (el viejo no parseaba los cuerpos `$$`). `supabase/.temp/storage-version` tenía fijado un tag inexistente (`optimize-existing-functions-again`) — se borró; es estado temporal local.

@@ -11,6 +11,7 @@ import { getErrorMessage } from '@/shared/lib/error-message'
 import { DialogComponent } from '../../shared/organisms/dialog.component'
 import { BadgeComponent } from '../../shared/atoms/badge.component'
 import { ButtonComponent } from '../../shared/atoms/button.component'
+import { MO_TABLE } from '../../shared/molecules/table/table.directives'
 import { InventoryRepository } from './inventory.repository'
 import { SessionService } from '../../core/auth/session.service'
 import { formatTime, formatShortDate } from '@/shared/lib/format'
@@ -42,7 +43,7 @@ const LOCATION_LABELS: Record<string, string> = {
   selector: 'mo-kardex-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DialogComponent, BadgeComponent, ButtonComponent],
+  imports: [DialogComponent, BadgeComponent, ButtonComponent, MO_TABLE],
   template: `
     <mo-dialog
       [open]="open()"
@@ -70,40 +71,39 @@ const LOCATION_LABELS: Record<string, string> = {
           </mo-button>
         </div>
         <div class="max-h-[60vh] overflow-y-auto">
-          <table class="w-full text-sm">
-            <thead
-              class="bg-muted/50 text-muted-foreground sticky top-0 text-left text-xs tracking-wide uppercase"
-            >
+          <table moTable density="compact">
+            <thead moThead class="sticky top-0 text-left tracking-wide">
               <tr>
-                <th class="px-3 py-2">Fecha</th>
-                <th class="px-3 py-2">Tipo</th>
-                <th class="px-3 py-2">Ubicacion</th>
-                <th class="px-3 py-2 text-right">Cantidad</th>
-                <th class="px-3 py-2">Motivo</th>
+                <th moTh>Fecha</th>
+                <th moTh>Tipo</th>
+                <th moTh>Ubicacion</th>
+                <th moTh class="text-right">Cantidad</th>
+                <th moTh>Motivo</th>
               </tr>
             </thead>
             <tbody class="divide-y">
               @for (mov of movements(); track mov.id) {
                 <tr>
-                  <td class="text-muted-foreground px-3 py-2 text-xs">
+                  <td moTd class="text-muted-foreground text-xs">
                     {{ shortDate(mov.createdAt) }} · {{ time(mov.createdAt) }}
                   </td>
-                  <td class="px-3 py-2">
+                  <td moTd>
                     <mo-badge [variant]="badgeVariant(mov.tipo)">{{
                       tipoLabel(mov.tipo)
                     }}</mo-badge>
                   </td>
-                  <td class="text-muted-foreground px-3 py-2 text-xs">
+                  <td moTd class="text-muted-foreground text-xs">
                     {{ locationLabel(mov.ubicacion) }}
                   </td>
                   <td
-                    class="px-3 py-2 text-right tabular-nums"
+                    moTd
+                    class="text-right tabular-nums"
                     [class.text-emerald-600]="mov.cantidad > 0"
                     [class.text-destructive]="mov.cantidad < 0"
                   >
                     {{ mov.cantidad > 0 ? '+' : '' }}{{ mov.cantidad }}
                   </td>
-                  <td class="text-muted-foreground px-3 py-2 text-xs">{{ mov.motivo ?? '—' }}</td>
+                  <td moTd class="text-muted-foreground text-xs">{{ mov.motivo ?? '—' }}</td>
                 </tr>
               }
             </tbody>

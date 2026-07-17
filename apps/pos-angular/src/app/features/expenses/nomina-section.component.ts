@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 import { formatCurrency } from '@/shared/lib/format'
 import { BadgeComponent } from '../../shared/atoms/badge.component'
 import { ButtonComponent } from '../../shared/atoms/button.component'
+import { CardComponent } from '../../shared/atoms/card.component'
 import type { Empleado } from '@/modules/expenses/domain/entities/expense.entity'
 
 /**
@@ -12,9 +13,9 @@ import type { Empleado } from '@/modules/expenses/domain/entities/expense.entity
   selector: 'mo-nomina-section',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BadgeComponent, ButtonComponent],
+  imports: [BadgeComponent, ButtonComponent, CardComponent],
   template: `
-    <div class="bg-card rounded-xl border">
+    <mo-card padding="none">
       <div class="flex items-center justify-between border-b px-4 py-3">
         <div>
           <h3 class="text-sm font-semibold">Nómina</h3>
@@ -67,7 +68,7 @@ import type { Empleado } from '@/modules/expenses/domain/entities/expense.entity
           }
         </ul>
       }
-    </div>
+    </mo-card>
   `,
 })
 export class NominaSectionComponent {

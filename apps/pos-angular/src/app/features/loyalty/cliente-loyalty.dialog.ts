@@ -28,6 +28,7 @@ import { ButtonComponent } from '../../shared/atoms/button.component'
 import { FormNumberInputComponent } from '../../shared/molecules/form-number-input.component'
 import { FormInputComponent } from '../../shared/molecules/form-input.component'
 import { FormErrorComponent } from '../../shared/molecules/form-error.component'
+import { MO_TABLE } from '../../shared/molecules/table/table.directives'
 import { LoyaltyRepository, type LoyaltySummary } from './loyalty.repository'
 import { SessionService } from '../../core/auth/session.service'
 import { TiendaInfoService } from '../../core/tienda/tienda-info.service'
@@ -57,6 +58,7 @@ const TYPE_LABELS: Record<LoyaltyTransactionType, string> = {
     FormNumberInputComponent,
     FormInputComponent,
     FormErrorComponent,
+    MO_TABLE,
   ],
   template: `
     <mo-dialog
@@ -165,37 +167,36 @@ const TYPE_LABELS: Record<LoyaltyTransactionType, string> = {
               </p>
             } @else {
               <div class="max-h-72 overflow-auto rounded-xl border">
-                <table class="w-full text-sm">
-                  <thead
-                    class="bg-muted/50 text-muted-foreground sticky top-0 text-left text-xs tracking-wide uppercase"
-                  >
+                <table moTable density="compact">
+                  <thead moThead class="sticky top-0 text-left tracking-wide">
                     <tr>
-                      <th class="px-3 py-2">Fecha</th>
-                      <th class="px-3 py-2">Movimiento</th>
-                      <th class="px-3 py-2 text-right">Sellos</th>
-                      <th class="px-3 py-2 text-right">Saldo</th>
+                      <th moTh>Fecha</th>
+                      <th moTh>Movimiento</th>
+                      <th moTh class="text-right">Sellos</th>
+                      <th moTh class="text-right">Saldo</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y">
                     @for (t of transactions(); track t.id) {
                       <tr>
-                        <td class="text-muted-foreground px-3 py-2 text-xs whitespace-nowrap">
+                        <td moTd class="text-muted-foreground text-xs whitespace-nowrap">
                           {{ formatDate(t.createdAt) }} · {{ formatHour(t.createdAt) }}
                         </td>
-                        <td class="px-3 py-2">
+                        <td moTd>
                           <p class="font-semibold">{{ typeLabel(t.type) }}</p>
                           @if (t.reason) {
                             <p class="text-muted-foreground text-xs">{{ t.reason }}</p>
                           }
                         </td>
                         <td
-                          class="px-3 py-2 text-right font-bold tabular-nums"
+                          moTd
+                          class="text-right font-bold tabular-nums"
                           [class.text-emerald-600]="t.stampsDelta > 0"
                           [class.text-destructive]="t.stampsDelta < 0"
                         >
                           {{ t.stampsDelta > 0 ? '+' : '' }}{{ t.stampsDelta }}
                         </td>
-                        <td class="text-muted-foreground px-3 py-2 text-right tabular-nums">
+                        <td moTd class="text-muted-foreground text-right tabular-nums">
                           {{ t.balanceAfter }}
                         </td>
                       </tr>

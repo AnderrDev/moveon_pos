@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core'
+import { StatCardComponent } from '../../shared/molecules/stat-card.component'
+import { TableShellComponent } from '../../shared/molecules/table/table-shell.component'
 import type { LoyaltyProgramReport } from '@/modules/loyalty/domain/services/program-report'
 
 /** Tab "Fidelización" de /reportes (PLAN-60): KPIs del período + clientes activos. */
@@ -6,13 +8,10 @@ import type { LoyaltyProgramReport } from '@/modules/loyalty/domain/services/pro
   selector: 'mo-loyalty-report',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [StatCardComponent, TableShellComponent],
   template: `
     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <div class="bg-card rounded-xl border p-5">
-        <p class="text-muted-foreground text-xs font-semibold uppercase">Sellos otorgados</p>
-        <p class="font-display mt-2 text-2xl font-bold tabular-nums">
-          {{ report().sellosOtorgados }}
-        </p>
+      <mo-stat-card label="Sellos otorgados" [value]="'' + report().sellosOtorgados">
         @if (report().sellosRevertidos > 0) {
           <p class="text-muted-foreground text-xs">
             −{{ report().sellosRevertidos }} por anulaciones
@@ -23,7 +22,7 @@ import type { LoyaltyProgramReport } from '@/modules/loyalty/domain/services/pro
             Ajustes manuales: {{ report().ajusteNeto > 0 ? '+' : '' }}{{ report().ajusteNeto }}
           </p>
         }
-      </div>
+      </mo-stat-card>
       <div class="border-primary/30 bg-primary/8 rounded-xl border p-5">
         <p class="text-xs font-semibold uppercase">Recompensas generadas</p>
         <p class="font-display mt-2 text-2xl font-bold tabular-nums">
@@ -45,17 +44,15 @@ import type { LoyaltyProgramReport } from '@/modules/loyalty/domain/services/pro
           </p>
         }
       </div>
-      <div class="bg-card rounded-xl border p-5">
-        <p class="text-muted-foreground text-xs font-semibold uppercase">Clientes activos</p>
-        <p class="font-display mt-2 text-2xl font-bold tabular-nums">
-          {{ report().clientesActivos }}
-        </p>
-        <p class="text-muted-foreground text-xs">con movimientos en el período</p>
-      </div>
+      <mo-stat-card
+        label="Clientes activos"
+        [value]="'' + report().clientesActivos"
+        hint="con movimientos en el período"
+      />
     </div>
 
     @if (report().topClientes.length > 0) {
-      <div class="bg-card overflow-auto rounded-xl border">
+      <mo-table-shell>
         <div class="border-b px-4 py-3">
           <p class="font-display text-sm font-bold">Clientes del período</p>
           <p class="text-muted-foreground text-xs">Ordenados por sellos ganados</p>
@@ -82,7 +79,7 @@ import type { LoyaltyProgramReport } from '@/modules/loyalty/domain/services/pro
             }
           </tbody>
         </table>
-      </div>
+      </mo-table-shell>
     } @else {
       <div class="text-muted-foreground rounded-xl border border-dashed p-8 text-center text-sm">
         Sin actividad de fidelización en el período. Los sellos aparecen cuando se venden

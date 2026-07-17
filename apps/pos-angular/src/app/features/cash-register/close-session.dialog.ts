@@ -16,6 +16,7 @@ import { ButtonComponent } from '../../shared/atoms/button.component'
 import { FormCurrencyInputComponent } from '../../shared/molecules/form-currency-input.component'
 import { FormTextareaComponent } from '../../shared/molecules/form-textarea.component'
 import { FormErrorComponent } from '../../shared/molecules/form-error.component'
+import { DialogFooterComponent } from '../../shared/molecules/dialog-footer.component'
 import { CashRegisterRepository } from './cash-register.repository'
 import { SessionService } from '../../core/auth/session.service'
 import { ToastService } from '../../shared/organisms/toast/toast.service'
@@ -65,6 +66,7 @@ const NON_CASH_METHODS: { metodo: Exclude<PaymentMethod, 'cash'>; controlName: s
     FormCurrencyInputComponent,
     FormTextareaComponent,
     FormErrorComponent,
+    DialogFooterComponent,
   ],
   template: `
     <mo-dialog
@@ -114,7 +116,7 @@ const NON_CASH_METHODS: { metodo: Exclude<PaymentMethod, 'cash'>; controlName: s
 
         <mo-form-error [message]="rootError()" />
 
-        <div class="flex justify-end gap-2 pt-2">
+        <mo-dialog-footer>
           <mo-button variant="outline" type="button" [disabled]="saving()" (click)="onClose()"
             >Cancelar</mo-button
           >
@@ -125,7 +127,7 @@ const NON_CASH_METHODS: { metodo: Exclude<PaymentMethod, 'cash'>; controlName: s
             loadingText="Cerrando..."
             >Confirmar cierre</mo-button
           >
-        </div>
+        </mo-dialog-footer>
       </form>
     </mo-dialog>
   `,

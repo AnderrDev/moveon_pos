@@ -36,27 +36,41 @@
 
 ## 2. Principios arquitectónicos
 
-### 2.1 Clean Architecture por módulos
+### 2.1 Clean Architecture por módulos: data / domain / presentation (ADR 0014)
 
-Cada módulo de negocio se estructura en tres capas:
+Cada módulo de negocio se divide entre el paquete puro (`src/modules/<mod>`) y su feature Angular (`apps/pos-angular/src/app/features/<mod>`):
 
 ```
-src/modules/<modulo>/
-├── domain/               # TypeScript puro, sin dependencias
+src/modules/<modulo>/                  # TypeScript puro (sin Angular/RxJS/Supabase)
+├── domain/
 │   ├── entities/         # Sale, Product, CashSession, etc.
-│   ├── value-objects/    # Money, TaxRate, Sku, etc.
+│   ├── value-objects/    # PhoneCO, Money, etc.
 │   ├── repositories/     # Interfaces (no implementaciones)
-│   └── services/         # Reglas de negocio puras
-├── application/          # Orquestación
-│   ├── use-cases/        # CreateSale, CloseCashSession, etc.
-│   └── dtos/             # Input/output schemas con Zod
-└── infrastructure/       # Detalles técnicos
-    ├── repositories/     # Implementaciones con Supabase
-    ├── adapters/         # Adaptadores externos (billing, printing)
-    └── mappers/          # DB row ↔ Domain entity
+│   ├── services/         # Reglas de negocio puras
+│   └── use-cases/        # createSale, registerExpense, etc. (deps inyectadas + Zod + Result)
+├── data/
+│   ├── dtos/             # Schemas Zod de borde (input/output)
+│   └── mappers/          # DB row ↔ Domain entity (TS puro)
+└── forms/                # factory + mapper Zod de formularios (ver forms.md)
+
+apps/pos-angular/src/app/features/<modulo>/
+├── data/                 # Repositorios @Injectable Supabase que implements las interfaces de dominio
+└── presentation/
+    ├── pages/            # *.page.ts (rutas lazy)
+    ├── dialogs/          # *.dialog.ts
+    ├── components/       # componentes de vista del feature
+    ├── presenters/       # *.presenter.ts (forms)
+    └── services/         # stores, orquestación, export builders
 ```
 
-**Regla dura:** `domain/` no importa nada de `application/` ni `infrastructure/`. `application/` no importa `infrastructure/`. La inversión de dependencias se hace inyectando interfaces.
+**Reglas duras:**
+- Nada en `src/modules/` importa Angular, RxJS, Supabase ni `@angular-app/`.
+- `domain/entities|value-objects|services` solo importan `@/shared`.
+- `domain/use-cases` y `domain/repositories` **pueden** importar `data/dtos` (schemas Zod puros = contrato del caso de uso; excepción deliberada del ADR 0014).
+- `features/<mod>/data/` es el único lugar que conoce tipos row de Supabase; **implementa** las interfaces de `domain/repositories/`.
+- `presentation/` no llama repositorios directamente para escrituras: invoca use-cases pasándoles el repo inyectado.
+
+> Migración en curso: los módulos aún no migrados conservan `application/` e `infrastructure/`; el checklist vive en `docs/sessions/2026-07-17-reestructura-clean-atomic.md`.
 
 ### 2.2 Patrón Adapter para integraciones externas
 
@@ -133,9 +147,9 @@ moveonapp-pos/
 │   │   ├── auth/
 │   │   │   ├── domain/
 │   │   │   └── forms/             # factory + mapper Zod
-│   │   ├── products/
-│   │   │   ├── application/{dtos,use-cases}/
-│   │   │   ├── domain/
+│   │   ├── products/              # estructura nueva (ADR 0014)
+│   │   │   ├── domain/{entities,repositories,services,use-cases}/
+│   │   │   ├── data/{dtos,mappers}/
 │   │   │   └── forms/
 │   │   ├── inventory/
 │   │   ├── sales/
@@ -161,8 +175,8 @@ moveonapp-pos/
 │           ├── main.ts
 │           └── app/
 │               ├── core/          # session, supabase client, layout
-│               ├── features/      # páginas, presenters, servicios y stores por módulo
-│               └── shared/        # UI Angular reutilizable (cuando se necesite)
+│               ├── features/      # por módulo: data/ (repos) + presentation/ (pages, dialogs, ...)
+│               └── shared/        # design system atómico: atoms/, molecules/, organisms/, services/
 ├── supabase/
 │   ├── migrations/                # SQL versionado
 │   ├── functions/                 # Edge Functions
@@ -182,15 +196,15 @@ moveonapp-pos/
 ### 4.1 Capas de acceso
 
 ```
-Angular Component
+Angular Component (features/<mod>/presentation/)
     ↓
 Presenter / Store / Application Service
     ↓
-Use Case (application layer)
+Use Case (src/modules/<mod>/domain/use-cases/)
     ↓
-Repository Interface (domain)
+Repository Interface (src/modules/<mod>/domain/repositories/)
     ↓
-Repository / Gateway Implementation (infrastructure, usa Supabase client o RPC)
+Repository Implementation (features/<mod>/data/, usa Supabase client o RPC)
     ↓
 PostgreSQL (con RLS)
 ```
