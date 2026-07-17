@@ -182,6 +182,35 @@ bug real: el check de desglose de descuentos no conocía el componente de canje 
 > checkbox "Participa en MOVE ON Club" en el formulario de producto, y activar
 > `autoriza_fidelizacion` al registrar clientes.
 
+### Bloque activo — Clean Architecture feature-first (ADR 0015, decisión del dueño 2026-07-17)
+
+Arquitectura objetivo, adaptación a Angular (DI con abstract classes, SOLID, catálogo de
+patrones, fronteras por linter) en **`docs/adr/0015-feature-first-clean-architecture.md`** —
+leerlo completo antes de tocar cualquier PLAN de este bloque. Este bloque **absorbe**
+PLAN-30 (dividir pos.page), PLAN-31 (repos + Result), PLAN-34 (formularios 3 archivos) y
+PLAN-35 (errores tipados): se cierran feature por feature dentro de PLAN-64..67, no como
+tareas sueltas.
+
+**Regla de ejecución:** cada PLAN termina con `pnpm typecheck && pnpm lint && pnpm test` en
+verde + QA manual del flujo tocado contra Supabase LOCAL (regla del dueño: pruebas con datos
+siempre en local) + commit propio en `dev`. Nunca dos PLANs mezclados en un commit.
+
+| ID | Título | Prioridad | Criterio de cierre |
+|---|---|---|---|
+| PLAN-61 | ✅ Hecho — Fase mecánica: co-ubicación total + suite verde | P0 | 210 archivos movidos (`git mv`, historia preservada) según el mapa ADR 0015 §5; `src/modules/` y `tests/unit/modules/` eliminados; 1 import roto corregido (`@/../` no resuelto por el codemod), vitest.config.ts y script Siigo apuntando a rutas nuevas; typecheck + lint + 508 tests + `ng build` (resuelve los 40+ chunks lazy) en verde. Gap de cobertura preexistente detectado (`receipt-settings-form` sin tests, 86.24% global) — **no es regresión** (confirmado con `git stash`, ya fallaba en el commit previo); queda anotado para PLAN-66. Extensión de Chrome no disponible esta sesión → falta QA manual de clic-a-clic (pendiente, no bloqueante dado que `ng build` resuelve el grafo de imports de cada ruta) |
+| PLAN-62 | Contratos como abstract classes + composition root por feature | P0 | Todos los `domain/repositories/*.repository.ts` son `abstract class` (TS puro, usable como token DI); un `<feature>.providers.ts` por feature registra `{ provide: Abstracción, useClass: Impl }` en la ruta lazy; las impl de `data/` hacen `extends` y el typecheck obliga a cumplir el contrato. Interfaces se reescriben desde el USO real (decisión sesión 07-17), no desde las históricas |
+| PLAN-63 | Fronteras automáticas por linter | P0 | Reglas ESLint por zona (ADR 0015 §6.6): domain sin Angular/Supabase/RxJS/data/presentation; data sin presentation; sin imports entre features (única excepción declarada `pos → sales/domain`); violar una frontera rompe `pnpm lint`. Incluye test del linter: un import prohibido de muestra debe fallar |
+| PLAN-64 | Cableado hexagonal: pilotos `products` + `customers` | P1 | Repos `extends` contrato; TODAS las escrituras pasan por use-cases (`create-product`, `update-product`, `create-customer`…) con `Result` y errores tipados por operación; presenters/pages inyectan la abstracción, cero imports de `data/` en presentation (se activa la regla del linter para estas features); tests de use-cases con fakes del contrato |
+| PLAN-65 | Cableado hexagonal: `sales`(+`pos`) + `inventory` + `cash-register` | P1 | Mismo criterio que PLAN-64 sobre los módulos críticos. Incluye: dividir `pos.page.ts` en componentes de presentación < 300 líneas (absorbe PLAN-30) y `SaleReader` segregado para lecturas de reportes (ISP). El flujo de venta completo se re-verifica E2E manual en local (venta, descuento, canje Club, anulación) |
+| PLAN-66 | Cableado hexagonal: `expenses` + `loyalty` + `reports` + `settings` | P2 | Mismo criterio; `reports` consume contratos de lectura segregados, no repos de escritura; `loyalty` ya tiene dominio puro completo — solo formaliza contrato del repo y providers |
+| PLAN-67 | Cableado hexagonal: `auth` + `audit` + limpieza de excepciones del linter | P2 | Últimas features cableadas; se retiran TODAS las excepciones temporales de PLAN-63: la regla `presentation no importa data` queda activa globalmente sin excepciones |
+| PLAN-68 | Limpieza profunda + documentación final | P2 | Cero código muerto (knip o revisión manual de exports sin uso); nombres consistentes (`*.usecase.ts`, `*.repository.ts`, `*.datasource.ts`, `*.model.ts`); `CLAUDE.md`, `docs/02-architecture.md`, `docs/standards/ui-components.md` y `forms.md` reescritos contra ADR 0015 (una sola fuente de verdad, sin referencias a `src/modules` ni al híbrido); ADR 0014 marcado parcialmente superseded; ADR 0015 → Aceptado |
+| PLAN-69 | Verificación integral y merge a main | P1 | Suite completa + coverage ≥ 90% dominio; QA manual E2E en local de los 8 flujos núcleo (login, venta, pago mixto, descuento, canje Club, anulación, cierre de caja, reportes); `pnpm build` de producción; merge `dev` → `main` con el dueño |
+
+**Orden:** 61 → 62 → 63 (la base y el enforcement primero) → 64 → 65 → 66 → 67 → 68 → 69.
+PLAN-62 y 63 son deliberadamente ANTES del cableado: primero existe el contrato y el linter
+que lo protege, después se cablea feature por feature sin poder regresar al atajo.
+
 ---
 
 ## Resumen ejecutivo histórico — bloque QA 2026-05-27

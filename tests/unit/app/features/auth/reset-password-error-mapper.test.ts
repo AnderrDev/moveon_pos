@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { AuthError } from '@supabase/supabase-js'
-import { mapResetPasswordError } from '../../../../../apps/pos-angular/src/app/features/auth/reset-password-error-mapper'
+import { mapResetPasswordError } from '@angular-app/features/auth/presentation/services/reset-password-error-mapper'
 
 const authError = (parts: Partial<AuthError>): AuthError => parts as AuthError
 

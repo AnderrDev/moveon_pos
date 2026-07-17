@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 import { BadgeComponent } from '../atoms/badge.component'
 import { formatCurrency, formatTime, formatShortDate } from '@/shared/lib/format'
 import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
-import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
+import type { Sale } from '@angular-app/features/sales/domain/entities/sale.entity'
 
 /**
  * Bloque "Detalle de ventas" expandible: lista de ventas con resumen

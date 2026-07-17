@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { capQuantity } from '../../../../../apps/pos-angular/src/app/features/pos/stock-cap'
+import { capQuantity } from '@angular-app/features/pos/presentation/services/stock-cap'
 
 describe('capQuantity', () => {
   it('respeta lo solicitado cuando es menor al máximo', () => {

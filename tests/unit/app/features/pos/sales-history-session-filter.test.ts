@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 // Función pura extraída del dialog para correr en node sin TestBed ni Supabase.
-import { selectSessionSales } from '../../../../../apps/pos-angular/src/app/features/pos/sales-history.session-filter'
-import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
+import { selectSessionSales } from '@angular-app/features/pos/presentation/services/sales-history.session-filter'
+import type { Sale } from '@angular-app/features/sales/domain/entities/sale.entity'
 
 function makeSale(id: string, cashSessionId: string): Sale {
   return {

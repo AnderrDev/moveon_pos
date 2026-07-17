@@ -6,17 +6,17 @@ import { ShellComponent } from './core/layout/shell.component'
 export const routes: Routes = [
   {
     path: 'login',
-    loadComponent: () => import('./features/auth/login.page').then((m) => m.LoginPage),
+    loadComponent: () => import('@angular-app/features/auth/presentation/pages/login.page').then((m) => m.LoginPage),
   },
   {
     path: 'recuperar-contrasena',
     loadComponent: () =>
-      import('./features/auth/forgot-password.page').then((m) => m.ForgotPasswordPage),
+      import('@angular-app/features/auth/presentation/pages/forgot-password.page').then((m) => m.ForgotPasswordPage),
   },
   {
     path: 'restablecer-contrasena',
     loadComponent: () =>
-      import('./features/auth/reset-password.page').then((m) => m.ResetPasswordPage),
+      import('@angular-app/features/auth/presentation/pages/reset-password.page').then((m) => m.ResetPasswordPage),
   },
   {
     path: '',
@@ -26,59 +26,59 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'pos' },
       {
         path: 'pos',
-        loadComponent: () => import('./features/pos/pos.page').then((m) => m.PosPage),
+        loadComponent: () => import('@angular-app/features/pos/presentation/pages/pos.page').then((m) => m.PosPage),
       },
       {
         path: 'productos',
         canActivate: [roleGuard('admin')],
         loadComponent: () =>
-          import('./features/products/productos.page').then((m) => m.ProductosPage),
+          import('@angular-app/features/products/presentation/pages/productos.page').then((m) => m.ProductosPage),
       },
       {
         path: 'productos/categorias',
         canActivate: [roleGuard('admin')],
         loadComponent: () =>
-          import('./features/products/categorias.page').then((m) => m.CategoriasPage),
+          import('@angular-app/features/products/presentation/pages/categorias.page').then((m) => m.CategoriasPage),
       },
       {
         path: 'inventario',
         canActivate: [roleGuard('admin')],
         loadComponent: () =>
-          import('./features/inventory/inventario.page').then((m) => m.InventarioPage),
+          import('@angular-app/features/inventory/presentation/pages/inventario.page').then((m) => m.InventarioPage),
       },
       {
         path: 'caja',
         loadComponent: () =>
-          import('./features/cash-register/caja.page').then((m) => m.CajaPage),
+          import('@angular-app/features/cash-register/presentation/pages/caja.page').then((m) => m.CajaPage),
       },
       {
         path: 'clientes',
         loadComponent: () =>
-          import('./features/customers/clientes.page').then((m) => m.ClientesPage),
+          import('@angular-app/features/customers/presentation/pages/clientes.page').then((m) => m.ClientesPage),
       },
       {
         path: 'reportes',
         canActivate: [roleGuard('admin')],
         loadComponent: () =>
-          import('./features/reports/reportes.page').then((m) => m.ReportesPage),
+          import('@angular-app/features/reports/presentation/pages/reportes.page').then((m) => m.ReportesPage),
       },
       {
         path: 'finanzas',
         canActivate: [roleGuard('admin')],
         loadComponent: () =>
-          import('./features/expenses/finanzas.page').then((m) => m.FinanzasPage),
+          import('@angular-app/features/expenses/presentation/pages/finanzas.page').then((m) => m.FinanzasPage),
       },
       {
         path: 'auditoria',
         canActivate: [roleGuard('admin')],
         loadComponent: () =>
-          import('./features/audit/auditoria.page').then((m) => m.AuditoriaPage),
+          import('@angular-app/features/audit/presentation/pages/auditoria.page').then((m) => m.AuditoriaPage),
       },
       {
         path: 'configuracion',
         canActivate: [roleGuard('admin')],
         loadComponent: () =>
-          import('./features/settings/configuracion.page').then((m) => m.ConfiguracionPage),
+          import('@angular-app/features/settings/presentation/pages/configuracion.page').then((m) => m.ConfiguracionPage),
       },
     ],
   },

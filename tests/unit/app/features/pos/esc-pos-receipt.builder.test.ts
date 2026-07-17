@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
+import type { Sale } from '@angular-app/features/sales/domain/entities/sale.entity'
 import {
   buildEscPosReceipt,
   ESC_POS_RECEIPT_COLUMNS,
-} from '../../../../../apps/pos-angular/src/app/features/pos/infrastructure/esc-pos-receipt.builder'
+} from '@angular-app/features/pos/data/datasources/esc-pos-receipt.builder'
 
 const sale: Sale = {
   id: 'sale-1',

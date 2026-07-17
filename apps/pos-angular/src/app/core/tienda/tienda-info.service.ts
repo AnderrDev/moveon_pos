@@ -1,10 +1,10 @@
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '../supabase/supabase-client.service'
-import { DEFAULT_TIMEZONE } from '@/modules/reports/domain/services/day-range'
+import { DEFAULT_TIMEZONE } from '@angular-app/features/reports/domain/services/day-range'
 import {
   DEFAULT_LOYALTY_CONFIG,
   type LoyaltyConfig,
-} from '@/modules/loyalty/domain/loyalty-config'
+} from '@angular-app/features/loyalty/domain/loyalty-config'
 
 export interface ReceiptSettings {
   titulo: string

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getQzPrintErrorMessage } from '@/../apps/pos-angular/src/app/features/pos/infrastructure/qz-print-error'
+import { getQzPrintErrorMessage } from '@angular-app/features/pos/data/datasources/qz-print-error'
 
 describe('getQzPrintErrorMessage', () => {
   it('explica fallos de firma sin exponer el error técnico', () => {
