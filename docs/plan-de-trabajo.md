@@ -66,7 +66,7 @@ la decisión de inventario por ubicación (ADR 0008).
 | PLAN-43 | ⏳ Pendiente — vistas SQL para agregados pesados (evaluar cuando aplique) | `(pendiente)` |
 | PLAN-44 | ✅ Hecho (auditor PASS) y verificado end-to-end en producción — corregir apertura de caja (`opening_amount`) con auditoria. Migración `20260623_001_correct_cash_session_opening.sql` aplicada al remoto (versión `20260623174042`); pgTAP local sigue bloqueado por deuda técnica preexistente en nombres de archivo de migraciones `20260426_*` (ver sesión); de paso se corrigió un bug de reactividad preexistente en `form-currency-input.component.ts` que afectaba el prellenado de montos por defecto | `(sin commit aún)` |
 | PLAN-45 | ✅ Hecho — buscador de producto en `/reportes` (cuándo y en qué ventas se vendió) | `(sin commit aún)` |
-| PLAN-46 | ⏳ Pendiente — reparar nombres de archivo de `supabase/migrations/20260426_001/_002/_003*.sql`: comparten el mismo prefijo de versión de 8 dígitos, así que `supabase start`/`db reset` choca por clave duplicada al inicializar una base local desde cero. El remoto ya tiene versiones de 14 dígitos correctas (reparadas 2026-06-17); los archivos locales nunca se renombraron para coincidir. Bloquea correr pgTAP local hasta resolverse. Ver `docs/sessions/2026-06-23-plan-44-corregir-apertura-caja.md` §10 | `(pendiente)` |
+| PLAN-46 | ✅ Hecho (2026-07-16) — las 47 migrations locales renombradas a las versiones de 14 dígitos del remoto (`supabase_migrations.schema_migrations`); 4 locales sin registro remoto recibieron versiones sintéticas que preservan el orden; recreado `20260705040508_register_expense_atomic_defaults.sql` (existía solo en remoto); reparadas 3 migraciones que fallaban en base vacía (datos de tienda prod condicionados, `update_updated_at_column` idempotente, columnas de `audit_logs` convergentes) + nueva `20260716000200_table_grants_parity.sql` (grants DML estándar que el remoto tenía y el local no). `supabase start`/`db reset` inicializan desde cero sin errores. Ver `docs/sessions/2026-07-16-loyalty-pendientes-y-supabase-local.md` | `(sin commit aún)` |
 | PLAN-47 | ✅ Hecho — módulo Finanzas (`/finanzas`, solo admin): migration `20260704_002_expenses_module.sql` (empleados, expense_categories, expenses, expense_templates + RLS admin-only + seed de 8 categorías), dominio `src/modules/expenses` (`buildFinancialSummary` puro), resumen Entradas − Costo − Gastos = Utilidad neta con % por categoría, CRUD de gastos con anulación auditada. Ver `docs/sessions/2026-07-04-plan-modulo-gastos-finanzas.md` | `(sin commit aún)` |
 | PLAN-48 | ✅ Hecho — nómina simulada (sin DIAN/legal): CRUD de empleados con salario acordado, flujo "Pagar" (mes/quincena 1-2/adelanto con monto precargado, dominio puro `nomina.ts`), RPC `register_expense_atomic` (`20260704_003`) que crea el egreso de caja (`cash_movements` tipo `expense`) en la misma transacción cuando el gasto se paga con efectivo de caja abierta | `(sin commit aún)` |
 | PLAN-49 | ✅ Hecho — comparativa mensual (últimos 6 meses, dominio puro `monthly-comparison.ts`), plantillas recurrentes ("Gastos del mes": crear/eliminar plantillas, "Registrar" abre el form prellenado y marca "Registrado este mes" vía `recurrentes.ts`), y export Excel de `/finanzas` con hojas Resumen/Gastos/Comparativa (`expense-export.ts`; se decidió exportar desde el propio módulo en vez de tocar el Excel de `/reportes` — ADR 0011). Probado end-to-end en Chrome contra producción el 2026-07-05 | `(sin commit aún)` |
@@ -152,6 +152,35 @@ estructurada con auditoría para una corrección legítima y frecuente.
 | ID | Título | Prioridad | Criterio de cierre |
 |---|---|---|---|
 | PLAN-44 | ✅ Hecho (auditor PASS) — Corregir apertura de caja (`opening_amount`) con auditoría | P1 | RPC `correct_cash_session_opening_atomic` (espejo de `void_cash_movement_atomic`): solo mientras `status = 'open'`, cualquier usuario activo de la tienda (caja compartida, igual que `close_cash_session_atomic`/PLAN-19 — no admin-only, no solo el dueño), motivo obligatorio, guarda `opening_amount` anterior/nuevo en `audit_logs` (`cash_session.opening_corrected`). UI: acción "Corregir apertura" en `caja.page.ts` con diálogo de confirmación (monto nuevo + motivo). Tests SQL (pgTAP) y unit del DTO/mapper. |
+
+### Bloque activo — Programa de fidelización MOVE ON Club (planeado 2026-07-14, núcleo implementado 2026-07-14)
+
+Diseño en `docs/adr/0013-programa-fidelizacion-move-on-club.md` y `docs/modules/loyalty.md`;
+sesiones: `docs/sessions/2026-07-14-plan-fidelizacion-move-on-club.md` (planeación) y
+`docs/sessions/2026-07-14-implementacion-move-on-club.md` (implementación). El dueño decidió
+adelantarlo el 2026-07-14, con un cambio sobre el plan: **búsqueda de cliente flexible por
+celular O por documento** (no solo celular). Migraciones `20260714_001..003` aplicadas al
+remoto y verificadas con batería E2E SQL (T1-T9 funcional, S1-S5 seguridad, A1-A4 ajuste
+manual, todo con rollback — ver sesión de implementación §5). La batería atrapó y corrigió un
+bug real: el check de desglose de descuentos no conocía el componente de canje (`20260714_003`).
+
+| ID | Título | Prioridad | Criterio de cierre |
+|---|---|---|---|
+| PLAN-50 | ✅ Hecho — Migración DB: identidad de cliente + esquema de fidelización | P0 | `20260714_001_loyalty_move_on_club.sql` aplicada al remoto: columnas en `clientes`/`productos`/`sales`/`sale_items`, tablas loyalty con RLS solo-lectura, RPCs internas con execute revocado |
+| PLAN-51 | ✅ Hecho — Dominio puro de fidelización + tests unitarios | P0 | `PhoneCO` (18 tests) + `stamps.ts` (20 tests): sellos elegibles, ciclos de recompensa, vigencia, descuento de canje, ajuste de línea |
+| PLAN-52 | ✅ Hecho — Sellos integrados a `create_sale_atomic` | P0 | `loyalty_apply_delta` + `loyalty_generate_rewards` en la misma transacción de la venta; idempotente (índice único earn por sale); smoke test remoto reproduce el ejemplo oficial (7+3 → 1 recompensa, quedan 2). pgTAP pendiente (bloqueado por PLAN-46) |
+| PLAN-53 | ✅ Hecho — Canje integrado a `create_sale_atomic` | P0 | `p_loyalty_redemptions` (default null, compatible); descuento dirigido en `sale_items.loyalty_discount_amount`, excluido del tope RN-S09; valida vigencia/estado/doble redención; extras se cobran aparte |
+| PLAN-54 | ✅ Hecho — Registro rápido + búsqueda flexible en POS | P0 | Botón "+ Nuevo" en el picker abre `ClienteFormDialog` sin perder la venta; búsqueda por celular normalizado (acepta +57/espacios/guiones) O documento O nombre; celular único con mensaje claro |
+| PLAN-55 | ✅ Hecho — UI de progreso y canje en POS | P0 | Bloque MOVE ON Club en el carrito: barra X/8, preview de sellos de la venta, botón "Canjear batido gratis" (aplica a la línea elegible más costosa, muestra diferencia), quitar canje |
+| PLAN-56 | ✅ Hecho — Reversa de sellos al anular venta | P1 | `void_sale_atomic` extendido: restaura recompensas canjeadas en la venta anulada, anula recompensas generadas por ella (devuelve sellos), reversa sellos ganados truncando en 0 (RN-LF14) |
+| PLAN-57 | ✅ Hecho (2026-07-16) — Historial completo de fidelización por cliente | P1 | Diálogo "Club" en `/clientes` (`cliente-loyalty.dialog.ts`): resumen (saldo, progreso X/N, recompensas vigentes) + ledger cronológico con etiquetas es-CO. Verificado E2E contra Supabase local |
+| PLAN-58 | ✅ Hecho (2026-07-16) — Ajuste manual de sellos (admin) | P1 | Bloque admin-only en el mismo diálogo "Club": delta ≠ 0 + motivo ≥ 3 (schema Zod `adjust-stamps-form.factory.ts`), invoca `adjust_loyalty_stamps` y refresca. Verificado E2E local |
+| PLAN-59 | ✅ Hecho (2026-07-16) — Configuración del programa en `/configuracion` | P2 | Sección "MOVE ON Club" (patrón factory/mapper/presenter + `LoyaltySettingsService` → `settings.data.fidelizacion`); `TiendaInfoService.fidelizacion` alimenta el POS (progreso X/N ya no usa el default hardcodeado) y el diálogo Club. Verificado E2E local (guardar 10 sellos → RPC y UI leen 10) |
+| PLAN-60 | ✅ Hecho (2026-07-16) — Vencimiento explícito + reporte de fidelización | P2 | RPC `expire_loyalty_rewards` (migración `20260716000100`, invocado oportunistamente desde el diálogo Club y el reporte; **pendiente aplicar al remoto**) + tab "Fidelización" en `/reportes` (dominio puro `program-report.ts` con 6 tests, `LoyaltyReportService`, `loyalty-report.component.ts`). Verificado E2E local |
+
+> **Acción del admin para activar el programa:** marcar los batidos participantes con el nuevo
+> checkbox "Participa en MOVE ON Club" en el formulario de producto, y activar
+> `autoriza_fidelizacion` al registrar clientes.
 
 ---
 

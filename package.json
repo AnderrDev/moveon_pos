@@ -12,6 +12,8 @@
     "prebuild": "node scripts/generate-runtime-config.mjs",
     "pretypecheck": "node scripts/generate-runtime-config.mjs",
     "dev": "ng serve pos-angular",
+    "predev:local": "SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0 node scripts/generate-runtime-config.mjs",
+    "dev:local": "ng serve pos-angular",
     "build": "ng build pos-angular",
     "start": "ng serve pos-angular --configuration production",
     "lint": "ng lint pos-angular",
