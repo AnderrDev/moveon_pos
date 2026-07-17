@@ -11,7 +11,7 @@ import type {
   ExpenseTemplateFrecuencia,
   ReinvestmentFundSettings,
 } from '@angular-app/features/expenses/domain/entities/expense.entity'
-import type { ExpenseRepository } from '@angular-app/features/expenses/domain/repositories/expense.repository'
+import { ExpenseRepository } from '@angular-app/features/expenses/domain/repositories/expense.repository'
 import type { ReinvestmentFundTotals } from '@angular-app/features/expenses/domain/services/reinvestment-fund'
 import type { CreateExpenseDto, VoidExpenseDto } from '@angular-app/features/expenses/domain/dtos/expense.dto'
 import type { SaveEmpleadoDto } from '@angular-app/features/expenses/domain/dtos/empleado.dto'
@@ -88,7 +88,7 @@ function rowToEmpleado(row: EmpleadoRow): Empleado {
 }
 
 @Injectable({ providedIn: 'root' })
-export class ExpensesRepository implements ExpenseRepository {
+export class ExpensesRepository extends ExpenseRepository {
   private readonly supabaseClient = inject(SupabaseClientService)
 
   async listCategories(tiendaId: string): Promise<ExpenseCategory[]> {

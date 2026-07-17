@@ -12,37 +12,40 @@ import type { SaveFundSettingsDto } from '@angular-app/features/expenses/domain/
 import type { SaveTemplateDto } from '@angular-app/features/expenses/domain/dtos/template.dto'
 
 /**
- * Contrato de persistencia del módulo de finanzas.
- * La implementación vive en la capa Angular
- * (`apps/pos-angular/src/app/features/expenses/expenses.repository.ts`)
+ * Contrato de persistencia del módulo de finanzas. Abstract class
+ * (ADR 0015 §6.1): TS puro, cero Angular, sirve como token de DI.
+ * La implementación vive en
+ * `apps/pos-angular/src/app/features/expenses/data/repositories/expenses.repository.ts`
  * y nunca expone tipos de Supabase al dominio.
  */
-export interface ExpenseRepository {
-  listCategories(tiendaId: string): Promise<ExpenseCategory[]>
+export abstract class ExpenseRepository {
+  abstract listCategories(tiendaId: string): Promise<ExpenseCategory[]>
   /** Gastos con `fecha_gasto` dentro de `[fromDate, toDate]` (`YYYY-MM-DD`, inclusive). */
-  listExpenses(tiendaId: string, fromDate: string, toDate: string): Promise<Expense[]>
-  createExpense(dto: CreateExpenseDto, userId: string): Promise<Expense>
-  voidExpense(dto: VoidExpenseDto, userId: string): Promise<Expense>
+  abstract listExpenses(tiendaId: string, fromDate: string, toDate: string): Promise<Expense[]>
+  abstract createExpense(dto: CreateExpenseDto, userId: string): Promise<Expense>
+  abstract voidExpense(dto: VoidExpenseDto, userId: string): Promise<Expense>
 
-  listEmpleados(tiendaId: string): Promise<Empleado[]>
-  saveEmpleado(dto: SaveEmpleadoDto): Promise<Empleado>
+  abstract listEmpleados(tiendaId: string): Promise<Empleado[]>
+  abstract saveEmpleado(dto: SaveEmpleadoDto): Promise<Empleado>
 
-  listTemplates(tiendaId: string): Promise<ExpenseTemplate[]>
-  saveTemplate(dto: SaveTemplateDto): Promise<ExpenseTemplate>
+  abstract listTemplates(tiendaId: string): Promise<ExpenseTemplate[]>
+  abstract saveTemplate(dto: SaveTemplateDto): Promise<ExpenseTemplate>
   /** Las plantillas son configuración (no registros transaccionales): borrado físico permitido. */
-  deleteTemplate(id: string, tiendaId: string): Promise<void>
+  abstract deleteTemplate(id: string, tiendaId: string): Promise<void>
 
   /** `null` cuando la tienda aún no configuró el fondo de reinversión. */
-  getFundSettings(tiendaId: string): Promise<ReinvestmentFundSettings | null>
-  saveFundSettings(dto: SaveFundSettingsDto): Promise<ReinvestmentFundSettings>
+  abstract getFundSettings(tiendaId: string): Promise<ReinvestmentFundSettings | null>
+  abstract saveFundSettings(dto: SaveFundSettingsDto): Promise<ReinvestmentFundSettings>
   /**
    * Totales del fondo desde `desdeIso` (fecha de inicio del fondo) más el
    * desglose del mes visible `[mesDesdeIso, mesHastaIso)` — fin exclusivo.
    */
-  getFundTotals(
+  abstract getFundTotals(
     tiendaId: string,
     desdeIso: string,
     mesDesdeIso: string,
     mesHastaIso: string,
   ): Promise<ReinvestmentFundTotals>
+  /** Totales de ventas completadas desde una fecha (para la comparativa mensual). */
+  abstract listSalesTotalsSince(tiendaId: string, fromIso: string): Promise<{ total: number; createdAt: Date }[]>
 }

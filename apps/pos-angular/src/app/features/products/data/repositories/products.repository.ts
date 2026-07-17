@@ -10,23 +10,21 @@ import {
 import type { Categoria, Product } from '@angular-app/features/products/domain/entities/product.entity'
 import type { CreateProductDto, UpdateProductDto } from '@angular-app/features/products/domain/dtos/product.dto'
 import type { CreateCategoriaDto, UpdateCategoriaDto } from '@angular-app/features/products/domain/dtos/categoria.dto'
-import type { InventoryLocation } from '@/shared/types'
+import {
+  ProductRepository as ProductRepositoryContract,
+  type InitialStockInput,
+  type ProductComponent,
+  type SearchProductsParams,
+} from '@angular-app/features/products/domain/repositories/product.repository'
 import {
   rowToProductComponent,
   buildComponentInsertRows,
   type ProductComponentRow,
-} from '@angular-app/features/products/presentation/services/product-component.helpers'
+} from '@angular-app/features/products/data/models/product-component.mapper'
 
 const PRODUCT_COLS =
   'id, tienda_id, nombre, sku, codigo_barras, categoria_id, proveedor, para_que_sirve, recomendado_para, image_url, tipo, unidad, precio_venta, costo, iva_tasa, stock_minimo, participa_fidelizacion, is_active, deleted_at, created_at, updated_at'
 const CATEGORIA_COLS = 'id, tienda_id, nombre, orden, is_active, created_at, updated_at'
-
-interface SearchProductsParams {
-  tiendaId: string
-  query?: string
-  categoriaId?: string | null
-  soloActivos?: boolean
-}
 
 interface UntypedClient {
   from(table: string): {
@@ -67,19 +65,8 @@ interface ProductComponentsClient {
   }
 }
 
-export interface InitialStockInput {
-  cantidad: number
-  ubicacion: InventoryLocation
-}
-
-export interface ProductComponent {
-  componenteId: string
-  componenteNombre: string
-  cantidad: number
-}
-
 @Injectable({ providedIn: 'root' })
-export class ProductsRepository {
+export class ProductsRepository extends ProductRepositoryContract {
   private readonly supabaseClient = inject(SupabaseClientService)
   private readonly audit = inject(AuditLogRepository)
 

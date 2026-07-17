@@ -1,61 +1,23 @@
-import type { Result } from '@/shared/result'
-import type { TiendaId, UserId, PaymentMethod } from '@/shared/types'
 import type { Sale } from '@angular-app/features/sales/domain/entities/sale.entity'
 
-export interface CreateSaleItemInput {
-  productId:      string
-  productoNombre: string
-  productoSku:    string | null
-  quantity:       number
-  unitPrice:      number
-  discountAmount: number
-  taxRate:        number
-  taxAmount:      number
-  total:          number
-}
-
-export interface CreatePaymentInput {
-  metodo:     PaymentMethod
-  amount:     number
-  referencia?: string
-}
-
-export interface CreateSaleInput {
-  tiendaId:       TiendaId
-  cashSessionId:  string
-  saleNumber:     string
-  cashierId:      UserId
-  clienteId?:     string
-  items:          CreateSaleItemInput[]
-  payments:       CreatePaymentInput[]
-  subtotal:       number
-  discountTotal:  number
-  taxTotal:       number
-  total:          number
-  change:         number
-  idempotencyKey: string
-}
-
-export interface VoidSaleInput {
-  saleId:      string
-  tiendaId:    TiendaId
-  voidedBy:    UserId
-  voidedReason: string
-}
-
-export interface CorrectPaymentInput {
-  paymentId:   string
-  tiendaId:    TiendaId
-  newMetodo:   PaymentMethod
-  correctedBy: UserId
-  reason:      string
-}
-
-export interface SaleRepository {
-  create(input: CreateSaleInput): Promise<Result<Sale>>
-  findById(id: string, tiendaId: TiendaId): Promise<Result<Sale | null>>
-  listBySession(cashSessionId: string, tiendaId: TiendaId): Promise<Result<Sale[]>>
-  listByDate(tiendaId: TiendaId, date: Date): Promise<Result<Sale[]>>
-  void(input: VoidSaleInput): Promise<Result<Sale>>
-  correctPayment(input: CorrectPaymentInput): Promise<Result<void>>
+/**
+ * Contrato de persistencia de ventas. Abstract class (ADR 0015 §6.1).
+ * Reescrito desde el uso real (2026-07-17): la creación de venta NO pasa por
+ * este repositorio — usa la RPC transaccional `create_sale_atomic` directo
+ * desde `PosSaleService` (ver `docs/modules/sales.md`), así que no hay
+ * método `create` aquí. La interfaz previa lo declaraba sin implementación
+ * real, y usaba `Result<T>`/`void()` (nombre reservado) que no coincidían
+ * con la implementación (`voidSale`, `throw`).
+ */
+export abstract class SaleRepository {
+  abstract findById(id: string, tiendaId: string): Promise<Sale | null>
+  abstract listBySession(cashSessionId: string, tiendaId: string): Promise<Sale[]>
+  abstract listByDate(tiendaId: string, start: Date, end: Date): Promise<Sale[]>
+  abstract voidSale(saleId: string, tiendaId: string, reason: string): Promise<void>
+  abstract correctPayment(
+    paymentId: string,
+    tiendaId: string,
+    newMetodo: string,
+    reason: string,
+  ): Promise<void>
 }

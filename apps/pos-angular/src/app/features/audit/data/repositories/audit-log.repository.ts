@@ -1,52 +1,15 @@
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
 import { SessionService } from '@angular-app/core/auth/session.service'
-import type {
-  AuditAction,
-  AuditEntityType,
-  AuditLog,
-  AuditLogFilter,
-} from '@angular-app/features/audit/domain/entities/audit-log.entity'
-
-interface AuditLogRow {
-  id: string
-  tienda_id: string
-  user_id: string
-  user_email: string
-  entity_type: string
-  entity_id: string
-  entity_label: string | null
-  action: string
-  changes: Record<string, unknown> | null
-  created_at: string
-}
-
-function rowToAuditLog(row: AuditLogRow): AuditLog {
-  return {
-    id: row.id,
-    tiendaId: row.tienda_id,
-    userId: row.user_id,
-    userEmail: row.user_email,
-    entityType: row.entity_type as AuditEntityType,
-    entityId: row.entity_id,
-    entityLabel: row.entity_label,
-    action: row.action as AuditAction,
-    changes: row.changes,
-    createdAt: new Date(row.created_at),
-  }
-}
-
-export interface LogEventInput {
-  tiendaId: string
-  entityType: AuditEntityType
-  entityId: string
-  entityLabel?: string | null
-  action: AuditAction
-  changes?: Record<string, unknown> | null
-}
+import type { AuditLog, AuditLogFilter } from '@angular-app/features/audit/domain/entities/audit-log.entity'
+import {
+  AuditLogRepository as AuditLogRepositoryContract,
+  type LogEventInput,
+} from '@angular-app/features/audit/domain/repositories/audit-log.repository'
+import { rowToAuditLog, type AuditLogRow } from '@angular-app/features/audit/data/models/audit-log.mapper'
 
 @Injectable({ providedIn: 'root' })
-export class AuditLogRepository {
+export class AuditLogRepository extends AuditLogRepositoryContract {
   private readonly supabase = inject(SupabaseClientService)
   private readonly session = inject(SessionService)
 

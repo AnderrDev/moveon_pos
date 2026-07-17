@@ -8,56 +8,20 @@ import {
   type CashSessionRow,
 } from '@angular-app/features/cash-register/data/models/cash-register.mapper'
 import type { CashMovement, CashSession } from '@angular-app/features/cash-register/domain/entities/cash-session.entity'
-import type { CashMovementType, PaymentMethod } from '@/shared/types'
+import {
+  CashRegisterRepository as CashRegisterRepositoryContract,
+  type AddMovementInput,
+  type CloseSessionInput,
+  type CorrectOpeningInput,
+  type OpenSessionInput,
+  type PaymentBreakdown,
+  type VoidMovementInput,
+} from '@angular-app/features/cash-register/domain/repositories/cash-register.repository'
 
 const SESSION_COLS =
   'id, tienda_id, opened_by, closed_by, status, opening_amount, expected_cash_amount, actual_cash_amount, difference, expected_sales_amount, actual_sales_amount, sales_difference, payment_closure, notas_cierre, opened_at, closed_at'
 const MOV_COLS =
   'id, cash_session_id, tipo, amount, motivo, created_by, created_at, status, voided_by, voided_at, voided_reason'
-
-export interface PaymentBreakdown {
-  metodo: string
-  count: number
-  total: number
-}
-
-export interface OpenSessionInput {
-  tiendaId: string
-  openedBy: string
-  openingAmount: number
-}
-
-export interface AddMovementInput {
-  cashSessionId: string
-  tipo: CashMovementType
-  amount: number
-  motivo: string
-  createdBy: string
-}
-
-export interface VoidMovementInput {
-  movementId: string
-  tiendaId: string
-  voidedBy: string
-  voidedReason: string
-}
-
-export interface CloseSessionInput {
-  sessionId: string
-  tiendaId: string
-  closedBy: string
-  actualCashAmount: number
-  actualPayments: { metodo: PaymentMethod; total: number }[]
-  notasCierre?: string
-}
-
-export interface CorrectOpeningInput {
-  sessionId: string
-  tiendaId: string
-  newAmount: number
-  correctedBy: string
-  reason: string
-}
 
 interface UntypedClient {
   from(table: string): {
@@ -77,7 +41,7 @@ interface RpcClient {
 }
 
 @Injectable({ providedIn: 'root' })
-export class CashRegisterRepository {
+export class CashRegisterRepository extends CashRegisterRepositoryContract {
   private readonly supabaseClient = inject(SupabaseClientService)
   private readonly audit = inject(AuditLogRepository)
 

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   rowToProductComponent,
-  filterComponentCandidates,
   buildComponentInsertRows,
   type ProductComponentRow,
-} from '@angular-app/features/products/presentation/services/product-component.helpers'
+} from '@angular-app/features/products/data/models/product-component.mapper'
+import { filterComponentCandidates } from '@angular-app/features/products/presentation/services/product-component.helpers'
 import type { Product } from '@angular-app/features/products/domain/entities/product.entity'
 
 // ─── fixtures ───────────────────────────────────────────────────────────────

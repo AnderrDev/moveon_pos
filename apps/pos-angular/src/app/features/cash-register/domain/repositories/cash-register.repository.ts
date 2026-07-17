@@ -1,66 +1,69 @@
-import type { Result } from '@/shared/result'
-import type { TiendaId, UserId, CashMovementType, PaymentMethod } from '@/shared/types'
-import type { CashSession, CashMovement } from '@angular-app/features/cash-register/domain/entities/cash-session.entity'
+import type { CashMovement, CashSession } from '@angular-app/features/cash-register/domain/entities/cash-session.entity'
+import type { CashMovementType, PaymentMethod } from '@/shared/types'
 
-export interface CashSessionPaymentBreakdown {
+export interface PaymentBreakdown {
   metodo: string
   count: number
   total: number
 }
 
-export interface CashSessionActualPayment {
-  metodo: PaymentMethod
-  total: number
-}
-
-export interface OpenSessionParams {
-  tiendaId: TiendaId
-  openedBy: UserId
+export interface OpenSessionInput {
+  tiendaId: string
+  openedBy: string
   openingAmount: number
 }
 
-export interface AddMovementParams {
+export interface AddMovementInput {
   cashSessionId: string
   tipo: CashMovementType
   amount: number
   motivo: string
-  createdBy: UserId
+  createdBy: string
 }
 
-export interface VoidMovementParams {
+export interface VoidMovementInput {
   movementId: string
-  tiendaId: TiendaId
-  voidedBy: UserId
+  tiendaId: string
+  voidedBy: string
   voidedReason: string
 }
 
-export interface CloseSessionParams {
+export interface CloseSessionInput {
   sessionId: string
-  tiendaId: TiendaId
-  closedBy: UserId
+  tiendaId: string
+  closedBy: string
   actualCashAmount: number
-  actualPayments: CashSessionActualPayment[]
+  actualPayments: { metodo: PaymentMethod; total: number }[]
   notasCierre?: string
 }
 
-export interface CorrectOpeningParams {
+export interface CorrectOpeningInput {
   sessionId: string
-  tiendaId: TiendaId
+  tiendaId: string
   newAmount: number
-  correctedBy: UserId
+  correctedBy: string
   reason: string
 }
 
-export interface CashRegisterRepository {
-  getOpenSession(tiendaId: TiendaId): Promise<Result<CashSession | null>>
-  getSessionById(id: string, tiendaId: TiendaId): Promise<Result<CashSession | null>>
-  listSessions(tiendaId: TiendaId, limit?: number): Promise<Result<CashSession[]>>
-  openSession(params: OpenSessionParams): Promise<Result<CashSession>>
-  addMovement(params: AddMovementParams): Promise<Result<CashMovement>>
-  voidMovement(params: VoidMovementParams): Promise<Result<CashMovement>>
-  listMovements(sessionId: string): Promise<Result<CashMovement[]>>
-  getCashPaymentsTotal(sessionId: string, tiendaId: TiendaId): Promise<Result<number>>
-  getPaymentBreakdown(sessionId: string, tiendaId: TiendaId): Promise<Result<CashSessionPaymentBreakdown[]>>
-  closeSession(params: CloseSessionParams): Promise<Result<CashSession>>
-  correctOpening(params: CorrectOpeningParams): Promise<Result<CashSession>>
+/**
+ * Contrato de persistencia del módulo de caja. Abstract class (no interface):
+ * TS puro, cero Angular, y sirve como token de inyección de dependencias
+ * (ADR 0015 §6.1). La implementación vive en
+ * `apps/pos-angular/src/app/features/cash-register/data/repositories/cash-register.repository.ts`.
+ * Reescrito desde el uso real (decisión 2026-07-17): la interfaz previa
+ * (`Result<T>`, `getCashPaymentsTotal`) era aspiracional y no coincidía con
+ * la implementación en producción.
+ */
+export abstract class CashRegisterRepository {
+  abstract getOpenSession(tiendaId: string): Promise<CashSession | null>
+  abstract getSessionById(id: string, tiendaId: string): Promise<CashSession | null>
+  abstract listSessions(tiendaId: string, limit?: number): Promise<CashSession[]>
+  abstract listSessionsByDateRange(tiendaId: string, start: Date, end: Date): Promise<CashSession[]>
+  abstract openSession(input: OpenSessionInput): Promise<CashSession>
+  abstract addMovement(input: AddMovementInput): Promise<CashMovement>
+  abstract voidMovement(input: VoidMovementInput): Promise<void>
+  abstract listMovements(sessionId: string): Promise<CashMovement[]>
+  abstract getPaymentBreakdown(sessionId: string, tiendaId: string): Promise<PaymentBreakdown[]>
+  abstract closeSession(input: CloseSessionInput): Promise<CashSession>
+  abstract correctOpening(input: CorrectOpeningInput): Promise<CashSession>
 }

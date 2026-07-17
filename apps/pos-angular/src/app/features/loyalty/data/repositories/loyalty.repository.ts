@@ -1,73 +1,19 @@
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
-import type {
-  LoyaltyReward,
-  LoyaltyRewardStatus,
-  LoyaltyTransaction,
-  LoyaltyTransactionType,
-} from '@angular-app/features/loyalty/domain/entities/loyalty.entity'
-
-interface AccountRow {
-  stamps_balance: number
-  total_stamps_earned: number
-  total_rewards_redeemed: number
-}
-
-interface RewardRow {
-  id: string
-  tienda_id: string
-  cliente_id: string
-  cost_stamps: number
-  reward_value_cop: number
-  status: string
-  generated_at: string
-  expires_at: string
-  redeemed_at: string | null
-  redeemed_sale_id: string | null
-  voided_at: string | null
-  voided_reason: string | null
-}
-
-interface TransactionRow {
-  id: string
-  tienda_id: string
-  cliente_id: string
-  sale_id: string | null
-  type: string
-  stamps_delta: number
-  balance_after: number
-  reason: string | null
-  created_by: string
-  created_at: string
-}
-
-const REWARD_COLS =
-  'id, tienda_id, cliente_id, cost_stamps, reward_value_cop, status, generated_at, expires_at, redeemed_at, redeemed_sale_id, voided_at, voided_reason'
-
-function rowToReward(row: RewardRow): LoyaltyReward {
-  return {
-    id: row.id,
-    tiendaId: row.tienda_id,
-    clienteId: row.cliente_id,
-    costStamps: row.cost_stamps,
-    rewardValueCop: Number(row.reward_value_cop),
-    status: row.status as LoyaltyRewardStatus,
-    generatedAt: new Date(row.generated_at),
-    expiresAt: new Date(row.expires_at),
-    redeemedAt: row.redeemed_at ? new Date(row.redeemed_at) : null,
-    redeemedSaleId: row.redeemed_sale_id,
-    voidedAt: row.voided_at ? new Date(row.voided_at) : null,
-    voidedReason: row.voided_reason,
-  }
-}
-
-export interface LoyaltySummary {
-  stampsBalance: number
-  totalStampsEarned: number
-  totalRewardsRedeemed: number
-  /** Recompensas disponibles y vigentes, la más próxima a vencer primero. */
-  availableRewards: LoyaltyReward[]
-}
+import type { LoyaltyTransaction } from '@angular-app/features/loyalty/domain/entities/loyalty.entity'
+import {
+  LoyaltyRepository as LoyaltyRepositoryContract,
+  type AdjustStampsInput,
+  type LoyaltySummary,
+} from '@angular-app/features/loyalty/domain/repositories/loyalty.repository'
+import {
+  REWARD_COLS,
+  rowToReward,
+  rowToTransaction,
+  type AccountRow,
+  type RewardRow,
+  type TransactionRow,
+} from '@angular-app/features/loyalty/data/models/loyalty.mapper'
 
 interface RpcClient {
   rpc<T>(
@@ -120,7 +66,7 @@ interface LoyaltyDbClient {
 }
 
 @Injectable({ providedIn: 'root' })
-export class LoyaltyRepository {
+export class LoyaltyRepository extends LoyaltyRepositoryContract {
   private readonly supabaseClient = inject(SupabaseClientService)
 
   private get db(): LoyaltyDbClient {
@@ -168,18 +114,7 @@ export class LoyaltyRepository {
       .limit(limit)
 
     if (error) throw new Error(error.message)
-    return (data ?? []).map((row) => ({
-      id: row.id,
-      tiendaId: row.tienda_id,
-      clienteId: row.cliente_id,
-      saleId: row.sale_id,
-      type: row.type as LoyaltyTransactionType,
-      stampsDelta: row.stamps_delta,
-      balanceAfter: row.balance_after,
-      reason: row.reason,
-      createdBy: row.created_by,
-      createdAt: new Date(row.created_at),
-    }))
+    return (data ?? []).map(rowToTransaction)
   }
 
   /**
@@ -197,13 +132,7 @@ export class LoyaltyRepository {
   }
 
   /** Ajuste manual admin-only (RN-LF16). Devuelve el nuevo saldo. */
-  async adjustStamps(input: {
-    tiendaId: string
-    clienteId: string
-    delta: number
-    reason: string
-    createdBy: string
-  }): Promise<number> {
+  async adjustStamps(input: AdjustStampsInput): Promise<number> {
     const rpcClient = this.supabaseClient.supabase as unknown as RpcClient
     const { data, error } = await rpcClient.rpc<number>('adjust_loyalty_stamps', {
       p_tienda_id: input.tiendaId,

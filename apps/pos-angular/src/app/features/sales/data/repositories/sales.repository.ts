@@ -3,6 +3,7 @@ import { SupabaseClientService } from '@angular-app/core/supabase/supabase-clien
 import { AuditLogRepository } from '@angular-app/features/audit/data/repositories/audit-log.repository'
 import { rowToSale, type SaleRow } from '@angular-app/features/sales/data/models/sale.mapper'
 import type { Sale } from '@angular-app/features/sales/domain/entities/sale.entity'
+import { SaleRepository as SaleRepositoryContract } from '@angular-app/features/sales/domain/repositories/sale.repository'
 
 const SALE_COLS =
   'id, tienda_id, cash_session_id, sale_number, cliente_id, cashier_id, cashier_email, subtotal, item_discount_total, global_discount_total, discount_total, discount_reason, discount_approved_by, tax_total, total, status, billing_status, billing_document_id, voided_by, voided_at, voided_reason, idempotency_key, created_at, updated_at'
@@ -18,7 +19,7 @@ interface RpcClient {
 }
 
 @Injectable({ providedIn: 'root' })
-export class SalesRepository {
+export class SalesRepository extends SaleRepositoryContract {
   private readonly supabaseClient = inject(SupabaseClientService)
   private readonly audit = inject(AuditLogRepository)
 

@@ -184,9 +184,7 @@ export class SupabaseProductRepository extends ProductRepository { ... }
 
 ### 6.2 Composition root por feature: `<feature>.providers.ts`
 
-El ÚNICO archivo que conoce dominio E implementación a la vez. Se registra en la ruta
-lazy de la feature (`app.routes.ts` → `providers: [...productsProviders]`), no en root,
-para que el árbol de DI respete el lazy-loading:
+El ÚNICO archivo que conoce dominio E implementación a la vez:
 
 ```ts
 // features/products/products.providers.ts
@@ -197,6 +195,21 @@ export const productsProviders: Provider[] = [
 
 Presentación inyecta la ABSTRACCIÓN: `inject(ProductRepository)` — nunca la clase Supabase.
 (Dependency Inversion: presentación y dominio no saben que Supabase existe.)
+
+**Registro: en `app.config.ts` (root), no por ruta — decisión revisada en PLAN-62.**
+La idea original era registrar cada `<feature>.providers.ts` en la ruta lazy de esa
+feature para que el árbol de DI respetara el lazy-loading. Al implementar PLAN-62 se
+confirmó que no aplica a este proyecto: casi todos los repositorios se consumen desde
+**múltiples rutas a la vez** (`InventoryRepository` desde `/pos`, `/inventario` y
+`/reportes`; `AuditLogRepository` desde prácticamente todos los repos de datos;
+`SaleRepository`/`LoyaltyRepository`/`CustomerRepository` igual). Angular resuelve
+providers por el injector de la ruta que los declara — declararlos solo en la ruta
+"dueña" los deja invisibles para las rutas hermanas que también los necesitan. Además
+`withPreloading(PreloadAllModules)` ya precarga el código de todas las rutas, así que no
+hay beneficio real de code-splitting que proteger escopando por ruta. Se registran todos
+en `app.config.ts` importando cada `<feature>.providers.ts` — el archivo por feature
+sigue siendo el composition root (dominio + implementación juntos), solo cambia dónde se
+agrega a la lista de providers de Angular.
 
 ### 6.3 Use-cases: funciones puras con deps como argumento (patrón ya vigente)
 

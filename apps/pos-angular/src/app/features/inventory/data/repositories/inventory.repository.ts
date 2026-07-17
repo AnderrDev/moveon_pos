@@ -7,6 +7,12 @@ import {
 } from '@angular-app/features/inventory/data/models/inventory.mapper'
 import type { InventoryMovement, StockLevel } from '@angular-app/features/inventory/domain/entities/inventory.entity'
 import { isLowStock } from '@angular-app/features/inventory/domain/services/low-stock'
+import {
+  InventoryRepository as InventoryRepositoryContract,
+  type AdjustStockInput,
+  type RegisterEntryInput,
+  type TransferStockInput,
+} from '@angular-app/features/inventory/domain/repositories/inventory.repository'
 import type { InventoryLocation, ProductType } from '@/shared/types'
 
 const MOV_COLS =
@@ -29,40 +35,8 @@ interface UntypedClient {
   }
 }
 
-export interface RegisterEntryInput {
-  tiendaId: string
-  productId: string
-  productName?: string
-  cantidad: number
-  ubicacion: InventoryLocation
-  costoUnitario?: number
-  motivo?: string
-  createdBy: string
-}
-
-export interface AdjustStockInput {
-  tiendaId: string
-  productId: string
-  productName?: string
-  cantidadDelta: number
-  ubicacion: InventoryLocation
-  motivo: string
-  createdBy: string
-}
-
-export interface TransferStockInput {
-  tiendaId: string
-  productId: string
-  productName?: string
-  fromUbicacion: InventoryLocation
-  toUbicacion: InventoryLocation
-  cantidad: number
-  motivo: string
-  createdBy: string
-}
-
 @Injectable({ providedIn: 'root' })
-export class InventoryRepository {
+export class InventoryRepository extends InventoryRepositoryContract {
   private readonly supabaseClient = inject(SupabaseClientService)
   private readonly audit = inject(AuditLogRepository)
 
