@@ -23,15 +23,15 @@ import type {
 } from '@/modules/loyalty/domain/entities/loyalty.entity'
 import type { Cliente } from '@/modules/customers/domain/entities/cliente.entity'
 import { DEFAULT_LOYALTY_CONFIG, type LoyaltyConfig } from '@/modules/loyalty/domain/loyalty-config'
-import { DialogComponent } from '../../shared/ui/dialog.component'
-import { ButtonComponent } from '../../shared/ui/button.component'
-import { FormNumberInputComponent } from '../../shared/forms/form-number-input.component'
-import { FormInputComponent } from '../../shared/forms/form-input.component'
-import { FormErrorComponent } from '../../shared/forms/form-error.component'
+import { DialogComponent } from '../../shared/organisms/dialog.component'
+import { ButtonComponent } from '../../shared/atoms/button.component'
+import { FormNumberInputComponent } from '../../shared/molecules/form-number-input.component'
+import { FormInputComponent } from '../../shared/molecules/form-input.component'
+import { FormErrorComponent } from '../../shared/molecules/form-error.component'
 import { LoyaltyRepository, type LoyaltySummary } from './loyalty.repository'
 import { SessionService } from '../../core/auth/session.service'
 import { TiendaInfoService } from '../../core/tienda/tienda-info.service'
-import { ToastService } from '../../shared/feedback/toast.service'
+import { ToastService } from '../../shared/organisms/toast/toast.service'
 
 const TYPE_LABELS: Record<LoyaltyTransactionType, string> = {
   earn: 'Sellos ganados',

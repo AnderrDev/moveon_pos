@@ -9,11 +9,11 @@ import {
 } from '@angular/core'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
 import { formatCurrency } from '@/shared/lib/format'
-import { DialogComponent } from '../../shared/ui/dialog.component'
-import { ButtonComponent } from '../../shared/ui/button.component'
-import { FormCurrencyInputComponent } from '../../shared/forms/form-currency-input.component'
-import { FormNumberInputComponent } from '../../shared/forms/form-number-input.component'
-import { FormErrorComponent } from '../../shared/forms/form-error.component'
+import { DialogComponent } from '../../shared/organisms/dialog.component'
+import { ButtonComponent } from '../../shared/atoms/button.component'
+import { FormCurrencyInputComponent } from '../../shared/molecules/form-currency-input.component'
+import { FormNumberInputComponent } from '../../shared/molecules/form-number-input.component'
+import { FormErrorComponent } from '../../shared/molecules/form-error.component'
 import type { PosCartItem } from './pos-cart.store'
 
 export interface ItemDiscountResult {

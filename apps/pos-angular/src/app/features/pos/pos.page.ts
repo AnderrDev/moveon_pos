@@ -11,7 +11,7 @@ import { buildPaymentEntry, requiresReference } from '@/modules/sales/domain/ser
 import type { PaymentMethod } from '@/shared/types'
 import { SessionService } from '../../core/auth/session.service'
 import { TiendaInfoService } from '../../core/tienda/tienda-info.service'
-import { ToastService } from '../../shared/feedback/toast.service'
+import { ToastService } from '../../shared/organisms/toast/toast.service'
 import { PosCartStore } from './pos-cart.store'
 import { PosDataService } from './pos-data.service'
 import { PosSaleService } from './pos-sale.service'

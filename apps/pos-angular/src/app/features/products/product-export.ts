@@ -1,6 +1,6 @@
 import type { Categoria, Product } from '@/modules/products/domain/entities/product.entity'
-import type { ExcelWorkbookDefinition } from '../../shared/export/excel-export.service'
-import { buildExportFilename } from '../../shared/export/export-filename'
+import type { ExcelWorkbookDefinition } from '../../shared/services/export/excel-export.service'
+import { buildExportFilename } from '../../shared/services/export/export-filename'
 
 const PRODUCT_TYPE_LABELS: Record<Product['tipo'], string> = {
   simple: 'Simple',

@@ -8,15 +8,15 @@ import {
   signal,
 } from '@angular/core'
 import { getErrorMessage } from '@/shared/lib/error-message'
-import { DialogComponent } from '../../shared/ui/dialog.component'
-import { BadgeComponent } from '../../shared/ui/badge.component'
-import { ButtonComponent } from '../../shared/ui/button.component'
+import { DialogComponent } from '../../shared/organisms/dialog.component'
+import { BadgeComponent } from '../../shared/atoms/badge.component'
+import { ButtonComponent } from '../../shared/atoms/button.component'
 import { InventoryRepository } from './inventory.repository'
 import { SessionService } from '../../core/auth/session.service'
 import { formatTime, formatShortDate } from '@/shared/lib/format'
 import type { InventoryMovement } from '@/modules/inventory/domain/entities/inventory.entity'
-import { ExcelExportService } from '../../shared/export/excel-export.service'
-import { ToastService } from '../../shared/feedback/toast.service'
+import { ExcelExportService } from '../../shared/services/export/excel-export.service'
+import { ToastService } from '../../shared/organisms/toast/toast.service'
 import { buildKardexWorkbook } from './inventory-export'
 
 interface ProductSummary {

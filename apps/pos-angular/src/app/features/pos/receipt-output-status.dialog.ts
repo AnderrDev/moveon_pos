@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core'
-import { ButtonComponent } from '../../shared/ui/button.component'
-import { DialogComponent } from '../../shared/ui/dialog.component'
+import { ButtonComponent } from '../../shared/atoms/button.component'
+import { DialogComponent } from '../../shared/organisms/dialog.component'
 
 export type ReceiptOutputKind = 'receipt' | 'drawer'
 export type ReceiptOutputStatus = 'printing' | 'error'

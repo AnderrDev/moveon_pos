@@ -9,8 +9,8 @@ import type { ReinvestmentFund } from '@/modules/expenses/domain/services/reinve
 import type {
   ExcelCellValue,
   ExcelWorkbookDefinition,
-} from '../../shared/export/excel-export.service'
-import { buildExportFilename } from '../../shared/export/export-filename'
+} from '../../shared/services/export/excel-export.service'
+import { buildExportFilename } from '../../shared/services/export/export-filename'
 import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
 
 const METODO_LABEL: Record<ExpenseMetodoPago, string> = {

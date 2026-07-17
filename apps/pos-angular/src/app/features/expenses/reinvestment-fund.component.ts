@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core'
 import { formatCurrency } from '@/shared/lib/format'
-import { ButtonComponent } from '../../shared/ui/button.component'
+import { ButtonComponent } from '../../shared/atoms/button.component'
 import type { ReinvestmentFund } from '@/modules/expenses/domain/services/reinvestment-fund'
 
 /**

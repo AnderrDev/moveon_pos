@@ -1,6 +1,6 @@
 import type { InventoryMovement } from '@/modules/inventory/domain/entities/inventory.entity'
-import type { ExcelWorkbookDefinition } from '../../shared/export/excel-export.service'
-import { buildExportFilename } from '../../shared/export/export-filename'
+import type { ExcelWorkbookDefinition } from '../../shared/services/export/excel-export.service'
+import { buildExportFilename } from '../../shared/services/export/export-filename'
 
 export interface InventoryExportRow {
   nombre: string

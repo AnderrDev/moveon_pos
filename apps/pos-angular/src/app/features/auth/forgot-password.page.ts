@@ -2,8 +2,8 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { ReactiveFormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
 import { SessionService } from '../../core/auth/session.service'
-import { FormInputComponent } from '../../shared/forms/form-input.component'
-import { FormErrorComponent } from '../../shared/forms/form-error.component'
+import { FormInputComponent } from '../../shared/molecules/form-input.component'
+import { FormErrorComponent } from '../../shared/molecules/form-error.component'
 import { ForgotPasswordFormPresenter } from './forgot-password-form.presenter'
 import { forgotPasswordFormMapper } from '@/modules/auth/forms/forgot-password-form.mapper'
 

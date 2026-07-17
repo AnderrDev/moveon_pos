@@ -1,6 +1,6 @@
 import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
-import type { ExcelWorkbookDefinition } from '../../shared/export/excel-export.service'
-import { buildExportFilename } from '../../shared/export/export-filename'
+import type { ExcelWorkbookDefinition } from '../../shared/services/export/excel-export.service'
+import { buildExportFilename } from '../../shared/services/export/export-filename'
 import type { DailyReport, StockReportRow } from './reports.service'
 
 function saleStatusLabel(status: string): string {

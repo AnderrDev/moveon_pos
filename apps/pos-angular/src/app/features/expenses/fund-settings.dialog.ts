@@ -9,12 +9,12 @@ import {
 } from '@angular/core'
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms'
 import { getErrorMessage } from '@/shared/lib/error-message'
-import { DialogComponent } from '../../shared/ui/dialog.component'
-import { ButtonComponent } from '../../shared/ui/button.component'
-import { FormCurrencyInputComponent } from '../../shared/forms/form-currency-input.component'
-import { FormErrorComponent } from '../../shared/forms/form-error.component'
+import { DialogComponent } from '../../shared/organisms/dialog.component'
+import { ButtonComponent } from '../../shared/atoms/button.component'
+import { FormCurrencyInputComponent } from '../../shared/molecules/form-currency-input.component'
+import { FormErrorComponent } from '../../shared/molecules/form-error.component'
 import { SessionService } from '../../core/auth/session.service'
-import { ToastService } from '../../shared/feedback/toast.service'
+import { ToastService } from '../../shared/organisms/toast/toast.service'
 import { ExpensesRepository } from './expenses.repository'
 import {
   createFundSettingsFormDefaults,

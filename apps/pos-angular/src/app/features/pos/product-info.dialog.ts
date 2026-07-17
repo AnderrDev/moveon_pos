@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core'
 import { formatCurrency } from '@/shared/lib/format'
-import { DialogComponent } from '../../shared/ui/dialog.component'
+import { DialogComponent } from '../../shared/organisms/dialog.component'
 import type { PosProduct } from './pos.types'
 
 @Component({

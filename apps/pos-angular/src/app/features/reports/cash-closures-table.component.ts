@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core'
 import { formatCurrency, formatTime } from '@/shared/lib/format'
-import { BadgeComponent } from '../../shared/ui/badge.component'
+import { BadgeComponent } from '../../shared/atoms/badge.component'
 import type { DailySession } from './reports.service'
 
 /**

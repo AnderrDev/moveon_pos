@@ -1,8 +1,8 @@
 import type { CashMovement } from '@/modules/cash-register/domain/entities/cash-session.entity'
 import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
 import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
-import type { ExcelWorkbookDefinition } from '../../shared/export/excel-export.service'
-import { buildExportFilename } from '../../shared/export/export-filename'
+import type { ExcelWorkbookDefinition } from '../../shared/services/export/excel-export.service'
+import { buildExportFilename } from '../../shared/services/export/export-filename'
 
 const CASH_MOVEMENT_LABELS: Record<string, string> = {
   cash_in: 'Ingreso',

@@ -9,10 +9,10 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
-import { DialogComponent } from '../ui/dialog.component'
-import { ButtonComponent } from '../ui/button.component'
-import { FormTextareaComponent } from '../forms/form-textarea.component'
-import { FormErrorComponent } from '../forms/form-error.component'
+import { DialogComponent } from '../dialog.component'
+import { ButtonComponent } from '../../atoms/button.component'
+import { FormTextareaComponent } from '../../molecules/form-textarea.component'
+import { FormErrorComponent } from '../../molecules/form-error.component'
 import { isValidVoidReason, VOID_REASON_MIN_LENGTH } from './void-reason'
 
 @Component({

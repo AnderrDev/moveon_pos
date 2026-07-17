@@ -10,7 +10,7 @@ import {
 } from '@angular/core'
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { normalizePhoneCO } from '@/modules/customers/domain/value-objects/phone-co'
-import { DialogComponent } from '../../shared/ui/dialog.component'
+import { DialogComponent } from '../../shared/organisms/dialog.component'
 import { CustomersRepository } from '../customers/customers.repository'
 import { SessionService } from '../../core/auth/session.service'
 import type { Cliente } from '@/modules/customers/domain/entities/cliente.entity'

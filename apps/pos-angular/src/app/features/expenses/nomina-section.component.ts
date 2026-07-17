@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core'
 import { formatCurrency } from '@/shared/lib/format'
-import { BadgeComponent } from '../../shared/ui/badge.component'
-import { ButtonComponent } from '../../shared/ui/button.component'
+import { BadgeComponent } from '../../shared/atoms/badge.component'
+import { ButtonComponent } from '../../shared/atoms/button.component'
 import type { Empleado } from '@/modules/expenses/domain/entities/expense.entity'
 
 /**

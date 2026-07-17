@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core'
-import { BadgeComponent } from '../ui/badge.component'
+import { BadgeComponent } from '../atoms/badge.component'
 import { formatCurrency, formatTime, formatShortDate } from '@/shared/lib/format'
 import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
 import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
