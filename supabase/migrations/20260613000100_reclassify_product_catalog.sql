@@ -23,14 +23,21 @@ set nombre = case nombre
 where tienda_id = 'a1b2c3d4-0000-0000-0000-000000000001'
   and nombre in ('Proteina', 'Creatina', 'Pre entreno', 'Vitaminas', 'Default');
 
+-- Migración de datos de la tienda de producción: en una base local recién
+-- creada esa tienda no existe todavía, así que el insert se condiciona para
+-- que `supabase db reset` no falle (reparado 2026-07-16, sesión PLAN-46).
 insert into public.categorias (id, tienda_id, nombre, orden)
-values
-  ('fe927ec5-7642-4576-8855-67f1526d0141', 'a1b2c3d4-0000-0000-0000-000000000001', 'Aminoácidos y recuperación', 40),
-  ('7be7206f-c24a-47ac-8857-5d360c1ef241', 'a1b2c3d4-0000-0000-0000-000000000001', 'Termogénicos', 60),
-  ('77bb03f1-9d68-4256-b99d-287358d7fe43', 'a1b2c3d4-0000-0000-0000-000000000001', 'Ganadores de peso', 70),
-  ('d1853087-1963-42a2-a402-90554f30bfbc', 'a1b2c3d4-0000-0000-0000-000000000001', 'Energizantes', 80),
-  ('932c6c21-aa23-460b-8300-2a9cf1d23a72', 'a1b2c3d4-0000-0000-0000-000000000001', 'Alimentos proteicos', 90),
-  ('30b97cbc-73ef-455c-874f-0c93d94b13a5', 'a1b2c3d4-0000-0000-0000-000000000001', 'Batidos', 100)
+select v.id::uuid, v.tienda_id::uuid, v.nombre, v.orden
+from (
+  values
+    ('fe927ec5-7642-4576-8855-67f1526d0141', 'a1b2c3d4-0000-0000-0000-000000000001', 'Aminoácidos y recuperación', 40),
+    ('7be7206f-c24a-47ac-8857-5d360c1ef241', 'a1b2c3d4-0000-0000-0000-000000000001', 'Termogénicos', 60),
+    ('77bb03f1-9d68-4256-b99d-287358d7fe43', 'a1b2c3d4-0000-0000-0000-000000000001', 'Ganadores de peso', 70),
+    ('d1853087-1963-42a2-a402-90554f30bfbc', 'a1b2c3d4-0000-0000-0000-000000000001', 'Energizantes', 80),
+    ('932c6c21-aa23-460b-8300-2a9cf1d23a72', 'a1b2c3d4-0000-0000-0000-000000000001', 'Alimentos proteicos', 90),
+    ('30b97cbc-73ef-455c-874f-0c93d94b13a5', 'a1b2c3d4-0000-0000-0000-000000000001', 'Batidos', 100)
+) as v(id, tienda_id, nombre, orden)
+where exists (select 1 from public.tiendas t where t.id = v.tienda_id::uuid)
 on conflict (tienda_id, nombre) do update
 set orden = excluded.orden,
     is_active = true;

@@ -41,35 +41,53 @@ create policy "combos: anon puede leer activos"
   on public.combos_semana for select to anon
   using (is_active = true);
 
+-- En el remoto esta función existía creada ad-hoc; se define aquí de forma
+-- idempotente para que la base local se pueda inicializar desde cero (PLAN-46).
+create or replace function public.update_updated_at_column()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
 create trigger tg_combos_semana_updated_at
   before update on public.combos_semana
   for each row execute function update_updated_at_column();
 
 -- ─── Combos de ejemplo ────────────────────────────────────────────────────────
+-- Datos de la tienda de producción: condicionado a que la tienda exista para
+-- que `supabase db reset` en local no falle (reparado 2026-07-16, PLAN-46).
 insert into public.combos_semana
   (tienda_id, nombre, descripcion, precio, precio_original, etiqueta, items, orden)
-values
-  (
-    'a1b2c3d4-0000-0000-0000-000000000001',
-    'Pack Inicio Gym',
-    'Todo lo que necesitas para empezar: proteína + creatina + batido de bienvenida',
-    189900, 230000, '🔥 MÁS POPULAR',
-    ARRAY['WHEY GOLD STANDARD CHOCOLATE 2LB', 'CREATINA MONO HEALTHY SPORT 50 SERV', 'BATIDO EN LECHE'],
-    10
-  ),
-  (
-    'a1b2c3d4-0000-0000-0000-000000000001',
-    'Combo Fuerza & Energía',
-    'Pre-entreno + creatina para entrenamientos explosivos',
-    119900, 145000, '⚡ COMBO SEMANA',
-    ARRAY['C4 ORIGINAL 30 SERV', 'CREATINA PLATINUM 90 SERV'],
-    20
-  ),
-  (
-    'a1b2c3d4-0000-0000-0000-000000000001',
-    'Batido Power + Proteína',
-    'Batido personalizado en leche + proteína en sachet para llevar',
-    29900, 38000, '🥤 ESPECIAL DEL DÍA',
-    ARRAY['BATIDO EN LECHE', 'BIPRO CLASSIC VAINILLA SACHET 26G'],
-    30
-  );
+select v.tienda_id::uuid, v.nombre, v.descripcion, v.precio, v.precio_original, v.etiqueta, v.items, v.orden
+from (
+  values
+    (
+      'a1b2c3d4-0000-0000-0000-000000000001',
+      'Pack Inicio Gym',
+      'Todo lo que necesitas para empezar: proteína + creatina + batido de bienvenida',
+      189900, 230000, '🔥 MÁS POPULAR',
+      ARRAY['WHEY GOLD STANDARD CHOCOLATE 2LB', 'CREATINA MONO HEALTHY SPORT 50 SERV', 'BATIDO EN LECHE'],
+      10
+    ),
+    (
+      'a1b2c3d4-0000-0000-0000-000000000001',
+      'Combo Fuerza & Energía',
+      'Pre-entreno + creatina para entrenamientos explosivos',
+      119900, 145000, '⚡ COMBO SEMANA',
+      ARRAY['C4 ORIGINAL 30 SERV', 'CREATINA PLATINUM 90 SERV'],
+      20
+    ),
+    (
+      'a1b2c3d4-0000-0000-0000-000000000001',
+      'Batido Power + Proteína',
+      'Batido personalizado en leche + proteína en sachet para llevar',
+      29900, 38000, '🥤 ESPECIAL DEL DÍA',
+      ARRAY['BATIDO EN LECHE', 'BIPRO CLASSIC VAINILLA SACHET 26G'],
+      30
+    )
+) as v(tienda_id, nombre, descripcion, precio, precio_original, etiqueta, items, orden)
+where exists (select 1 from public.tiendas t where t.id = v.tienda_id::uuid);

@@ -54,6 +54,8 @@ create policy "admin_only" on public.reinvestment_fund_settings
 -- El COGS usa el costo ACTUAL del producto (misma convención que /reportes);
 -- productos sin costo capturado se excluyen (no se asume 0).
 -- `p_mes_hasta` es exclusivo (primer instante del mes siguiente).
+-- Reconciliado 2026-07-16 con el remoto: la versión desplegada NO devuelve
+-- `ventas_sin_costo` (expenses.repository.ts lo trata con fallback a 0).
 create or replace function public.get_reinvestment_fund_totals(
   p_tienda_id uuid,
   p_desde     timestamptz,
@@ -64,7 +66,6 @@ create or replace function public.get_reinvestment_fund_totals(
   compras_acumuladas numeric,
   cogs_mes           numeric,
   compras_mes        numeric,
-  ventas_sin_costo   integer,
   entradas_sin_costo integer
 )
 language sql
@@ -88,16 +89,6 @@ as $$
     where m.tienda_id = p_tienda_id
       and m.tipo = 'entry'
       and m.created_at >= p_desde
-  ),
-  ventas_sin_costo as (
-    select si.id
-    from sale_items si
-    join sales s on s.id = si.sale_id
-    join productos p on p.id = si.producto_id
-    where s.tienda_id = p_tienda_id
-      and s.status = 'completed'
-      and s.created_at >= p_desde
-      and p.costo is null
   )
   select
     coalesce((select sum(costo) from cogs), 0),
@@ -106,7 +97,6 @@ as $$
               where created_at >= p_mes_desde and created_at < p_mes_hasta), 0),
     coalesce((select sum(costo) from compras
               where costo is not null and created_at >= p_mes_desde and created_at < p_mes_hasta), 0),
-    (select count(*)::int from ventas_sin_costo),
     (select count(*)::int from compras where costo is null);
 $$;
 

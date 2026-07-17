@@ -12,6 +12,14 @@ create table if not exists audit_logs (
   created_at   timestamptz not null default now()
 );
 
+-- initial_schema ya creaba una audit_logs más pobre, así que el create de
+-- arriba se salta y las columnas nuevas nunca llegaban en una base creada
+-- desde cero (en el remoto se agregaron ad-hoc). Convergencia idempotente
+-- (reparado 2026-07-16, PLAN-46):
+alter table audit_logs add column if not exists user_email text not null default '';
+alter table audit_logs add column if not exists entity_label text;
+alter table audit_logs add column if not exists changes jsonb;
+
 alter table audit_logs enable row level security;
 
 do $$ begin

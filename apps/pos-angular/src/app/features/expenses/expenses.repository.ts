@@ -323,7 +323,9 @@ export class ExpensesRepository implements ExpenseRepository {
       comprasAcumuladas: Number(row.compras_acumuladas),
       cogsMes: Number(row.cogs_mes),
       comprasMes: Number(row.compras_mes),
-      ventasSinCosto: Number(row.ventas_sin_costo),
+      // El RPC no devuelve ventas_sin_costo (migración 20260708173522,
+      // reconciliada con el remoto el 2026-07-16): 0 mientras no exista.
+      ventasSinCosto: Number((row as { ventas_sin_costo?: number }).ventas_sin_costo ?? 0),
       entradasSinCosto: Number(row.entradas_sin_costo),
     }
   }
