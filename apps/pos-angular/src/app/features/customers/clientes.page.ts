@@ -4,6 +4,7 @@ import { PageHeaderComponent } from '../../shared/layout/page-header.component'
 import { ButtonComponent } from '../../shared/ui/button.component'
 import { EmptyStateComponent } from '../../shared/feedback/empty-state.component'
 import { ClienteFormDialog } from './cliente-form.dialog'
+import { ClienteLoyaltyDialog } from '../loyalty/cliente-loyalty.dialog'
 import { CustomersRepository } from './customers.repository'
 import { SessionService } from '../../core/auth/session.service'
 import { ToastService } from '../../shared/feedback/toast.service'
@@ -15,7 +16,13 @@ import { buildCustomersWorkbook } from './customer-export'
   selector: 'mo-clientes-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [PageHeaderComponent, ButtonComponent, EmptyStateComponent, ClienteFormDialog],
+  imports: [
+    PageHeaderComponent,
+    ButtonComponent,
+    EmptyStateComponent,
+    ClienteFormDialog,
+    ClienteLoyaltyDialog,
+  ],
   template: `
     <section class="flex h-full min-h-0 flex-col">
       <mo-page-header title="Clientes" subtitle="Directorio de clientes">
@@ -84,6 +91,9 @@ import { buildCustomersWorkbook } from './customer-export'
                   <td class="text-muted-foreground px-4 py-3">{{ c.telefono ?? '—' }}</td>
                   <td class="px-4 py-3 text-right">
                     <div class="flex justify-end gap-1">
+                      <mo-button size="sm" variant="outline" (click)="openLoyalty(c)"
+                        >Club</mo-button
+                      >
                       <mo-button size="sm" variant="outline" (click)="openEdit(c)"
                         >Editar</mo-button
                       >
@@ -106,6 +116,12 @@ import { buildCustomersWorkbook } from './customer-export'
       (closed)="closeDialog()"
       (saved)="onSaved($event)"
     />
+
+    <mo-cliente-loyalty-dialog
+      [open]="loyaltyFor() !== null"
+      [cliente]="loyaltyFor()"
+      (closed)="loyaltyFor.set(null)"
+    />
   `,
 })
 export class ClientesPage {
@@ -120,6 +136,7 @@ export class ClientesPage {
   readonly query = signal('')
   readonly dialogOpen = signal(false)
   readonly editing = signal<Cliente | null>(null)
+  readonly loyaltyFor = signal<Cliente | null>(null)
   readonly exporting = signal(false)
   readonly canExport = this.session.isAdmin
 
@@ -179,6 +196,10 @@ export class ClientesPage {
   openEdit(c: Cliente): void {
     this.editing.set(c)
     this.dialogOpen.set(true)
+  }
+
+  openLoyalty(c: Cliente): void {
+    this.loyaltyFor.set(c)
   }
 
   closeDialog(): void {

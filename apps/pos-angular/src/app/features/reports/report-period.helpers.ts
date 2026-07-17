@@ -6,7 +6,7 @@
  * que PLAN-38 ("tendencia por día") pueda extenderla sin tocar el componente.
  */
 
-export type TabId = 'daily' | 'accounting' | 'stock'
+export type TabId = 'daily' | 'accounting' | 'loyalty' | 'stock'
 export type Preset = 'today' | 'week' | 'month' | 'prev-month'
 /** Sub-secciones del tab "Ventas" (`TabId === 'daily'`). */
 export type SalesSubTabId = 'resumen' | 'productos' | 'cajeros' | 'ventas'

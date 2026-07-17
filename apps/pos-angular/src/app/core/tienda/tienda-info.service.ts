@@ -1,6 +1,10 @@
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '../supabase/supabase-client.service'
 import { DEFAULT_TIMEZONE } from '@/modules/reports/domain/services/day-range'
+import {
+  DEFAULT_LOYALTY_CONFIG,
+  type LoyaltyConfig,
+} from '@/modules/loyalty/domain/loyalty-config'
 
 export interface ReceiptSettings {
   titulo: string
@@ -28,6 +32,7 @@ export interface TiendaInfo {
   ciudad: string | null
   timezone: string
   receipt: ReceiptSettings
+  fidelizacion: LoyaltyConfig
 }
 
 const DEFAULT_RECEIPT: ReceiptSettings = {
@@ -58,7 +63,10 @@ interface TiendaRow {
 }
 
 interface SettingsRow {
-  data: { recibo?: Partial<ReceiptSettings & { mensaje_pie: string }> } | null
+  data: {
+    recibo?: Partial<ReceiptSettings & { mensaje_pie: string }>
+    fidelizacion?: Partial<LoyaltyConfig>
+  } | null
 }
 
 @Injectable({ providedIn: 'root' })
@@ -109,6 +117,7 @@ export class TiendaInfoService {
     }
 
     const recibo = settingsRes.data?.data?.recibo ?? {}
+    const fidelizacion = settingsRes.data?.data?.fidelizacion ?? {}
     return {
       id: tiendaRes.data.id,
       nombre: tiendaRes.data.nombre,
@@ -136,6 +145,23 @@ export class TiendaInfoService {
         abrirCajonEnEfectivo:
           recibo.abrirCajonEnEfectivo ?? DEFAULT_RECEIPT.abrirCajonEnEfectivo,
         printerName: recibo.printerName ?? DEFAULT_RECEIPT.printerName,
+      },
+      // Misma fuente que el RPC loyalty_program_config: settings.data.fidelizacion
+      // con los defaults del programa (8 / $11.000 / 30 días).
+      fidelizacion: {
+        activo: fidelizacion.activo ?? DEFAULT_LOYALTY_CONFIG.activo,
+        sellosParaRecompensa: Math.max(
+          1,
+          fidelizacion.sellosParaRecompensa ?? DEFAULT_LOYALTY_CONFIG.sellosParaRecompensa,
+        ),
+        valorRecompensaCop: Math.max(
+          0,
+          fidelizacion.valorRecompensaCop ?? DEFAULT_LOYALTY_CONFIG.valorRecompensaCop,
+        ),
+        vigenciaDias: Math.max(
+          1,
+          fidelizacion.vigenciaDias ?? DEFAULT_LOYALTY_CONFIG.vigenciaDias,
+        ),
       },
     }
   }

@@ -14,6 +14,9 @@ import { SaleDetailListComponent } from '../../shared/sales/sale-detail-list.com
 import { ProductSalesSearchComponent } from './product-sales-search.component'
 import { AccountingSummaryComponent } from './accounting-summary.component'
 import { StockReportTableComponent } from './stock-report-table.component'
+import { LoyaltyReportComponent } from './loyalty-report.component'
+import { LoyaltyReportService } from './loyalty-report.service'
+import type { LoyaltyProgramReport } from '@/modules/loyalty/domain/services/program-report'
 import { SessionService } from '../../core/auth/session.service'
 import { TiendaInfoService } from '../../core/tienda/tienda-info.service'
 import { DEFAULT_TIMEZONE } from '@/modules/reports/domain/services/day-range'
@@ -49,6 +52,7 @@ import { PAYMENT_METHOD_CLOSURE_OPTIONS, getPaymentMethodLabel } from '@/shared/
     SaleDetailListComponent,
     AccountingSummaryComponent,
     StockReportTableComponent,
+    LoyaltyReportComponent,
   ],
   template: `
     <section class="flex h-full min-h-0 flex-col gap-4">
@@ -111,6 +115,9 @@ import { PAYMENT_METHOD_CLOSURE_OPTIONS, getPaymentMethodLabel } from '@/shared/
         </button>
         <button type="button" (click)="tab.set('accounting')" [class]="tabClass('accounting')">
           Financiero
+        </button>
+        <button type="button" (click)="tab.set('loyalty')" [class]="tabClass('loyalty')">
+          Fidelización
         </button>
         <button type="button" (click)="tab.set('stock')" [class]="tabClass('stock')">
           Stock
@@ -199,6 +206,10 @@ import { PAYMENT_METHOD_CLOSURE_OPTIONS, getPaymentMethodLabel } from '@/shared/
         @if (daily(); as d) {
           <mo-accounting-summary [report]="d" [fromIso]="fromIso()" [toIso]="toIso()" />
         }
+      } @else if (tab() === 'loyalty') {
+        @if (loyalty(); as l) {
+          <mo-loyalty-report [report]="l" />
+        }
       } @else {
         <mo-stock-report-table [rows]="stock()" />
       }
@@ -207,6 +218,7 @@ import { PAYMENT_METHOD_CLOSURE_OPTIONS, getPaymentMethodLabel } from '@/shared/
 })
 export class ReportesPage {
   private readonly reportsService = inject(ReportsService)
+  private readonly loyaltyReportService = inject(LoyaltyReportService)
   private readonly session = inject(SessionService)
   private readonly tiendaInfo = inject(TiendaInfoService)
   private readonly toast = inject(ToastService)
@@ -221,6 +233,7 @@ export class ReportesPage {
   readonly salesSearch = signal('')
   readonly paymentFilter = signal('')
   readonly daily = signal<DailyReport | null>(null)
+  readonly loyalty = signal<LoyaltyProgramReport | null>(null)
   readonly stock = signal<StockReportRow[]>([])
   readonly loading = signal(true)
   readonly loadError = signal<string | null>(null)
@@ -346,6 +359,7 @@ export class ReportesPage {
   }
 
   canExport(): boolean {
+    if (this.tab() === 'loyalty') return false
     if (this.tab() === 'stock') return this.stock().length > 0
     return this.daily() !== null
   }
@@ -409,13 +423,15 @@ export class ReportesPage {
       const auth = await this.session.getAuthContext()
       if (!auth) throw new Error('No autenticado')
 
-      const [daily, stock] = await Promise.all([
+      const [daily, stock, loyalty] = await Promise.all([
         this.reportsService.getDailyReport(auth.tiendaId, this.fromIso(), this.toIso()),
         this.reportsService.getStockReport(auth.tiendaId),
+        this.loyaltyReportService.getReport(auth.tiendaId, this.fromIso(), this.toIso()),
       ])
 
       this.daily.set(daily)
       this.stock.set(stock)
+      this.loyalty.set(loyalty)
     } catch (error) {
       this.loadError.set(getErrorMessage(error, 'Error al cargar reporte'))
     } finally {

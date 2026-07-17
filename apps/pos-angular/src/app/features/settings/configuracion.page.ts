@@ -11,13 +11,18 @@ import { FormErrorComponent } from '../../shared/forms/form-error.component'
 import { ToastService } from '../../shared/feedback/toast.service'
 import { ReceiptSettingsFormPresenter } from './receipt-settings-form.presenter'
 import { ReceiptSettingsService } from './receipt-settings.service'
+import { LoyaltySettingsFormPresenter } from './loyalty-settings-form.presenter'
+import { LoyaltySettingsService } from './loyalty-settings.service'
+import { loyaltySettingsFormMapper } from '@/modules/settings/forms/loyalty-settings-form.mapper'
+import { FormNumberInputComponent } from '../../shared/forms/form-number-input.component'
+import { FormCurrencyInputComponent } from '../../shared/forms/form-currency-input.component'
 import { QzReceiptPrinterService } from '../pos/infrastructure/qz-receipt-printer.service'
 
 @Component({
   selector: 'mo-configuracion-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [ReceiptSettingsFormPresenter],
+  providers: [ReceiptSettingsFormPresenter, LoyaltySettingsFormPresenter],
   imports: [
     ReactiveFormsModule,
     PageHeaderComponent,
@@ -26,6 +31,8 @@ import { QzReceiptPrinterService } from '../pos/infrastructure/qz-receipt-printe
     FormTextareaComponent,
     FormCheckboxComponent,
     FormErrorComponent,
+    FormNumberInputComponent,
+    FormCurrencyInputComponent,
   ],
   template: `
     <section class="mx-auto flex w-full max-w-5xl flex-col gap-6 pb-12 md:pb-16">
@@ -295,18 +302,85 @@ import { QzReceiptPrinterService } from '../pos/infrastructure/qz-receipt-printe
             </div>
           </aside>
         </form>
+
+        <form
+          [formGroup]="loyaltyPresenter.form"
+          (ngSubmit)="submitLoyalty()"
+          class="lg:max-w-[calc(100%-21.5rem)]"
+        >
+          <article class="bg-card rounded-xl border p-6 shadow-sm sm:p-7">
+            <div class="mb-6">
+              <h2 class="font-display text-lg font-bold">MOVE ON Club</h2>
+              <p class="text-muted-foreground mt-1 text-sm">
+                Reglas del programa de fidelización. Aplican a los sellos y recompensas
+                que se generen desde el momento en que guardes.
+              </p>
+            </div>
+
+            <div class="grid gap-y-6">
+              <div class="border-primary/25 bg-primary/5 rounded-lg border p-4">
+                <mo-form-checkbox
+                  controlName="activo"
+                  label="Programa activo"
+                  description="Al desactivarlo las ventas dejan de otorgar sellos. Los saldos y recompensas existentes no se pierden."
+                />
+              </div>
+
+              <div class="grid gap-x-5 gap-y-6 sm:grid-cols-3">
+                <mo-form-number-input
+                  controlName="sellosParaRecompensa"
+                  label="Sellos por recompensa"
+                  [min]="1"
+                  [max]="50"
+                  [required]="true"
+                  [error]="loyaltyPresenter.errors().sellosParaRecompensa ?? null"
+                />
+                <mo-form-currency-input
+                  controlName="valorRecompensaCop"
+                  label="Valor máximo del batido gratis"
+                  [max]="10000000"
+                  [required]="true"
+                  [error]="loyaltyPresenter.errors().valorRecompensaCop ?? null"
+                />
+                <mo-form-number-input
+                  controlName="vigenciaDias"
+                  label="Vigencia de la recompensa (días)"
+                  [min]="1"
+                  [max]="365"
+                  [required]="true"
+                  [error]="loyaltyPresenter.errors().vigenciaDias ?? null"
+                />
+              </div>
+
+              <mo-form-error [message]="loyaltyPresenter.errors().root ?? null" />
+
+              <div class="flex justify-end">
+                <mo-button
+                  type="submit"
+                  [loading]="loyaltySaving()"
+                  loadingText="Guardando..."
+                >
+                  Guardar programa
+                </mo-button>
+              </div>
+            </div>
+          </article>
+        </form>
       }
     </section>
   `,
 })
 export class ConfiguracionPage {
   private readonly settings = inject(ReceiptSettingsService)
+  private readonly loyaltySettings = inject(LoyaltySettingsService)
   private readonly printer = inject(QzReceiptPrinterService)
   private readonly toast = inject(ToastService)
 
   readonly presenter = inject(ReceiptSettingsFormPresenter)
+  readonly loyaltyPresenter = inject(LoyaltySettingsFormPresenter)
   readonly loading = signal(true)
   readonly saving = signal(false)
+  readonly loyaltySaving = signal(false)
   readonly printingTest = signal(false)
   readonly openingDrawer = signal(false)
 
@@ -382,10 +456,34 @@ export class ConfiguracionPage {
     }
   }
 
+  async submitLoyalty(): Promise<void> {
+    if (this.loyaltySaving()) return
+    const value = this.loyaltyPresenter.validate()
+    if (!value) return
+
+    this.loyaltySaving.set(true)
+    this.loyaltyPresenter.form.disable({ emitEvent: false })
+    try {
+      await this.loyaltySettings.save(loyaltySettingsFormMapper.toPayload(value))
+      this.toast.success('Programa MOVE ON Club guardado')
+    } catch (error) {
+      this.loyaltyPresenter.setRootError(
+        getErrorMessage(error, 'No se pudo guardar el programa'),
+      )
+    } finally {
+      this.loyaltyPresenter.form.enable({ emitEvent: false })
+      this.loyaltySaving.set(false)
+    }
+  }
+
   private async load(): Promise<void> {
     try {
-      const settings = await this.settings.load()
+      const [settings, loyalty] = await Promise.all([
+        this.settings.load(),
+        this.loyaltySettings.load(),
+      ])
       this.presenter.reset(receiptSettingsFormMapper.toFormValue(settings))
+      this.loyaltyPresenter.reset(loyaltySettingsFormMapper.toFormValue(loyalty))
     } catch (error) {
       this.presenter.setRootError(getErrorMessage(error, 'No se pudo cargar la configuracion'))
     } finally {
