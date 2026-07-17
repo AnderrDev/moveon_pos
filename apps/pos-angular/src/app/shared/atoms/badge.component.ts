@@ -14,14 +14,22 @@ const VARIANT_CLASSES: Record<BadgeVariant, string> = {
   selector: 'mo-badge',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<span [class]="classes()"><ng-content /></span>`,
+  template: `
+    <span [class]="classes()">
+      @if (dot()) {
+        <span class="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true"></span>
+      }
+      <ng-content />
+    </span>
+  `,
 })
 export class BadgeComponent {
   readonly variant = input<BadgeVariant>('default')
+  readonly dot = input(false)
 
   readonly classes = computed(() =>
     [
-      'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold',
+      'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold',
       VARIANT_CLASSES[this.variant()],
     ].join(' '),
   )

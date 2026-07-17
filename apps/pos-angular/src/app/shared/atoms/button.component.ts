@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core'
+import { SpinnerComponent } from './spinner.component'
 
 export type ButtonVariant = 'default' | 'secondary' | 'destructive' | 'outline' | 'ghost'
-export type ButtonSize = 'sm' | 'default' | 'lg' | 'icon'
+export type ButtonSize = 'xs' | 'sm' | 'default' | 'lg' | 'icon'
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   default: 'bg-primary text-primary-foreground shadow-sm hover:brightness-110 active:brightness-95',
@@ -12,6 +13,7 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
 }
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
+  xs: 'h-8 px-3 text-xs',
   sm: 'h-9 px-3 text-xs',
   default: 'h-10 px-4 py-2',
   lg: 'h-11 px-6',
@@ -22,6 +24,7 @@ const SIZE_CLASSES: Record<ButtonSize, string> = {
   selector: 'mo-button',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [SpinnerComponent],
   template: `
     <button
       [type]="type()"
@@ -30,10 +33,7 @@ const SIZE_CLASSES: Record<ButtonSize, string> = {
       (click)="onClick($event)"
     >
       @if (loading()) {
-        <span
-          class="inline-block h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent"
-          aria-hidden="true"
-        ></span>
+        <mo-spinner size="xs" />
         @if (loadingText()) {
           <span>{{ loadingText() }}</span>
         } @else {
