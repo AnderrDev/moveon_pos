@@ -299,6 +299,11 @@ const INITIAL_STOCK_LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
           />
         </div>
 
+        <mo-form-checkbox
+          controlName="participaFidelizacion"
+          label="Participa en MOVE ON Club (genera sellos y puede canjearse)"
+        />
+
         <mo-form-checkbox controlName="isActive" label="Producto activo" />
 
         <mo-form-error [message]="presenter.errors().root ?? null" />

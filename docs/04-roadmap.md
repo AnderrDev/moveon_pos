@@ -165,7 +165,8 @@ Ver `/docs/01-mvp-scope.md` § Criterios de cierre.
 
 Cada uno con su propio documento detallado cuando se vaya a iniciar:
 - **v1.2 — Recetas de batidos** (`/docs/user-stories/sprint-07.md`).
-- **v1.3 — Fidelización** (`/docs/user-stories/sprint-08.md`).
+- **v1.3 — Fidelización (MOVE ON Club)** — planeado en `docs/adr/0013-programa-fidelizacion-move-on-club.md`
+  y `docs/modules/loyalty.md`; bloque de ejecución PLAN-50..60 en `docs/plan-de-trabajo.md`.
 - **v1.4 — Reportes avanzados** (`/docs/user-stories/sprint-09.md`).
 - **v1.5 — Modo contingencia** (`/docs/user-stories/sprint-10.md`).
 

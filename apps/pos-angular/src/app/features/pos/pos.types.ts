@@ -18,6 +18,8 @@ export interface PosProduct {
   paraQueSirve: string | null
   recomendadoPara: string | null
   tipo: ProductType
+  /** MOVE ON Club: genera sellos y puede canjearse como recompensa (RN-LF06). */
+  participaFidelizacion: boolean
   /** Stock disponible. `null` = el producto no rastrea stock (ej. `prepared`). */
   stockDisponible: number | null
   /** Componentes que se descuentan automáticamente al vender este producto. */

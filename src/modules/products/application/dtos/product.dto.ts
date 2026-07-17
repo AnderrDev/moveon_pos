@@ -38,6 +38,7 @@ export const createProductSchema = z.object({
   costo: z.number().nonnegative().optional(),
   ivaTasa: ivaRateSchema,
   stockMinimo: z.number().int().nonnegative().default(0),
+  participaFidelizacion: z.boolean().default(false),
   isActive: z.boolean().default(true),
 })
 

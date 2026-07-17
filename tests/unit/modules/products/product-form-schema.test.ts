@@ -271,6 +271,7 @@ describe('createProductFormDefaults', () => {
       stockMinimo: 10,
       stockInicial: 25,
       stockInicialUbicacion: 'punto_venta' as const,
+      participaFidelizacion: true,
       isActive: false,
     }
 

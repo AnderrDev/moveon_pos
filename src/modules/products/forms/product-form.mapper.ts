@@ -32,6 +32,7 @@ export const productFormMapper = {
       stockMinimo:  product?.stockMinimo  ?? 0,
       stockInicial: 0,
       stockInicialUbicacion: 'bodega',
+      participaFidelizacion: product?.participaFidelizacion ?? false,
       isActive:       product?.isActive       ?? true,
     }
   },
@@ -58,6 +59,7 @@ export const productFormMapper = {
       costo:        value.costo,
       ivaTasa:      value.ivaTasa,
       stockMinimo:  value.stockMinimo,
+      participaFidelizacion: value.participaFidelizacion,
       isActive:       value.isActive,
     }
   },
@@ -82,6 +84,7 @@ export const productFormMapper = {
       costo:        value.costo,
       ivaTasa:      value.ivaTasa,
       stockMinimo:  value.stockMinimo,
+      participaFidelizacion: value.participaFidelizacion,
       isActive:       value.isActive,
     }
   },

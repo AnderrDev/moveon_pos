@@ -18,7 +18,7 @@ import {
 } from './product-component.helpers'
 
 const PRODUCT_COLS =
-  'id, tienda_id, nombre, sku, codigo_barras, categoria_id, proveedor, para_que_sirve, recomendado_para, image_url, tipo, unidad, precio_venta, costo, iva_tasa, stock_minimo, is_active, deleted_at, created_at, updated_at'
+  'id, tienda_id, nombre, sku, codigo_barras, categoria_id, proveedor, para_que_sirve, recomendado_para, image_url, tipo, unidad, precio_venta, costo, iva_tasa, stock_minimo, participa_fidelizacion, is_active, deleted_at, created_at, updated_at'
 const CATEGORIA_COLS = 'id, tienda_id, nombre, orden, is_active, created_at, updated_at'
 
 interface SearchProductsParams {
@@ -142,6 +142,7 @@ export class ProductsRepository {
         p_is_active: dto.isActive,
         p_initial_stock: initialStock.cantidad,
         p_initial_location: initialStock.ubicacion,
+        p_participa_fidelizacion: dto.participaFidelizacion ?? false,
       },
     )
 
@@ -188,6 +189,7 @@ export class ProductsRepository {
     if (dto.costo !== undefined) patch['costo'] = dto.costo ?? null
     if (dto.ivaTasa !== undefined) patch['iva_tasa'] = dto.ivaTasa
     if (dto.stockMinimo !== undefined) patch['stock_minimo'] = dto.stockMinimo
+    if (dto.participaFidelizacion !== undefined) patch['participa_fidelizacion'] = dto.participaFidelizacion
     if (dto.isActive !== undefined) patch['is_active'] = dto.isActive
 
     const client = this.supabaseClient.supabase as unknown as UntypedClient

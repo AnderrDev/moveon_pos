@@ -18,6 +18,10 @@ import { PosSaleService } from './pos-sale.service'
 import { ReceiptPrintService } from './receipt-print.service'
 import { SalesHistoryDialog } from './sales-history.dialog'
 import { CustomerPickerDialog } from './customer-picker.dialog'
+import { ClienteFormDialog } from '../customers/cliente-form.dialog'
+import { LoyaltyRepository, type LoyaltySummary } from '../loyalty/loyalty.repository'
+import { DEFAULT_LOYALTY_CONFIG } from '@/modules/loyalty/domain/loyalty-config'
+import { countEligibleStampUnits } from '@/modules/loyalty/domain/services/stamps'
 import { ItemDiscountDialog, type ItemDiscountResult } from './item-discount.dialog'
 import { ProductInfoDialog } from './product-info.dialog'
 import {
@@ -44,6 +48,7 @@ interface PostSaleOutputJob {
   imports: [
     SalesHistoryDialog,
     CustomerPickerDialog,
+    ClienteFormDialog,
     ItemDiscountDialog,
     ProductInfoDialog,
     ReceiptOutputStatusDialog,
@@ -325,26 +330,81 @@ interface PostSaleOutputJob {
               <div class="flex h-full min-h-0 flex-col">
                 <div class="shrink-0 border-b px-4 py-2.5">
                   @if (cart.clienteId()) {
-                    <div
-                      class="bg-primary/10 flex items-center justify-between gap-2 rounded-lg px-3 py-2"
-                    >
-                      <span class="min-w-0">
-                        <span
-                          class="text-muted-foreground block text-[10px] font-semibold tracking-wide uppercase"
-                        >
-                          Cliente
+                    <div class="bg-primary/10 space-y-2 rounded-lg px-3 py-2">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="min-w-0">
+                          <span
+                            class="text-muted-foreground block text-[10px] font-semibold tracking-wide uppercase"
+                          >
+                            Cliente
+                          </span>
+                          <span class="block truncate text-sm font-semibold">{{
+                            cart.clienteNombre()
+                          }}</span>
                         </span>
-                        <span class="block truncate text-sm font-semibold">{{
-                          cart.clienteNombre()
-                        }}</span>
-                      </span>
-                      <button
-                        type="button"
-                        (click)="cart.clearCliente()"
-                        class="text-muted-foreground hover:text-destructive shrink-0 text-xs font-semibold underline"
-                      >
-                        Quitar
-                      </button>
+                        <button
+                          type="button"
+                          (click)="clearCliente()"
+                          class="text-muted-foreground hover:text-destructive shrink-0 text-xs font-semibold underline"
+                        >
+                          Quitar
+                        </button>
+                      </div>
+
+                      @if (loyaltySummary(); as summary) {
+                        <div class="border-primary/20 space-y-1.5 border-t pt-2">
+                          <div class="flex items-center justify-between gap-2">
+                            <span class="text-[11px] font-bold tracking-wide uppercase">
+                              MOVE ON Club
+                            </span>
+                            <span class="text-xs font-semibold tabular-nums">
+                              {{ summary.stampsBalance }}/{{ stampsPerReward() }} sellos
+                            </span>
+                          </div>
+                          <div class="bg-primary/15 h-1.5 overflow-hidden rounded-full">
+                            <div
+                              class="bg-primary h-full rounded-full transition-all"
+                              [style.width.%]="loyaltyProgressPercent()"
+                            ></div>
+                          </div>
+                          @if (cartStampsPreview() > 0) {
+                            <p class="text-muted-foreground text-[11px]">
+                              Esta venta suma {{ cartStampsPreview() }}
+                              {{ cartStampsPreview() === 1 ? 'sello' : 'sellos' }}
+                            </p>
+                          }
+
+                          @if (cart.loyaltyRedemption(); as redemption) {
+                            <div
+                              class="flex items-center justify-between gap-2 rounded-md bg-emerald-500/15 px-2 py-1.5"
+                            >
+                              <span class="text-[11px] font-semibold text-emerald-700">
+                                🎁 Premio aplicado · −{{ money(redemption.amount) }}
+                              </span>
+                              <button
+                                type="button"
+                                (click)="cart.clearLoyaltyRedemption()"
+                                class="text-muted-foreground hover:text-destructive shrink-0 text-[11px] font-semibold underline"
+                              >
+                                Quitar
+                              </button>
+                            </div>
+                          } @else if (summary.availableRewards.length > 0) {
+                            <button
+                              type="button"
+                              (click)="redeemLoyaltyReward()"
+                              class="bg-primary text-primary-foreground w-full rounded-md py-1.5 text-xs font-bold transition-all hover:brightness-110"
+                            >
+                              🎁 Canjear batido gratis
+                              @if (summary.availableRewards.length > 1) {
+                                ({{ summary.availableRewards.length }} disponibles)
+                              }
+                            </button>
+                          }
+                        </div>
+                      } @else if (loyaltyLoading()) {
+                        <div class="bg-primary/10 h-6 animate-pulse rounded"></div>
+                      }
                     </div>
                   } @else {
                     <button
@@ -646,12 +706,21 @@ interface PostSaleOutputJob {
               </p>
             </div>
 
-            @if (cart.totals().discountTotal > 0) {
+            @if (cart.loyaltyRedemption(); as redemption) {
+              <div class="flex items-center justify-between rounded-xl border border-emerald-600/30 bg-emerald-500/10 px-3 py-2">
+                <span class="text-xs font-bold text-emerald-700">🎁 Canje MOVE ON Club</span>
+                <span class="text-xs font-semibold text-emerald-700 tabular-nums">
+                  −{{ money(redemption.amount) }}
+                </span>
+              </div>
+            }
+
+            @if (discretionaryDiscountTotal() > 0) {
               <div class="space-y-2 rounded-xl border border-amber-500/30 bg-amber-500/8 p-3">
                 <div class="flex items-center justify-between gap-3">
                   <p class="text-xs font-bold tracking-wide uppercase">Control del descuento</p>
                   <span class="text-muted-foreground text-[11px] tabular-nums">
-                    {{ money(cart.totals().discountTotal) }} · {{ discountPercentage() }}%
+                    {{ money(discretionaryDiscountTotal()) }} · {{ discountPercentage() }}%
                   </span>
                 </div>
                 <input
@@ -820,6 +889,14 @@ interface PostSaleOutputJob {
       [open]="customerPickerOpen()"
       (closed)="customerPickerOpen.set(false)"
       (selected)="onCustomerSelected($event)"
+      (createRequested)="customerFormOpen.set(true)"
+    />
+
+    <mo-cliente-form-dialog
+      [open]="customerFormOpen()"
+      [cliente]="null"
+      (closed)="customerFormOpen.set(false)"
+      (saved)="onCustomerCreated($event)"
     />
 
     <mo-item-discount-dialog
@@ -851,6 +928,7 @@ export class PosPage {
   private readonly tiendaInfo = inject(TiendaInfoService)
   private readonly dataService = inject(PosDataService)
   private readonly saleService = inject(PosSaleService)
+  private readonly loyaltyRepo = inject(LoyaltyRepository)
   private readonly receiptPrint = inject(ReceiptPrintService)
   private readonly toast = inject(ToastService)
   private readonly router = inject(Router)
@@ -879,6 +957,11 @@ export class PosPage {
   readonly pendingReceiptOutput = signal<PostSaleOutputJob | null>(null)
   readonly openingCashDrawer = signal(false)
   readonly customerPickerOpen = signal(false)
+  readonly customerFormOpen = signal(false)
+  readonly loyaltySummary = signal<LoyaltySummary | null>(null)
+  readonly loyaltyLoading = signal(false)
+  // PLAN-59: se actualiza en load() con settings.data.fidelizacion de la tienda.
+  readonly stampsPerReward = signal(DEFAULT_LOYALTY_CONFIG.sellosParaRecompensa)
   readonly discountItem = signal<PosCartItem | null>(null)
   readonly productInfo = signal<PosProduct | null>(null)
   readonly isAdmin = this.sessionService.isAdmin
@@ -910,9 +993,38 @@ export class PosPage {
     ]
   })
 
+  /**
+   * Descuento discrecional = total − canje MOVE ON Club. El canje no exige
+   * motivo ni cuenta para el tope del 50% del cajero (RN-LF12 / ADR 0013 §5).
+   */
+  readonly discretionaryDiscountTotal = computed(
+    () => this.cart.totals().discountTotal - (this.cart.loyaltyRedemption()?.amount ?? 0),
+  )
+
+  /** Sellos que sumará el carrito actual (previsualización; el RPC es la autoridad). */
+  readonly cartStampsPreview = computed(() => {
+    if (!this.loyaltySummary()) return 0
+    if (this.cart.globalDiscount() > 0) return 0
+    const redemption = this.cart.loyaltyRedemption()
+    return countEligibleStampUnits(
+      this.cart.items().map((item) => ({
+        participaFidelizacion: item.participaFidelizacion,
+        quantity: item.quantity,
+        discountAmount: item.discountAmount,
+        hasRedemption: redemption?.productId === item.key,
+      })),
+    )
+  })
+
+  readonly loyaltyProgressPercent = computed(() => {
+    const summary = this.loyaltySummary()
+    if (!summary) return 0
+    return Math.min(100, Math.round((summary.stampsBalance / this.stampsPerReward()) * 100))
+  })
+
   readonly canConfirm = computed(() => {
     const paymentError = validatePaymentsForSale(this.cart.payments(), this.cart.totals().total)
-    const hasDiscount = this.cart.totals().discountTotal > 0
+    const hasDiscount = this.discretionaryDiscountTotal() > 0
     return (
       this.cart.items().length > 0 &&
       this.cart.totalPaid() >= this.cart.totals().total &&
@@ -927,7 +1039,7 @@ export class PosPage {
     return validateDiscountAuthorization(
       role,
       this.cart.totals().subtotal,
-      this.cart.totals().discountTotal
+      this.discretionaryDiscountTotal()
     )
   })
 
@@ -971,6 +1083,7 @@ export class PosPage {
       this.mostrarIvaEnPos.set(tienda.receipt.mostrarIvaEnPos)
       this.imprimirAlFinalizarVenta.set(tienda.receipt.imprimirAlFinalizarVenta)
       this.abrirCajonEnEfectivo.set(tienda.receipt.abrirCajonEnEfectivo)
+      this.stampsPerReward.set(tienda.fidelizacion.sellosParaRecompensa)
     } catch (error) {
       this.loadError.set(getErrorMessage(error, 'No se pudo cargar el POS'))
     } finally {
@@ -995,7 +1108,7 @@ export class PosPage {
   discountPercentage(): string {
     const subtotal = this.cart.totals().subtotal
     if (subtotal <= 0) return '0.00'
-    return ((this.cart.totals().discountTotal / subtotal) * 100).toFixed(2)
+    return ((this.discretionaryDiscountTotal() / subtotal) * 100).toFixed(2)
   }
 
   setQuery(event: Event): void {
@@ -1084,6 +1197,68 @@ export class PosPage {
 
   onCustomerSelected(cliente: Cliente): void {
     this.cart.setCliente(cliente.id, cliente.nombre)
+    this.loyaltySummary.set(null)
+    if (cliente.autorizaFidelizacion && cliente.activo) {
+      void this.loadLoyaltySummary(cliente.id)
+    }
+  }
+
+  onCustomerCreated(cliente: Cliente): void {
+    this.customerFormOpen.set(false)
+    this.onCustomerSelected(cliente)
+    this.toast.success(`Cliente ${cliente.nombre} asociado a la venta`)
+  }
+
+  clearCliente(): void {
+    this.cart.clearCliente()
+    this.loyaltySummary.set(null)
+  }
+
+  private async loadLoyaltySummary(clienteId: string): Promise<void> {
+    this.loyaltyLoading.set(true)
+    try {
+      const auth = await this.sessionService.getAuthContext()
+      if (!auth) return
+      const summary = await this.loyaltyRepo.getSummary(auth.tiendaId, clienteId)
+      // Evita pisar el resumen si el cajero cambió de cliente mientras cargaba.
+      if (this.cart.clienteId() === clienteId) {
+        this.loyaltySummary.set(summary)
+      }
+    } catch {
+      // El Club no bloquea la venta: sin resumen simplemente no se muestra.
+      this.loyaltySummary.set(null)
+    } finally {
+      this.loyaltyLoading.set(false)
+    }
+  }
+
+  /**
+   * Canjea la recompensa más próxima a vencer sobre la línea elegible más
+   * costosa del carrito (participa en el Club, sin descuento manual).
+   */
+  redeemLoyaltyReward(): void {
+    const summary = this.loyaltySummary()
+    const reward = summary?.availableRewards[0]
+    if (!reward) return
+
+    const eligible = this.cart
+      .items()
+      .filter((item) => item.participaFidelizacion && item.discountAmount === 0)
+      .sort((a, b) => b.unitPrice - a.unitPrice)
+
+    if (eligible.length === 0) {
+      this.toast.warning('Agrega un batido del Club al carrito para canjear el premio')
+      return
+    }
+
+    const item = eligible[0]
+    this.cart.applyLoyaltyReward(reward.id, reward.rewardValueCop, item)
+    const covered = Math.min(item.unitPrice, reward.rewardValueCop)
+    this.toast.success(
+      item.unitPrice > covered
+        ? `Premio aplicado a ${item.nombre}: cubre ${formatCurrency(covered)}, el cliente paga la diferencia`
+        : `Premio aplicado: ${item.nombre} gratis`,
+    )
   }
 
   openItemDiscount(item: PosCartItem): void {
@@ -1259,6 +1434,7 @@ export class PosPage {
     this.isSaving.set(true)
 
     try {
+      const redemption = this.cart.loyaltyRedemption()
       const result = await this.saleService.createSale({
         cashSessionId: cashSession.id,
         idempotencyKey: this.cart.idempotencyKey(),
@@ -1267,8 +1443,13 @@ export class PosPage {
         payments: this.cart.payments(),
         totals: this.cart.totals(),
         globalDiscountTotal: this.cart.globalDiscount(),
-        discountReason: this.cart.totals().discountTotal > 0 ? this.discountReason().trim() : null,
+        // Solo el descuento discrecional exige motivo; el canje lleva motivo
+        // reservado automático en el RPC (ADR 0013 §5).
+        discountReason: this.discretionaryDiscountTotal() > 0 ? this.discountReason().trim() : null,
         change: this.cart.change(),
+        loyaltyRedemptions: redemption
+          ? [{ rewardId: redemption.rewardId, productId: redemption.productId }]
+          : [],
       })
 
       if (!result.ok) {
@@ -1285,6 +1466,7 @@ export class PosPage {
         this.abrirCajonEnEfectivo() &&
         this.cart.payments().some((payment) => payment.metodo === 'cash' && payment.amount > 0)
       this.cart.clearCart()
+      this.loyaltySummary.set(null)
       this.globalDiscountInput.set('')
       this.globalDiscountPercentInput.set('')
       this.discountMode.set('amount')

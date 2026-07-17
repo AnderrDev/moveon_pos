@@ -19,6 +19,8 @@ export interface CreatePosSaleInput {
   globalDiscountTotal: number
   discountReason: string | null
   change: number
+  /** Canjes MOVE ON Club: recompensa → producto del carrito al que se aplica. */
+  loyaltyRedemptions?: { rewardId: string; productId: string }[]
 }
 
 export interface CreatePosSaleResult {
@@ -73,6 +75,14 @@ const rpcInputSchema = z.object({
   }),
   globalDiscountTotal: z.number().nonnegative(),
   discountReason: z.string().trim().min(3, 'Escribe el motivo del descuento').nullable(),
+  loyaltyRedemptions: z
+    .array(
+      z.object({
+        rewardId: z.string().uuid('Recompensa inválida'),
+        productId: z.string().uuid(),
+      })
+    )
+    .default([]),
 })
 
 @Injectable({ providedIn: 'root' })
@@ -96,11 +106,24 @@ export class PosSaleService {
       totals: input.totals,
       globalDiscountTotal: input.globalDiscountTotal,
       discountReason: input.discountReason,
+      loyaltyRedemptions: input.loyaltyRedemptions ?? [],
     })
     if (!parsed.success) {
       return err({
         kind: 'validation',
         message: parsed.error.issues[0]?.message ?? 'Datos de venta inválidos',
+      })
+    }
+
+    // El RPC identifica la línea canjeada por índice (0-based) dentro de p_items.
+    const loyaltyRedemptions = (input.loyaltyRedemptions ?? []).map((redemption) => {
+      const itemIndex = input.items.findIndex((item) => item.productId === redemption.productId)
+      return { reward_id: redemption.rewardId, item_index: itemIndex }
+    })
+    if (loyaltyRedemptions.some((redemption) => redemption.item_index < 0)) {
+      return err({
+        kind: 'validation',
+        message: 'El producto del canje ya no está en el carrito',
       })
     }
 
@@ -136,6 +159,7 @@ export class PosSaleService {
       })),
       p_global_discount_total: input.globalDiscountTotal,
       p_discount_reason: input.discountReason,
+      p_loyalty_redemptions: loyaltyRedemptions.length > 0 ? loyaltyRedemptions : null,
     })
 
     if (error) {

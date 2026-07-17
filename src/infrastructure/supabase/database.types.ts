@@ -335,6 +335,10 @@ export type Database = {
       }
       clientes: {
         Row: {
+          acepta_mensajes_promocionales: boolean
+          activo: boolean
+          autoriza_fidelizacion: boolean
+          celular_normalizado: string | null
           created_at: string
           email: string | null
           id: string
@@ -346,6 +350,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          acepta_mensajes_promocionales?: boolean
+          activo?: boolean
+          autoriza_fidelizacion?: boolean
+          celular_normalizado?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -357,6 +365,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          acepta_mensajes_promocionales?: boolean
+          activo?: boolean
+          autoriza_fidelizacion?: boolean
+          celular_normalizado?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -717,7 +729,206 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "inventory_movements_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "storefront_productos_publicos"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "inventory_movements_tienda_id_fkey"
+            columns: ["tienda_id"]
+            isOneToOne: false
+            referencedRelation: "tiendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loyalty_accounts: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          id: string
+          stamps_balance: number
+          tienda_id: string
+          total_rewards_redeemed: number
+          total_stamps_earned: number
+          updated_at: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          id?: string
+          stamps_balance?: number
+          tienda_id: string
+          total_rewards_redeemed?: number
+          total_stamps_earned?: number
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          id?: string
+          stamps_balance?: number
+          tienda_id?: string
+          total_rewards_redeemed?: number
+          total_stamps_earned?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_accounts_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_accounts_tienda_id_fkey"
+            columns: ["tienda_id"]
+            isOneToOne: false
+            referencedRelation: "tiendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loyalty_rewards: {
+        Row: {
+          cliente_id: string
+          cost_stamps: number
+          expires_at: string
+          generated_at: string
+          id: string
+          redeemed_at: string | null
+          redeemed_by: string | null
+          redeemed_sale_id: string | null
+          reward_value_cop: number
+          source_transaction_id: string
+          status: Database["public"]["Enums"]["loyalty_reward_status"]
+          tienda_id: string
+          voided_at: string | null
+          voided_by: string | null
+          voided_reason: string | null
+        }
+        Insert: {
+          cliente_id: string
+          cost_stamps: number
+          expires_at: string
+          generated_at?: string
+          id?: string
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+          redeemed_sale_id?: string | null
+          reward_value_cop: number
+          source_transaction_id: string
+          status?: Database["public"]["Enums"]["loyalty_reward_status"]
+          tienda_id: string
+          voided_at?: string | null
+          voided_by?: string | null
+          voided_reason?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          cost_stamps?: number
+          expires_at?: string
+          generated_at?: string
+          id?: string
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+          redeemed_sale_id?: string | null
+          reward_value_cop?: number
+          source_transaction_id?: string
+          status?: Database["public"]["Enums"]["loyalty_reward_status"]
+          tienda_id?: string
+          voided_at?: string | null
+          voided_by?: string | null
+          voided_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_rewards_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_rewards_redeemed_sale_id_fkey"
+            columns: ["redeemed_sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_rewards_source_transaction_id_fkey"
+            columns: ["source_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_rewards_tienda_id_fkey"
+            columns: ["tienda_id"]
+            isOneToOne: false
+            referencedRelation: "tiendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loyalty_transactions: {
+        Row: {
+          balance_after: number
+          cliente_id: string
+          created_at: string
+          created_by: string
+          id: string
+          reason: string | null
+          sale_id: string | null
+          stamps_delta: number
+          tienda_id: string
+          type: Database["public"]["Enums"]["loyalty_transaction_type"]
+        }
+        Insert: {
+          balance_after: number
+          cliente_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          reason?: string | null
+          sale_id?: string | null
+          stamps_delta: number
+          tienda_id: string
+          type: Database["public"]["Enums"]["loyalty_transaction_type"]
+        }
+        Update: {
+          balance_after?: number
+          cliente_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          reason?: string | null
+          sale_id?: string | null
+          stamps_delta?: number
+          tienda_id?: string
+          type?: Database["public"]["Enums"]["loyalty_transaction_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_transactions_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_transactions_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_transactions_tienda_id_fkey"
             columns: ["tienda_id"]
             isOneToOne: false
             referencedRelation: "tiendas"
@@ -791,10 +1002,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "product_components_componente_id_fkey"
+            columns: ["componente_id"]
+            isOneToOne: false
+            referencedRelation: "storefront_productos_publicos"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "product_components_producto_id_fkey"
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_components_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "storefront_productos_publicos"
             referencedColumns: ["id"]
           },
           {
@@ -821,6 +1046,7 @@ export type Database = {
           marca: string | null
           nombre: string
           para_que_sirve: string | null
+          participa_fidelizacion: boolean
           precio_venta: number
           proveedor: string | null
           recomendado_para: string | null
@@ -847,6 +1073,7 @@ export type Database = {
           marca?: string | null
           nombre: string
           para_que_sirve?: string | null
+          participa_fidelizacion?: boolean
           precio_venta: number
           proveedor?: string | null
           recomendado_para?: string | null
@@ -873,6 +1100,7 @@ export type Database = {
           marca?: string | null
           nombre?: string
           para_que_sirve?: string | null
+          participa_fidelizacion?: boolean
           precio_venta?: number
           proveedor?: string | null
           recomendado_para?: string | null
@@ -962,6 +1190,8 @@ export type Database = {
           discount_amount: number
           global_discount_amount: number
           id: string
+          loyalty_discount_amount: number
+          loyalty_reward_id: string | null
           producto_id: string
           producto_nombre: string
           producto_sku: string | null
@@ -976,6 +1206,8 @@ export type Database = {
           discount_amount?: number
           global_discount_amount?: number
           id?: string
+          loyalty_discount_amount?: number
+          loyalty_reward_id?: string | null
           producto_id: string
           producto_nombre: string
           producto_sku?: string | null
@@ -990,6 +1222,8 @@ export type Database = {
           discount_amount?: number
           global_discount_amount?: number
           id?: string
+          loyalty_discount_amount?: number
+          loyalty_reward_id?: string | null
           producto_id?: string
           producto_nombre?: string
           producto_sku?: string | null
@@ -1002,10 +1236,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "sale_items_loyalty_reward_id_fkey"
+            columns: ["loyalty_reward_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_rewards"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sale_items_producto_id_fkey"
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_items_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "storefront_productos_publicos"
             referencedColumns: ["id"]
           },
           {
@@ -1033,6 +1281,7 @@ export type Database = {
           id: string
           idempotency_key: string
           item_discount_total: number
+          loyalty_discount_total: number
           sale_number: string
           status: Database["public"]["Enums"]["sale_status"]
           subtotal: number
@@ -1059,6 +1308,7 @@ export type Database = {
           id?: string
           idempotency_key: string
           item_discount_total?: number
+          loyalty_discount_total?: number
           sale_number: string
           status?: Database["public"]["Enums"]["sale_status"]
           subtotal: number
@@ -1085,6 +1335,7 @@ export type Database = {
           id?: string
           idempotency_key?: string
           item_discount_total?: number
+          loyalty_discount_total?: number
           sale_number?: string
           status?: Database["public"]["Enums"]["sale_status"]
           subtotal?: number
@@ -1149,47 +1400,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "settings_tienda_id_fkey"
-            columns: ["tienda_id"]
-            isOneToOne: true
-            referencedRelation: "tiendas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      storefront_contact_settings: {
-        Row: {
-          created_at: string
-          instagram_handle: string
-          instagram_url: string
-          is_active: boolean
-          tienda_id: string
-          updated_at: string
-          whatsapp_display: string
-          whatsapp_number: string
-        }
-        Insert: {
-          created_at?: string
-          instagram_handle: string
-          instagram_url: string
-          is_active?: boolean
-          tienda_id: string
-          updated_at?: string
-          whatsapp_display: string
-          whatsapp_number: string
-        }
-        Update: {
-          created_at?: string
-          instagram_handle?: string
-          instagram_url?: string
-          is_active?: boolean
-          tienda_id?: string
-          updated_at?: string
-          whatsapp_display?: string
-          whatsapp_number?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "storefront_contact_settings_tienda_id_fkey"
             columns: ["tienda_id"]
             isOneToOne: true
             referencedRelation: "tiendas"
@@ -1279,15 +1489,13 @@ export type Database = {
           categoria_nombre: string | null
           categoria_orden: number | null
           etiqueta: string | null
-          id: string
+          id: string | null
           image_url: string | null
           marca: string | null
-          nombre: string
+          nombre: string | null
           para_que_sirve: string | null
-          tipo: Database["public"]["Enums"]["product_type"]
+          tipo: Database["public"]["Enums"]["product_type"] | null
         }
-        Insert: never
-        Update: never
         Relationships: [
           {
             foreignKeyName: "productos_categoria_id_fkey"
@@ -1300,6 +1508,16 @@ export type Database = {
       }
     }
     Functions: {
+      adjust_loyalty_stamps: {
+        Args: {
+          p_cliente_id: string
+          p_created_by: string
+          p_delta: number
+          p_reason: string
+          p_tienda_id: string
+        }
+        Returns: number
+      }
       close_cash_session_atomic: {
         Args: {
           p_actual_cash: number
@@ -1343,6 +1561,7 @@ export type Database = {
           p_iva_tasa: number
           p_nombre: string
           p_para_que_sirve: string
+          p_participa_fidelizacion?: boolean
           p_precio_venta: number
           p_proveedor?: string
           p_recomendado_para: string
@@ -1382,6 +1601,7 @@ export type Database = {
               p_global_discount_total: number
               p_idempotency_key: string
               p_items: Json
+              p_loyalty_redemptions?: Json
               p_payments: Json
               p_sale_number: string
               p_subtotal: number
@@ -1403,7 +1623,6 @@ export type Database = {
           cogs_mes: number
           compras_acumuladas: number
           compras_mes: number
-          ventas_sin_costo: number
           entradas_sin_costo: number
         }[]
       }
@@ -1416,6 +1635,37 @@ export type Database = {
         Returns: number
       }
       get_user_tiendas: { Args: never; Returns: string[] }
+      loyalty_apply_delta: {
+        Args: {
+          p_cliente_id: string
+          p_created_by: string
+          p_delta: number
+          p_reason: string
+          p_sale_id: string
+          p_tienda_id: string
+          p_truncate?: boolean
+          p_type: Database["public"]["Enums"]["loyalty_transaction_type"]
+        }
+        Returns: string
+      }
+      loyalty_generate_rewards: {
+        Args: {
+          p_cliente_id: string
+          p_created_by: string
+          p_sale_id: string
+          p_tienda_id: string
+        }
+        Returns: number
+      }
+      loyalty_program_config: {
+        Args: { p_tienda_id: string }
+        Returns: {
+          activo: boolean
+          sellos_para_recompensa: number
+          valor_recompensa_cop: number
+          vigencia_dias: number
+        }[]
+      }
       register_expense_atomic: {
         Args: {
           p_category_id: string
@@ -1512,6 +1762,13 @@ export type Database = {
         | "void_return"
         | "transfer_out"
         | "transfer_in"
+      loyalty_reward_status: "available" | "redeemed" | "expired" | "voided"
+      loyalty_transaction_type:
+        | "earn"
+        | "redeem"
+        | "void"
+        | "adjustment"
+        | "expire"
       payment_method: "cash" | "card" | "transfer" | "other"
       product_type: "simple" | "prepared" | "ingredient"
       sale_status: "completed" | "voided"
@@ -1671,6 +1928,14 @@ export const Constants = {
         "void_return",
         "transfer_out",
         "transfer_in",
+      ],
+      loyalty_reward_status: ["available", "redeemed", "expired", "voided"],
+      loyalty_transaction_type: [
+        "earn",
+        "redeem",
+        "void",
+        "adjustment",
+        "expire",
       ],
       payment_method: ["cash", "card", "transfer", "other"],
       product_type: ["simple", "prepared", "ingredient"],

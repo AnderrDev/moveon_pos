@@ -15,9 +15,11 @@ import { ButtonComponent } from '../../shared/ui/button.component'
 import { FormInputComponent } from '../../shared/forms/form-input.component'
 import { FormSelectComponent, type FormSelectOption } from '../../shared/forms/form-select.component'
 import { FormErrorComponent } from '../../shared/forms/form-error.component'
+import { FormCheckboxComponent } from '../../shared/forms/form-checkbox.component'
 import { CustomersRepository } from './customers.repository'
 import { SessionService } from '../../core/auth/session.service'
 import { ToastService } from '../../shared/feedback/toast.service'
+import { isValidPhoneCO } from '@/modules/customers/domain/value-objects/phone-co'
 import type { Cliente } from '@/modules/customers/domain/entities/cliente.entity'
 
 const TIPO_OPTIONS: FormSelectOption<string>[] = [
@@ -38,6 +40,7 @@ const TIPO_OPTIONS: FormSelectOption<string>[] = [
     FormInputComponent,
     FormSelectComponent,
     FormErrorComponent,
+    FormCheckboxComponent,
   ],
   template: `
     <mo-dialog
@@ -62,7 +65,30 @@ const TIPO_OPTIONS: FormSelectOption<string>[] = [
 
         <div class="grid gap-4 sm:grid-cols-2">
           <mo-form-input controlName="email" type="email" label="Email" />
-          <mo-form-input controlName="telefono" label="Telefono" />
+          <mo-form-input
+            controlName="telefono"
+            label="Celular"
+            placeholder="300 123 4567"
+          />
+        </div>
+        @if (telefonoError()) {
+          <p class="text-destructive -mt-2 text-xs font-semibold">{{ telefonoError() }}</p>
+        }
+
+        <div class="bg-muted/40 space-y-2 rounded-lg border px-3.5 py-3">
+          <p class="text-xs font-bold tracking-wide uppercase">MOVE ON Club</p>
+          <mo-form-checkbox
+            controlName="autorizaFidelizacion"
+            label="Autoriza participar en el programa de fidelización"
+          />
+          <mo-form-checkbox
+            controlName="aceptaMensajesPromocionales"
+            label="Acepta recibir mensajes promocionales (opcional)"
+          />
+          <p class="text-muted-foreground text-[11px]">
+            El programa identifica al cliente por su número de celular: para participar
+            debe registrar un celular colombiano válido.
+          </p>
         </div>
 
         <mo-form-error [message]="rootError()" />
@@ -92,6 +118,7 @@ export class ClienteFormDialog {
 
   readonly saving = signal(false)
   readonly rootError = signal<string | null>(null)
+  readonly telefonoError = signal<string | null>(null)
   readonly tipoOptions = TIPO_OPTIONS
 
   readonly form = new FormGroup({
@@ -103,6 +130,8 @@ export class ClienteFormDialog {
     numeroDocumento: new FormControl<string>('', { nonNullable: true }),
     email: new FormControl<string>('', { nonNullable: true }),
     telefono: new FormControl<string>('', { nonNullable: true }),
+    autorizaFidelizacion: new FormControl<boolean>(false, { nonNullable: true }),
+    aceptaMensajesPromocionales: new FormControl<boolean>(false, { nonNullable: true }),
   })
 
   readonly dialogTitle = computed(() => (this.cliente() ? 'Editar cliente' : 'Nuevo cliente'))
@@ -117,8 +146,11 @@ export class ClienteFormDialog {
           numeroDocumento: c?.numeroDocumento ?? '',
           email: c?.email ?? '',
           telefono: c?.telefono ?? '',
+          autorizaFidelizacion: c?.autorizaFidelizacion ?? false,
+          aceptaMensajesPromocionales: c?.aceptaMensajesPromocionales ?? false,
         })
         this.rootError.set(null)
+        this.telefonoError.set(null)
       }
     })
   }
@@ -127,6 +159,17 @@ export class ClienteFormDialog {
     if (this.saving()) return
     this.form.markAllAsTouched()
     if (this.form.invalid) return
+
+    // RN-CL04: el programa identifica por celular; si autoriza fidelización el
+    // celular es obligatorio y debe ser un celular colombiano válido.
+    const { telefono, autorizaFidelizacion } = this.form.getRawValue()
+    this.telefonoError.set(null)
+    if (autorizaFidelizacion && !isValidPhoneCO(telefono.trim())) {
+      this.telefonoError.set(
+        'Para participar en MOVE ON Club se necesita un celular colombiano válido (10 dígitos)',
+      )
+      return
+    }
 
     const auth = await this.session.getAuthContext()
     if (!auth) {
@@ -145,6 +188,8 @@ export class ClienteFormDialog {
         numeroDocumento: v.numeroDocumento.trim() || undefined,
         email: v.email.trim() || undefined,
         telefono: v.telefono.trim() || undefined,
+        autorizaFidelizacion: v.autorizaFidelizacion,
+        aceptaMensajesPromocionales: v.aceptaMensajesPromocionales,
       }
       const cliente = this.cliente()
       const result = cliente

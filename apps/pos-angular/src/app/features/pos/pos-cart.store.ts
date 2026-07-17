@@ -6,6 +6,10 @@ import {
   type CartItemInput,
 } from '@/modules/sales/domain/services/sale-calculator'
 import type { CartTotals } from '@/modules/sales/domain/services/sale-calculator'
+import {
+  applyLoyaltyDiscountToItem,
+  rewardDiscountForPrice,
+} from '@/modules/loyalty/domain/services/stamps'
 import { capQuantity } from './stock-cap'
 import type { PosProduct, PosProductComponent, PaymentEntry } from './pos.types'
 
@@ -13,7 +17,17 @@ export interface PosCartItem extends CartItemCalculated {
   key: string
   /** Stock disponible. `null` = el producto no rastrea stock (ej. `prepared`). */
   maxQuantity: number | null
+  /** MOVE ON Club: la línea puede generar sellos o canjear una recompensa. */
+  participaFidelizacion: boolean
   components: PosProductComponent[]
+}
+
+/** Canje MOVE ON Club aplicado al carrito (una recompensa por venta en la UI). */
+export interface LoyaltyRedemptionEntry {
+  rewardId: string
+  productId: string
+  /** Descuento efectivo: min(precio unitario, valor de la recompensa). */
+  amount: number
 }
 
 /**
@@ -27,6 +41,7 @@ export interface StockCapFeedback {
 
 interface ToCartItemInput extends CartItemInput {
   maxQuantity: number | null
+  participaFidelizacion: boolean
   components: PosProductComponent[]
 }
 
@@ -35,6 +50,7 @@ function toCartItem(input: ToCartItemInput): PosCartItem {
     ...calculateCartItem(input),
     key: input.productId,
     maxQuantity: input.maxQuantity,
+    participaFidelizacion: input.participaFidelizacion,
     components: input.components,
   }
 }
@@ -55,6 +71,7 @@ export class PosCartStore {
   private readonly clienteNombreState = signal<string | null>(null)
   private readonly globalDiscountState = signal<number>(0)
   private readonly stockCapFeedbackState = signal<StockCapFeedback | null>(null)
+  private readonly loyaltyRedemptionState = signal<LoyaltyRedemptionEntry | null>(null)
 
   /**
    * Último tope de stock aplicado. La página lo observa para mostrar el toast y
@@ -68,9 +85,31 @@ export class PosCartStore {
   readonly clienteId = this.clienteIdState.asReadonly()
   readonly clienteNombre = this.clienteNombreState.asReadonly()
   readonly globalDiscount = this.globalDiscountState.asReadonly()
-  readonly totals = computed<CartTotals>(() =>
-    calculateCartTotals(this.itemsState(), this.globalDiscountState()),
-  )
+
+  /**
+   * Canje vigente: se auto-invalida si la línea salió del carrito, recibió un
+   * descuento manual (RN-LF12: excluyentes) o se quitó el cliente.
+   */
+  readonly loyaltyRedemption = computed<LoyaltyRedemptionEntry | null>(() => {
+    const redemption = this.loyaltyRedemptionState()
+    if (!redemption) return null
+    if (!this.clienteIdState()) return null
+    const item = this.itemsState().find((i) => i.key === redemption.productId)
+    if (!item || item.discountAmount > 0 || !item.participaFidelizacion) return null
+    return redemption
+  })
+
+  readonly totals = computed<CartTotals>(() => {
+    const redemption = this.loyaltyRedemption()
+    const items = redemption
+      ? this.itemsState().map((item) =>
+          item.key === redemption.productId
+            ? applyLoyaltyDiscountToItem(item, redemption.amount)
+            : item,
+        )
+      : this.itemsState()
+    return calculateCartTotals(items, this.globalDiscountState())
+  })
   readonly totalPaid = computed(() =>
     this.paymentsState().reduce((sum, payment) => sum + payment.amount, 0),
   )
@@ -87,7 +126,13 @@ export class PosCartStore {
         if (quantity === existing.quantity) return items
         return items.map((item) =>
           item.key === product.id
-            ? toCartItem({ ...item, quantity, maxQuantity: product.stockDisponible, components: item.components })
+            ? toCartItem({
+                ...item,
+                quantity,
+                maxQuantity: product.stockDisponible,
+                participaFidelizacion: item.participaFidelizacion,
+                components: item.components,
+              })
             : item,
         )
       }
@@ -108,6 +153,7 @@ export class PosCartStore {
           quantity,
           discountAmount: 0,
           maxQuantity: product.stockDisponible,
+          participaFidelizacion: product.participaFidelizacion,
           components: product.components,
         }),
       ]
@@ -162,6 +208,10 @@ export class PosCartStore {
   }
 
   setCliente(clienteId: string, clienteNombre: string): void {
+    if (this.clienteIdState() !== clienteId) {
+      // Cambiar de cliente invalida el canje: la recompensa es de otro cliente.
+      this.loyaltyRedemptionState.set(null)
+    }
     this.clienteIdState.set(clienteId)
     this.clienteNombreState.set(clienteNombre)
   }
@@ -169,6 +219,25 @@ export class PosCartStore {
   clearCliente(): void {
     this.clienteIdState.set(null)
     this.clienteNombreState.set(null)
+    this.loyaltyRedemptionState.set(null)
+  }
+
+  /**
+   * Aplica una recompensa MOVE ON Club a una línea del carrito. El descuento
+   * efectivo lo define el dominio: min(precio unitario, valor recompensa).
+   * El RPC revalida todo (vigencia, estado, elegibilidad) al confirmar.
+   */
+  applyLoyaltyReward(rewardId: string, rewardValueCop: number, item: PosCartItem): void {
+    if (!item.participaFidelizacion || item.discountAmount > 0) return
+    this.loyaltyRedemptionState.set({
+      rewardId,
+      productId: item.key,
+      amount: rewardDiscountForPrice(item.unitPrice, rewardValueCop),
+    })
+  }
+
+  clearLoyaltyRedemption(): void {
+    this.loyaltyRedemptionState.set(null)
   }
 
   /** Descuento comercial global en monto COP sobre el total. Se acota a >= 0. */
@@ -184,6 +253,7 @@ export class PosCartStore {
     this.clienteNombreState.set(null)
     this.globalDiscountState.set(0)
     this.stockCapFeedbackState.set(null)
+    this.loyaltyRedemptionState.set(null)
   }
 
   addPayment(payment: PaymentEntry): void {

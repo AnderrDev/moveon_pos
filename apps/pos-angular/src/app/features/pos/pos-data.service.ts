@@ -68,6 +68,7 @@ export class PosDataService {
         paraQueSirve: p.paraQueSirve,
         recomendadoPara: p.recomendadoPara,
         tipo: p.tipo,
+        participaFidelizacion: p.participaFidelizacion,
         // `prepared` no rastrea stock. Para simple/ingredient, stock real
         // acotado a >= 0 (RN-I06): el máximo nunca es negativo.
         stockDisponible: p.tipo === 'prepared' ? null : Math.max(0, stockByProduct.get(p.id) ?? 0),

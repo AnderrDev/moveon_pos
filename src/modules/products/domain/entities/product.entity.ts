@@ -17,6 +17,8 @@ export interface Product {
   costo: number | null
   ivaTasa: IvaRate
   stockMinimo: number
+  /** MOVE ON Club: genera sellos y puede canjearse como recompensa (RN-LF06). */
+  participaFidelizacion: boolean
   isActive: boolean
   deletedAt: Date | null
   createdAt: Date

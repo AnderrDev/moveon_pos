@@ -9,6 +9,7 @@ import {
   signal,
 } from '@angular/core'
 import { getErrorMessage } from '@/shared/lib/error-message'
+import { normalizePhoneCO } from '@/modules/customers/domain/value-objects/phone-co'
 import { DialogComponent } from '../../shared/ui/dialog.component'
 import { CustomersRepository } from '../customers/customers.repository'
 import { SessionService } from '../../core/auth/session.service'
@@ -22,13 +23,22 @@ import type { Cliente } from '@/modules/customers/domain/entities/cliente.entity
   template: `
     <mo-dialog [open]="open()" title="Asociar cliente" width="md" (closed)="onClose()">
       <div class="space-y-3">
-        <input
-          type="search"
-          [value]="query()"
-          (input)="onQuery($event)"
-          placeholder="Buscar por nombre, documento o telefono"
-          class="border-input bg-card focus:ring-ring h-11 w-full rounded-lg border px-3.5 text-sm focus:ring-2 focus:outline-none"
-        />
+        <div class="flex gap-2">
+          <input
+            type="search"
+            [value]="query()"
+            (input)="onQuery($event)"
+            placeholder="Buscar por celular, documento o nombre"
+            class="border-input bg-card focus:ring-ring h-11 min-w-0 flex-1 rounded-lg border px-3.5 text-sm focus:ring-2 focus:outline-none"
+          />
+          <button
+            type="button"
+            (click)="onCreateRequested()"
+            class="border-primary/50 text-primary hover:bg-primary/10 h-11 shrink-0 rounded-lg border border-dashed px-3 text-xs font-bold transition-colors"
+          >
+            + Nuevo
+          </button>
+        </div>
 
         @if (loading()) {
           <div class="space-y-2">
@@ -74,6 +84,13 @@ import type { Cliente } from '@/modules/customers/domain/entities/cliente.entity
                     }
                   </span>
                 </span>
+                @if (c.autorizaFidelizacion) {
+                  <span
+                    class="bg-primary/10 text-primary inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-bold"
+                  >
+                    Club
+                  </span>
+                }
               </button>
             }
           </div>
@@ -90,27 +107,39 @@ export class CustomerPickerDialog {
 
   readonly closed = output<void>()
   readonly selected = output<Cliente>()
+  /** Registro rápido desde el flujo de venta (RN-CL07): la página abre el form. */
+  readonly createRequested = output<void>()
 
   readonly clientes = signal<Cliente[]>([])
   readonly loading = signal(false)
   readonly loadError = signal<string | null>(null)
   readonly query = signal('')
-  private loaded = false
 
+  /**
+   * Búsqueda flexible: si la consulta es un celular colombiano se compara
+   * contra el celular normalizado (así "+57 301..." encuentra "3012244006");
+   * en paralelo filtra por nombre, documento, teléfono crudo o email.
+   */
   readonly filtered = computed(() => {
-    const q = this.query().trim().toLowerCase()
-    if (!q) return this.clientes()
-    return this.clientes().filter((c) =>
-      [c.nombre, c.numeroDocumento ?? '', c.telefono ?? '', c.email ?? '']
-        .join(' ')
-        .toLowerCase()
-        .includes(q),
+    const raw = this.query().trim()
+    if (!raw) return this.clientes()
+    const q = raw.toLowerCase()
+    const phone = normalizePhoneCO(raw)
+    return this.clientes().filter(
+      (c) =>
+        (phone !== null && c.celularNormalizado === phone) ||
+        [c.nombre, c.numeroDocumento ?? '', c.telefono ?? '', c.celularNormalizado ?? '', c.email ?? '']
+          .join(' ')
+          .toLowerCase()
+          .includes(q),
     )
   })
 
   constructor() {
+    // Recarga en cada apertura: un cliente puede haberse creado desde el
+    // registro rápido del POS (o desde /clientes) después de la carga inicial.
     effect(() => {
-      if (this.open() && !this.loaded) {
+      if (this.open()) {
         void this.load()
       }
     })
@@ -123,7 +152,6 @@ export class CustomerPickerDialog {
       const auth = await this.session.getAuthContext()
       if (!auth) throw new Error('No autenticado')
       this.clientes.set(await this.repo.list(auth.tiendaId))
-      this.loaded = true
     } catch (error) {
       this.loadError.set(getErrorMessage(error, 'No se pudieron cargar los clientes'))
     } finally {
@@ -137,6 +165,11 @@ export class CustomerPickerDialog {
 
   select(cliente: Cliente): void {
     this.selected.emit(cliente)
+    this.closed.emit()
+  }
+
+  onCreateRequested(): void {
+    this.createRequested.emit()
     this.closed.emit()
   }
 

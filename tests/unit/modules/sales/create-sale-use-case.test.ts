@@ -29,6 +29,7 @@ function makeProduct(overrides: Partial<Product> = {}): Product {
     costo:         50_000,
     ivaTasa:       19,
     stockMinimo:   1,
+    participaFidelizacion: false,
     isActive:      true,
     deletedAt:     null,
     createdAt:     now,

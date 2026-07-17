@@ -113,6 +113,8 @@ export const productFormSchema = z.object({
 
   stockInicialUbicacion: inventoryLocationSchema.default('bodega'),
 
+  participaFidelizacion: z.boolean().default(false),
+
   isActive: z.boolean().default(true),
 }).superRefine((value, ctx) => {
   if (value.tipo === 'prepared' && value.stockInicial > 0) {
@@ -152,6 +154,7 @@ export function createProductFormDefaults(
     stockMinimo:  initial.stockMinimo  ?? 0,
     stockInicial: initial.stockInicial ?? 0,
     stockInicialUbicacion: initial.stockInicialUbicacion ?? 'bodega',
+    participaFidelizacion: initial.participaFidelizacion ?? false,
     isActive:     initial.isActive     ?? true,
   }
 }

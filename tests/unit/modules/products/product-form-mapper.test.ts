@@ -22,6 +22,7 @@ const product: Product = {
   costo: 70000,
   ivaTasa: 19,
   stockMinimo: 2,
+  participaFidelizacion: false,
   isActive: true,
   createdAt: new Date('2026-01-01T00:00:00Z'),
   updatedAt: new Date('2026-01-02T00:00:00Z'),
@@ -45,6 +46,7 @@ const formValue: ProductFormValue = {
   stockMinimo: 2,
   stockInicial: 15,
   stockInicialUbicacion: 'bodega',
+  participaFidelizacion: false,
   isActive: true,
 }
 
@@ -101,6 +103,7 @@ describe('productFormMapper', () => {
       costo: 70000,
       ivaTasa: 19,
       stockMinimo: 2,
+      participaFidelizacion: false,
       isActive: true,
     })
   })
