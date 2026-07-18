@@ -17,7 +17,9 @@ import { FormErrorComponent } from '@angular-app/shared/molecules/form-error.com
 import { DialogFooterComponent } from '@angular-app/shared/molecules/dialog-footer.component'
 import { CategoriaFormPresenter } from '@angular-app/features/products/presentation/presenters/categoria-form.presenter'
 import { categoriaFormMapper } from '@angular-app/features/products/presentation/forms/categoria-form.mapper'
-import { ProductsRepository } from '@angular-app/features/products/data/repositories/products.repository'
+import { ProductRepository } from '@angular-app/features/products/domain/repositories/product.repository'
+import { createCategoria } from '@angular-app/features/products/domain/usecases/create-categoria.use-case'
+import { updateCategoria } from '@angular-app/features/products/domain/usecases/update-categoria.use-case'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import type { Categoria } from '@angular-app/features/products/domain/entities/product.entity'
@@ -65,7 +67,7 @@ import type { Categoria } from '@angular-app/features/products/domain/entities/p
   `,
 })
 export class CategoriaFormDialog {
-  private readonly repo = inject(ProductsRepository)
+  private readonly repo = inject(ProductRepository)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
 
@@ -108,11 +110,16 @@ export class CategoriaFormDialog {
     try {
       const categoria = this.categoria()
       const result = categoria
-        ? await this.repo.updateCategoria(categoria.id, auth.tiendaId, value)
-        : await this.repo.createCategoria(value, auth.tiendaId)
+        ? await updateCategoria({ repo: this.repo }, categoria.id, auth.tiendaId, value)
+        : await createCategoria({ repo: this.repo }, auth.tiendaId, value)
+
+      if (!result.ok) {
+        this.presenter.setRootError(result.error.message)
+        return
+      }
 
       this.toast.success(categoria ? 'Categoria actualizada' : 'Categoria creada')
-      this.saved.emit(result)
+      this.saved.emit(result.value)
       this.closed.emit()
     } catch (error) {
       this.presenter.setRootError(getErrorMessage(error, 'Error al guardar'))

@@ -55,10 +55,3 @@ export const searchProductsSchema = z.object({
   limit: z.number().int().positive().max(100).default(20),
 })
 export type SearchProductsDto = z.infer<typeof searchProductsSchema>
-
-export const createCategoriaSchema = z.object({
-  tiendaId: z.string().uuid(),
-  nombre: z.string().min(1, 'El nombre es obligatorio'),
-  orden: z.number().int().nonnegative().default(0),
-})
-export type CreateCategoriaDto = z.infer<typeof createCategoriaSchema>

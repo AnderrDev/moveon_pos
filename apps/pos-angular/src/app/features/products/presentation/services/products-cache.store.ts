@@ -1,6 +1,6 @@
 import { computed, effect, inject, Injectable, signal } from '@angular/core'
 import { SessionService } from '@angular-app/core/auth/session.service'
-import { ProductsRepository } from '@angular-app/features/products/data/repositories/products.repository'
+import { ProductRepository } from '@angular-app/features/products/domain/repositories/product.repository'
 import { TtlCache } from '@/shared/cache/ttl-cache'
 import type { Categoria, Product } from '@angular-app/features/products/domain/entities/product.entity'
 
@@ -13,7 +13,7 @@ interface EnsureOptions {
 
 @Injectable({ providedIn: 'root' })
 export class ProductsCacheStore {
-  private readonly repo = inject(ProductsRepository)
+  private readonly repo = inject(ProductRepository)
   private readonly session = inject(SessionService)
 
   private readonly _products = signal<Product[] | null>(null)

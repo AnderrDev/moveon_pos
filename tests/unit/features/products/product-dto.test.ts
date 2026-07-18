@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import {
-  createCategoriaSchema as createCategoriaDtoSchema,
   createProductSchema,
   searchProductsSchema,
   updateProductSchema,
@@ -73,14 +72,5 @@ describe('categoria DTO schemas', () => {
   it('rechazan categorías vacías', () => {
     expect(createCategoriaSchema.safeParse({ nombre: '   ' }).success).toBe(false)
     expect(updateCategoriaSchema.safeParse({ nombre: '' }).success).toBe(false)
-  })
-
-  it('acepta DTO legacy de categoría con tienda', () => {
-    const result = createCategoriaDtoSchema.safeParse({
-      tiendaId,
-      nombre: 'Snacks',
-    })
-    expect(result.success).toBe(true)
-    if (result.success) expect(result.data.orden).toBe(0)
   })
 })

@@ -25,8 +25,10 @@ import { ProductFormPresenter } from '@angular-app/features/products/presentatio
 import { ProductImageFieldComponent } from '@angular-app/features/products/presentation/components/product-image-field.component'
 import { productFormMapper } from '@angular-app/features/products/presentation/forms/product-form.mapper'
 import type { Product, Categoria } from '@angular-app/features/products/domain/entities/product.entity'
-import { ProductsRepository } from '@angular-app/features/products/data/repositories/products.repository'
-import type { ProductComponent } from '@angular-app/features/products/domain/repositories/product.repository'
+import { ProductRepository, type ProductComponent } from '@angular-app/features/products/domain/repositories/product.repository'
+import { createProduct } from '@angular-app/features/products/domain/usecases/create-product.use-case'
+import { updateProduct } from '@angular-app/features/products/domain/usecases/update-product.use-case'
+import { saveProductComponents } from '@angular-app/features/products/domain/usecases/save-product-components.use-case'
 import { ProductsCacheStore } from '@angular-app/features/products/presentation/services/products-cache.store'
 import { filterComponentCandidates } from '@angular-app/features/products/presentation/services/product-component.helpers'
 import { SessionService } from '@angular-app/core/auth/session.service'
@@ -324,7 +326,7 @@ const INITIAL_STOCK_LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
   `,
 })
 export class ProductFormDialog {
-  private readonly repo = inject(ProductsRepository)
+  private readonly repo = inject(ProductRepository)
   private readonly cache = inject(ProductsCacheStore)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
@@ -435,22 +437,28 @@ export class ProductFormDialog {
     try {
       const product = this.product()
       const result = product
-        ? await this.repo.updateProduct(
+        ? await updateProduct(
+            { repo: this.repo },
             product.id,
             auth.tiendaId,
             productFormMapper.toUpdatePayload(value),
           )
-        : await this.repo.createProduct(
+        : await createProduct(
+            { repo: this.repo },
             productFormMapper.toCreatePayload(value, auth.tiendaId),
-            {
-              cantidad: value.stockInicial,
-              ubicacion: value.stockInicialUbicacion,
-            },
+            { cantidad: value.stockInicial, ubicacion: value.stockInicialUbicacion },
           )
 
-      if (result.tipo === 'prepared') {
-        await this.repo.saveComponents(
-          result.id,
+      if (!result.ok) {
+        this.presenter.setRootError(result.error.message)
+        return
+      }
+      const saved = result.value
+
+      if (saved.tipo === 'prepared') {
+        await saveProductComponents(
+          { repo: this.repo },
+          saved.id,
           auth.tiendaId,
           this.components().map((c) => ({ componenteId: c.componenteId, cantidad: c.cantidad })),
         )
@@ -463,7 +471,7 @@ export class ProductFormDialog {
             ? `Producto creado con ${value.stockInicial} unidades en inventario`
             : 'Producto creado',
       )
-      this.saved.emit(result)
+      this.saved.emit(saved)
       this.closed.emit()
     } catch (error) {
       this.presenter.setRootError(getErrorMessage(error, 'Error al guardar'))

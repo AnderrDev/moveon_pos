@@ -8,7 +8,7 @@ import { EmptyStateComponent } from '@angular-app/shared/molecules/empty-state.c
 import { TableShellComponent } from '@angular-app/shared/molecules/table/table-shell.component'
 import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
 import { InventoryRepository } from '@angular-app/features/inventory/data/repositories/inventory.repository'
-import { ProductsRepository } from '@angular-app/features/products/data/repositories/products.repository'
+import { ProductRepository } from '@angular-app/features/products/domain/repositories/product.repository'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { RegisterEntryDialog } from '@angular-app/features/inventory/presentation/dialogs/register-entry.dialog'
 import { AdjustStockDialog } from '@angular-app/features/inventory/presentation/dialogs/adjust-stock.dialog'
@@ -229,7 +229,7 @@ interface StockRow {
 })
 export class InventarioPage {
   private readonly inventoryRepo = inject(InventoryRepository)
-  private readonly productsRepo = inject(ProductsRepository)
+  private readonly productsRepo = inject(ProductRepository)
   private readonly session = inject(SessionService)
   private readonly excel = inject(ExcelExportService)
   private readonly toast = inject(ToastService)

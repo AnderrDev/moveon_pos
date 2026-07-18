@@ -9,7 +9,9 @@ import { ProductFormDialog } from '@angular-app/features/products/presentation/d
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
 import { TableShellComponent } from '@angular-app/shared/molecules/table/table-shell.component'
 import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
-import { ProductsRepository } from '@angular-app/features/products/data/repositories/products.repository'
+import { ProductRepository } from '@angular-app/features/products/domain/repositories/product.repository'
+import { deleteProduct } from '@angular-app/features/products/domain/usecases/delete-product.use-case'
+import { deactivateProduct } from '@angular-app/features/products/domain/usecases/deactivate-product.use-case'
 import { ProductsCacheStore } from '@angular-app/features/products/presentation/services/products-cache.store'
 import { InventoryRepository } from '@angular-app/features/inventory/data/repositories/inventory.repository'
 import { SessionService } from '@angular-app/core/auth/session.service'
@@ -253,7 +255,7 @@ import { buildProductsWorkbook } from '@angular-app/features/products/presentati
   `,
 })
 export class ProductosPage {
-  private readonly repo = inject(ProductsRepository)
+  private readonly repo = inject(ProductRepository)
   private readonly store = inject(ProductsCacheStore)
   private readonly inventoryRepo = inject(InventoryRepository)
   private readonly session = inject(SessionService)
@@ -350,7 +352,7 @@ export class ProductosPage {
     if (!auth) return
     this.deleting.set(true)
     try {
-      await this.repo.deleteProduct(product.id, auth.tiendaId)
+      await deleteProduct({ repo: this.repo }, product.id, auth.tiendaId)
       this.store.removeProduct(product.id)
       this.toast.success(`"${product.nombre}" eliminado`)
       this.closeDeleteConfirm()
@@ -425,7 +427,7 @@ export class ProductosPage {
     const auth = await this.session.getAuthContext()
     if (!auth) return
     try {
-      await this.repo.deactivateProduct(product.id, auth.tiendaId)
+      await deactivateProduct({ repo: this.repo }, product.id, auth.tiendaId)
       this.toast.success('Producto desactivado')
       this.store.patchProduct(product.id, { isActive: false })
     } catch (error) {

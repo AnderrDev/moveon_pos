@@ -8,7 +8,8 @@ import { EmptyStateComponent } from '@angular-app/shared/molecules/empty-state.c
 import { CategoriaFormDialog } from '@angular-app/features/products/presentation/dialogs/categoria-form.dialog'
 import { TableShellComponent } from '@angular-app/shared/molecules/table/table-shell.component'
 import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
-import { ProductsRepository } from '@angular-app/features/products/data/repositories/products.repository'
+import { ProductRepository } from '@angular-app/features/products/domain/repositories/product.repository'
+import { deactivateCategoria } from '@angular-app/features/products/domain/usecases/deactivate-categoria.use-case'
 import { ProductsCacheStore } from '@angular-app/features/products/presentation/services/products-cache.store'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
@@ -128,7 +129,7 @@ import { buildCategoriesWorkbook } from '@angular-app/features/products/presenta
   `,
 })
 export class CategoriasPage {
-  private readonly repo = inject(ProductsRepository)
+  private readonly repo = inject(ProductRepository)
   private readonly store = inject(ProductsCacheStore)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
@@ -195,7 +196,7 @@ export class CategoriasPage {
     const auth = await this.session.getAuthContext()
     if (!auth) return
     try {
-      await this.repo.deactivateCategoria(cat.id, auth.tiendaId)
+      await deactivateCategoria({ repo: this.repo }, cat.id, auth.tiendaId)
       this.toast.success('Categoria desactivada')
       this.store.patchCategoria(cat.id, { isActive: false })
     } catch (error) {

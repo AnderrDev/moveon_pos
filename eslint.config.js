@@ -16,13 +16,12 @@ const FEATURES = [
 const FEATURES_ROOT = 'apps/pos-angular/src/app/features'
 
 /**
- * Excepciones documentadas: reutilización real de presentation/ entre
- * features, detectada al activar esta regla (2026-07-17). No son errores —
- * son deuda arquitectónica ya existente que PLAN-68 debe resolver
- * extrayendo la lógica compartida a domain/ o a un servicio propio, en vez
- * de que una feature reimporte el `presentation/services` de otra.
+ * Excepciones documentadas a las reglas de frontera de presentation/ (cross-
+ * feature y/o "no inyectar la propia data/ concreta"). No son errores — son
+ * deuda arquitectónica ya existente (o casos límite razonables) que PLAN-68
+ * debe revisar. Cada una lleva la justificación inline.
  */
-const CROSS_FEATURE_PRESENTATION_EXCEPTIONS = [
+const PRESENTATION_BOUNDARY_EXCEPTIONS = [
   // cash-register reusa el export de "ventas del turno" que vive en pos/
   // (ambas pantallas describen el mismo turno; no hay owner claro todavía).
   `${FEATURES_ROOT}/cash-register/presentation/pages/caja.page.ts`,
@@ -39,6 +38,13 @@ const CROSS_FEATURE_PRESENTATION_EXCEPTIONS = [
   // para no repetir el fetch del catálogo. Cache transversal mal ubicada
   // dentro de products/ — candidata a moverse a core/ o shared/.
   `${FEATURES_ROOT}/pos/presentation/services/pos-data.service.ts`,
+  // product-image-field.component.ts inyecta el datasource de Storage
+  // (ProductImageStorageService) directo en vez de pasar por un método del
+  // ProductRepository. Es un datasource (no el repositorio de escritura que
+  // PLAN-64 cableó), y solo lo consume este componente — candidato a
+  // exponerse como método del repositorio o a moverse a core/ si más
+  // features necesitan subir imágenes.
+  `${FEATURES_ROOT}/products/presentation/components/product-image-field.component.ts`,
 ]
 
 /**
@@ -48,7 +54,7 @@ const CROSS_FEATURE_PRESENTATION_EXCEPTIONS = [
  * medida que se cablea (ADR 0015 §6.6 punto 4); el resto sigue permitiendo
  * inyectar la clase concreta cross-feature hasta que le toque su turno.
  */
-const CABLED_FEATURES = ['customers']
+const CABLED_FEATURES = ['customers', 'products']
 
 const OWN_DATA_MESSAGE =
   'No se puede inyectar la implementación concreta de data/ — inyecta la abstracción de domain/repositories/ (ADR 0015 §6.6, feature ya cableada).'
@@ -167,9 +173,9 @@ module.exports = tseslint.config(
     rules: {},
   },
   ...boundaryConfigs,
-  // Excepciones documentadas a la regla cross-feature (ver CROSS_FEATURE_PRESENTATION_EXCEPTIONS).
+  // Excepciones documentadas a las reglas de frontera (ver PRESENTATION_BOUNDARY_EXCEPTIONS).
   {
-    files: CROSS_FEATURE_PRESENTATION_EXCEPTIONS,
+    files: PRESENTATION_BOUNDARY_EXCEPTIONS,
     rules: {
       'no-restricted-imports': 'off',
     },

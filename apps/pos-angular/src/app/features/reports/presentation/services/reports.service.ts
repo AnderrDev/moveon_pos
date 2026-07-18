@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core'
 import { SalesRepository } from '@angular-app/features/sales/data/repositories/sales.repository'
 import { CashRegisterRepository } from '@angular-app/features/cash-register/data/repositories/cash-register.repository'
 import { InventoryRepository } from '@angular-app/features/inventory/data/repositories/inventory.repository'
-import { ProductsRepository } from '@angular-app/features/products/data/repositories/products.repository'
+import { ProductRepository } from '@angular-app/features/products/domain/repositories/product.repository'
 import { TiendaInfoService } from '@angular-app/core/tienda/tienda-info.service'
 import { DEFAULT_TIMEZONE, getStoreRangeUtc } from '@angular-app/features/reports/domain/services/day-range'
 import { isLowStock, isOutOfStock } from '@angular-app/features/inventory/domain/services/low-stock'
@@ -160,7 +160,7 @@ export class ReportsService {
   private readonly salesRepo = inject(SalesRepository)
   private readonly cashRepo = inject(CashRegisterRepository)
   private readonly inventoryRepo = inject(InventoryRepository)
-  private readonly productsRepo = inject(ProductsRepository)
+  private readonly productsRepo = inject(ProductRepository)
   private readonly tiendaInfo = inject(TiendaInfoService)
 
   /**
