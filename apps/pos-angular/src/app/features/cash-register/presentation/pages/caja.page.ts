@@ -8,8 +8,10 @@ import { BadgeComponent } from '@angular-app/shared/atoms/badge.component'
 import { EmptyStateComponent } from '@angular-app/shared/molecules/empty-state.component'
 import { FormCurrencyInputComponent } from '@angular-app/shared/molecules/form-currency-input.component'
 import { FormErrorComponent } from '@angular-app/shared/molecules/form-error.component'
-import { CashRegisterRepository } from '@angular-app/features/cash-register/data/repositories/cash-register.repository'
+import { CashRegisterRepository } from '@angular-app/features/cash-register/domain/repositories/cash-register.repository'
 import type { PaymentBreakdown } from '@angular-app/features/cash-register/domain/repositories/cash-register.repository'
+import { openCashSession } from '@angular-app/features/cash-register/domain/usecases/open-session.use-case'
+import { voidCashMovement } from '@angular-app/features/cash-register/domain/usecases/void-movement.use-case'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import { AddMovementDialog } from '@angular-app/features/cash-register/presentation/dialogs/add-movement.dialog'
@@ -24,7 +26,7 @@ import type {
   CashSession,
 } from '@angular-app/features/cash-register/domain/entities/cash-session.entity'
 import type { Sale } from '@angular-app/features/sales/domain/entities/sale.entity'
-import { SalesRepository } from '@angular-app/features/sales/data/repositories/sales.repository'
+import { SaleRepository } from '@angular-app/features/sales/domain/repositories/sale.repository'
 import { ExcelExportService } from '@angular-app/shared/services/export/excel-export.service'
 import { buildTurnSalesWorkbook } from '@angular-app/features/pos/presentation/services/sales-export'
 import { VoidReasonDialog } from '@angular-app/shared/organisms/void-reason/void-reason.dialog'
@@ -311,7 +313,7 @@ export class CajaPage {
   private readonly repo = inject(CashRegisterRepository)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
-  private readonly salesRepo = inject(SalesRepository)
+  private readonly salesRepo = inject(SaleRepository)
   private readonly excel = inject(ExcelExportService)
 
   readonly openSession = signal<CashSession | null>(null)
@@ -486,11 +488,14 @@ export class CajaPage {
 
     this.opening.set(true)
     try {
-      await this.repo.openSession({
-        tiendaId: auth.tiendaId,
-        openedBy: auth.userId,
-        openingAmount: this.openForm.value.openingAmount ?? 0,
-      })
+      const result = await openCashSession(
+        { repo: this.repo, tiendaId: auth.tiendaId, openedBy: auth.userId },
+        { openingAmount: this.openForm.value.openingAmount ?? 0 },
+      )
+      if (!result.ok) {
+        this.openError.set(result.error.message)
+        return
+      }
       this.toast.success('Caja abierta')
       await this.load()
     } catch (error) {
@@ -546,12 +551,14 @@ export class CajaPage {
     if (!auth) return
 
     try {
-      await this.repo.voidMovement({
-        movementId: mov.id,
-        tiendaId: auth.tiendaId,
-        voidedBy: auth.userId,
-        voidedReason: reason,
-      })
+      const result = await voidCashMovement(
+        { repo: this.repo, tiendaId: auth.tiendaId, voidedBy: auth.userId },
+        { movementId: mov.id, reason },
+      )
+      if (!result.ok) {
+        this.toast.error(result.error.message)
+        return
+      }
       this.toast.success('Movimiento anulado')
       this.voidMovementTarget.set(null)
       await this.reloadMovements()

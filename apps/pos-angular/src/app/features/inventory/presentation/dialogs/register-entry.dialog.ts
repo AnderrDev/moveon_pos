@@ -17,10 +17,10 @@ import { FormSelectComponent, type FormSelectOption } from '@angular-app/shared/
 import { FormTextareaComponent } from '@angular-app/shared/molecules/form-textarea.component'
 import { FormErrorComponent } from '@angular-app/shared/molecules/form-error.component'
 import { DialogFooterComponent } from '@angular-app/shared/molecules/dialog-footer.component'
-import { InventoryRepository } from '@angular-app/features/inventory/data/repositories/inventory.repository'
+import { InventoryRepository } from '@angular-app/features/inventory/domain/repositories/inventory.repository'
+import { registerEntry } from '@angular-app/features/inventory/domain/usecases/register-entry.use-case'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
-import { registerEntrySchema } from '@angular-app/features/inventory/domain/dtos/inventory.dto'
 import type { InventoryLocation } from '@/shared/types'
 
 interface ProductSummary {
@@ -145,26 +145,20 @@ export class RegisterEntryDialog {
 
     try {
       const value = this.form.getRawValue()
-      const parsed = registerEntrySchema.safeParse({
-        productId: product.id,
-        cantidad: Number(value.cantidad),
-        ubicacion: value.ubicacion,
-        costoUnitario: value.costoUnitario > 0 ? value.costoUnitario : undefined,
-        motivo: value.motivo.trim() || undefined,
-      })
-      if (!parsed.success) {
-        this.rootError.set(parsed.error.issues[0]?.message ?? 'Datos de entrada invalidos')
+      const result = await registerEntry(
+        { repo: this.repo, tiendaId: auth.tiendaId, createdBy: auth.userId },
+        {
+          productId: product.id,
+          cantidad: Number(value.cantidad),
+          ubicacion: value.ubicacion,
+          costoUnitario: value.costoUnitario > 0 ? value.costoUnitario : undefined,
+          motivo: value.motivo.trim() || undefined,
+        },
+      )
+      if (!result.ok) {
+        this.rootError.set(result.error.message)
         return
       }
-      await this.repo.registerEntry({
-        tiendaId: auth.tiendaId,
-        productId: product.id,
-        cantidad: parsed.data.cantidad,
-        ubicacion: parsed.data.ubicacion,
-        costoUnitario: parsed.data.costoUnitario,
-        motivo: parsed.data.motivo?.trim() || undefined,
-        createdBy: auth.userId,
-      })
       this.toast.success(`Entrada registrada (+${value.cantidad} ${product.nombre})`)
       this.saved.emit()
       this.closed.emit()

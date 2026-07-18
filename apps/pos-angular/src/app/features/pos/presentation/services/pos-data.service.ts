@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core'
 import { ProductsCacheStore } from '@angular-app/features/products/presentation/services/products-cache.store'
-import { InventoryRepository } from '@angular-app/features/inventory/data/repositories/inventory.repository'
+import { InventoryRepository } from '@angular-app/features/inventory/domain/repositories/inventory.repository'
 import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import type { OpenCashSession, PosCategory, PosProduct, PosProductComponent } from '@angular-app/features/pos/presentation/services/pos.types'

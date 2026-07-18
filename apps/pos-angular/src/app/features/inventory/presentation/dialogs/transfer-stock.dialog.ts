@@ -18,7 +18,8 @@ import { FormSelectComponent, type FormSelectOption } from '@angular-app/shared/
 import { FormTextareaComponent } from '@angular-app/shared/molecules/form-textarea.component'
 import { FormErrorComponent } from '@angular-app/shared/molecules/form-error.component'
 import { DialogFooterComponent } from '@angular-app/shared/molecules/dialog-footer.component'
-import { InventoryRepository } from '@angular-app/features/inventory/data/repositories/inventory.repository'
+import { InventoryRepository } from '@angular-app/features/inventory/domain/repositories/inventory.repository'
+import { transferStock } from '@angular-app/features/inventory/domain/usecases/transfer-stock.use-case'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 
@@ -197,15 +198,20 @@ export class TransferStockDialog {
     this.form.disable({ emitEvent: false })
 
     try {
-      await this.repo.transferStock({
-        tiendaId: auth.tiendaId,
-        productId: product.id,
-        fromUbicacion: parsed.data.fromUbicacion,
-        toUbicacion: parsed.data.toUbicacion,
-        cantidad: parsed.data.cantidad,
-        motivo: parsed.data.motivo.trim(),
-        createdBy: auth.userId,
-      })
+      const result = await transferStock(
+        { repo: this.repo, tiendaId: auth.tiendaId, createdBy: auth.userId },
+        {
+          productId: product.id,
+          fromUbicacion: parsed.data.fromUbicacion,
+          toUbicacion: parsed.data.toUbicacion,
+          cantidad: parsed.data.cantidad,
+          motivo: parsed.data.motivo.trim(),
+        },
+      )
+      if (!result.ok) {
+        this.rootError.set(result.error.message)
+        return
+      }
       this.toast.success('Traslado registrado')
       this.saved.emit()
       this.closed.emit()

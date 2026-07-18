@@ -15,7 +15,8 @@ import { FormCurrencyInputComponent } from '@angular-app/shared/molecules/form-c
 import { FormTextareaComponent } from '@angular-app/shared/molecules/form-textarea.component'
 import { FormErrorComponent } from '@angular-app/shared/molecules/form-error.component'
 import { DialogFooterComponent } from '@angular-app/shared/molecules/dialog-footer.component'
-import { CashRegisterRepository } from '@angular-app/features/cash-register/data/repositories/cash-register.repository'
+import { CashRegisterRepository } from '@angular-app/features/cash-register/domain/repositories/cash-register.repository'
+import { correctCashSessionOpening } from '@angular-app/features/cash-register/domain/usecases/correct-opening.use-case'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import type { CashSession } from '@angular-app/features/cash-register/domain/entities/cash-session.entity'
@@ -124,15 +125,16 @@ export class CorrectOpeningDialog {
 
     try {
       const value = this.form.getRawValue()
-      const updated = await this.repo.correctOpening({
-        sessionId: cashSession.id,
-        tiendaId: auth.tiendaId,
-        newAmount: value.newAmount,
-        correctedBy: auth.userId,
-        reason: value.reason.trim(),
-      })
+      const result = await correctCashSessionOpening(
+        { repo: this.repo, tiendaId: auth.tiendaId, correctedBy: auth.userId },
+        { sessionId: cashSession.id, newAmount: value.newAmount, reason: value.reason.trim() },
+      )
+      if (!result.ok) {
+        this.rootError.set(result.error.message)
+        return
+      }
       this.toast.success('Apertura de caja corregida')
-      this.saved.emit(updated)
+      this.saved.emit(result.value)
       this.closed.emit()
     } catch (error) {
       this.rootError.set(getErrorMessage(error, 'No se pudo corregir la apertura'))

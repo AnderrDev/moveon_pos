@@ -16,10 +16,10 @@ import { FormSelectComponent, type FormSelectOption } from '@angular-app/shared/
 import { FormTextareaComponent } from '@angular-app/shared/molecules/form-textarea.component'
 import { FormErrorComponent } from '@angular-app/shared/molecules/form-error.component'
 import { DialogFooterComponent } from '@angular-app/shared/molecules/dialog-footer.component'
-import { InventoryRepository } from '@angular-app/features/inventory/data/repositories/inventory.repository'
+import { InventoryRepository } from '@angular-app/features/inventory/domain/repositories/inventory.repository'
+import { adjustStock } from '@angular-app/features/inventory/domain/usecases/adjust-stock.use-case'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
-import { adjustStockSchema } from '@angular-app/features/inventory/domain/dtos/inventory.dto'
 import type { InventoryLocation } from '@/shared/types'
 
 interface ProductSummary {
@@ -156,24 +156,19 @@ export class AdjustStockDialog {
     this.form.disable({ emitEvent: false })
 
     try {
-      const parsed = adjustStockSchema.safeParse({
-        productId: product.id,
-        cantidadDelta: Number(value.cantidadDelta),
-        ubicacion: value.ubicacion,
-        motivo: value.motivo.trim(),
-      })
-      if (!parsed.success) {
-        this.rootError.set(parsed.error.issues[0]?.message ?? 'Datos de ajuste invalidos')
+      const result = await adjustStock(
+        { repo: this.repo, tiendaId: auth.tiendaId, createdBy: auth.userId },
+        {
+          productId: product.id,
+          cantidadDelta: Number(value.cantidadDelta),
+          ubicacion: value.ubicacion,
+          motivo: value.motivo.trim(),
+        },
+      )
+      if (!result.ok) {
+        this.rootError.set(result.error.message)
         return
       }
-      await this.repo.adjustStock({
-        tiendaId: auth.tiendaId,
-        productId: product.id,
-        cantidadDelta: parsed.data.cantidadDelta,
-        ubicacion: parsed.data.ubicacion,
-        motivo: parsed.data.motivo.trim(),
-        createdBy: auth.userId,
-      })
       this.toast.success('Ajuste registrado')
       this.saved.emit()
       this.closed.emit()

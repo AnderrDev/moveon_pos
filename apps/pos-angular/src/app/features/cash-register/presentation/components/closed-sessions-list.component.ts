@@ -4,8 +4,8 @@ import { BadgeComponent } from '@angular-app/shared/atoms/badge.component'
 import { CardComponent } from '@angular-app/shared/atoms/card.component'
 import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
 import { SaleDetailListComponent } from '@angular-app/shared/organisms/sale-detail-list.component'
-import { CashRegisterRepository } from '@angular-app/features/cash-register/data/repositories/cash-register.repository'
-import { SalesRepository } from '@angular-app/features/sales/data/repositories/sales.repository'
+import { CashRegisterRepository } from '@angular-app/features/cash-register/domain/repositories/cash-register.repository'
+import { SaleRepository } from '@angular-app/features/sales/domain/repositories/sale.repository'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import { formatCurrency, formatTime, formatShortDate } from '@/shared/lib/format'
@@ -135,7 +135,7 @@ import type { Sale } from '@angular-app/features/sales/domain/entities/sale.enti
 })
 export class ClosedSessionsListComponent {
   private readonly repo = inject(CashRegisterRepository)
-  private readonly salesRepo = inject(SalesRepository)
+  private readonly salesRepo = inject(SaleRepository)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
 

@@ -12,7 +12,9 @@ import { getErrorMessage } from '@/shared/lib/error-message'
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 import { BadgeComponent } from '@angular-app/shared/atoms/badge.component'
-import { SalesRepository } from '@angular-app/features/sales/data/repositories/sales.repository'
+import { SaleRepository } from '@angular-app/features/sales/domain/repositories/sale.repository'
+import { voidSale } from '@angular-app/features/sales/domain/usecases/void-sale.use-case'
+import { correctPayment } from '@angular-app/features/sales/domain/usecases/correct-payment.use-case'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { canVoidSale, canCorrectPayment } from '@angular-app/core/auth/role-policy'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
@@ -25,7 +27,7 @@ import { PAYMENT_METHOD_CLOSURE_OPTIONS, getPaymentMethodLabel } from '@/shared/
 import type { Sale } from '@angular-app/features/sales/domain/entities/sale.entity'
 import type { PaymentMethod } from '@/shared/types'
 import type { CashMovement } from '@angular-app/features/cash-register/domain/entities/cash-session.entity'
-import { CashRegisterRepository } from '@angular-app/features/cash-register/data/repositories/cash-register.repository'
+import { CashRegisterRepository } from '@angular-app/features/cash-register/domain/repositories/cash-register.repository'
 import { ExcelExportService } from '@angular-app/shared/services/export/excel-export.service'
 import { buildTurnSalesWorkbook } from '@angular-app/features/pos/presentation/services/sales-export'
 
@@ -450,7 +452,7 @@ import { buildTurnSalesWorkbook } from '@angular-app/features/pos/presentation/s
   `,
 })
 export class SalesHistoryDialog {
-  private readonly salesRepo = inject(SalesRepository)
+  private readonly salesRepo = inject(SaleRepository)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
   private readonly receiptPrint = inject(ReceiptPrintService)
@@ -678,7 +680,14 @@ export class SalesHistoryDialog {
     if (!auth) return
 
     try {
-      await this.salesRepo.voidSale(sale.id, auth.tiendaId, reason)
+      const result = await voidSale(
+        { repo: this.salesRepo, tiendaId: auth.tiendaId },
+        { saleId: sale.id, voidedReason: reason },
+      )
+      if (!result.ok) {
+        this.toast.error(result.error.message)
+        return
+      }
       this.toast.success(`Venta ${sale.saleNumber} anulada`)
       await this.load()
       this.changed.emit()
@@ -711,12 +720,14 @@ export class SalesHistoryDialog {
     if (!auth) return
 
     try {
-      await this.salesRepo.correctPayment(
-        event.paymentId,
-        auth.tiendaId,
-        event.newMetodo,
-        event.reason,
+      const result = await correctPayment(
+        { repo: this.salesRepo, tiendaId: auth.tiendaId },
+        { paymentId: event.paymentId, newMetodo: event.newMetodo, reason: event.reason },
       )
+      if (!result.ok) {
+        this.toast.error(result.error.message)
+        return
+      }
       this.toast.success('Método de pago corregido')
       await this.load()
       this.changed.emit()

@@ -17,7 +17,8 @@ import { FormCurrencyInputComponent } from '@angular-app/shared/molecules/form-c
 import { FormTextareaComponent } from '@angular-app/shared/molecules/form-textarea.component'
 import { FormErrorComponent } from '@angular-app/shared/molecules/form-error.component'
 import { DialogFooterComponent } from '@angular-app/shared/molecules/dialog-footer.component'
-import { CashRegisterRepository } from '@angular-app/features/cash-register/data/repositories/cash-register.repository'
+import { CashRegisterRepository } from '@angular-app/features/cash-register/domain/repositories/cash-register.repository'
+import { closeCashSession } from '@angular-app/features/cash-register/domain/usecases/close-session.use-case'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import { formatCurrency } from '@/shared/lib/format'
@@ -278,14 +279,18 @@ export class CloseSessionDialog {
 
     try {
       const value = this.form.getRawValue()
-      await this.repo.closeSession({
-        sessionId: cashSession.id,
-        tiendaId: auth.tiendaId,
-        closedBy: auth.userId,
-        actualCashAmount: value.actualCashAmount,
-        actualPayments: [{ metodo: 'transfer', total: value.actualTransferAmount }],
-        notasCierre: value.notasCierre.trim() || undefined,
-      })
+      const result = await closeCashSession(
+        { repo: this.repo, sessionId: cashSession.id, tiendaId: auth.tiendaId, closedBy: auth.userId },
+        {
+          actualCashAmount: value.actualCashAmount,
+          actualTransferAmount: value.actualTransferAmount,
+          notasCierre: value.notasCierre.trim() || undefined,
+        },
+      )
+      if (!result.ok) {
+        this.rootError.set(result.error.message)
+        return
+      }
       this.toast.success('Caja cerrada')
       this.saved.emit()
       this.closed.emit()
