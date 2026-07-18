@@ -53,8 +53,17 @@ const PRESENTATION_BOUNDARY_EXCEPTIONS = [
  * la abstracción de domain/repositories/. Se activa feature por feature a
  * medida que se cablea (ADR 0015 §6.6 punto 4); el resto sigue permitiendo
  * inyectar la clase concreta cross-feature hasta que le toque su turno.
+ *
+ * `audit`: cableada en PLAN-67 (todos los repos consumidores — products,
+ * cash-register, sales, pos, inventory, y la propia auditoria.page.ts —
+ * inyectan ahora `domain/repositories/audit-log.repository.ts`).
+ *
+ * `auth`: no tiene patrón repository (usa `core/auth/session.service.ts` por
+ * diseño — la sesión es transversal a toda la app, ver PLAN-67). Se agrega
+ * igual a esta lista para que la regla de fronteras la proteja hacia
+ * adelante si en el futuro gana un `data/`; hoy no cambia ningún import real.
  */
-const CABLED_FEATURES = ['customers', 'products']
+const CABLED_FEATURES = ['audit', 'auth', 'customers', 'products']
 
 const OWN_DATA_MESSAGE =
   'No se puede inyectar la implementación concreta de data/ — inyecta la abstracción de domain/repositories/ (ADR 0015 §6.6, feature ya cableada).'

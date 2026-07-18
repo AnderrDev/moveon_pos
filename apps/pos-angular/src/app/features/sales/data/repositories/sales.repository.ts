@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
-import { AuditLogRepository } from '@angular-app/features/audit/data/repositories/audit-log.repository'
+import { AuditLogRepository } from '@angular-app/features/audit/domain/repositories/audit-log.repository'
 import { rowToSale, type SaleRow } from '@angular-app/features/sales/data/models/sale.mapper'
 import type { Sale } from '@angular-app/features/sales/domain/entities/sale.entity'
 import { SaleRepository as SaleRepositoryContract } from '@angular-app/features/sales/domain/repositories/sale.repository'
