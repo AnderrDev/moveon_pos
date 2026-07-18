@@ -7,7 +7,8 @@ import { TableShellComponent } from '@angular-app/shared/molecules/table/table-s
 import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
 import { ClienteFormDialog } from '@angular-app/features/customers/presentation/dialogs/cliente-form.dialog'
 import { ClienteLoyaltyDialog } from '@angular-app/features/loyalty/presentation/dialogs/cliente-loyalty.dialog'
-import { CustomersRepository } from '@angular-app/features/customers/data/repositories/customers.repository'
+import { CustomerRepository } from '@angular-app/features/customers/domain/repositories/customer.repository'
+import { deleteCustomer } from '@angular-app/features/customers/domain/usecases/delete-customer.use-case'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import type { Cliente } from '@angular-app/features/customers/domain/entities/cliente.entity'
@@ -127,7 +128,7 @@ import { buildCustomersWorkbook } from '@angular-app/features/customers/presenta
   `,
 })
 export class ClientesPage {
-  private readonly repo = inject(CustomersRepository)
+  private readonly repo = inject(CustomerRepository)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
   private readonly excel = inject(ExcelExportService)
@@ -226,7 +227,7 @@ export class ClientesPage {
     const auth = await this.session.getAuthContext()
     if (!auth) return
     try {
-      await this.repo.delete(c.id, auth.tiendaId)
+      await deleteCustomer({ repo: this.repo }, c.id, auth.tiendaId)
       this.toast.success('Cliente eliminado')
       this.clientes.set(this.clientes().filter((x) => x.id !== c.id))
     } catch (error) {

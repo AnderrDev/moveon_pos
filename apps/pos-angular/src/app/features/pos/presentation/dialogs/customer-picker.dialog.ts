@@ -11,7 +11,7 @@ import {
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { normalizePhoneCO } from '@angular-app/features/customers/domain/value-objects/phone-co'
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
-import { CustomersRepository } from '@angular-app/features/customers/data/repositories/customers.repository'
+import { CustomerRepository } from '@angular-app/features/customers/domain/repositories/customer.repository'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import type { Cliente } from '@angular-app/features/customers/domain/entities/cliente.entity'
 
@@ -100,7 +100,7 @@ import type { Cliente } from '@angular-app/features/customers/domain/entities/cl
   `,
 })
 export class CustomerPickerDialog {
-  private readonly repo = inject(CustomersRepository)
+  private readonly repo = inject(CustomerRepository)
   private readonly session = inject(SessionService)
 
   readonly open = input<boolean>(false)

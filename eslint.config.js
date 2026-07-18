@@ -41,6 +41,18 @@ const CROSS_FEATURE_PRESENTATION_EXCEPTIONS = [
   `${FEATURES_ROOT}/pos/presentation/services/pos-data.service.ts`,
 ]
 
+/**
+ * Features ya cableadas (PLAN-64..67): NADIE (ni su propia presentation/ ni
+ * otra feature) puede inyectar su implementación concreta de data/ — solo
+ * la abstracción de domain/repositories/. Se activa feature por feature a
+ * medida que se cablea (ADR 0015 §6.6 punto 4); el resto sigue permitiendo
+ * inyectar la clase concreta cross-feature hasta que le toque su turno.
+ */
+const CABLED_FEATURES = ['customers']
+
+const OWN_DATA_MESSAGE =
+  'No se puede inyectar la implementación concreta de data/ — inyecta la abstracción de domain/repositories/ (ADR 0015 §6.6, feature ya cableada).'
+
 const CROSS_FEATURE_MESSAGE =
   'Solo se puede importar domain/, data/repositories/ o presentation/dialogs|components de otra feature (ADR 0015 §3/§6.6). Si necesitas más, esa lógica probablemente debería vivir en domain/ (compartible) en vez de en presentation/ de otra feature.'
 
@@ -51,6 +63,7 @@ const crossFeatureGroup = (feature) =>
     `@angular-app/features/${f}/presentation/services/**`,
     `@angular-app/features/${f}/data/datasources/**`,
     `@angular-app/features/${f}/data/models/**`,
+    ...(CABLED_FEATURES.includes(f) ? [`@angular-app/features/${f}/data/repositories/**`] : []),
   ])
 
 const DOMAIN_PURITY_PATTERNS = [
@@ -95,10 +108,25 @@ const boundaryConfigs = FEATURES.flatMap((feature) => [
       }],
     },
   },
-  // Resto de la feature (presentation/ + <feature>.providers.ts en la raíz): solo cross-feature.
+  // Zona presentation/ de esta feature: cross-feature + (si ya está cableada)
+  // prohibido inyectar la propia data/ directo, solo la abstracción.
   {
-    files: [`${FEATURES_ROOT}/${feature}/**/*.ts`],
-    ignores: [`${FEATURES_ROOT}/${feature}/domain/**`, `${FEATURES_ROOT}/${feature}/data/**`],
+    files: [`${FEATURES_ROOT}/${feature}/presentation/**/*.ts`],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          { group: crossFeatureGroup(feature), message: CROSS_FEATURE_MESSAGE },
+          ...(CABLED_FEATURES.includes(feature)
+            ? [{ group: [`@angular-app/features/${feature}/data/**`], message: OWN_DATA_MESSAGE }]
+            : []),
+        ],
+      }],
+    },
+  },
+  // Raíz de la feature (ej. <feature>.providers.ts): solo cross-feature —
+  // el composition root SÍ debe poder importar su propia data/ e implementarla.
+  {
+    files: [`${FEATURES_ROOT}/${feature}/*.ts`],
     rules: {
       'no-restricted-imports': ['error', {
         patterns: [{ group: crossFeatureGroup(feature), message: CROSS_FEATURE_MESSAGE }],
