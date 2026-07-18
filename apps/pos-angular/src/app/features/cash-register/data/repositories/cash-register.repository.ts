@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
-import { AuditLogRepository } from '@angular-app/features/audit/data/repositories/audit-log.repository'
+import { AuditLogRepository } from '@angular-app/features/audit/domain/repositories/audit-log.repository'
 import {
   rowToCashMovement,
   rowToCashSession,
