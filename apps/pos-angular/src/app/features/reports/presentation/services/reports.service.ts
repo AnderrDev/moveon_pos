@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core'
-import { SalesRepository } from '@angular-app/features/sales/data/repositories/sales.repository'
-import { CashRegisterRepository } from '@angular-app/features/cash-register/data/repositories/cash-register.repository'
-import { InventoryRepository } from '@angular-app/features/inventory/data/repositories/inventory.repository'
+import { SaleRepository } from '@angular-app/features/sales/domain/repositories/sale.repository'
+import { CashRegisterRepository } from '@angular-app/features/cash-register/domain/repositories/cash-register.repository'
+import { InventoryRepository } from '@angular-app/features/inventory/domain/repositories/inventory.repository'
 import { ProductRepository } from '@angular-app/features/products/domain/repositories/product.repository'
 import { TiendaInfoService } from '@angular-app/core/tienda/tienda-info.service'
 import { DEFAULT_TIMEZONE, getStoreRangeUtc } from '@angular-app/features/reports/domain/services/day-range'
@@ -157,7 +157,7 @@ export interface StockReportRow {
 
 @Injectable({ providedIn: 'root' })
 export class ReportsService {
-  private readonly salesRepo = inject(SalesRepository)
+  private readonly salesRepo = inject(SaleRepository)
   private readonly cashRepo = inject(CashRegisterRepository)
   private readonly inventoryRepo = inject(InventoryRepository)
   private readonly productsRepo = inject(ProductRepository)

@@ -2,7 +2,7 @@ import { inject, Injectable, signal } from '@angular/core'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
 import { TiendaInfoService } from '@angular-app/core/tienda/tienda-info.service'
-import { SalesRepository } from '@angular-app/features/sales/data/repositories/sales.repository'
+import { SaleRepository } from '@angular-app/features/sales/domain/repositories/sale.repository'
 import type { EscPosReceiptCustomer } from '@angular-app/features/pos/data/datasources/esc-pos-receipt.builder'
 import { QzReceiptPrinterService } from '@angular-app/features/pos/data/datasources/qz-receipt-printer.service'
 
@@ -19,7 +19,7 @@ interface ClienteRow {
 
 @Injectable({ providedIn: 'root' })
 export class ReceiptPrintService {
-  private readonly salesRepo = inject(SalesRepository)
+  private readonly salesRepo = inject(SaleRepository)
   private readonly tiendaInfo = inject(TiendaInfoService)
   private readonly session = inject(SessionService)
   private readonly supabase = inject(SupabaseClientService)

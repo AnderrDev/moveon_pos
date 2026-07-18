@@ -16,7 +16,8 @@ import { FormSelectComponent, type FormSelectOption } from '@angular-app/shared/
 import { FormTextareaComponent } from '@angular-app/shared/molecules/form-textarea.component'
 import { FormErrorComponent } from '@angular-app/shared/molecules/form-error.component'
 import { DialogFooterComponent } from '@angular-app/shared/molecules/dialog-footer.component'
-import { CashRegisterRepository } from '@angular-app/features/cash-register/data/repositories/cash-register.repository'
+import { CashRegisterRepository } from '@angular-app/features/cash-register/domain/repositories/cash-register.repository'
+import { addCashMovement } from '@angular-app/features/cash-register/domain/usecases/add-movement.use-case'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import type { CashMovementType } from '@/shared/types'
@@ -131,13 +132,14 @@ export class AddMovementDialog {
 
     try {
       const value = this.form.getRawValue()
-      await this.repo.addMovement({
-        cashSessionId: sid,
-        tipo: value.tipo as CashMovementType,
-        amount: value.amount,
-        motivo: value.motivo.trim(),
-        createdBy: auth.userId,
-      })
+      const result = await addCashMovement(
+        { repo: this.repo, cashSessionId: sid, createdBy: auth.userId },
+        { tipo: value.tipo as CashMovementType, amount: value.amount, motivo: value.motivo.trim() },
+      )
+      if (!result.ok) {
+        this.rootError.set(result.error.message)
+        return
+      }
       this.toast.success('Movimiento registrado')
       this.saved.emit()
       this.closed.emit()

@@ -62,8 +62,12 @@ const PRESENTATION_BOUNDARY_EXCEPTIONS = [
  * diseño — la sesión es transversal a toda la app, ver PLAN-67). Se agrega
  * igual a esta lista para que la regla de fronteras la proteja hacia
  * adelante si en el futuro gana un `data/`; hoy no cambia ningún import real.
+ *
+ * `sales`/`inventory`/`cash-register`: cableadas en PLAN-65 (10 use-cases de
+ * escritura nuevos, 16 archivos de presentation flip a la abstracción,
+ * incluyendo consumidores cross-feature como reports.service.ts).
  */
-const CABLED_FEATURES = ['audit', 'auth', 'customers', 'products']
+const CABLED_FEATURES = ['audit', 'auth', 'customers', 'products', 'sales', 'inventory', 'cash-register']
 
 const OWN_DATA_MESSAGE =
   'No se puede inyectar la implementación concreta de data/ — inyecta la abstracción de domain/repositories/ (ADR 0015 §6.6, feature ya cableada).'

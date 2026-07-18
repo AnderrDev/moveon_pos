@@ -13,7 +13,7 @@ import { ProductRepository } from '@angular-app/features/products/domain/reposit
 import { deleteProduct } from '@angular-app/features/products/domain/usecases/delete-product.use-case'
 import { deactivateProduct } from '@angular-app/features/products/domain/usecases/deactivate-product.use-case'
 import { ProductsCacheStore } from '@angular-app/features/products/presentation/services/products-cache.store'
-import { InventoryRepository } from '@angular-app/features/inventory/data/repositories/inventory.repository'
+import { InventoryRepository } from '@angular-app/features/inventory/domain/repositories/inventory.repository'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import { formatCurrency } from '@/shared/lib/format'
