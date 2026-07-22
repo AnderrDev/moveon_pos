@@ -406,6 +406,20 @@ export class FinanzasPage {
     } else {
       this.toast.success('El gasto quedó registrado en otro mes')
     }
+    // El fondo acumula desde su fecha de inicio y la comparativa cubre 6
+    // meses: un gasto de otro mes también los afecta, refrescar siempre.
+    void this.refreshFundAndComparison()
+  }
+
+  /** Recalcula fondo de reinversión y comparativa mensual tras mutar gastos. */
+  private async refreshFundAndComparison(): Promise<void> {
+    try {
+      const auth = await this.session.getAuthContext()
+      if (!auth) return
+      await Promise.all([this.loadFundTotals(auth.tiendaId), this.loadComparison(auth.tiendaId)])
+    } catch (error) {
+      this.toast.error(getErrorMessage(error, 'No se pudo actualizar el resumen'))
+    }
   }
 
   askVoid(expense: Expense): void {
@@ -507,6 +521,7 @@ export class FinanzasPage {
       }
       this.expenses.set(this.expenses().map((g) => (g.id === result.value.id ? result.value : g)))
       this.toast.success('Gasto anulado')
+      void this.refreshFundAndComparison()
     } catch (error) {
       this.toast.error(getErrorMessage(error, 'No se pudo anular el gasto'))
     }

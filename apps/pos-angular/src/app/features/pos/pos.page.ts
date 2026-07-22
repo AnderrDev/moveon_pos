@@ -814,6 +814,7 @@ interface PostSaleOutputJob {
       [cashSessionId]="cashSession()?.id ?? null"
       [cashSessionIsOpen]="cashSession() !== null"
       (closed)="historyOpen.set(false)"
+      (changed)="onSalesHistoryChanged()"
     />
 
     <mo-customer-picker-dialog
@@ -976,6 +977,27 @@ export class PosPage {
     } finally {
       this.loading.set(false)
     }
+  }
+
+  /**
+   * Refresca productos/stock del grid sin bloquear la UI (sin tocar
+   * `loading`). El stock viene fresco de `getStockLevels`; los datos de
+   * producto pueden venir del caché TTL, que aquí no importa.
+   */
+  async refreshProducts(): Promise<void> {
+    try {
+      const auth = await this.sessionService.getAuthContext()
+      if (!auth) return
+      this.products.set(await this.dataService.listProducts(auth.tiendaId))
+    } catch {
+      // Silencioso: el grid conserva el último stock conocido y el próximo
+      // load() completo (re-navegación) lo corrige.
+    }
+  }
+
+  /** Anular o corregir una venta desde el historial cambia el stock. */
+  onSalesHistoryChanged(): void {
+    void this.refreshProducts()
   }
 
   money(amount: number): string {
@@ -1293,6 +1315,7 @@ export class PosPage {
       this.paymentReference.set('')
       this.paymentMethod.set('cash')
       this.checkoutOpen.set(false)
+      void this.refreshProducts()
 
       this.toast.success(
         change > 0 ? `Venta completada · cambio ${formatCurrency(change)}` : 'Venta completada'
