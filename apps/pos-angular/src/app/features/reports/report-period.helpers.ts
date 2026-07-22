@@ -23,19 +23,23 @@ export function isoDate(date: Date, timezone: string): string {
   }).format(date)
 }
 
+// Toda la aritmética de estas funciones opera en UTC (`T00:00:00Z`, `Date.UTC`,
+// `getUTC*`): las fechas `YYYY-MM-DD` son días calendario abstractos y el
+// resultado no debe depender de la zona horaria del dispositivo.
+
 /** Suma (o resta) `days` días a una fecha `YYYY-MM-DD`. */
 export function addDays(iso: string, days: number): string {
-  const d = new Date(`${iso}T00:00:00`)
-  d.setDate(d.getDate() + days)
+  const d = new Date(`${iso}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + days)
   return d.toISOString().slice(0, 10)
 }
 
 /** Lunes de la semana ISO que contiene `iso`. */
 export function weekStart(iso: string): string {
-  const d = new Date(`${iso}T00:00:00`)
-  const day = d.getDay() // 0=Dom
+  const d = new Date(`${iso}T00:00:00Z`)
+  const day = d.getUTCDay() // 0=Dom
   const diff = day === 0 ? -6 : 1 - day
-  d.setDate(d.getDate() + diff)
+  d.setUTCDate(d.getUTCDate() + diff)
   return d.toISOString().slice(0, 10)
 }
 
@@ -47,14 +51,14 @@ export function monthStart(iso: string): string {
 /** Último día del mes de `iso`. */
 export function monthEnd(iso: string): string {
   const [y, m] = iso.split('-').map(Number)
-  return new Date(y, m, 0).toISOString().slice(0, 10)
+  return new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10)
 }
 
 /** Primer día del mes anterior al de `iso`. */
 export function prevMonthStart(iso: string): string {
   const [y, m] = iso.split('-').map(Number)
-  const prev = m === 1 ? new Date(y - 1, 11, 1) : new Date(y, m - 2, 1)
-  return prev.toISOString().slice(0, 10)
+  const prev = m === 1 ? Date.UTC(y - 1, 11, 1) : Date.UTC(y, m - 2, 1)
+  return new Date(prev).toISOString().slice(0, 10)
 }
 
 /** Rango `[from, to]` resultante de aplicar un preset, tomando `today` como ancla. */
@@ -64,10 +68,10 @@ export interface PresetRange {
 }
 
 /**
- * Resuelve el rango `{ from, to }` para un preset dado, tomando `today`
- * (fecha `YYYY-MM-DD`, normalmente el `fromIso` actual de la página) como
- * ancla. Reproduce bit-a-bit el `switch` que antes vivía inline en
- * `ReportesPage.applyPreset`.
+ * Resuelve el rango `{ from, to }` para un preset dado. `today` DEBE ser la
+ * fecha actual en la zona horaria de la tienda (`isoDate(new Date(), tz)`) —
+ * anclar en otra fecha (p. ej. el `fromIso` vigente de la página) hace que los
+ * presets se calculen relativos al período que se estaba viendo.
  */
 export function resolvePreset(today: string, preset: Preset): PresetRange {
   switch (preset) {

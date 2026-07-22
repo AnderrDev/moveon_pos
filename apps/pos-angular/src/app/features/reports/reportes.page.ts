@@ -212,6 +212,9 @@ export class ReportesPage {
   private readonly toast = inject(ToastService)
   private readonly excel = inject(ExcelExportService)
 
+  /** Zona horaria de la tienda; se resuelve en `initAndLoad` y ancla los presets. */
+  private timezone = DEFAULT_TIMEZONE
+
   readonly fromIso = signal(isoDate(new Date(), DEFAULT_TIMEZONE))
   readonly toIso = signal(isoDate(new Date(), DEFAULT_TIMEZONE))
   readonly activePreset = signal<Preset | null>('today')
@@ -280,8 +283,8 @@ export class ReportesPage {
   }
 
   private async initAndLoad(): Promise<void> {
-    const timezone = await this.resolveTimezone()
-    const today = isoDate(new Date(), timezone)
+    this.timezone = await this.resolveTimezone()
+    const today = isoDate(new Date(), this.timezone)
     this.fromIso.set(today)
     this.toIso.set(today)
     await this.reload()
@@ -351,7 +354,7 @@ export class ReportesPage {
   }
 
   applyPreset(preset: Preset): void {
-    const { from, to } = resolvePreset(this.fromIso(), preset)
+    const { from, to } = resolvePreset(isoDate(new Date(), this.timezone), preset)
     this.fromIso.set(from)
     this.toIso.set(to)
     this.activePreset.set(preset)
