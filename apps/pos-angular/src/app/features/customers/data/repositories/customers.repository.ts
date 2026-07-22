@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
+import { fetchAllPages } from '@angular-app/core/supabase/fetch-all-pages'
 import { normalizePhoneCO } from '@angular-app/features/customers/domain/value-objects/phone-co'
 import type { Cliente } from '@angular-app/features/customers/domain/entities/cliente.entity'
 import {
@@ -43,14 +44,19 @@ export class CustomersRepository extends CustomerRepositoryContract {
   private readonly supabaseClient = inject(SupabaseClientService)
 
   async list(tiendaId: string): Promise<Cliente[]> {
-    const { data, error } = await this.supabaseClient.supabase
-      .from('clientes')
-      .select(CLIENTE_COLS)
-      .eq('tienda_id', tiendaId)
-      .order('nombre', { ascending: true })
-      .returns<ClienteRow[]>()
-    if (error) throw new Error(error.message)
-    return (data ?? []).map(rowToCliente)
+    const rows = await fetchAllPages<ClienteRow>(async (from, to) => {
+      const { data, error } = await this.supabaseClient.supabase
+        .from('clientes')
+        .select(CLIENTE_COLS)
+        .eq('tienda_id', tiendaId)
+        .order('nombre', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, to)
+        .returns<ClienteRow[]>()
+      if (error) throw new Error(error.message)
+      return data ?? []
+    })
+    return rows.map(rowToCliente)
   }
 
   /**

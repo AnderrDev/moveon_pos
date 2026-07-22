@@ -392,12 +392,11 @@ export class FinanzasPage {
     const months = lastMonths(6)
     const fromDate = `${months[0]}-01`
     const fromIso = new Date(`${fromDate}T00:00:00`).toISOString()
-    const { to } = monthRange(months[months.length - 1])
-    const [sales, gastos] = await Promise.all([
-      this.repo.listSalesTotalsSince(tiendaId, fromIso),
-      this.repo.listExpenses(tiendaId, fromDate, to),
+    const [entradas, gastos] = await Promise.all([
+      this.repo.getMonthlySalesTotals(tiendaId, fromIso),
+      this.repo.getMonthlyExpenseTotals(tiendaId, fromDate),
     ])
-    this.comparison.set(buildMonthlyComparison({ sales, gastos, months }))
+    this.comparison.set(buildMonthlyComparison({ entradas, gastos, months }))
   }
 
   onExpenseSaved(expense: Expense): void {
@@ -406,6 +405,20 @@ export class FinanzasPage {
       this.expenses.set([expense, ...this.expenses()])
     } else {
       this.toast.success('El gasto quedó registrado en otro mes')
+    }
+    // El fondo acumula desde su fecha de inicio y la comparativa cubre 6
+    // meses: un gasto de otro mes también los afecta, refrescar siempre.
+    void this.refreshFundAndComparison()
+  }
+
+  /** Recalcula fondo de reinversión y comparativa mensual tras mutar gastos. */
+  private async refreshFundAndComparison(): Promise<void> {
+    try {
+      const auth = await this.session.getAuthContext()
+      if (!auth) return
+      await Promise.all([this.loadFundTotals(auth.tiendaId), this.loadComparison(auth.tiendaId)])
+    } catch (error) {
+      this.toast.error(getErrorMessage(error, 'No se pudo actualizar el resumen'))
     }
   }
 
@@ -508,6 +521,7 @@ export class FinanzasPage {
       }
       this.expenses.set(this.expenses().map((g) => (g.id === result.value.id ? result.value : g)))
       this.toast.success('Gasto anulado')
+      void this.refreshFundAndComparison()
     } catch (error) {
       this.toast.error(getErrorMessage(error, 'No se pudo anular el gasto'))
     }

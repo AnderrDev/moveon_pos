@@ -30,6 +30,7 @@ import { SaleRepository } from '@angular-app/features/sales/domain/repositories/
 import { ExcelExportService } from '@angular-app/shared/services/export/excel-export.service'
 import { buildTurnSalesWorkbook } from '@angular-app/features/pos/presentation/services/sales-export'
 import { VoidReasonDialog } from '@angular-app/shared/organisms/void-reason/void-reason.dialog'
+import { ReceiptPrintService } from '@angular-app/features/pos/presentation/services/receipt-print.service'
 import {
   canVoidCashMovement,
   canCorrectCashSessionOpening,
@@ -59,6 +60,14 @@ import {
   template: `
     <section class="flex flex-col gap-4">
       <mo-page-header title="Caja" subtitle="Apertura, movimientos y cierre">
+        <mo-button
+          variant="outline"
+          [loading]="openingDrawer()"
+          loadingText="Abriendo..."
+          (click)="openCashDrawer()"
+        >
+          Abrir registradora
+        </mo-button>
         @if (openSession()) {
           <mo-button
             variant="outline"
@@ -315,6 +324,7 @@ export class CajaPage {
   private readonly toast = inject(ToastService)
   private readonly salesRepo = inject(SaleRepository)
   private readonly excel = inject(ExcelExportService)
+  private readonly receiptPrint = inject(ReceiptPrintService)
 
   readonly openSession = signal<CashSession | null>(null)
   readonly movements = signal<CashMovement[]>([])
@@ -328,6 +338,7 @@ export class CajaPage {
   readonly closeOpen = signal(false)
   readonly correctOpeningOpen = signal(false)
   readonly exporting = signal(false)
+  readonly openingDrawer = signal(false)
   readonly paymentFilter = signal('')
 
   readonly paymentMethodOptions = [
@@ -429,6 +440,20 @@ export class CajaPage {
     if (mov.tipo === 'cash_out') return 'warning'
     if (mov.tipo === 'expense') return 'destructive'
     return 'default'
+  }
+
+  /** Abre el cajón físico vía QZ Tray; disponible con caja abierta o cerrada. */
+  async openCashDrawer(): Promise<void> {
+    if (this.openingDrawer()) return
+    this.openingDrawer.set(true)
+    try {
+      await this.receiptPrint.openCashDrawer()
+      this.toast.success('Registradora abierta')
+    } catch (error) {
+      this.toast.error(getErrorMessage(error, 'No se pudo abrir la registradora'))
+    } finally {
+      this.openingDrawer.set(false)
+    }
   }
 
   async exportTurn(): Promise<void> {

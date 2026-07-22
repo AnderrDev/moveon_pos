@@ -9,11 +9,20 @@ export interface MonthlyComparisonRow {
   balance: number
 }
 
+export interface MonthlyTotal {
+  /** `YYYY-MM`. */
+  month: string
+  total: number
+}
+
 export interface MonthlyComparisonInput {
-  /** Ventas completadas: total y fecha local de creación. */
-  sales: readonly { total: number; createdAt: Date }[]
-  /** Gastos con su fecha contable `YYYY-MM-DD`; los anulados se ignoran. */
-  gastos: readonly { monto: number; fechaGasto: string; status: string }[]
+  /**
+   * Totales ya agregados por mes en el servidor (RPCs get_monthly_*_totals).
+   * Nunca filas crudas: sumar en el cliente trunca en el límite de 1000
+   * filas de PostgREST (bug 2026-07-21).
+   */
+  entradas: readonly MonthlyTotal[]
+  gastos: readonly MonthlyTotal[]
   /** Meses a mostrar, en orden (`YYYY-MM`). */
   months: readonly string[]
 }
@@ -28,24 +37,10 @@ export function lastMonths(n: number, now: Date = new Date()): string[] {
   return months
 }
 
-function monthOfDate(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-}
-
 /** Tendencia mensual de entradas vs. gastos. Función pura. */
 export function buildMonthlyComparison(input: MonthlyComparisonInput): MonthlyComparisonRow[] {
-  const entradasByMonth = new Map<string, number>()
-  for (const sale of input.sales) {
-    const month = monthOfDate(sale.createdAt)
-    entradasByMonth.set(month, (entradasByMonth.get(month) ?? 0) + sale.total)
-  }
-
-  const gastosByMonth = new Map<string, number>()
-  for (const gasto of input.gastos) {
-    if (gasto.status !== 'active') continue
-    const month = gasto.fechaGasto.slice(0, 7)
-    gastosByMonth.set(month, (gastosByMonth.get(month) ?? 0) + gasto.monto)
-  }
+  const entradasByMonth = new Map(input.entradas.map((e) => [e.month, e.total]))
+  const gastosByMonth = new Map(input.gastos.map((g) => [g.month, g.total]))
 
   return input.months.map((month) => {
     const entradas = entradasByMonth.get(month) ?? 0

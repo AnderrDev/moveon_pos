@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
+import { fetchAllPages } from '@angular-app/core/supabase/fetch-all-pages'
 import { AuditLogRepository } from '@angular-app/features/audit/domain/repositories/audit-log.repository'
 import {
   rowToCashMovement,
@@ -86,16 +87,21 @@ export class CashRegisterRepository extends CashRegisterRepositoryContract {
     start: Date,
     end: Date,
   ): Promise<CashSession[]> {
-    const { data, error } = await this.supabaseClient.supabase
-      .from('cash_sessions')
-      .select(SESSION_COLS)
-      .eq('tienda_id', tiendaId)
-      .gte('opened_at', start.toISOString())
-      .lte('opened_at', end.toISOString())
-      .order('opened_at', { ascending: false })
-      .returns<CashSessionRow[]>()
-    if (error) throw new Error(error.message)
-    return (data ?? []).map(rowToCashSession)
+    const rows = await fetchAllPages<CashSessionRow>(async (from, to) => {
+      const { data, error } = await this.supabaseClient.supabase
+        .from('cash_sessions')
+        .select(SESSION_COLS)
+        .eq('tienda_id', tiendaId)
+        .gte('opened_at', start.toISOString())
+        .lt('opened_at', end.toISOString())
+        .order('opened_at', { ascending: false })
+        .order('id', { ascending: false })
+        .range(from, to)
+        .returns<CashSessionRow[]>()
+      if (error) throw new Error(error.message)
+      return data ?? []
+    })
+    return rows.map(rowToCashSession)
   }
 
   async openSession(input: OpenSessionInput): Promise<CashSession> {
@@ -160,29 +166,41 @@ export class CashRegisterRepository extends CashRegisterRepositoryContract {
   }
 
   async listMovements(sessionId: string): Promise<CashMovement[]> {
-    const { data, error } = await this.supabaseClient.supabase
-      .from('cash_movements')
-      .select(MOV_COLS)
-      .eq('cash_session_id', sessionId)
-      .order('created_at', { ascending: true })
-      .returns<CashMovementRow[]>()
-    if (error) throw new Error(error.message)
-    return (data ?? []).map(rowToCashMovement)
+    const rows = await fetchAllPages<CashMovementRow>(async (from, to) => {
+      const { data, error } = await this.supabaseClient.supabase
+        .from('cash_movements')
+        .select(MOV_COLS)
+        .eq('cash_session_id', sessionId)
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, to)
+        .returns<CashMovementRow[]>()
+      if (error) throw new Error(error.message)
+      return data ?? []
+    })
+    return rows.map(rowToCashMovement)
   }
 
   async getPaymentBreakdown(sessionId: string, tiendaId: string): Promise<PaymentBreakdown[]> {
-    const { data, error } = await this.supabaseClient.supabase
-      .from('sales')
-      .select('payments(metodo, amount)')
-      .eq('cash_session_id', sessionId)
-      .eq('tienda_id', tiendaId)
-      .eq('status', 'completed')
-      .returns<{ payments?: { metodo: string; amount: number }[] }[]>()
-
-    if (error) throw new Error(error.message)
+    interface SalePayments {
+      payments?: { metodo: string; amount: number }[]
+    }
+    const sales = await fetchAllPages<SalePayments>(async (from, to) => {
+      const { data, error } = await this.supabaseClient.supabase
+        .from('sales')
+        .select('id, payments(metodo, amount)')
+        .eq('cash_session_id', sessionId)
+        .eq('tienda_id', tiendaId)
+        .eq('status', 'completed')
+        .order('id', { ascending: true })
+        .range(from, to)
+        .returns<SalePayments[]>()
+      if (error) throw new Error(error.message)
+      return data ?? []
+    })
 
     const map = new Map<string, { count: number; total: number }>()
-    for (const sale of data ?? []) {
+    for (const sale of sales) {
       for (const payment of sale.payments ?? []) {
         const cur = map.get(payment.metodo) ?? { count: 0, total: 0 }
         map.set(payment.metodo, {

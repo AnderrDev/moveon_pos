@@ -46,6 +46,17 @@ export abstract class ExpenseRepository {
     mesDesdeIso: string,
     mesHastaIso: string,
   ): Promise<ReinvestmentFundTotals>
-  /** Totales de ventas completadas desde una fecha (para la comparativa mensual). */
-  abstract listSalesTotalsSince(tiendaId: string, fromIso: string): Promise<{ total: number; createdAt: Date }[]>
+  /**
+   * Totales mensuales agregados en el servidor para la comparativa (nunca
+   * filas crudas: el cliente truncaba en el límite de 1000 filas de
+   * PostgREST — bug 2026-07-21).
+   */
+  abstract getMonthlySalesTotals(
+    tiendaId: string,
+    fromIso: string,
+  ): Promise<{ month: string; total: number }[]>
+  abstract getMonthlyExpenseTotals(
+    tiendaId: string,
+    fromDate: string,
+  ): Promise<{ month: string; total: number }[]>
 }

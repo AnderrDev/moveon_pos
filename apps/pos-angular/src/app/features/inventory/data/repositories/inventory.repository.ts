@@ -68,23 +68,21 @@ export class InventoryRepository extends InventoryRepositoryContract {
     if (pErr) throw new Error(pErr.message)
     if (!productos || productos.length === 0) return []
 
-    const { data: movs, error: mErr } = await supabase
-      .from('inventory_movements')
-      .select('producto_id, ubicacion, cantidad')
-      .eq('tienda_id', tiendaId)
-      .returns<{ producto_id: string; ubicacion: InventoryLocation; cantidad: number }[]>()
+    // Suma agregada en el servidor: sumar movimientos en el cliente rompía
+    // al superar el límite de 1000 filas por consulta de PostgREST.
+    const client = this.supabaseClient.supabase as unknown as RpcClient
+    const { data: levels, error: mErr } = await client.rpc<
+      { producto_id: string; punto_venta_stock: number; bodega_stock: number }[]
+    >('get_stock_levels', { p_tienda_id: tiendaId })
 
     if (mErr) throw new Error(mErr.message)
 
     const stockMap: Record<string, { puntoVenta: number; bodega: number }> = {}
-    for (const m of movs ?? []) {
-      const current = stockMap[m.producto_id] ?? { puntoVenta: 0, bodega: 0 }
-      if (m.ubicacion === 'bodega') {
-        current.bodega += Number(m.cantidad)
-      } else {
-        current.puntoVenta += Number(m.cantidad)
+    for (const row of levels ?? []) {
+      stockMap[row.producto_id] = {
+        puntoVenta: Number(row.punto_venta_stock),
+        bodega: Number(row.bodega_stock),
       }
-      stockMap[m.producto_id] = current
     }
 
     return productos.map((p) => {

@@ -80,8 +80,12 @@ export class ProductsRepository extends ProductRepositoryContract {
     if (params.soloActivos) query = query.eq('is_active', true)
     if (params.categoriaId) query = query.eq('categoria_id', params.categoriaId)
     if (params.query?.trim()) {
-      const q = params.query.trim()
-      query = query.or(`nombre.ilike.%${q}%,sku.ilike.%${q}%,codigo_barras.eq.${q}`)
+      // Se eliminan los metacaracteres de la sintaxis de filtros de PostgREST
+      // (, ( ) . ") para que el término no pueda inyectar condiciones extra.
+      const q = params.query.trim().replace(/[,()."\\]/g, ' ').trim()
+      if (q) {
+        query = query.or(`nombre.ilike.%${q}%,sku.ilike.%${q}%,codigo_barras.eq.${q}`)
+      }
     }
 
     const { data, error } = await query
