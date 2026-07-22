@@ -20,8 +20,9 @@ import { FormErrorComponent } from '@angular-app/shared/molecules/form-error.com
 import { DialogFooterComponent } from '@angular-app/shared/molecules/dialog-footer.component'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
-import { ExpensesRepository } from '@angular-app/features/expenses/data/repositories/expenses.repository'
+import { ExpenseRepository } from '@angular-app/features/expenses/domain/repositories/expense.repository'
 import { saveTemplateSchema } from '@angular-app/features/expenses/domain/dtos/template.dto'
+import { saveTemplate } from '@angular-app/features/expenses/domain/usecases/save-template.use-case'
 import type { ExpenseCategory, ExpenseTemplate } from '@angular-app/features/expenses/domain/entities/expense.entity'
 
 const templateFormSchema = saveTemplateSchema.omit({ id: true, tiendaId: true })
@@ -108,7 +109,7 @@ const FRECUENCIA_OPTIONS: FormSelectOption<string>[] = [
 })
 export class TemplateFormDialog {
   private readonly fb = inject(NonNullableFormBuilder)
-  private readonly repo = inject(ExpensesRepository)
+  private readonly repo = inject(ExpenseRepository)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
 
@@ -165,9 +166,16 @@ export class TemplateFormDialog {
     this.saving.set(true)
     this.form.disable({ emitEvent: false })
     try {
-      const template = await this.repo.saveTemplate({ ...parsed.data, tiendaId: auth.tiendaId })
+      const result = await saveTemplate(
+        { repo: this.repo },
+        { ...parsed.data, tiendaId: auth.tiendaId },
+      )
+      if (!result.ok) {
+        this.errors.update((e) => ({ ...e, root: result.error.message }))
+        return
+      }
       this.toast.success('Plantilla creada')
-      this.saved.emit(template)
+      this.saved.emit(result.value)
       this.closed.emit()
     } catch (error) {
       this.errors.update((e) => ({ ...e, root: getErrorMessage(error, 'Error al guardar') }))

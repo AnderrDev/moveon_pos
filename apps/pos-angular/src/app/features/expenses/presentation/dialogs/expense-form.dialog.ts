@@ -20,7 +20,7 @@ import { FormErrorComponent } from '@angular-app/shared/molecules/form-error.com
 import { DialogFooterComponent } from '@angular-app/shared/molecules/dialog-footer.component'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
-import { ExpensesRepository } from '@angular-app/features/expenses/data/repositories/expenses.repository'
+import { ExpenseRepository } from '@angular-app/features/expenses/domain/repositories/expense.repository'
 import { ExpenseFormPresenter } from '@angular-app/features/expenses/presentation/presenters/expense-form.presenter'
 import { expenseFormMapper } from '@angular-app/features/expenses/presentation/forms/expense-form.mapper'
 import type { ExpenseFormValue } from '@angular-app/features/expenses/presentation/forms/expense-form.factory'
@@ -134,7 +134,7 @@ const METODO_OPTIONS: FormSelectOption<string>[] = [
   `,
 })
 export class ExpenseFormDialog {
-  private readonly repo = inject(ExpensesRepository)
+  private readonly repo = inject(ExpenseRepository)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
   protected readonly presenter = inject(ExpenseFormPresenter)

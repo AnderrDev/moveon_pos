@@ -19,13 +19,14 @@ import { FormErrorComponent } from '@angular-app/shared/molecules/form-error.com
 import { DialogFooterComponent } from '@angular-app/shared/molecules/dialog-footer.component'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
-import { ExpensesRepository } from '@angular-app/features/expenses/data/repositories/expenses.repository'
+import { ExpenseRepository } from '@angular-app/features/expenses/domain/repositories/expense.repository'
 import {
   createEmpleadoFormDefaults,
   empleadoFormSchema,
   type EmpleadoFormValue,
 } from '@angular-app/features/expenses/presentation/forms/empleado-form.factory'
 import { empleadoFormMapper } from '@angular-app/features/expenses/presentation/forms/empleado-form.mapper'
+import { saveEmpleado } from '@angular-app/features/expenses/domain/usecases/save-empleado.use-case'
 import type { Empleado } from '@angular-app/features/expenses/domain/entities/expense.entity'
 
 type EmpleadoFormErrors = Partial<Record<keyof EmpleadoFormValue | 'root', string>>
@@ -98,7 +99,7 @@ type EmpleadoFormErrors = Partial<Record<keyof EmpleadoFormValue | 'root', strin
 })
 export class EmpleadoFormDialog {
   private readonly fb = inject(NonNullableFormBuilder)
-  private readonly repo = inject(ExpensesRepository)
+  private readonly repo = inject(ExpenseRepository)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
 
@@ -150,9 +151,13 @@ export class EmpleadoFormDialog {
         tiendaId: auth.tiendaId,
         empleadoId: this.empleado()?.id,
       })
-      const empleado = await this.repo.saveEmpleado(dto)
+      const result = await saveEmpleado({ repo: this.repo }, dto)
+      if (!result.ok) {
+        this.errors.update((e) => ({ ...e, root: result.error.message }))
+        return
+      }
       this.toast.success(this.empleado() ? 'Empleado actualizado' : 'Empleado creado')
-      this.saved.emit(empleado)
+      this.saved.emit(result.value)
       this.closed.emit()
     } catch (error) {
       this.errors.update((e) => ({ ...e, root: getErrorMessage(error, 'Error al guardar') }))

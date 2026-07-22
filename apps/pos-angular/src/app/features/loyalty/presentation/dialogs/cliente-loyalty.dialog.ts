@@ -29,8 +29,12 @@ import { FormNumberInputComponent } from '@angular-app/shared/molecules/form-num
 import { FormInputComponent } from '@angular-app/shared/molecules/form-input.component'
 import { FormErrorComponent } from '@angular-app/shared/molecules/form-error.component'
 import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
-import { LoyaltyRepository } from '@angular-app/features/loyalty/data/repositories/loyalty.repository'
-import type { LoyaltySummary } from '@angular-app/features/loyalty/domain/repositories/loyalty.repository'
+import {
+  LoyaltyRepository,
+  type LoyaltySummary,
+} from '@angular-app/features/loyalty/domain/repositories/loyalty.repository'
+import { expireRewards } from '@angular-app/features/loyalty/domain/usecases/expire-rewards.use-case'
+import { adjustStamps } from '@angular-app/features/loyalty/domain/usecases/adjust-stamps.use-case'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { TiendaInfoService } from '@angular-app/core/tienda/tienda-info.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
@@ -277,7 +281,7 @@ export class ClienteLoyaltyDialog {
 
       // Barrido de vencimiento oportunista (PLAN-60): si el RPC aún no está
       // desplegado en este entorno, el historial sigue funcionando igual.
-      await this.loyaltyRepo.expireRewards(auth.tiendaId).catch(() => 0)
+      await expireRewards({ repo: this.loyaltyRepo }, auth.tiendaId).catch(() => 0)
 
       const [info, summary, transactions] = await Promise.all([
         this.tiendaInfo.get(auth.tiendaId),
@@ -327,7 +331,8 @@ export class ClienteLoyaltyDialog {
     this.adjusting.set(true)
     this.adjustErrors.set({})
     try {
-      const newBalance = await this.loyaltyRepo.adjustStamps(
+      const newBalance = await adjustStamps(
+        { repo: this.loyaltyRepo },
         adjustStampsFormMapper.toPayload(parsed.data, {
           tiendaId: auth.tiendaId,
           clienteId: cliente.id,

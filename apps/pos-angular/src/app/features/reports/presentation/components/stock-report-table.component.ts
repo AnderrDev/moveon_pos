@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core'
 import { BadgeComponent } from '@angular-app/shared/atoms/badge.component'
 import { EmptyStateComponent } from '@angular-app/shared/molecules/empty-state.component'
 import { TableShellComponent } from '@angular-app/shared/molecules/table/table-shell.component'
-import type { StockReportRow } from '@angular-app/features/reports/presentation/services/reports.service'
+import type { StockReportRow } from '@angular-app/features/reports/domain/entities/report.entity'
 
 /** Tabla del tab "Stock": punto de venta / bodega / total / mínimo, con badge de stock bajo. */
 @Component({

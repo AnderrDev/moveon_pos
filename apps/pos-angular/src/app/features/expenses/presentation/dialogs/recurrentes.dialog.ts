@@ -6,8 +6,9 @@ import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 import { BadgeComponent } from '@angular-app/shared/atoms/badge.component'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
-import { ExpensesRepository } from '@angular-app/features/expenses/data/repositories/expenses.repository'
+import { ExpenseRepository } from '@angular-app/features/expenses/domain/repositories/expense.repository'
 import { templateStatusForMonth } from '@angular-app/features/expenses/domain/services/recurrentes'
+import { deleteTemplate } from '@angular-app/features/expenses/domain/usecases/delete-template.use-case'
 import type {
   Expense,
   ExpenseCategory,
@@ -73,7 +74,7 @@ import type {
   `,
 })
 export class RecurrentesDialog {
-  private readonly repo = inject(ExpensesRepository)
+  private readonly repo = inject(ExpenseRepository)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
 
@@ -111,7 +112,7 @@ export class RecurrentesDialog {
     try {
       const auth = await this.session.getAuthContext()
       if (!auth) throw new Error('No autenticado')
-      await this.repo.deleteTemplate(template.id, auth.tiendaId)
+      await deleteTemplate({ repo: this.repo }, template.id, auth.tiendaId)
       this.toast.success('Plantilla eliminada')
       this.deleted.emit(template.id)
     } catch (error) {

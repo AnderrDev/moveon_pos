@@ -67,7 +67,19 @@ const PRESENTATION_BOUNDARY_EXCEPTIONS = [
  * escritura nuevos, 16 archivos de presentation flip a la abstracción,
  * incluyendo consumidores cross-feature como reports.service.ts).
  */
-const CABLED_FEATURES = ['audit', 'auth', 'customers', 'products', 'sales', 'inventory', 'cash-register']
+const CABLED_FEATURES = [
+  'audit',
+  'auth',
+  'cash-register',
+  'customers',
+  'expenses',
+  'inventory',
+  'loyalty',
+  'products',
+  'reports',
+  'sales',
+  'settings',
+]
 
 const OWN_DATA_MESSAGE =
   'No se puede inyectar la implementación concreta de data/ — inyecta la abstracción de domain/repositories/ (ADR 0015 §6.6, feature ya cableada).'

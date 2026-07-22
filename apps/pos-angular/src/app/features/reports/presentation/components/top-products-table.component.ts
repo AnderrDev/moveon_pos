@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, input, signal } from '@an
 import { formatCurrency } from '@/shared/lib/format'
 import { CardComponent } from '@angular-app/shared/atoms/card.component'
 import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
-import type { DailyProductSale } from '@angular-app/features/reports/presentation/services/reports.service'
+import type { DailyProductSale } from '@angular-app/features/reports/domain/entities/report.entity'
 
 type SortCriterion = 'qty' | 'total'
 

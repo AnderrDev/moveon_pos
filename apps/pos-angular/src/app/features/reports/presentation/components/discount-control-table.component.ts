@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core'
 import { formatCurrency } from '@/shared/lib/format'
-import type { DailyReport } from '@angular-app/features/reports/presentation/services/reports.service'
+import type { DailyReport } from '@angular-app/features/reports/domain/entities/report.entity'
 
 /** Tabla "Control de descuentos": ventas completadas con descuento > 0, por venta/usuario/motivo. */
 @Component({
