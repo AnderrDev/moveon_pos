@@ -20,7 +20,9 @@ import { expensesProviders } from '@angular-app/features/expenses/expenses.provi
 import { inventoryProviders } from '@angular-app/features/inventory/inventory.providers'
 import { loyaltyProviders } from '@angular-app/features/loyalty/loyalty.providers'
 import { productsProviders } from '@angular-app/features/products/products.providers'
+import { reportsProviders } from '@angular-app/features/reports/reports.providers'
 import { salesProviders } from '@angular-app/features/sales/sales.providers'
+import { settingsProviders } from '@angular-app/features/settings/settings.providers'
 
 /**
  * Composition roots por feature (ADR 0015 §6.2), registrados en la raíz.
@@ -39,7 +41,9 @@ const featureProviders = [
   ...inventoryProviders,
   ...loyaltyProviders,
   ...productsProviders,
+  ...reportsProviders,
   ...salesProviders,
+  ...settingsProviders,
 ]
 
 export const appConfig: ApplicationConfig = {

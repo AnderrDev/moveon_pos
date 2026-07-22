@@ -10,9 +10,11 @@ import { FormCheckboxComponent } from '@angular-app/shared/molecules/form-checkb
 import { FormErrorComponent } from '@angular-app/shared/molecules/form-error.component'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import { ReceiptSettingsFormPresenter } from '@angular-app/features/settings/presentation/presenters/receipt-settings-form.presenter'
-import { ReceiptSettingsService } from '@angular-app/features/settings/presentation/services/receipt-settings.service'
+import { ReceiptSettingsRepository } from '@angular-app/features/settings/domain/repositories/receipt-settings.repository'
+import { saveReceiptSettings } from '@angular-app/features/settings/domain/usecases/save-receipt-settings.use-case'
 import { LoyaltySettingsFormPresenter } from '@angular-app/features/settings/presentation/presenters/loyalty-settings-form.presenter'
-import { LoyaltySettingsService } from '@angular-app/features/settings/presentation/services/loyalty-settings.service'
+import { LoyaltySettingsRepository } from '@angular-app/features/settings/domain/repositories/loyalty-settings.repository'
+import { saveLoyaltySettings } from '@angular-app/features/settings/domain/usecases/save-loyalty-settings.use-case'
 import { loyaltySettingsFormMapper } from '@angular-app/features/settings/presentation/forms/loyalty-settings-form.mapper'
 import { FormNumberInputComponent } from '@angular-app/shared/molecules/form-number-input.component'
 import { FormCurrencyInputComponent } from '@angular-app/shared/molecules/form-currency-input.component'
@@ -371,8 +373,8 @@ import { QzReceiptPrinterService } from '@angular-app/features/pos/data/datasour
   `,
 })
 export class ConfiguracionPage {
-  private readonly settings = inject(ReceiptSettingsService)
-  private readonly loyaltySettings = inject(LoyaltySettingsService)
+  private readonly settings = inject(ReceiptSettingsRepository)
+  private readonly loyaltySettings = inject(LoyaltySettingsRepository)
   private readonly printer = inject(QzReceiptPrinterService)
   private readonly toast = inject(ToastService)
 
@@ -396,7 +398,7 @@ export class ConfiguracionPage {
     this.saving.set(true)
     this.presenter.form.disable({ emitEvent: false })
     try {
-      await this.settings.save(receiptSettingsFormMapper.toPayload(value))
+      await saveReceiptSettings({ repo: this.settings }, receiptSettingsFormMapper.toPayload(value))
       this.toast.success('Configuracion del comprobante guardada')
     } catch (error) {
       this.presenter.setRootError(getErrorMessage(error, 'No se pudo guardar la configuracion'))
@@ -464,7 +466,7 @@ export class ConfiguracionPage {
     this.loyaltySaving.set(true)
     this.loyaltyPresenter.form.disable({ emitEvent: false })
     try {
-      await this.loyaltySettings.save(loyaltySettingsFormMapper.toPayload(value))
+      await saveLoyaltySettings({ repo: this.loyaltySettings }, loyaltySettingsFormMapper.toPayload(value))
       this.toast.success('Programa MOVE ON Club guardado')
     } catch (error) {
       this.loyaltyPresenter.setRootError(

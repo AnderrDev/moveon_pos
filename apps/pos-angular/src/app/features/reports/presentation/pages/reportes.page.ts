@@ -4,7 +4,8 @@ import { PageHeaderComponent } from '@angular-app/shared/molecules/page-header.c
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 import { CardComponent } from '@angular-app/shared/atoms/card.component'
 import { EmptyStateComponent } from '@angular-app/shared/molecules/empty-state.component'
-import { ReportsService, type DailyReport, type StockReportRow } from '@angular-app/features/reports/presentation/services/reports.service'
+import { ReportRepository } from '@angular-app/features/reports/domain/repositories/report.repository'
+import type { DailyReport, StockReportRow } from '@angular-app/features/reports/domain/entities/report.entity'
 import { DailyKpiCardsComponent } from '@angular-app/features/reports/presentation/components/daily-kpi-cards.component'
 import { DiscountControlTableComponent } from '@angular-app/features/reports/presentation/components/discount-control-table.component'
 import { TopProductsTableComponent } from '@angular-app/features/reports/presentation/components/top-products-table.component'
@@ -16,7 +17,7 @@ import { ProductSalesSearchComponent } from '@angular-app/features/reports/prese
 import { AccountingSummaryComponent } from '@angular-app/features/reports/presentation/components/accounting-summary.component'
 import { StockReportTableComponent } from '@angular-app/features/reports/presentation/components/stock-report-table.component'
 import { LoyaltyReportComponent } from '@angular-app/features/reports/presentation/components/loyalty-report.component'
-import { LoyaltyReportService } from '@angular-app/features/reports/presentation/services/loyalty-report.service'
+import { LoyaltyReportRepository } from '@angular-app/features/reports/domain/repositories/loyalty-report.repository'
 import type { LoyaltyProgramReport } from '@angular-app/features/loyalty/domain/services/program-report'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { TiendaInfoService } from '@angular-app/core/tienda/tienda-info.service'
@@ -219,8 +220,8 @@ import { PAYMENT_METHOD_CLOSURE_OPTIONS, getPaymentMethodLabel } from '@/shared/
   `,
 })
 export class ReportesPage {
-  private readonly reportsService = inject(ReportsService)
-  private readonly loyaltyReportService = inject(LoyaltyReportService)
+  private readonly reportsService = inject(ReportRepository)
+  private readonly loyaltyReportService = inject(LoyaltyReportRepository)
   private readonly session = inject(SessionService)
   private readonly tiendaInfo = inject(TiendaInfoService)
   private readonly toast = inject(ToastService)

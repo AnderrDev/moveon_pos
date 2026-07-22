@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core'
 import { formatCurrency, formatTime } from '@/shared/lib/format'
 import { BadgeComponent } from '@angular-app/shared/atoms/badge.component'
 import { CardComponent } from '@angular-app/shared/atoms/card.component'
-import type { DailySession } from '@angular-app/features/reports/presentation/services/reports.service'
+import type { DailySession } from '@angular-app/features/reports/domain/entities/report.entity'
 
 /**
  * Tabla "Cierres de caja": ventas/caja esperado vs real por sesión del

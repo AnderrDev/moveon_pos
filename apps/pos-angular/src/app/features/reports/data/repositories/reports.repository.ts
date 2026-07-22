@@ -1,163 +1,36 @@
 import { inject, Injectable } from '@angular/core'
-import { SalesRepository } from '@angular-app/features/sales/data/repositories/sales.repository'
-import { CashRegisterRepository } from '@angular-app/features/cash-register/data/repositories/cash-register.repository'
-import { InventoryRepository } from '@angular-app/features/inventory/data/repositories/inventory.repository'
+import { SaleRepository } from '@angular-app/features/sales/domain/repositories/sale.repository'
+import { CashRegisterRepository } from '@angular-app/features/cash-register/domain/repositories/cash-register.repository'
+import { InventoryRepository } from '@angular-app/features/inventory/domain/repositories/inventory.repository'
 import { ProductRepository } from '@angular-app/features/products/domain/repositories/product.repository'
 import { TiendaInfoService } from '@angular-app/core/tienda/tienda-info.service'
 import { DEFAULT_TIMEZONE, getStoreRangeUtc } from '@angular-app/features/reports/domain/services/day-range'
 import { isLowStock, isOutOfStock } from '@angular-app/features/inventory/domain/services/low-stock'
-import {
-  groupSalesByCashier,
-  type CashierSalesSummary,
-} from '@angular-app/features/reports/domain/services/group-sales-by-cashier'
-import {
-  groupSalesByLocalDay,
-  groupSalesByLocalHour,
-  type DailySalesSummary,
-  type HourlySalesSummary,
-} from '@angular-app/features/reports/domain/services/sales-trend'
+import { groupSalesByCashier } from '@angular-app/features/reports/domain/services/group-sales-by-cashier'
+import { groupSalesByLocalDay, groupSalesByLocalHour } from '@angular-app/features/reports/domain/services/sales-trend'
 import { groupSalesByProduct } from '@angular-app/features/reports/domain/services/top-products'
+import { ReportRepository } from '@angular-app/features/reports/domain/repositories/report.repository'
+import type {
+  DailyPaymentBreakdown,
+  DailyProductSale,
+  DailyReport,
+  DailySaleDetail,
+  DailySaleItemDetail,
+  DailySalePaymentDetail,
+  StockReportRow,
+  TaxBreakdownRow,
+} from '@angular-app/features/reports/domain/entities/report.entity'
 import type { Sale } from '@angular-app/features/sales/domain/entities/sale.entity'
 
-export interface DailyPaymentBreakdown {
-  metodo: string
-  count: number
-  total: number
-}
-
-export interface DailyProductSale {
-  productId: string
-  nombre: string
-  sku: string | null
-  /** Cantidad de ventas DISTINTAS en las que aparece el producto (PLAN-39). */
-  numVentas: number
-  qty: number
-  total: number
-  /** Precio promedio simple de `unitPrice` entre líneas (PLAN-39, no ponderado por cantidad). */
-  avgPrice: number
-  /** `null` cuando el producto no tiene costo capturado — se excluye de utilidadTotal. */
-  costoUnitario: number | null
-  costoTotal: number | null
-  utilidad: number | null
-  margenPct: number | null
-}
-
-export interface DailySaleDetail {
-  id: string
-  saleNumber: string
-  createdAt: Date
-  status: string
-  total: number
-  itemCount: number
-  cashierId: string
-  cashierEmail: string | null
-  customerName: string | null
-  subtotal: number
-  discountTotal: number
-  itemDiscountTotal: number
-  globalDiscountTotal: number
-  discountPercentage: number
-  discountReason: string | null
-  discountApprovedBy: string | null
-  taxTotal: number
-  change: number
-  voidedReason: string | null
-  payments: { metodo: string; amount: number }[]
-}
-
-export interface DailySaleItemDetail {
-  saleNumber: string
-  createdAt: Date
-  status: string
-  cashierEmail: string | null
-  productName: string
-  productSku: string | null
-  quantity: number
-  unitPrice: number
-  discountTotal: number
-  itemDiscountTotal: number
-  globalDiscountTotal: number
-  taxRate: number
-  taxAmount: number
-  total: number
-}
-
-export interface DailySalePaymentDetail {
-  saleNumber: string
-  createdAt: Date
-  status: string
-  cashierEmail: string | null
-  method: string
-  amount: number
-  reference: string | null
-}
-
-export interface DailySession {
-  id: string
-  openedBy: string
-  openedAt: Date
-  closedAt: Date | null
-  expectedSalesAmount: number
-  actualSalesAmount: number | null
-  salesDifference: number | null
-  expectedCashAmount: number
-  actualCashAmount: number | null
-  cashDifference: number | null
-  notasCierre: string | null
-}
-
-export interface TaxBreakdownRow {
-  taxRate: number
-  baseAmount: number
-  taxAmount: number
-}
-
-export interface DailyReport {
-  /** Primer día del período (UTC inicio del día local). */
-  date: Date
-  /** Último día del período (UTC inicio del día local). Igual a `date` cuando es un solo día. */
-  dateTo: Date
-  totalVentas: number
-  countVentas: number
-  countAnuladas: number
-  subtotalVentas: number
-  taxTotal: number
-  discountTotal: number
-  itemDiscountTotal: number
-  globalDiscountTotal: number
-  discountedSalesCount: number
-  averageDiscountPercentage: number
-  avgVenta: number
-  paymentBreakdown: DailyPaymentBreakdown[]
-  taxBreakdown: TaxBreakdownRow[]
-  productSales: DailyProductSale[]
-  /** Suma de `utilidad` solo de productos con costo conocido (no asume 0 para costo null). */
-  utilidadTotal: number
-  cashierBreakdown: CashierSalesSummary[]
-  hourlySales: HourlySalesSummary[]
-  dailySales: DailySalesSummary[]
-  sales: Sale[]
-  salesDetail: DailySaleDetail[]
-  saleItems: DailySaleItemDetail[]
-  salePayments: DailySalePaymentDetail[]
-  sessions: DailySession[]
-}
-
-export interface StockReportRow {
-  productId: string
-  nombre: string
-  sku: string | null
-  puntoVentaStock: number
-  bodegaStock: number
-  totalStock: number
-  minimumStock: number
-  isLow: boolean
-  isOut: boolean
-}
-
+/**
+ * Implementación Supabase (por composición de otros repositorios) del
+ * reporte de ventas/contabilidad/stock. Relocalizada desde
+ * `presentation/services/reports.service.ts` (PLAN-66, ADR 0015 §3): agrega
+ * datos de otras features, así que vive en `data/` — no en `presentation/`.
+ */
 @Injectable({ providedIn: 'root' })
-export class ReportsService {
-  private readonly salesRepo = inject(SalesRepository)
+export class ReportsRepository extends ReportRepository {
+  private readonly salesRepo = inject(SaleRepository)
   private readonly cashRepo = inject(CashRegisterRepository)
   private readonly inventoryRepo = inject(InventoryRepository)
   private readonly productsRepo = inject(ProductRepository)

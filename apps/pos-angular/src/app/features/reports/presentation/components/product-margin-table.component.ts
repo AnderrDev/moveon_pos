@@ -1,7 +1,7 @@
 import { DecimalPipe } from '@angular/common'
 import { ChangeDetectionStrategy, Component, input } from '@angular/core'
 import { formatCurrency } from '@/shared/lib/format'
-import type { DailyProductSale } from '@angular-app/features/reports/presentation/services/reports.service'
+import type { DailyProductSale } from '@angular-app/features/reports/domain/entities/report.entity'
 
 /**
  * Tabla completa de productos vendidos en el período, con costo/utilidad/margen.

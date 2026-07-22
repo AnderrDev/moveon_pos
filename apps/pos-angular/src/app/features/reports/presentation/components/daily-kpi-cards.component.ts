@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core'
 import { formatCurrency } from '@/shared/lib/format'
 import { StatCardComponent } from '@angular-app/shared/molecules/stat-card.component'
-import type { DailyReport } from '@angular-app/features/reports/presentation/services/reports.service'
+import type { DailyReport } from '@angular-app/features/reports/domain/entities/report.entity'
 
 /** Las 6 tarjetas KPI del tab "Ventas": total, descuentos, ticket promedio, IVA, anuladas, utilidad. */
 @Component({

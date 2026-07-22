@@ -2,6 +2,7 @@ import { inject, Injectable } from '@angular/core'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
 import { TiendaInfoService } from '@angular-app/core/tienda/tienda-info.service'
+import { LoyaltySettingsRepository } from '@angular-app/features/settings/domain/repositories/loyalty-settings.repository'
 import type { LoyaltyConfig } from '@angular-app/features/loyalty/domain/loyalty-config'
 import type { Json } from '@/infrastructure/supabase/database.types'
 
@@ -13,9 +14,11 @@ interface SettingsRow {
  * Lee y guarda `settings.data.fidelizacion` (PLAN-59). Solo admin. El RPC
  * `loyalty_program_config` lee esta misma clave al otorgar sellos y generar
  * recompensas, así que guardar aquí cambia el programa sin migración.
+ * Relocalizada desde `presentation/services/loyalty-settings.service.ts`
+ * (PLAN-66, ADR 0015 §3): toca Supabase directo, así que vive en `data/`.
  */
 @Injectable({ providedIn: 'root' })
-export class LoyaltySettingsService {
+export class LoyaltySettingsRepositoryImpl extends LoyaltySettingsRepository {
   private readonly session = inject(SessionService)
   private readonly supabase = inject(SupabaseClientService)
   private readonly tiendaInfo = inject(TiendaInfoService)

@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, input, signal } from '@an
 import { BadgeComponent } from '@angular-app/shared/atoms/badge.component'
 import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
 import { formatCurrency, formatShortDate, formatTime } from '@/shared/lib/format'
-import type { DailySaleItemDetail } from '@angular-app/features/reports/presentation/services/reports.service'
+import type { DailySaleItemDetail } from '@angular-app/features/reports/domain/entities/report.entity'
 
 /**
  * Buscador de producto dentro del período seleccionado: filtra `saleItems`

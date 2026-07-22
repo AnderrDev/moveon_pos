@@ -54,7 +54,7 @@ const PRESENTATION_BOUNDARY_EXCEPTIONS = [
  * medida que se cablea (ADR 0015 §6.6 punto 4); el resto sigue permitiendo
  * inyectar la clase concreta cross-feature hasta que le toque su turno.
  */
-const CABLED_FEATURES = ['customers', 'products']
+const CABLED_FEATURES = ['customers', 'expenses', 'loyalty', 'products', 'reports', 'settings']
 
 const OWN_DATA_MESSAGE =
   'No se puede inyectar la implementación concreta de data/ — inyecta la abstracción de domain/repositories/ (ADR 0015 §6.6, feature ya cableada).'

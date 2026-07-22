@@ -19,7 +19,7 @@ import { FormErrorComponent } from '@angular-app/shared/molecules/form-error.com
 import { DialogFooterComponent } from '@angular-app/shared/molecules/dialog-footer.component'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
-import { ExpensesRepository } from '@angular-app/features/expenses/data/repositories/expenses.repository'
+import { ExpenseRepository } from '@angular-app/features/expenses/domain/repositories/expense.repository'
 import {
   createNominaPagoFormDefaults,
   nominaPagoFormSchema,
@@ -137,7 +137,7 @@ type FormErrors = Partial<Record<keyof NominaPagoFormValue | 'root', string>>
 })
 export class NominaPagoDialog {
   private readonly fb = inject(NonNullableFormBuilder)
-  private readonly repo = inject(ExpensesRepository)
+  private readonly repo = inject(ExpenseRepository)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
 

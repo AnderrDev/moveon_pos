@@ -1,16 +1,22 @@
 import { inject, Injectable } from '@angular/core'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
-import { TiendaInfoService, type ReceiptSettings } from '@angular-app/core/tienda/tienda-info.service'
-import type { ReceiptSettingsPayload } from '@angular-app/features/settings/presentation/forms/receipt-settings-form.mapper'
+import { TiendaInfoService } from '@angular-app/core/tienda/tienda-info.service'
+import { ReceiptSettingsRepository } from '@angular-app/features/settings/domain/repositories/receipt-settings.repository'
+import type { ReceiptSettings } from '@angular-app/features/settings/domain/entities/receipt-settings.entity'
 import type { Json } from '@/infrastructure/supabase/database.types'
 
 interface SettingsRow {
   data: Json | null
 }
 
+/**
+ * Lee y guarda `settings.data.recibo`. Solo admin. Relocalizada desde
+ * `presentation/services/receipt-settings.service.ts` (PLAN-66, ADR 0015
+ * §3): toca Supabase directo, así que vive en `data/`.
+ */
 @Injectable({ providedIn: 'root' })
-export class ReceiptSettingsService {
+export class ReceiptSettingsRepositoryImpl extends ReceiptSettingsRepository {
   private readonly session = inject(SessionService)
   private readonly supabase = inject(SupabaseClientService)
   private readonly tiendaInfo = inject(TiendaInfoService)
@@ -20,7 +26,7 @@ export class ReceiptSettingsService {
     return (await this.tiendaInfo.get(auth.tiendaId)).receipt
   }
 
-  async save(value: ReceiptSettingsPayload): Promise<void> {
+  async save(value: ReceiptSettings): Promise<void> {
     const auth = await this.requireAdmin()
     const client = this.supabase.supabase
     const { data: current, error: readError } = await client

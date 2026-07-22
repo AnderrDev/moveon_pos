@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core'
 import { formatCurrency } from '@/shared/lib/format'
 import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
 import { ProductMarginTableComponent } from '@angular-app/features/reports/presentation/components/product-margin-table.component'
-import type { DailyReport } from '@angular-app/features/reports/presentation/services/reports.service'
+import type { DailyReport } from '@angular-app/features/reports/domain/entities/report.entity'
 
 /** Contenido del tab "Resumen contable": ingresos, IVA por tasa, pagos para cuadre y utilidad. */
 @Component({

@@ -1,8 +1,10 @@
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
 import { TiendaInfoService } from '@angular-app/core/tienda/tienda-info.service'
-import { LoyaltyRepository } from '@angular-app/features/loyalty/data/repositories/loyalty.repository'
+import { LoyaltyRepository } from '@angular-app/features/loyalty/domain/repositories/loyalty.repository'
+import { expireRewards } from '@angular-app/features/loyalty/domain/usecases/expire-rewards.use-case'
 import { getStoreRangeUtc } from '@angular-app/features/reports/domain/services/day-range'
+import { LoyaltyReportRepository } from '@angular-app/features/reports/domain/repositories/loyalty-report.repository'
 import {
   buildLoyaltyProgramReport,
   type LoyaltyProgramReport,
@@ -51,9 +53,13 @@ interface LoyaltyReportDbClient {
   }
 }
 
-/** Reporte del programa MOVE ON Club para /reportes (PLAN-60). */
+/**
+ * Reporte del programa MOVE ON Club para /reportes (PLAN-60). Relocalizada
+ * desde `presentation/services/loyalty-report.service.ts` (PLAN-66,
+ * ADR 0015 §3): toca Supabase directo, así que vive en `data/`.
+ */
 @Injectable({ providedIn: 'root' })
-export class LoyaltyReportService {
+export class LoyaltyReportsRepository extends LoyaltyReportRepository {
   private readonly supabaseClient = inject(SupabaseClientService)
   private readonly tiendaInfo = inject(TiendaInfoService)
   private readonly loyaltyRepo = inject(LoyaltyRepository)
@@ -75,7 +81,7 @@ export class LoyaltyReportService {
     const { timezone } = await this.tiendaInfo.get(tiendaId)
     const { start, end } = getStoreRangeUtc(fromIso, toIso, timezone)
 
-    await this.loyaltyRepo.expireRewards(tiendaId).catch(() => 0)
+    await expireRewards({ repo: this.loyaltyRepo }, tiendaId).catch(() => 0)
 
     const [txResult, rewardsResult] = await Promise.all([
       this.db

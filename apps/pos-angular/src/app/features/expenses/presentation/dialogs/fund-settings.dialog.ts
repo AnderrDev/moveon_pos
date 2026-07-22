@@ -16,13 +16,14 @@ import { FormErrorComponent } from '@angular-app/shared/molecules/form-error.com
 import { DialogFooterComponent } from '@angular-app/shared/molecules/dialog-footer.component'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
-import { ExpensesRepository } from '@angular-app/features/expenses/data/repositories/expenses.repository'
+import { ExpenseRepository } from '@angular-app/features/expenses/domain/repositories/expense.repository'
 import {
   createFundSettingsFormDefaults,
   fundSettingsFormSchema,
   type FundSettingsFormValue,
 } from '@angular-app/features/expenses/presentation/forms/fund-settings-form.factory'
 import { fundSettingsFormMapper } from '@angular-app/features/expenses/presentation/forms/fund-settings-form.mapper'
+import { saveFundSettings } from '@angular-app/features/expenses/domain/usecases/save-fund-settings.use-case'
 import type { ReinvestmentFundSettings } from '@angular-app/features/expenses/domain/entities/expense.entity'
 
 type FundSettingsFormErrors = Partial<Record<keyof FundSettingsFormValue | 'root', string>>
@@ -90,7 +91,7 @@ type FundSettingsFormErrors = Partial<Record<keyof FundSettingsFormValue | 'root
 })
 export class FundSettingsDialog {
   private readonly fb = inject(NonNullableFormBuilder)
-  private readonly repo = inject(ExpensesRepository)
+  private readonly repo = inject(ExpenseRepository)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
 
@@ -145,11 +146,14 @@ export class FundSettingsDialog {
     this.saving.set(true)
     this.form.disable({ emitEvent: false })
     try {
-      const settings = await this.repo.saveFundSettings(
-        fundSettingsFormMapper.toSaveDto(parsed.data, { tiendaId: auth.tiendaId }),
-      )
+      const dto = fundSettingsFormMapper.toSaveDto(parsed.data, { tiendaId: auth.tiendaId })
+      const result = await saveFundSettings({ repo: this.repo }, dto)
+      if (!result.ok) {
+        this.errors.update((e) => ({ ...e, root: result.error.message }))
+        return
+      }
       this.toast.success('Fondo de reinversión configurado')
-      this.saved.emit(settings)
+      this.saved.emit(result.value)
       this.closed.emit()
     } catch (error) {
       this.errors.update((e) => ({ ...e, root: getErrorMessage(error, 'Error al guardar') }))

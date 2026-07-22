@@ -1,7 +1,7 @@
 import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
 import type { ExcelWorkbookDefinition } from '@angular-app/shared/services/export/excel-export.service'
 import { buildExportFilename } from '@angular-app/shared/services/export/export-filename'
-import type { DailyReport, StockReportRow } from '@angular-app/features/reports/presentation/services/reports.service'
+import type { DailyReport, StockReportRow } from '@angular-app/features/reports/domain/entities/report.entity'
 
 function saleStatusLabel(status: string): string {
   return status === 'voided' ? 'Anulada' : 'Completada'

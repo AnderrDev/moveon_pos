@@ -6,8 +6,8 @@ import { EmptyStateComponent } from '@angular-app/shared/molecules/empty-state.c
 import { VoidReasonDialog } from '@angular-app/shared/organisms/void-reason/void-reason.dialog'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import { SessionService } from '@angular-app/core/auth/session.service'
-import { ReportsService } from '@angular-app/features/reports/presentation/services/reports.service'
-import { ExpensesRepository } from '@angular-app/features/expenses/data/repositories/expenses.repository'
+import { ReportRepository } from '@angular-app/features/reports/domain/repositories/report.repository'
+import { ExpenseRepository } from '@angular-app/features/expenses/domain/repositories/expense.repository'
 import { ExpenseFormDialog } from '@angular-app/features/expenses/presentation/dialogs/expense-form.dialog'
 import { ExpenseListComponent } from '@angular-app/features/expenses/presentation/components/expense-list.component'
 import { FinancialSummaryComponent } from '@angular-app/features/expenses/presentation/components/financial-summary.component'
@@ -237,8 +237,8 @@ function monthRange(month: string): { from: string; to: string } {
   `,
 })
 export class FinanzasPage {
-  private readonly repo = inject(ExpensesRepository)
-  private readonly reportsService = inject(ReportsService)
+  private readonly repo = inject(ExpenseRepository)
+  private readonly reportsService = inject(ReportRepository)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
   private readonly excel = inject(ExcelExportService)

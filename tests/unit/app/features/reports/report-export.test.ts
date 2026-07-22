@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildDailyReportWorkbook } from '@angular-app/features/reports/presentation/services/report-export'
-import type { DailyReport } from '@angular-app/features/reports/presentation/services/reports.service'
+import type { DailyReport } from '@angular-app/features/reports/domain/entities/report.entity'
 
 function makeReport(): DailyReport {
   return {
