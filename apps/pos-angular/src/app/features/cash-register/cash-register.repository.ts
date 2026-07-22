@@ -218,7 +218,9 @@ export class CashRegisterRepository {
   }
 
   async getPaymentBreakdown(sessionId: string, tiendaId: string): Promise<PaymentBreakdown[]> {
-    type SalePayments = { payments?: { metodo: string; amount: number }[] }
+    interface SalePayments {
+      payments?: { metodo: string; amount: number }[]
+    }
     const sales = await fetchAllPages<SalePayments>(async (from, to) => {
       const { data, error } = await this.supabaseClient.supabase
         .from('sales')

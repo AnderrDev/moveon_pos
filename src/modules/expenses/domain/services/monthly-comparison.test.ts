@@ -8,17 +8,15 @@ describe('lastMonths', () => {
 })
 
 describe('buildMonthlyComparison', () => {
-  it('agrupa entradas y gastos por mes y calcula % y balance', () => {
+  it('combina totales mensuales de entradas y gastos y calcula % y balance', () => {
     const rows = buildMonthlyComparison({
-      sales: [
-        { total: 5_000_000, createdAt: new Date(2026, 5, 10) },
-        { total: 3_000_000, createdAt: new Date(2026, 6, 2) },
-        { total: 2_000_000, createdAt: new Date(2026, 6, 20) },
+      entradas: [
+        { month: '2026-06', total: 5_000_000 },
+        { month: '2026-07', total: 5_000_000 },
       ],
       gastos: [
-        { monto: 1_800_000, fechaGasto: '2026-06-30', status: 'active' },
-        { monto: 1_000_000, fechaGasto: '2026-07-01', status: 'active' },
-        { monto: 999_999, fechaGasto: '2026-07-02', status: 'voided' },
+        { month: '2026-06', total: 1_800_000 },
+        { month: '2026-07', total: 1_000_000 },
       ],
       months: ['2026-06', '2026-07'],
     })
@@ -31,8 +29,8 @@ describe('buildMonthlyComparison', () => {
 
   it('meses sin entradas: pctGastos null y balance negativo', () => {
     const rows = buildMonthlyComparison({
-      sales: [],
-      gastos: [{ monto: 500_000, fechaGasto: '2026-07-01', status: 'active' }],
+      entradas: [],
+      gastos: [{ month: '2026-07', total: 500_000 }],
       months: ['2026-07'],
     })
     expect(rows[0]).toEqual({
@@ -42,5 +40,16 @@ describe('buildMonthlyComparison', () => {
       pctGastos: null,
       balance: -500_000,
     })
+  })
+
+  it('meses fuera del rango pedido se ignoran', () => {
+    const rows = buildMonthlyComparison({
+      entradas: [{ month: '2026-01', total: 1_000_000 }],
+      gastos: [],
+      months: ['2026-07'],
+    })
+    expect(rows).toEqual([
+      { month: '2026-07', entradas: 0, gastos: 0, pctGastos: null, balance: 0 },
+    ])
   })
 })

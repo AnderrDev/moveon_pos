@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '../../core/supabase/supabase-client.service'
+import { fetchAllPages } from '../../core/supabase/fetch-all-pages'
 import type {
   Empleado,
   Expense,
@@ -110,16 +111,21 @@ export class ExpensesRepository implements ExpenseRepository {
   }
 
   async listExpenses(tiendaId: string, fromDate: string, toDate: string): Promise<Expense[]> {
-    const { data, error } = await this.supabaseClient.supabase
-      .from('expenses')
-      .select(EXPENSE_COLS)
-      .eq('tienda_id', tiendaId)
-      .gte('fecha_gasto', fromDate)
-      .lte('fecha_gasto', toDate)
-      .order('fecha_gasto', { ascending: false })
-      .order('created_at', { ascending: false })
-    if (error) throw new Error(error.message)
-    return ((data ?? []) as ExpenseRow[]).map(rowToExpense)
+    const rows = await fetchAllPages<ExpenseRow>(async (from, to) => {
+      const { data, error } = await this.supabaseClient.supabase
+        .from('expenses')
+        .select(EXPENSE_COLS)
+        .eq('tienda_id', tiendaId)
+        .gte('fecha_gasto', fromDate)
+        .lte('fecha_gasto', toDate)
+        .order('fecha_gasto', { ascending: false })
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
+        .range(from, to)
+      if (error) throw new Error(error.message)
+      return (data ?? []) as ExpenseRow[]
+    })
+    return rows.map(rowToExpense)
   }
 
   /**
@@ -169,22 +175,47 @@ export class ExpensesRepository implements ExpenseRepository {
     return rowToExpense(data as ExpenseRow)
   }
 
-  /** Totales de ventas completadas desde una fecha (para la comparativa mensual). */
-  async listSalesTotalsSince(
+  /**
+   * Totales mensuales agregados en el servidor (RPCs): sumar filas en el
+   * cliente truncaba en 1000 filas por el límite de PostgREST.
+   */
+  async getMonthlySalesTotals(
     tiendaId: string,
     fromIso: string,
-  ): Promise<{ total: number; createdAt: Date }[]> {
-    const { data, error } = await this.supabaseClient.supabase
-      .from('sales')
-      .select('total, created_at')
-      .eq('tienda_id', tiendaId)
-      .eq('status', 'completed')
-      .gte('created_at', fromIso)
+  ): Promise<{ month: string; total: number }[]> {
+    return this.callMonthlyTotalsRpc('get_monthly_sales_totals', {
+      p_tienda_id: tiendaId,
+      p_from: fromIso,
+    })
+  }
+
+  async getMonthlyExpenseTotals(
+    tiendaId: string,
+    fromDate: string,
+  ): Promise<{ month: string; total: number }[]> {
+    return this.callMonthlyTotalsRpc('get_monthly_expense_totals', {
+      p_tienda_id: tiendaId,
+      p_from: fromDate,
+    })
+  }
+
+  private async callMonthlyTotalsRpc(
+    fn: string,
+    args: Record<string, unknown>,
+  ): Promise<{ month: string; total: number }[]> {
+    interface RpcClient {
+      rpc(
+        fn: string,
+        args: Record<string, unknown>,
+      ): Promise<{
+        data: { month: string; total: number }[] | null
+        error: { message: string } | null
+      }>
+    }
+    const client = this.supabaseClient.supabase as unknown as RpcClient
+    const { data, error } = await client.rpc(fn, args)
     if (error) throw new Error(error.message)
-    return (data ?? []).map((row) => ({
-      total: Number(row.total),
-      createdAt: new Date(row.created_at),
-    }))
+    return (data ?? []).map((row) => ({ month: row.month, total: Number(row.total) }))
   }
 
   async listEmpleados(tiendaId: string): Promise<Empleado[]> {

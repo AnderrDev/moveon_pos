@@ -392,12 +392,11 @@ export class FinanzasPage {
     const months = lastMonths(6)
     const fromDate = `${months[0]}-01`
     const fromIso = new Date(`${fromDate}T00:00:00`).toISOString()
-    const { to } = monthRange(months[months.length - 1])
-    const [sales, gastos] = await Promise.all([
-      this.repo.listSalesTotalsSince(tiendaId, fromIso),
-      this.repo.listExpenses(tiendaId, fromDate, to),
+    const [entradas, gastos] = await Promise.all([
+      this.repo.getMonthlySalesTotals(tiendaId, fromIso),
+      this.repo.getMonthlyExpenseTotals(tiendaId, fromDate),
     ])
-    this.comparison.set(buildMonthlyComparison({ sales, gastos, months }))
+    this.comparison.set(buildMonthlyComparison({ entradas, gastos, months }))
   }
 
   onExpenseSaved(expense: Expense): void {

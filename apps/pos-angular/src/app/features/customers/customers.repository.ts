@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '../../core/supabase/supabase-client.service'
+import { fetchAllPages } from '../../core/supabase/fetch-all-pages'
 import type { Cliente } from '@/modules/customers/domain/entities/cliente.entity'
 
 interface ClienteRow {
@@ -68,14 +69,19 @@ export class CustomersRepository {
   private readonly supabaseClient = inject(SupabaseClientService)
 
   async list(tiendaId: string): Promise<Cliente[]> {
-    const { data, error } = await this.supabaseClient.supabase
-      .from('clientes')
-      .select(COLS)
-      .eq('tienda_id', tiendaId)
-      .order('nombre', { ascending: true })
-      .returns<ClienteRow[]>()
-    if (error) throw new Error(error.message)
-    return (data ?? []).map(rowToCliente)
+    const rows = await fetchAllPages<ClienteRow>(async (from, to) => {
+      const { data, error } = await this.supabaseClient.supabase
+        .from('clientes')
+        .select(COLS)
+        .eq('tienda_id', tiendaId)
+        .order('nombre', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, to)
+        .returns<ClienteRow[]>()
+      if (error) throw new Error(error.message)
+      return data ?? []
+    })
+    return rows.map(rowToCliente)
   }
 
   async create(tiendaId: string, input: ClienteInput): Promise<Cliente> {

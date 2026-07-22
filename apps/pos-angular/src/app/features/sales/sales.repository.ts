@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '../../core/supabase/supabase-client.service'
+import { fetchAllPages } from '../../core/supabase/fetch-all-pages'
 import { AuditLogRepository } from '../audit/audit-log.repository'
 import { rowToSale, type SaleRow } from '@/modules/sales/infrastructure/mappers/sale.mapper'
 import type { Sale } from '@/modules/sales/domain/entities/sale.entity'
@@ -35,16 +36,20 @@ export class SalesRepository {
   }
 
   async listBySession(cashSessionId: string, tiendaId: string): Promise<Sale[]> {
-    const { data, error } = await this.supabaseClient.supabase
-      .from('sales')
-      .select(`${SALE_COLS}, clientes(nombre), sale_items(${ITEM_COLS}), payments(${PAY_COLS})`)
-      .eq('cash_session_id', cashSessionId)
-      .eq('tienda_id', tiendaId)
-      .order('created_at', { ascending: false })
-      .returns<SaleRow[]>()
-
-    if (error) throw new Error(error.message)
-    return (data ?? []).map(rowToSale)
+    const rows = await fetchAllPages<SaleRow>(async (from, to) => {
+      const { data, error } = await this.supabaseClient.supabase
+        .from('sales')
+        .select(`${SALE_COLS}, clientes(nombre), sale_items(${ITEM_COLS}), payments(${PAY_COLS})`)
+        .eq('cash_session_id', cashSessionId)
+        .eq('tienda_id', tiendaId)
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
+        .range(from, to)
+        .returns<SaleRow[]>()
+      if (error) throw new Error(error.message)
+      return data ?? []
+    })
+    return rows.map(rowToSale)
   }
 
   /**
@@ -53,17 +58,21 @@ export class SalesRepository {
    * No recalcula límites: `created_at` es timestamptz (UTC).
    */
   async listByDate(tiendaId: string, start: Date, end: Date): Promise<Sale[]> {
-    const { data, error } = await this.supabaseClient.supabase
-      .from('sales')
-      .select(`${SALE_COLS}, clientes(nombre), sale_items(${ITEM_COLS}), payments(${PAY_COLS})`)
-      .eq('tienda_id', tiendaId)
-      .gte('created_at', start.toISOString())
-      .lt('created_at', end.toISOString())
-      .order('created_at', { ascending: false })
-      .returns<SaleRow[]>()
-
-    if (error) throw new Error(error.message)
-    return (data ?? []).map(rowToSale)
+    const rows = await fetchAllPages<SaleRow>(async (from, to) => {
+      const { data, error } = await this.supabaseClient.supabase
+        .from('sales')
+        .select(`${SALE_COLS}, clientes(nombre), sale_items(${ITEM_COLS}), payments(${PAY_COLS})`)
+        .eq('tienda_id', tiendaId)
+        .gte('created_at', start.toISOString())
+        .lt('created_at', end.toISOString())
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
+        .range(from, to)
+        .returns<SaleRow[]>()
+      if (error) throw new Error(error.message)
+      return data ?? []
+    })
+    return rows.map(rowToSale)
   }
 
   async voidSale(saleId: string, tiendaId: string, reason: string): Promise<void> {
