@@ -4,11 +4,10 @@ import { inventoryLocationSchema } from '@angular-app/features/inventory/domain/
 
 // ── Constantes de validación ──────────────────────────────────────────────────
 
-export const PRODUCT_NAME_MIN = 2
-export const PRODUCT_NAME_MAX = 100
-export const PRODUCT_SKU_MAX  = 50
-export const PRODUCT_INFO_MAX = 800
-export const PRODUCT_PROVEEDOR_MAX = 100
+const PRODUCT_NAME_MIN = 2
+const PRODUCT_NAME_MAX = 100
+const PRODUCT_INFO_MAX = 800
+const PRODUCT_PROVEEDOR_MAX = 100
 
 // ── Schema del formulario ─────────────────────────────────────────────────────
 // Distinto del DTO del backend:

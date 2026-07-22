@@ -3,9 +3,19 @@
 | Campo | Valor |
 |---|---|
 | Fecha | 2026-07-17 |
-| Estado | Aceptado — en implementación incremental (pilotos: `products`, `customers`) |
+| Estado | **Parcialmente superseded por ADR 0015** (2026-07-22) — ver nota abajo |
 | Decisores | Dueño del negocio (directriz) + Arquitecto (Claude) |
 | Relacionado | Actualiza `docs/02-architecture.md` §2-3, `docs/standards/ui-components.md`, `docs/standards/forms.md`; sesión `docs/sessions/2026-07-17-reestructura-clean-atomic.md` |
+
+> **Nota de estado (2026-07-22):** el ADR 0015 reemplazó la **sección A** de este ADR
+> (el híbrido `src/modules/<mod>` puro + `apps/.../features/<mod>` Angular): hoy todo vive
+> co-ubicado en `apps/pos-angular/src/app/features/<feature>/{domain,data,presentation}` y
+> `src/modules/` ya no existe. **Sigue vigente** de este ADR: el design system atómico en
+> `shared/{atoms,molecules,organisms,services}` (secciones C y D), el cableado hexagonal
+> obligatorio (sección B, refinado por el ADR 0015 §6: contratos como `abstract class` y
+> composition roots `<feature>.providers.ts`) y el patrón de formularios factory/mapper/
+> presenter (reubicado a `presentation/forms/` + `presentation/presenters/`). Las rutas
+> `src/modules/...` mencionadas abajo son historia — no las uses como referencia.
 
 ## Contexto
 

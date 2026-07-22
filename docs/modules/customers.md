@@ -36,7 +36,7 @@ Gestión de clientes para historial de compras y futura fidelización.
 
 ## Fidelización (v1.3)
 
-Módulo propio: `src/modules/loyalty` (dominio, casos de uso, ledger de sellos y recompensas).
+Feature propia: `apps/pos-angular/src/app/features/loyalty` (dominio, casos de uso, ledger de sellos y recompensas).
 Especificación funcional completa, modelo de datos, RPC y reglas de negocio en
 **`docs/modules/loyalty.md`**. Decisión arquitectónica en
 **`docs/adr/0013-programa-fidelizacion-move-on-club.md`**. Estado: planeado, no implementado

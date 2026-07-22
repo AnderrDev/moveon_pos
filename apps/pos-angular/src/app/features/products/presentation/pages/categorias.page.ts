@@ -10,7 +10,7 @@ import { TableShellComponent } from '@angular-app/shared/molecules/table/table-s
 import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
 import { ProductRepository } from '@angular-app/features/products/domain/repositories/product.repository'
 import { deactivateCategoria } from '@angular-app/features/products/domain/usecases/deactivate-categoria.use-case'
-import { ProductsCacheStore } from '@angular-app/features/products/presentation/services/products-cache.store'
+import { ProductsCacheStore } from '@angular-app/core/catalog/products-cache.store'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import type { Categoria } from '@angular-app/features/products/domain/entities/product.entity'

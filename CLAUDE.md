@@ -31,11 +31,13 @@ Antes de programar, **lee siempre**:
 Estos principios **no se discuten en cada tarea**. Si la solución que vas a proponer los rompe, busca otra solución.
 
 ### 2.1 Arquitectura
-- **Clean Architecture por módulos con capas data/domain/presentation (ADR 0014).** Cada módulo (`sales`, `inventory`, `billing`, etc.) tiene `domain/` (entities, value-objects, services, repositories-interfaces, use-cases) y `data/` (dtos, mappers) en `src/modules/<modulo>` — TypeScript puro. La parte Angular vive en `apps/pos-angular/src/app/features/<modulo>`: `data/` (repositorios Supabase que `implements` las interfaces de dominio) y `presentation/` (pages, dialogs, components, presenters, services).
-- **Cableado hexagonal obligatorio:** todo repositorio Angular implementa su interfaz de dominio; las páginas/diálogos invocan use-cases (no llaman repos directo para escrituras). Módulos aún no migrados conservan `application/`/`infrastructure/` — ver checklist en `docs/sessions/2026-07-17-reestructura-clean-atomic.md`.
-- **El dominio no depende de Angular, ni de Supabase, ni de proveedores externos.** El dominio es TypeScript puro.
-- **Patrón Adapter para integraciones externas** (facturación electrónica, impresión, pagos). Define interfaces en el dominio, implementaciones en infraestructura Angular.
-- **Inyección de dependencias** vía argumentos de funciones / factories en use-cases puros, y vía Angular `@Injectable` + tokens en presenters/servicios.
+- **Clean Architecture feature-first (ADR 0015).** Cada feature es autocontenida en `apps/pos-angular/src/app/features/<feature>/` con tres capas: `domain/` (entities, value-objects, repositories-contratos, services, usecases, dtos — TypeScript PURO), `data/` (datasources, models/mappers, repositorios Supabase) y `presentation/` (pages, dialogs, components, presenters, forms, services). `src/modules/` ya no existe.
+- **Contratos como `abstract class`:** los repositorios de `domain/repositories/` son clases abstractas (TS puro, sirven como token de DI). La implementación en `data/repositories/` las `extends`; el composition root `<feature>.providers.ts` (registrado en `app.config.ts`) une abstracción e implementación. Presentación inyecta SIEMPRE la abstracción — nunca la clase Supabase.
+- **Cableado hexagonal obligatorio:** toda ESCRITURA pasa por un use-case de `domain/usecases/` (Zod + `Result`); las lecturas simples llaman al repositorio-abstracción directo (ADR 0015 §6.3).
+- **El dominio no depende de Angular, ni de Supabase, ni de RxJS, ni de proveedores externos.** El dominio es TypeScript puro. Las fronteras las hace cumplir ESLint (`eslint.config.js`, ADR 0015 §6.6) — violarlas rompe `pnpm lint`.
+- **Una feature no importa de otra feature** (excepción única documentada: `pos → sales/domain`). Lo compartido se promueve a `src/shared/` o al design system.
+- **Patrón Adapter para integraciones externas** (facturación electrónica, impresión, pagos). Contrato en `domain/`, implementación en `data/datasources|repositories`.
+- **Inyección de dependencias** vía argumentos de funciones en use-cases puros, y vía Angular `inject()` + abstract class como token en presentación.
 
 ### 2.2 Datos
 - **Toda tabla operativa lleva `tienda_id`** desde el día uno (multi-sede preparado).
@@ -70,8 +72,8 @@ Estos principios **no se discuten en cada tarea**. Si la solución que vas a pro
 
 ### 3.2 Al implementar
 - **Pequeños incrementos.** Una tarea = un PR mental. No mezcles refactors grandes con features nuevas.
-- **Sigue la estructura existente.** `domain/` + `data/` + `forms/` en `src/modules/<modulo>`; `data/` + `presentation/` en `apps/pos-angular/src/app/features/<modulo>` (ADR 0014). Componentes UI reutilizables → design system atómico en `apps/pos-angular/src/app/shared/{atoms,molecules,organisms}`.
-- **Usa los tipos compartidos en `/src/shared/types/`**. No redefinas entidades en cada módulo.
+- **Sigue la estructura existente.** Todo lo de una feature vive junto en `apps/pos-angular/src/app/features/<feature>/{domain,data,presentation}` + `<feature>.providers.ts` (ADR 0015). Componentes UI reutilizables → design system atómico en `apps/pos-angular/src/app/shared/{atoms,molecules,organisms}`.
+- **Usa los tipos compartidos en `/src/shared/types/`**. No redefinas entidades en cada feature.
 - **Componentes reutilizables Angular** van en `apps/pos-angular/src/app/shared/` cuando se justifique.
 - **Migrations versionadas** en `/supabase/migrations/`. Nombres con timestamp.
 
@@ -114,7 +116,7 @@ pnpm db:types         # regenerar tipos TS desde Supabase
 - **Nombres de archivos:** `kebab-case.ts` (ej: `create-sale.use-case.ts`).
 - **Componentes Angular:** `kebab-case.component.ts` con clase `PascalCase`. Selector con prefijo `mo-` (ej: `mo-pos-page`).
 - **Nombres de tablas y columnas en DB:** `snake_case` (ej: `sale_items`, `created_at`).
-- **Imports absolutos** desde `@/` (apunta a `src/`) y `@angular-app/` (apunta a `apps/pos-angular/src/app`).
+- **Imports absolutos** desde `@/` (apunta a `src/` — solo `@/shared` y `@/infrastructure`) y `@angular-app/` (apunta a `apps/pos-angular/src/app`; el dominio de una feature se importa como `@angular-app/features/<feature>/domain/...`).
 - **Idioma:** código en inglés, comentarios y mensajes de UI en español. Documentación interna en español.
 
 ---
@@ -162,12 +164,12 @@ Los estándares están en `/docs/standards/`. **Léelos antes de crear cualquier
 **Formularios:**
 - Stack obligatorio: Angular Reactive Forms + schema Zod.
 - El schema Zod del DTO es la única fuente de verdad de validación.
-- Patrón 3 archivos: `factory.ts` + `mapper.ts` (en `src/modules/.../forms/`) + `presenter.ts` (en `apps/pos-angular/src/app/features/<modulo>/`).
+- Patrón 3 archivos: `factory.ts` + `mapper.ts` (en `features/<feature>/presentation/forms/`, TS puro) + `presenter.ts` (en `features/<feature>/presentation/presenters/`).
 
 **Arquitectura:**
-- Capas: `domain/` (con use-cases) y `data/` (dtos, mappers) en `src/modules/`; `data/` (repos impl) y `presentation/` en features (ADR 0014). `domain/use-cases` puede importar `data/dtos` (schemas Zod puros).
-- Use-case = función con deps inyectadas como argumento (TS puro, sin Angular), valida con Zod, devuelve `Result`.
-- Repository: interfaz en `src/modules/.../domain/repositories/`, implementación Angular en `apps/pos-angular/src/app/features/<modulo>/data/` con `implements`. Nunca expone tipos de Supabase al dominio.
+- Capas por feature (ADR 0015): `domain/` (entities, repositories-contratos, services, usecases, dtos), `data/` (datasources, models, repos impl) y `presentation/` — todo en `apps/pos-angular/src/app/features/<feature>/`.
+- Use-case = función con deps inyectadas como argumento (TS puro, sin Angular), valida con Zod, devuelve `Result`. Toda escritura pasa por use-case; las lecturas simples van directo a la abstracción.
+- Repository: contrato `abstract class` en `features/<feature>/domain/repositories/`, implementación Angular en `features/<feature>/data/repositories/` con `extends`; el binding vive en `<feature>.providers.ts` (registrado en `app.config.ts`). Nunca expone tipos de Supabase al dominio.
 - Errores de dominio: `Result<T, E>`. Errores técnicos: `throw`.
 
 ---

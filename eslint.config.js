@@ -15,37 +15,13 @@ const FEATURES = [
 
 const FEATURES_ROOT = 'apps/pos-angular/src/app/features'
 
-/**
- * Excepciones documentadas a las reglas de frontera de presentation/ (cross-
- * feature y/o "no inyectar la propia data/ concreta"). No son errores — son
- * deuda arquitectónica ya existente (o casos límite razonables) que PLAN-68
- * debe revisar. Cada una lleva la justificación inline.
- */
-const PRESENTATION_BOUNDARY_EXCEPTIONS = [
-  // cash-register reusa el export de "ventas del turno" que vive en pos/
-  // (ambas pantallas describen el mismo turno; no hay owner claro todavía).
-  `${FEATURES_ROOT}/cash-register/presentation/pages/caja.page.ts`,
-  // configuracion.page.ts usa el datasource de impresión QZ de pos/ para el
-  // botón "Imprimir prueba". La impresión es una capacidad transversal
-  // (POS, caja, configuración) mal ubicada dentro de la feature pos/ —
-  // candidata a moverse a core/ o a una feature "printing" propia.
-  `${FEATURES_ROOT}/settings/presentation/pages/configuracion.page.ts`,
-  // finanzas.page.ts reusa ReportsService.getDailyReport() para el resumen
-  // financiero en vez de que ambas features consuman un use-case de
-  // dominio compartido.
-  `${FEATURES_ROOT}/expenses/presentation/pages/finanzas.page.ts`,
-  // pos-data.service.ts reusa el ProductsCacheStore (signals) de products/
-  // para no repetir el fetch del catálogo. Cache transversal mal ubicada
-  // dentro de products/ — candidata a moverse a core/ o shared/.
-  `${FEATURES_ROOT}/pos/presentation/services/pos-data.service.ts`,
-  // product-image-field.component.ts inyecta el datasource de Storage
-  // (ProductImageStorageService) directo en vez de pasar por un método del
-  // ProductRepository. Es un datasource (no el repositorio de escritura que
-  // PLAN-64 cableó), y solo lo consume este componente — candidato a
-  // exponerse como método del repositorio o a moverse a core/ si más
-  // features necesitan subir imágenes.
-  `${FEATURES_ROOT}/products/presentation/components/product-image-field.component.ts`,
-]
+// Las 5 excepciones de frontera de presentation/ documentadas en PLAN-63..67
+// (PRESENTATION_BOUNDARY_EXCEPTIONS) se retiraron en PLAN-68: la impresión QZ
+// se movió a core/printing/, el workbook de "ventas del turno" a
+// shared/services/export/, el ProductsCacheStore a core/catalog/,
+// product-image-field inyecta ahora la abstracción ProductImageStorage
+// (products/domain) y finanzas.page.ts ya consumía ReportRepository
+// (reports/domain) desde PLAN-65. No quedan excepciones activas.
 
 /**
  * Features ya cableadas (PLAN-64..67): NADIE (ni su propia presentation/ ni
@@ -66,6 +42,12 @@ const PRESENTATION_BOUNDARY_EXCEPTIONS = [
  * `sales`/`inventory`/`cash-register`: cableadas en PLAN-65 (10 use-cases de
  * escritura nuevos, 16 archivos de presentation flip a la abstracción,
  * incluyendo consumidores cross-feature como reports.service.ts).
+ *
+ * `pos`: cerrada en PLAN-68 — su `data/` (datasources de impresión QZ) se
+ * movió a `core/printing/` (capacidad transversal a POS, caja y
+ * configuración), así que la feature ya no tiene capa data propia. Se agrega
+ * a la lista para que la regla la proteja si en el futuro gana un `data/`.
+ * Con esto las 12 features quedan cableadas.
  */
 const CABLED_FEATURES = [
   'audit',
@@ -75,6 +57,7 @@ const CABLED_FEATURES = [
   'expenses',
   'inventory',
   'loyalty',
+  'pos',
   'products',
   'reports',
   'sales',
@@ -198,13 +181,6 @@ module.exports = tseslint.config(
     rules: {},
   },
   ...boundaryConfigs,
-  // Excepciones documentadas a las reglas de frontera (ver PRESENTATION_BOUNDARY_EXCEPTIONS).
-  {
-    files: PRESENTATION_BOUNDARY_EXCEPTIONS,
-    rules: {
-      'no-restricted-imports': 'off',
-    },
-  },
   {
     ignores: ['dist/**', '.angular/**', 'coverage/**', 'node_modules/**', 'supabase/**'],
   },

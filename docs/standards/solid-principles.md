@@ -1,6 +1,7 @@
 # Estándar: Principios SOLID aplicados al proyecto
 
-> Cómo se aplican los principios SOLID en el contexto de Clean Architecture + Next.js + Supabase.
+> Cómo se aplican los principios SOLID en el contexto de Clean Architecture feature-first (ADR 0015) + Angular + Supabase.
+> Tabla resumen con ejemplos reales del proyecto: ADR 0015 §6.4.
 
 ---
 
@@ -29,7 +30,7 @@ class Sale {
 }
 ```
 
-### En Application
+### En Use-cases (`domain/usecases/`)
 - Un use-case = una operación de negocio.
 - `create-sale.use-case.ts` solo crea ventas. Si necesita lógica extra, la delega.
 
@@ -59,8 +60,9 @@ async function createSaleUseCase(input, { saleRepo, inventoryRepo, billingProvid
 }
 ```
 
-### En Infrastructure
-- Un repository = una entidad.
+### En Data
+- Un repository = un contrato de dominio implementado.
+- Un datasource = un sistema externo (PostgREST, RPC, Storage, QZ).
 - Un adapter = una integración externa.
 
 ---
@@ -72,22 +74,22 @@ async function createSaleUseCase(input, { saleRepo, inventoryRepo, billingProvid
 ### En Adapters
 
 ```typescript
-// Interfaz en dominio (cerrada para modificación)
-// src/modules/billing/domain/billing-provider.interface.ts
-export interface BillingProvider {
-  issueInvoice(input: IssueInvoiceInput): Promise<Result<InvoiceResult, BillingError>>;
-  voidDocument(id: string): Promise<Result<void, BillingError>>;
+// Contrato en dominio (cerrado para modificación)
+// features/billing/domain/repositories/billing-provider.ts (futuro)
+export abstract class BillingProvider {
+  abstract issueInvoice(input: IssueInvoiceInput): Promise<Result<InvoiceResult, BillingError>>
+  abstract voidDocument(id: string): Promise<Result<void, BillingError>>
 }
 
 // Extensión: nuevo proveedor sin tocar código existente
-// src/modules/billing/infrastructure/adapters/siigo.adapter.ts
-export class SiigoAdapter implements BillingProvider { ... }
+// features/billing/data/repositories/siigo.adapter.ts
+export class SiigoAdapter extends BillingProvider { ... }
 
-// src/modules/billing/infrastructure/adapters/factus.adapter.ts
-export class FactusAdapter implements BillingProvider { ... }
+// features/billing/data/repositories/factus.adapter.ts
+export class FactusAdapter extends BillingProvider { ... }
 
-// src/modules/billing/infrastructure/adapters/mock.adapter.ts
-export class MockBillingAdapter implements BillingProvider { ... }
+// features/billing/data/repositories/mock.adapter.ts
+export class MockBillingAdapter extends BillingProvider { ... }
 ```
 
 ### En Use-Cases
@@ -101,15 +103,15 @@ Los use-cases reciben sus dependencias como argumentos. Para agregar comportamie
 **Las implementaciones deben ser sustituibles por su interfaz sin alterar el comportamiento.**
 
 ```typescript
-// Interfaz
-interface ProductRepository {
-  findById(id: string): Promise<Result<Product, NotFoundError>>;
-  save(product: Product): Promise<Result<void, DatabaseError>>;
-  findAll(filters: ProductFilters): Promise<Result<Product[], DatabaseError>>;
+// Contrato (abstract class, ADR 0015 §6.1)
+abstract class ProductRepository {
+  abstract findById(id: string): Promise<Result<Product, NotFoundError>>;
+  abstract save(product: Product): Promise<Result<void, DatabaseError>>;
+  abstract findAll(filters: ProductFilters): Promise<Result<Product[], DatabaseError>>;
 }
 
 // Implementación real
-class SupabaseProductRepository implements ProductRepository {
+class SupabaseProductRepository extends ProductRepository {
   async findById(id: string) {
     const { data, error } = await supabase.from('products').select().eq('id', id).single();
     if (error) return { ok: false, error: new DatabaseError(error.message) };
@@ -120,7 +122,7 @@ class SupabaseProductRepository implements ProductRepository {
 }
 
 // Implementación para tests — sustituible sin cambiar los use-cases
-class InMemoryProductRepository implements ProductRepository {
+class InMemoryProductRepository extends ProductRepository {
   private products = new Map<string, Product>();
   async findById(id: string) {
     const product = this.products.get(id);
@@ -178,43 +180,43 @@ interface ProductInventoryReader {
 **Los módulos de alto nivel no dependen de módulos de bajo nivel. Ambos dependen de abstracciones.**
 
 ```
-Domain (alto nivel)
-  ↑ define interfaces
-Application (nivel medio)
-  ↑ implementa orquestación usando interfaces del dominio
-Infrastructure (bajo nivel)
-  ↑ implementa las interfaces del dominio
+domain (alto nivel)
+  ↑ define contratos (abstract class) y use-cases que los reciben como deps
+presentation (Angular)
+  ↑ inyecta la ABSTRACCIÓN con inject(Contrato) y se la pasa al use-case
+data (bajo nivel)
+  ↑ implementa los contratos del dominio (extends)
 ```
 
 ### Inyección de dependencias en use-cases
 
 ```typescript
-// src/modules/sales/application/use-cases/create-sale.use-case.ts
+// features/sales/domain/usecases/create-sale.use-case.ts
 
-// El use-case depende de interfaces (dominio), no de Supabase (infraestructura)
+// El use-case depende de contratos (dominio), no de Supabase (data)
 export async function createSaleUseCase(
   input: CreateSaleInput,
   deps: {
-    saleRepository: SaleRepository;        // interfaz del dominio
-    inventoryRepository: InventoryRepository; // interfaz del dominio
-    billingProvider: BillingProvider;      // interfaz del dominio
-  }
+    saleRepository: SaleRepository            // abstract class del dominio
+    inventoryRepository: InventoryRepository  // abstract class del dominio
+  },
 ): Promise<Result<Sale, SaleError>> {
   // ...
 }
 
-// src/app/(app)/pos/actions.ts — wiring en el Server Action
-export async function createSaleAction(rawInput: unknown) {
-  const parsed = createSaleSchema.safeParse(rawInput);
-  if (!parsed.success) return { ok: false, error: ... };
+// features/sales/sales.providers.ts — composition root de la feature
+// (registrado en app.config.ts; ÚNICO archivo que conoce dominio E implementación)
+export const salesProviders: Provider[] = [
+  { provide: SaleRepository, useClass: SalesRepository },
+]
 
-  // Aquí se inyectan las implementaciones concretas
-  return createSaleUseCase(parsed.data, {
-    saleRepository: new SupabaseSaleRepository(supabaseServerClient),
-    inventoryRepository: new SupabaseInventoryRepository(supabaseServerClient),
-    billingProvider: new FactusAdapter(process.env.FACTUS_API_KEY!),
-  });
-}
+// features/pos/presentation/services/pos-sale.service.ts — el consumidor
+private readonly saleRepository = inject(SaleRepository)   // la abstracción
+// ...
+const result = await createSaleUseCase(input, {
+  saleRepository: this.saleRepository,
+  inventoryRepository: this.inventoryRepository,
+})
 ```
 
 ---

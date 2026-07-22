@@ -31,7 +31,7 @@
 - [ ] Angular 21 standalone + TS + Tailwind CSS inicializado.
 - [ ] ESLint + Prettier + Vitest configurados.
 - [ ] CI/CD: typecheck + lint + test en cada PR; deploy automático del frontend cuando se active hosting.
-- [ ] Estructura de carpetas creada (`src/modules`, `src/shared`, etc.).
+- [ ] Estructura de carpetas creada (`apps/pos-angular/src/app/features`, `src/shared`, etc.).
 - [ ] `tipos generados` desde Supabase con `pnpm db:types`.
 - [ ] Migration inicial con tablas mínimas: `tiendas`, `user_tiendas`.
 - [ ] Seed de desarrollo: 1 tienda, 1 admin, 1 cajero.

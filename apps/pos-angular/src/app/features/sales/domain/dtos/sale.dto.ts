@@ -50,6 +50,4 @@ export const correctPaymentSchema = z.object({
     .max(200, 'El motivo no puede superar 200 caracteres'),
 })
 
-export type CreateSaleDto      = z.infer<typeof createSaleSchema>
-export type VoidSaleDto        = z.infer<typeof voidSaleSchema>
 export type CorrectPaymentDto  = z.infer<typeof correctPaymentSchema>

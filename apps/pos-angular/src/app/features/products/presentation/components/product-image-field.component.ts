@@ -8,13 +8,13 @@ import {
 } from '@angular/core'
 import { NG_VALUE_ACCESSOR, type ControlValueAccessor } from '@angular/forms'
 import { getErrorMessage } from '@/shared/lib/error-message'
-import { ProductImageStorageService } from '@angular-app/features/products/data/datasources/product-image-storage.service'
+import { ProductImageStorage } from '@angular-app/features/products/domain/repositories/product-image-storage.repository'
 
 /**
  * Campo de imagen de producto para el formulario del admin.
  *
  * Es un ControlValueAccessor: el valor del control es la URL pública de la imagen
- * (o '' si no hay). Sube archivos a Supabase Storage vía {@link ProductImageStorageService}
+ * (o '' si no hay). Sube archivos vía la abstracción {@link ProductImageStorage}
  * y también admite pegar una URL externa manualmente (compatibilidad con las
  * imágenes cargadas desde CDNs de terceros).
  */
@@ -109,7 +109,7 @@ import { ProductImageStorageService } from '@angular-app/features/products/data/
   `,
 })
 export class ProductImageFieldComponent implements ControlValueAccessor {
-  private readonly storage = inject(ProductImageStorageService)
+  private readonly storage = inject(ProductImageStorage)
 
   /** Tienda dueña del producto; define la carpeta destino en Storage. */
   readonly tiendaId = input.required<string>()

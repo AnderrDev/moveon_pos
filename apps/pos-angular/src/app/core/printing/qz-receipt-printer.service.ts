@@ -5,9 +5,9 @@ import {
   buildEscPosTestReceipt,
   type EscPosReceiptInput,
   type EscPosReceiptStore,
-} from '@angular-app/features/pos/data/datasources/esc-pos-receipt.builder'
-import { QzSigningService } from '@angular-app/features/pos/data/datasources/qz-signing.service'
-import { getQzPrintErrorMessage } from '@angular-app/features/pos/data/datasources/qz-print-error'
+} from '@angular-app/core/printing/esc-pos-receipt.builder'
+import { QzSigningService } from '@angular-app/core/printing/qz-signing.service'
+import { getQzPrintErrorMessage } from '@angular-app/core/printing/qz-print-error'
 
 const CASH_DRAWER_PULSE = '\x1b\x70\x00\x19\xfa'
 

@@ -1,6 +1,7 @@
 # 02 — Arquitectura
 
 > Reglas no negociables. Cualquier desviación requiere un ADR.
+> Arquitectura vigente: **Clean Architecture feature-first (ADR 0015)** + design system atómico (ADR 0014).
 
 ---
 
@@ -12,7 +13,7 @@
 | Lenguaje         | TypeScript             | Strict mode                                       |
 | UI               | Angular                | Standalone components + signals                   |
 | Estilos          | Tailwind CSS           | 4+                                                |
-| Componentes      | Angular propios        | Componentes standalone centralizados              |
+| Componentes      | Angular propios        | Design system atómico en `shared/` (ADR 0014)     |
 | Base de datos    | PostgreSQL             | Vía Supabase                                      |
 | Auth             | Supabase Auth          | Email + password                                  |
 | Storage          | Supabase Storage       | Logos, PDFs, comprobantes                         |
@@ -22,9 +23,9 @@
 | Estado cliente   | Angular signals        | Stores `@Injectable` con `signal/computed`        |
 | Data fetching    | Supabase JS            | RLS + RPC/Edge Functions para escrituras críticas |
 | Forms            | Angular Reactive Forms | + Zod factory/mapper/presenter                    |
-| Tests            | Vitest                 | Unitarios e integración (Angular tests pendientes)|
+| Tests            | Vitest                 | Unitarios (dominio + DTOs + use-cases + forms)    |
 | Tests E2E        | Playwright             | Solo flujos críticos                              |
-| Linter           | ESLint + @angular-eslint | Pendiente de cablear (ver TODO en sesión 05-02) |
+| Linter           | ESLint + @angular-eslint | Cableado; hace cumplir las fronteras de arquitectura (§2.5) |
 | Formatter        | Prettier               | Config estándar                                   |
 | Package manager  | pnpm                   | Obligatorio (no npm/yarn)                         |
 | Hosting frontend | Netlify                | Dos sitios: `pos-angular` (ADR 0009) y `landing-web` (ADR 0012), mismo repo |
@@ -36,68 +37,152 @@
 
 ## 2. Principios arquitectónicos
 
-### 2.1 Clean Architecture por módulos: data / domain / presentation (ADR 0014)
+### 2.1 Clean Architecture feature-first (ADR 0015)
 
-Cada módulo de negocio se divide entre el paquete puro (`src/modules/<mod>`) y su feature Angular (`apps/pos-angular/src/app/features/<mod>`):
+**Cada feature es autocontenida:** sus tres capas viven juntas dentro de la carpeta de la feature, en `apps/pos-angular/src/app/features/<feature>/`. No existe ningún dominio fuera de las features (la carpeta `src/modules/` del esquema anterior fue eliminada; ver nota histórica al final de §2.1).
 
 ```
-src/modules/<modulo>/                  # TypeScript puro (sin Angular/RxJS/Supabase)
-├── domain/
-│   ├── entities/         # Sale, Product, CashSession, etc.
-│   ├── value-objects/    # PhoneCO, Money, etc.
-│   ├── repositories/     # Interfaces (no implementaciones)
-│   ├── services/         # Reglas de negocio puras
-│   └── use-cases/        # createSale, registerExpense, etc. (deps inyectadas + Zod + Result)
-├── data/
-│   ├── dtos/             # Schemas Zod de borde (input/output)
-│   └── mappers/          # DB row ↔ Domain entity (TS puro)
-└── forms/                # factory + mapper Zod de formularios (ver forms.md)
-
-apps/pos-angular/src/app/features/<modulo>/
-├── data/                 # Repositorios @Injectable Supabase que implements las interfaces de dominio
-└── presentation/
-    ├── pages/            # *.page.ts (rutas lazy)
-    ├── dialogs/          # *.dialog.ts
-    ├── components/       # componentes de vista del feature
-    ├── presenters/       # *.presenter.ts (forms)
-    └── services/         # stores, orquestación, export builders
+apps/pos-angular/src/app/features/<feature>/
+├── <feature>.providers.ts      # Composition root (§2.4): abstracción → implementación
+├── domain/                     # QUÉ hace el negocio — TypeScript PURO
+│   ├── entities/               #   Product, Sale, Cliente, CashSession…
+│   ├── value-objects/          #   PhoneCO, Money…
+│   ├── repositories/           #   CONTRATOS como abstract class (§2.3)
+│   ├── services/               #   reglas puras: sale-calculator, stamps, nomina…
+│   ├── usecases/               #   create-sale, transfer-stock, register-expense…
+│   └── dtos/                   #   schemas Zod de borde (contratos de entrada/salida)
+├── data/                       # CÓMO se obtienen/persisten los datos
+│   ├── datasources/            #   acceso crudo a UN sistema externo
+│   │                           #   (ej: Supabase Storage para imágenes de producto)
+│   ├── models/                 #   row types de la DB + mappers fila ↔ entidad
+│   └── repositories/           #   implementación @Injectable que extiende el contrato
+└── presentation/               # CÓMO se muestra — Angular
+    ├── pages/                  #   *.page.ts (rutas lazy)
+    ├── dialogs/                #   *.dialog.ts
+    ├── components/             #   *.component.ts propios de la feature
+    ├── presenters/             #   *.presenter.ts (forms) + stores (signals)
+    ├── forms/                  #   factory + mapper Zod (patrón 3 archivos, TS puro)
+    └── services/               #   orquestación UI: exports Excel, error-mappers, helpers
 ```
 
-**Reglas duras:**
-- Nada en `src/modules/` importa Angular, RxJS, Supabase ni `@angular-app/`.
-- `domain/entities|value-objects|services` solo importan `@/shared`.
-- `domain/use-cases` y `domain/repositories` **pueden** importar `data/dtos` (schemas Zod puros = contrato del caso de uso; excepción deliberada del ADR 0014).
-- `features/<mod>/data/` es el único lugar que conoce tipos row de Supabase; **implementa** las interfaces de `domain/repositories/`.
-- `presentation/` no llama repositorios directamente para escrituras: invoca use-cases pasándoles el repo inyectado.
+**Las 12 features:** `audit` · `auth` · `cash-register` · `customers` · `expenses` · `inventory` · `loyalty` · `pos` · `products` · `reports` · `sales` · `settings`.
 
-> Migración en curso: los módulos aún no migrados conservan `application/` e `infrastructure/`; el checklist vive en `docs/sessions/2026-07-17-reestructura-clean-atomic.md`.
+No toda feature tiene las tres capas completas (ej: `auth` y `pos` solo tienen `presentation/` — la sesión vive en `core/auth/`, la impresión QZ en `core/printing/`, y `pos` consume el dominio de `sales`). Lo que sí es invariable: cada archivo vive en la zona que le corresponde.
+
+**Nota sobre `pos` vs `sales`:** `sales` es el bounded context (dominio de la venta: entidades, calculadora, repositorio); `pos` es la pantalla de venta (presentación pesada; la impresión que orquesta vive en `core/printing/`). `pos` consume el dominio de `features/sales` — es la única dependencia entre-features aceptada explícitamente.
+
+**Regla de dependencias (no negociable):**
+
+```
+presentation ──→ domain ←── data
+```
+
+- **`domain/` no importa NADA de Angular, Supabase, RxJS, `core/` ni de `data/` o `presentation/`.** Es TypeScript puro y testeable con vitest sin mocks de framework.
+- **`data/` implementa los contratos de `domain/repositories/`** y es el único lugar que conoce Supabase. Sus `models/` (rows + mappers) tampoco importan Angular.
+- **`presentation/` depende solo de abstracciones de dominio** — nunca importa `data/` (eso lo hace el composition root). `presentation/forms/` es TS puro (schemas Zod) aunque viva en presentación: es el contrato del formulario.
+- **Una feature no importa de otra feature**, salvo la excepción `pos → sales/domain`. Lo compartido de verdad se promueve a `src/shared/` o al design system.
+
+**Las 4 zonas por feature** (así las vigila el linter, §2.5):
+
+| Zona | Qué contiene | Puede importar |
+|---|---|---|
+| `domain/` | Entidades, VOs, contratos, servicios puros, use-cases, DTOs Zod | `src/shared/` y su propio `domain/` |
+| `data/` | Datasources, models/mappers, repos implementación | `domain/` propio, Supabase, Angular DI, `core/` |
+| `presentation/` | Pages, dialogs, components, presenters, forms, servicios UI | `domain/` propio (abstracciones), `shared/` (design system), `core/` |
+| Raíz (`<feature>.providers.ts`) | Composition root | `domain/` Y `data/` propios — es el ÚNICO archivo que conoce ambos |
+
+> **Nota histórica:** entre 2026-05 y 2026-07 el dominio vivió en `src/modules/<modulo>` separado de la feature Angular (híbrido del ADR 0014, y antes `application/`/`infrastructure/`). El ADR 0015 co-ubicó todo dentro de cada feature; `src/modules/` ya no existe. Referencias a esas rutas en ADRs viejos, auditorías y specs de sesión son historial y no se corrigen.
 
 ### 2.2 Patrón Adapter para integraciones externas
 
-Cualquier integración con un sistema externo (proveedor de facturación, impresora, datáfono futuro) se implementa como adapter:
+Cualquier integración con un sistema externo (proveedor de facturación, impresora, datáfono futuro) se implementa como adapter: contrato en `domain/`, implementación en `data/datasources|repositories`.
 
 ```typescript
-// domain/billing/billing-provider.interface.ts
-export interface BillingProvider {
-  issueInvoice(input: IssueInvoiceInput): Promise<Result<InvoiceResult, BillingError>>
-  voidDocument(documentId: string): Promise<Result<void, BillingError>>
-  getDocumentStatus(documentId: string): Promise<Result<BillingStatus, BillingError>>
+// features/billing/domain/repositories/billing-provider.ts (futuro)
+export abstract class BillingProvider {
+  abstract issueInvoice(input: IssueInvoiceInput): Promise<Result<InvoiceResult, BillingError>>
+  abstract voidDocument(documentId: string): Promise<Result<void, BillingError>>
+  abstract getDocumentStatus(documentId: string): Promise<Result<BillingStatus, BillingError>>
 }
 
-// infrastructure/billing/factus.adapter.ts
-export class FactusAdapter implements BillingProvider {
-  /* ... */
-}
+// features/billing/data/repositories/factus.adapter.ts
+export class FactusAdapter extends BillingProvider { /* ... */ }
 
-// infrastructure/billing/mock.adapter.ts (para tests y desarrollo)
-export class MockBillingAdapter implements BillingProvider {
-  /* ... */
-}
+// features/billing/data/repositories/mock.adapter.ts (tests y desarrollo)
+export class MockBillingAdapter extends BillingProvider { /* ... */ }
 ```
 
-### 2.3 Errores tipados con Result
+Ejemplo real hoy: la impresión ESC/POS vía QZ Tray (ADR 0010) vive en `core/printing/` — es una capacidad transversal (POS, caja y configuración la usan), por eso no pertenece a una feature.
 
-No usar `throw` para errores de negocio. Usar tipo `Result<T, E>`:
+### 2.3 Contratos de dominio como `abstract class` (tokens de DI)
+
+Las `interface` de TypeScript se borran en runtime → no sirven como token de inyección. Una **clase abstracta es TS puro** (cero imports de Angular) y sí existe en runtime, así que funciona directamente como token del inyector (ADR 0015 §6.1):
+
+```typescript
+// features/products/domain/repositories/product.repository.ts — TS PURO
+export abstract class ProductRepository {
+  abstract listProducts(params: SearchProductsParams): Promise<Product[]>
+  abstract createProduct(dto: CreateProductDto, initialStock: InitialStockInput): Promise<Product>
+  // ...
+}
+
+// features/products/data/repositories/products.repository.ts — Angular + Supabase
+@Injectable()
+export class ProductsRepository extends ProductRepository { /* ... */ }
+```
+
+La presentación inyecta la ABSTRACCIÓN — `inject(ProductRepository)` — nunca la clase Supabase. Ninguna page/dialog/presenter sabe que Supabase existe (Dependency Inversion, garantizado por el linter §2.5).
+
+### 2.4 Use-cases y composition roots
+
+**Use-case = función pura con deps como argumento** (sin clases `@Injectable` en dominio, sin factory-providers por use-case):
+
+```typescript
+// features/products/domain/usecases/create-product.use-case.ts — TS puro
+export async function createProduct(
+  deps: { repo: ProductRepository },
+  input: CreateProductInput,
+): Promise<Result<Product, CreateProductError>> {
+  const parsed = createProductSchema.safeParse(input)   // Zod en el borde
+  if (!parsed.success) return err({ code: 'validation', ... })
+  // ...
+  return ok(product)
+}
+
+// presentation/pages/productos.page.ts
+private readonly repo = inject(ProductRepository)       // la abstracción
+// ...
+const result = await createProduct({ repo: this.repo }, dto)
+```
+
+Regla (ADR 0015 §6.3): **toda ESCRITURA pasa por un use-case** (valida con Zod, devuelve `Result<T, E>`); las **lecturas simples llaman al repositorio-abstracción directo** desde presentación — no se envuelven en use-cases triviales.
+
+**Composition root por feature: `<feature>.providers.ts`** — el ÚNICO archivo que conoce dominio E implementación a la vez:
+
+```typescript
+// features/products/products.providers.ts
+export const productsProviders: Provider[] = [
+  { provide: ProductRepository, useClass: ProductsRepository },
+]
+```
+
+Todos los `<feature>.providers.ts` se registran en **`app.config.ts` (root)**, no por ruta lazy: casi todos los repositorios se consumen desde múltiples rutas a la vez (ej. `InventoryRepository` desde `/pos`, `/inventario` y `/reportes`), y `withPreloading(PreloadAllModules)` ya precarga todas las rutas, así que escopar por ruta solo ocultaría providers a rutas hermanas sin ganar code-splitting (decisión PLAN-62, ADR 0015 §6.2).
+
+### 2.5 Fronteras aplicadas por ESLint (no por disciplina)
+
+`eslint.config.js` genera bloques `no-restricted-imports` por feature y por zona (ADR 0015 §6.6). Violar una frontera rompe `pnpm lint`:
+
+1. `features/**/domain/**` no importa `@angular/*`, `@supabase/*`, `rxjs`, `@angular-app/core/*`, ni `../data` / `../presentation`.
+2. `features/**/data/**` no importa `presentation/`.
+3. Cross-feature: de otra feature solo se puede importar su `domain/` o sus `presentation/dialogs|components`; quedan bloqueados `presentation/pages|presenters|services`, `data/datasources|models` y — en features cableadas — `data/repositories`. La única dependencia entre-features aceptada como diseño es `pos → sales/domain`; si necesitas más, esa lógica probablemente debe vivir en `domain/` compartible o en `src/shared/`.
+4. En features **cableadas** (lista `CABLED_FEATURES` en `eslint.config.js` — hoy las 12, todas), nadie puede inyectar la implementación concreta de `data/` — solo la abstracción de `domain/repositories/`.
+5. Nada fuera de `shared/{atoms,molecules,organisms}` define componentes UI genéricos.
+
+No quedan excepciones activas a estas fronteras (las 5 excepciones temporales de PLAN-63..67 se resolvieron en PLAN-68). Si alguna vez se necesita una, se declara inline en `eslint.config.js` con justificación — deuda anotada, nunca permiso tácito.
+
+### 2.6 Errores tipados con Result
+
+No usar `throw` para errores de negocio. Usar tipo `Result<T, E>` (`src/shared/result.ts`):
 
 ```typescript
 type Result<T, E> = { ok: true; value: T } | { ok: false; error: E }
@@ -105,7 +190,7 @@ type Result<T, E> = { ok: true; value: T } | { ok: false; error: E }
 
 Solo `throw` para errores **técnicos** (DB caída, network failure). Errores de **dominio** (stock insuficiente, caja cerrada, descuento no autorizado) son `Result.error`.
 
-### 2.4 Idempotencia
+### 2.7 Idempotencia
 
 Operaciones críticas deben ser idempotentes:
 
@@ -113,7 +198,7 @@ Operaciones críticas deben ser idempotentes:
 - **Emitir factura:** un `sale_id` solo se factura una vez. Reintentos no generan documentos duplicados.
 - **Cerrar caja:** un `cash_session_id` solo se cierra una vez.
 
-### 2.5 Multi-sede en datos
+### 2.8 Multi-sede en datos
 
 Toda tabla operativa incluye `tienda_id` con `NOT NULL` y FK a `tiendas`. RLS filtra automáticamente por la tienda del usuario actual.
 
@@ -130,6 +215,7 @@ moveonapp-pos/
 ├── tsconfig.json
 ├── tsconfig.angular.json
 ├── angular.json
+├── eslint.config.js               # incluye las fronteras de arquitectura (§2.5)
 ├── .postcssrc.json
 ├── .env.example
 ├── docs/                          # Documentación viva
@@ -141,53 +227,48 @@ moveonapp-pos/
 │   ├── 05-glossary.md
 │   ├── adr/
 │   ├── modules/
+│   ├── standards/
+│   ├── sessions/
 │   └── user-stories/
-├── src/                           # Dominio puro reutilizable (TS sin frameworks)
-│   ├── modules/                   # Lógica de negocio por módulo
-│   │   ├── auth/
-│   │   │   ├── domain/
-│   │   │   └── forms/             # factory + mapper Zod
-│   │   ├── products/              # estructura nueva (ADR 0014)
-│   │   │   ├── domain/{entities,repositories,services,use-cases}/
-│   │   │   ├── data/{dtos,mappers}/
-│   │   │   └── forms/
-│   │   ├── inventory/
-│   │   ├── sales/
-│   │   ├── cash-register/
-│   │   ├── customers/
-│   │   ├── payments/
-│   │   ├── billing/
-│   │   └── reports/
-│   ├── shared/                    # Compartido entre módulos
-│   │   ├── lib/                   # Helpers puros (format, payment-methods)
-│   │   ├── types/                 # Tipos compartidos
+├── src/                           # SOLO lo transversal (TS sin frameworks)
+│   ├── shared/                    # Compartido entre features
+│   │   ├── cache/                 # Cache TTL puro
+│   │   ├── lib/                   # Helpers puros (format, payment-methods, error-message)
+│   │   ├── types/                 # Tipos compartidos (TiendaId, InventoryLocation, …)
 │   │   ├── result.ts              # Tipo Result<T, E>
 │   │   └── validations/           # Schemas Zod compartidos
 │   └── infrastructure/
 │       └── supabase/
 │           └── database.types.ts  # Tipos generados desde Supabase
 ├── apps/
-│   └── pos-angular/               # Angular 21 standalone PWA (UI + orquestación)
-│       └── src/
-│           ├── environments/
-│           ├── styles.css         # Tailwind v4 (@import + @theme)
-│           ├── index.html
-│           ├── main.ts
-│           └── app/
-│               ├── core/          # session, supabase client, layout
-│               ├── features/      # por módulo: data/ (repos) + presentation/ (pages, dialogs, ...)
-│               └── shared/        # design system atómico: atoms/, molecules/, organisms/, services/
+│   ├── pos-angular/               # Angular 21 standalone PWA — TODA la app
+│   │   └── src/
+│   │       ├── environments/
+│   │       ├── styles.css         # Tailwind v4 (@import + @theme)
+│   │       ├── index.html
+│   │       ├── main.ts
+│   │       └── app/
+│   │           ├── app.config.ts  # Composition root global (registra *.providers.ts)
+│   │           ├── core/          # transversal: auth/sesión, cliente Supabase, config,
+│   │           │                  # layout, tienda, printing (QZ), catalog (cache productos)
+│   │           ├── features/      # 12 features autocontenidas (§2.1):
+│   │           │   └── <feature>/{domain,data,presentation}/ + <feature>.providers.ts
+│   │           └── shared/        # design system atómico: atoms/, molecules/, organisms/, services/
+│   └── landing-web/               # Landing independiente (ADR 0012, fuera de este esquema)
 ├── supabase/
 │   ├── migrations/                # SQL versionado
 │   ├── functions/                 # Edge Functions
 │   ├── seed.sql                   # Datos de prueba
 │   └── config.toml
-├── scripts/                       # Utilidades CLI locales (seed admin, session-start)
+├── scripts/                       # Utilidades CLI locales (seed admin, import Siigo, session-start)
 └── tests/
-    ├── unit/                      # Tests unitarios (dominio + DTOs + use-cases + forms)
+    ├── unit/                      # Espejo por feature: tests/unit/features/<feature>/
+    │                              # (también hay *.test.ts co-ubicados junto al código puro)
     ├── integration/               # Tests de integración
     └── e2e/                       # Tests E2E (Playwright apuntando a localhost:4200)
 ```
+
+**Aliases de imports:** `@/` → `src/` (solo `shared/` e `infrastructure/`) y `@angular-app/` → `apps/pos-angular/src/app/`. El dominio de una feature se importa como `@angular-app/features/<feature>/domain/...`.
 
 ---
 
@@ -196,15 +277,13 @@ moveonapp-pos/
 ### 4.1 Capas de acceso
 
 ```
-Angular Component (features/<mod>/presentation/)
-    ↓
-Presenter / Store / Application Service
-    ↓
-Use Case (src/modules/<mod>/domain/use-cases/)
-    ↓
-Repository Interface (src/modules/<mod>/domain/repositories/)
-    ↓
-Repository Implementation (features/<mod>/data/, usa Supabase client o RPC)
+Page / Dialog / Presenter  (features/<f>/presentation/)
+    ↓  escrituras                          ↓  lecturas simples
+Use case (features/<f>/domain/usecases/)   │
+    ↓                                      │
+Contrato abstract class (features/<f>/domain/repositories/)
+    ↓  (resuelto por DI vía <feature>.providers.ts en app.config.ts)
+Implementación @Injectable (features/<f>/data/repositories/, usa Supabase client o RPC)
     ↓
 PostgreSQL (con RLS)
 ```
@@ -287,17 +366,19 @@ En MVP v1.0 esperamos **0 a 2 Edge Functions máximo**.
 
 ## 8. Testing
 
-### 8.1 Pirámide
+### 8.1 Pirámide (por capa, ADR 0015 §6.7)
 
-- **Unitarios (mayoría):** lógica de dominio (`sales`, `inventory`, `cash-register`, `billing`).
-- **Integración:** flujos completos a través de capas (use case + repo + DB de prueba).
+- **`domain/` (mayoría):** vitest puro, sin mocks de framework.
+- **`data/models`:** tests de mapeo fila ↔ entidad.
+- **`data/repositories`:** contrato verificado contra fakes; la integración real la cubren smoke SQL + E2E Playwright.
+- **`presentation/presenters` y `forms`:** tests con fakes del repositorio abstracto (Liskov en acción).
 - **E2E (pocos):** flujo de venta end-to-end, cierre de caja.
 
-### 8.2 Cobertura mínima MVP
+Los tests viven en `tests/unit/features/<feature>/` (espejo) o co-ubicados como `*.test.ts` junto al código puro — ambos globs están en `vitest.config.ts`.
 
-- Dominio: > 80%.
-- Use cases: > 70%.
-- UI: solo componentes con lógica compleja.
+### 8.2 Cobertura mínima
+
+- Umbral vigente en `vitest.config.ts`: **90%** (statements, branches, functions, lines) sobre `domain/dtos`, `domain/usecases`, `domain/services`, `presentation/forms` y `src/shared`.
 
 ---
 

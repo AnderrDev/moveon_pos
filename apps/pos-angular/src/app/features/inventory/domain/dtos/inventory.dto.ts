@@ -30,6 +30,3 @@ export const transferStockSchema = z
     path:    ['toUbicacion'],
   })
 
-export type RegisterEntryDto = z.infer<typeof registerEntrySchema>
-export type AdjustStockDto   = z.infer<typeof adjustStockSchema>
-export type TransferStockDto = z.infer<typeof transferStockSchema>

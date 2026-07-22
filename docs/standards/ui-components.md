@@ -3,7 +3,7 @@
 > Fuente de verdad para cómo crear, organizar y usar componentes UI en MOVEONAPP POS.
 > Cualquier desviación requiere un ADR.
 >
-> Estado 2026-07-17: design system propio con **atomic design** (ADR 0014). Angular 21 standalone + Tailwind CSS 4. shadcn/ui, React, RHF y Vercel no forman parte del stack.
+> Estado 2026-07-22: design system propio con **atomic design** (ADR 0014, sigue vigente tras el ADR 0015). Angular 21 standalone + Tailwind CSS 4. Los componentes propios de una feature viven en `apps/pos-angular/src/app/features/<feature>/presentation/components/` (ADR 0015). shadcn/ui, React, RHF y Vercel no forman parte del stack.
 
 ---
 

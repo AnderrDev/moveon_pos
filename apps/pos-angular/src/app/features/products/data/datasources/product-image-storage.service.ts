@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
+import { ProductImageStorage } from '@angular-app/features/products/domain/repositories/product-image-storage.repository'
 
 const BUCKET = 'product-images'
 const MAX_BYTES = 5 * 1024 * 1024 // 5 MiB
@@ -17,7 +18,7 @@ const EXT_BY_MIME: Record<string, string> = {
  * La UI recibe la URL pública resultante y la guarda en `productos.image_url`.
  */
 @Injectable({ providedIn: 'root' })
-export class ProductImageStorageService {
+export class ProductImageStorageService extends ProductImageStorage {
   private readonly supabaseClient = inject(SupabaseClientService)
 
   /** Valida el archivo antes de subir. Devuelve un mensaje de error o null si es válido. */

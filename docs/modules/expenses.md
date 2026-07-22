@@ -31,36 +31,43 @@ Relacionar los **gastos del negocio con las entradas totales** del período: nó
 ## Estructura
 
 ```
-src/modules/expenses/
-  domain/entities/expense.entity.ts        Expense, ExpenseCategory, Empleado, ExpenseTemplate
-  domain/repositories/expense.repository.ts  contrato (impl. en Angular)
-  domain/services/financial-summary.ts     buildFinancialSummary (núcleo, puro + tests)
-  domain/services/nomina.ts                buildNominaPagoSugerido, pagadoPorEmpleado (+ tests)
-  domain/services/monthly-comparison.ts    lastMonths, buildMonthlyComparison (+ tests)
-  domain/services/reinvestment-fund.ts     buildReinvestmentFund (+ tests)
-  application/dtos/expense.dto.ts          createExpenseSchema, voidExpenseSchema (Zod)
-  application/dtos/empleado.dto.ts         saveEmpleadoSchema
-  application/dtos/fund-settings.dto.ts    saveFundSettingsSchema
-  application/use-cases/register-expense.use-case.ts   Result<Expense, {code:'validation'}>
-  application/use-cases/void-expense.use-case.ts
-  forms/expense-form.{factory,mapper}.ts   patrón 3 archivos
-  forms/empleado-form.{factory,mapper}.ts
-  forms/nomina-pago-form.{factory,mapper}.ts
-  forms/fund-settings-form.{factory,mapper}.ts
-
-apps/pos-angular/src/app/features/expenses/
-  finanzas.page.ts                orquestador (mes visible, carga, diálogos)
-  expenses.repository.ts          impl. Supabase del contrato del dominio
-  expense-form.presenter.ts       presenter Zod del form de gasto
-  expense-form.dialog.ts          registrar gasto
-  empleado-form.dialog.ts         crear/editar empleado
-  nomina-pago.dialog.ts           pagar nómina (precarga por tipo)
-  financial-summary.component.ts  KPIs + estado del período + % por categoría (presentacional)
-  nomina-section.component.ts     empleados con pagado vs. acordado (presentacional)
-  expense-list.component.ts       tabla de gastos con anulación (presentacional)
-  monthly-comparison.component.ts últimos 6 meses (presentacional)
-  reinvestment-fund.component.ts  fondo de reinversión (presentacional)
-  fund-settings.dialog.ts        configurar saldo inicial y fecha de inicio
+apps/pos-angular/src/app/features/expenses/          (estructura ADR 0015)
+  expenses.providers.ts                    composition root (ExpenseRepository → ExpensesRepository)
+  domain/
+    entities/expense.entity.ts             Expense, ExpenseCategory, Empleado, ExpenseTemplate
+    repositories/expense.repository.ts     contrato abstract class (impl. en data/)
+    services/financial-summary.ts          buildFinancialSummary (núcleo, puro + tests)
+    services/nomina.ts                     buildNominaPagoSugerido, pagadoPorEmpleado (+ tests)
+    services/monthly-comparison.ts         lastMonths, buildMonthlyComparison (+ tests)
+    services/reinvestment-fund.ts          buildReinvestmentFund (+ tests)
+    dtos/expense.dto.ts                    createExpenseSchema, voidExpenseSchema (Zod)
+    dtos/empleado.dto.ts                   saveEmpleadoSchema
+    dtos/fund-settings.dto.ts              saveFundSettingsSchema
+    dtos/template.dto.ts                   saveTemplateSchema
+    usecases/register-expense.use-case.ts  Result<Expense, {code:'validation'}>
+    usecases/void-expense.use-case.ts      (+ save-empleado, save-fund-settings,
+                                            save-template, delete-template)
+  data/
+    repositories/expenses.repository.ts    impl. Supabase del contrato del dominio
+  presentation/
+    pages/finanzas.page.ts                 orquestador (mes visible, carga, diálogos)
+    presenters/expense-form.presenter.ts   presenter Zod del form de gasto
+    forms/expense-form.{factory,mapper}.ts patrón 3 archivos
+    forms/empleado-form.{factory,mapper}.ts
+    forms/nomina-pago-form.{factory,mapper}.ts
+    forms/fund-settings-form.{factory,mapper}.ts
+    dialogs/expense-form.dialog.ts         registrar gasto
+    dialogs/empleado-form.dialog.ts        crear/editar empleado
+    dialogs/nomina-pago.dialog.ts          pagar nómina (precarga por tipo)
+    dialogs/fund-settings.dialog.ts        configurar saldo inicial y fecha de inicio
+    dialogs/recurrentes.dialog.ts          gastos del mes (plantillas)
+    dialogs/template-form.dialog.ts        crear/editar plantilla
+    components/financial-summary.component.ts  KPIs + estado del período + % por categoría
+    components/nomina-section.component.ts     empleados con pagado vs. acordado
+    components/expense-list.component.ts       tabla de gastos con anulación
+    components/monthly-comparison.component.ts últimos 6 meses
+    components/reinvestment-fund.component.ts  fondo de reinversión
+    services/expense-export.ts             export Excel de /finanzas
 ```
 
 ## Recurrentes y export (PLAN-49)

@@ -6,7 +6,7 @@ import {
   type LoyaltyConfig,
 } from '@angular-app/features/loyalty/domain/loyalty-config'
 
-export interface ReceiptSettings {
+interface ReceiptSettings {
   titulo: string
   nit: string | null
   direccion: string | null

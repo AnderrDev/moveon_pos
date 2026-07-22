@@ -1,6 +1,6 @@
 const EXPORT_TIMEZONE = 'America/Bogota'
 
-export function exportDateIso(date = new Date()): string {
+function exportDateIso(date = new Date()): string {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: EXPORT_TIMEZONE,
     year: 'numeric',

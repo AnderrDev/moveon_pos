@@ -31,4 +31,3 @@ export const clienteInputSchema = z
     }
   })
 
-export type ClienteInputDto = z.infer<typeof clienteInputSchema>

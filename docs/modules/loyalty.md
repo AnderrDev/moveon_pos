@@ -1,7 +1,7 @@
 # Módulo: loyalty (Fidelización — MOVE ON Club)
 
 > Estado: **completo (2026-07-16)** — migraciones `20260714_001`/`_002`/`_003` aplicadas al
-> remoto; dominio en `src/modules/loyalty`; UI POS (progreso + canje + registro rápido)
+> remoto; dominio en `features/loyalty/domain` (rutas post-ADR 0015); UI POS (progreso + canje + registro rápido)
 > operativa. PLAN-57/58 (diálogo "Club" en `/clientes` con historial + ajuste admin),
 > PLAN-59 (sección MOVE ON Club en `/configuracion`) y PLAN-60 (RPC
 > `expire_loyalty_rewards`, migración `20260716000100`, + tab "Fidelización" en `/reportes`)
@@ -92,7 +92,7 @@ type LoyaltyReward = {
 ### Value Object: `PhoneCO`
 
 Normaliza celulares colombianos a 10 dígitos canónicos. Vive en
-`src/modules/customers/domain/value-objects/phone-co.ts` (módulo `customers`, reutilizado aquí).
+`features/customers/domain/value-objects/phone-co.ts` (feature `customers`, reutilizado aquí).
 Reglas: acepta con/sin `+57`, `57`, espacios, guiones y paréntesis; rechaza si no quedan 10
 dígitos empezando por `3`.
 
@@ -289,19 +289,21 @@ create policy "read_own_tienda_loyalty_accounts" on loyalty_accounts
 - Botón "Canjear premio MOVE ON Club" en el carrito: habilitado solo con recompensa disponible y
   ≥1 batido elegible en el carrito; aplica el descuento dirigido a la línea elegida por el
   cajero, muestra la diferencia a cobrar si el batido supera `valorRecompensaCop`.
-- Diálogo "Club" en `/clientes` (`features/loyalty/cliente-loyalty.dialog.ts`, PLAN-57/58):
-  resumen (saldo, progreso X/N, recompensas vigentes), ledger cronológico (acumulaciones,
-  redenciones, anulaciones, ajustes, vencimientos) y — solo admin — ajuste manual de sellos con
-  motivo obligatorio (schema Zod en `src/modules/loyalty/forms/adjust-stamps-form.factory.ts`).
+- Diálogo "Club" en `/clientes` (`features/loyalty/presentation/dialogs/cliente-loyalty.dialog.ts`,
+  PLAN-57/58): resumen (saldo, progreso X/N, recompensas vigentes), ledger cronológico
+  (acumulaciones, redenciones, anulaciones, ajustes, vencimientos) y — solo admin — ajuste manual
+  de sellos con motivo obligatorio (schema Zod en
+  `features/loyalty/presentation/forms/adjust-stamps-form.factory.ts`).
 - Sección "MOVE ON Club" en `/configuracion` (PLAN-59): edita `settings.data.fidelizacion`
   (activo, sellos por recompensa, valor máximo, vigencia). Patrón factory/mapper/presenter en
-  `src/modules/settings/forms/loyalty-settings-form.*` + `LoyaltySettingsService`. El POS y el
+  `features/settings/presentation/forms/loyalty-settings-form.*` + el repositorio de
+  `features/settings/data/repositories/loyalty-settings.repository.ts`. El POS y el
   diálogo leen la config vía `TiendaInfoService.fidelizacion` (defaults del dominio si no hay).
 - Tab "Fidelización" en `/reportes` (PLAN-60): KPIs del período (sellos otorgados/revertidos,
   ajuste neto, recompensas generadas/canjeadas/vencidas, disponibles hoy, clientes activos) +
   tabla de clientes del período. Dominio puro en
-  `src/modules/loyalty/domain/services/program-report.ts`; queries en
-  `features/reports/loyalty-report.service.ts`.
+  `features/loyalty/domain/services/program-report.ts`; queries en
+  `features/reports/data/repositories/loyalty-report.repository.ts`.
 - Vencimiento explícito (PLAN-60): RPC `expire_loyalty_rewards(p_tienda_id)`
   (migración `20260716000100`) marca `expired` e inserta transacción `expire` (delta 0) en el
   ledger. Sin cron: se invoca oportunistamente al abrir el diálogo del cliente y el reporte.

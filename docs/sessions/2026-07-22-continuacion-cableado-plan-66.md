@@ -63,11 +63,33 @@
 
 ---
 
-## 7. Próximos pasos
+## 7. PLAN-68 ejecutado (2 agentes en paralelo: código + docs)
 
-1. ~~Integrar PLAN-66~~ ✓  2. ~~Merge main → dev~~ ✓
-3. PLAN-68: limpieza profunda + reescribir CLAUDE.md/02-architecture.md/estándares contra
-   ADR 0015; ADR 0014 parcialmente superseded; ADR 0015 → Aceptado.
-4. PLAN-69: verificación integral + QA manual E2E (8 flujos, requiere navegador) +
+**Código:** ~30 exports muertos eliminados y ~15 des-exportados; duplicado de constantes
+cliente resuelto; 1 renombrado (`sales-history-session-filter.ts`); **las 5
+`PRESENTATION_BOUNDARY_EXCEPTIONS` retiradas — 0 excepciones activas**: impresión QZ →
+`core/printing/`, workbook turno → `shared/services/export/turn-sales-export.ts`,
+`ProductsCacheStore` → `core/catalog/`, `ProductImageStorage` (abstracción nueva en
+products/domain), finanzas ya usaba `ReportRepository`. `pos` agregado a `CABLED_FEATURES`
+→ **12/12 features cableadas**.
+
+**Docs:** `02-architecture.md` reescrito completo; CLAUDE.md/AGENTS.md §arquitectura;
+standards (forms, ui-components, design-patterns, solid — este último tenía residuos de
+Next.js, eliminados); ADR 0014 → parcialmente superseded; **ADR 0015 → Aceptado
+(2026-07-22)**; docs/modules rutas actualizadas; barrido `src/modules` limpio (solo
+menciones históricas deliberadas).
+
+**Verificación combinada:** typecheck ✓, lint ✓, 546 tests ✓.
+
+**Candidatos anotados (no tocados):** `mo-skeleton` sin consumidores;
+`CustomerRepository.findByPhoneOrDocument`, `InventoryRepository.getStock`,
+`ProductImageStorage.removeByUrl` sin callers; tests co-localizados en features (10
+archivos) vs regla ADR §4; divergencia menor ADR 0015 §3 vs regla cross-feature real del
+linter (documentada en 02-architecture §2.5.3, alinear en el futuro).
+
+## 8. Próximos pasos
+
+1. PLAN-69: verificación integral + coverage ≥90% dominio + QA manual E2E (8 flujos) +
    `pnpm build` prod + merge dev → main **con confirmación del dueño**.
-5. Push de `dev` a origin pendiente (viene con >16 commits locales) — decidir con el dueño.
+2. Push de `dev` a origin pendiente — decidir con el dueño.
+3. Pendiente crítico del dueño: rotar service_role key + activar Leaked Password Protection.

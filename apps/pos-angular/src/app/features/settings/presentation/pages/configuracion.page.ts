@@ -18,7 +18,7 @@ import { saveLoyaltySettings } from '@angular-app/features/settings/domain/useca
 import { loyaltySettingsFormMapper } from '@angular-app/features/settings/presentation/forms/loyalty-settings-form.mapper'
 import { FormNumberInputComponent } from '@angular-app/shared/molecules/form-number-input.component'
 import { FormCurrencyInputComponent } from '@angular-app/shared/molecules/form-currency-input.component'
-import { QzReceiptPrinterService } from '@angular-app/features/pos/data/datasources/qz-receipt-printer.service'
+import { QzReceiptPrinterService } from '@angular-app/core/printing/qz-receipt-printer.service'
 
 @Component({
   selector: 'mo-configuracion-page',

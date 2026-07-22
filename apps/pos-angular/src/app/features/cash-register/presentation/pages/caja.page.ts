@@ -28,9 +28,9 @@ import type {
 import type { Sale } from '@angular-app/features/sales/domain/entities/sale.entity'
 import { SaleRepository } from '@angular-app/features/sales/domain/repositories/sale.repository'
 import { ExcelExportService } from '@angular-app/shared/services/export/excel-export.service'
-import { buildTurnSalesWorkbook } from '@angular-app/features/pos/presentation/services/sales-export'
+import { buildTurnSalesWorkbook } from '@angular-app/shared/services/export/turn-sales-export'
 import { VoidReasonDialog } from '@angular-app/shared/organisms/void-reason/void-reason.dialog'
-import { ReceiptPrintService } from '@angular-app/features/pos/presentation/services/receipt-print.service'
+import { ReceiptPrintService } from '@angular-app/core/printing/receipt-print.service'
 import {
   canVoidCashMovement,
   canCorrectCashSessionOpening,

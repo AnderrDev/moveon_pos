@@ -29,7 +29,7 @@ import { ProductRepository, type ProductComponent } from '@angular-app/features/
 import { createProduct } from '@angular-app/features/products/domain/usecases/create-product.use-case'
 import { updateProduct } from '@angular-app/features/products/domain/usecases/update-product.use-case'
 import { saveProductComponents } from '@angular-app/features/products/domain/usecases/save-product-components.use-case'
-import { ProductsCacheStore } from '@angular-app/features/products/presentation/services/products-cache.store'
+import { ProductsCacheStore } from '@angular-app/core/catalog/products-cache.store'
 import { filterComponentCandidates } from '@angular-app/features/products/presentation/services/product-component.helpers'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'

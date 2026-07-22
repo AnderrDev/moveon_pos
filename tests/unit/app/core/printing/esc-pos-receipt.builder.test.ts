@@ -3,7 +3,7 @@ import type { Sale } from '@angular-app/features/sales/domain/entities/sale.enti
 import {
   buildEscPosReceipt,
   ESC_POS_RECEIPT_COLUMNS,
-} from '@angular-app/features/pos/data/datasources/esc-pos-receipt.builder'
+} from '@angular-app/core/printing/esc-pos-receipt.builder'
 
 const sale: Sale = {
   id: 'sale-1',

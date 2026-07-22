@@ -1,8 +1,6 @@
 import { z } from 'zod'
 import { isValidPhoneCO } from '@angular-app/features/customers/domain/value-objects/phone-co'
-
-export const CLIENTE_NOMBRE_MIN = 2
-export const CLIENTE_NOMBRE_MAX = 100
+import { CLIENTE_NOMBRE_MIN, CLIENTE_NOMBRE_MAX } from '@angular-app/features/customers/domain/dtos/cliente.dto'
 
 export const clienteFormSchema = z
   .object({

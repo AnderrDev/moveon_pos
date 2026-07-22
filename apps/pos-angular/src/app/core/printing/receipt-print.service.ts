@@ -3,8 +3,8 @@ import { SessionService } from '@angular-app/core/auth/session.service'
 import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
 import { TiendaInfoService } from '@angular-app/core/tienda/tienda-info.service'
 import { SaleRepository } from '@angular-app/features/sales/domain/repositories/sale.repository'
-import type { EscPosReceiptCustomer } from '@angular-app/features/pos/data/datasources/esc-pos-receipt.builder'
-import { QzReceiptPrinterService } from '@angular-app/features/pos/data/datasources/qz-receipt-printer.service'
+import type { EscPosReceiptCustomer } from '@angular-app/core/printing/esc-pos-receipt.builder'
+import { QzReceiptPrinterService } from '@angular-app/core/printing/qz-receipt-printer.service'
 
 interface PrintOptions {
   change?: number

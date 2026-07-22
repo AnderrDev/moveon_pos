@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { EXPENSE_NOTES_MAX, expenseMetodoPagoSchema } from '@angular-app/features/expenses/domain/dtos/expense.dto'
 import { todayLocalDate } from '@angular-app/features/expenses/presentation/forms/expense-form.factory'
 
-export const nominaTipoPagoSchema = z.enum(['mes', 'quincena1', 'quincena2', 'adelanto'])
+const nominaTipoPagoSchema = z.enum(['mes', 'quincena1', 'quincena2', 'adelanto'])
 
 export const nominaPagoFormSchema = z.object({
   tipo: nominaTipoPagoSchema,

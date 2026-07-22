@@ -38,8 +38,3 @@ export const correctOpeningSchema = z.object({
     .min(VOID_MOVEMENT_REASON_MIN_LENGTH, `El motivo debe tener al menos ${VOID_MOVEMENT_REASON_MIN_LENGTH} caracteres`),
 })
 
-export type OpenSessionDto    = z.infer<typeof openSessionSchema>
-export type AddMovementDto    = z.infer<typeof addMovementSchema>
-export type VoidMovementDto   = z.infer<typeof voidMovementSchema>
-export type CloseSessionDto   = z.infer<typeof closeSessionSchema>
-export type CorrectOpeningDto = z.infer<typeof correctOpeningSchema>

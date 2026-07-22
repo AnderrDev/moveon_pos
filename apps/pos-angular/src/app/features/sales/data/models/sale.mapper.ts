@@ -31,7 +31,7 @@ export interface SaleRow {
   payments?: PaymentRow[]
 }
 
-export interface SaleItemRow {
+interface SaleItemRow {
   id: string
   sale_id: string
   producto_id: string
@@ -46,7 +46,7 @@ export interface SaleItemRow {
   total: number
 }
 
-export interface PaymentRow {
+interface PaymentRow {
   id: string
   sale_id: string
   metodo: string
@@ -55,7 +55,7 @@ export interface PaymentRow {
   created_at: string
 }
 
-export function rowToSaleItem(row: SaleItemRow): SaleItem {
+function rowToSaleItem(row: SaleItemRow): SaleItem {
   return {
     id: row.id,
     saleId: row.sale_id,
@@ -72,7 +72,7 @@ export function rowToSaleItem(row: SaleItemRow): SaleItem {
   }
 }
 
-export function rowToPayment(row: PaymentRow): Payment {
+function rowToPayment(row: PaymentRow): Payment {
   return {
     id: row.id,
     saleId: row.sale_id,

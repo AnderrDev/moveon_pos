@@ -91,16 +91,16 @@ export interface EntryMovementInsert {
 }
 
 /** Motivo estándar del movimiento de stock inicial de la migración. */
-export const SIIGO_ENTRY_MOTIVO = 'Stock inicial migración Siigo'
+const SIIGO_ENTRY_MOTIVO = 'Stock inicial migración Siigo'
 
 /** Etiqueta de `referencia_tipo` para los movimientos de esta importación. */
-export const SIIGO_REFERENCIA_TIPO = 'siigo_import'
+const SIIGO_REFERENCIA_TIPO = 'siigo_import'
 
 /** El stock inicial de Siigo entra a bodega; se traslada a PV para vender. */
-export const SIIGO_ENTRY_UBICACION: InventoryLocation = 'bodega'
+const SIIGO_ENTRY_UBICACION: InventoryLocation = 'bodega'
 
 /** Columnas esperadas en el header (orden canónico, case-insensitive). */
-export const SIIGO_HEADER_COLUMNS = [
+const SIIGO_HEADER_COLUMNS = [
   'nombre',
   'sku',
   'codigo_barras',

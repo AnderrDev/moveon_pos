@@ -37,8 +37,9 @@ Flujo 100% cliente (sin backend/RPC/migración) sobre Supabase Auth:
 - Errores mapeados en español por `reset-password-error-mapper.ts` (discrimina por `code`/`status`, nunca imprime `error.message` crudo).
 
 ### Archivos
-- Forms (TS puro): `src/modules/auth/forms/forgot-password-form.{factory,mapper}.ts`, `reset-password-form.{factory,mapper}.ts`.
-- Angular: `apps/pos-angular/src/app/features/auth/{forgot,reset}-password{.page,-form.presenter}.ts`, `reset-password-error-mapper.ts`.
+(rutas post-ADR 0015 — todo dentro de `apps/pos-angular/src/app/features/auth/presentation/`)
+- Forms (TS puro): `forms/forgot-password-form.{factory,mapper}.ts`, `forms/reset-password-form.{factory,mapper}.ts`.
+- Angular: `pages/{forgot,reset}-password.page.ts`, `presenters/{forgot,reset}-password-form.presenter.ts`, `services/reset-password-error-mapper.ts`.
 - `SessionService.requestPasswordReset` / `updatePassword`.
 - Rutas: `recuperar-contrasena`, `restablecer-contrasena` (hermanas de `login`, fuera del shell).
 

@@ -3,7 +3,7 @@
 | Campo | Valor |
 |---|---|
 | Fecha | 2026-07-17 |
-| Estado | Propuesto — pendiente de validación del dueño |
+| Estado | **Aceptado** (2026-07-22) — implementado en PLAN-61..67; fronteras ESLint activas |
 | Decisores | Dueño del negocio (dirección explícita con captura de referencia) + Arquitecto (Claude) |
 | Reemplaza | La sección "A. Capas: híbrido src/modules + features" del ADR 0014 (el design system atómico del ADR 0014 sigue vigente) |
 
@@ -282,4 +282,11 @@ Plan detallado y ejecutable: bloque PLAN-61..69 en `docs/plan-de-trabajo.md`.
 - ✅ Imports reescritos en 181 archivos (codemod que resuelve cada import contra el mapa).
 - ✅ `vitest.config.ts` (globs de coverage y tests) y `scripts/import-siigo-csv.mjs` apuntando
   a las rutas nuevas.
-- ⏳ Pendiente: pasar typecheck/lint/tests y corregir residuos; actualizar docs; commit.
+- ✅ Typecheck/lint/tests en verde tras la fase mecánica (PLAN-61).
+- ✅ Fronteras ESLint activas (PLAN-63) y cableado hexagonal por feature completado
+  (PLAN-64..68: `CABLED_FEATURES` cubre las 12 features; en PLAN-68 se resolvieron las 5
+  excepciones temporales — impresión QZ → `core/printing/`, cache de catálogo →
+  `core/catalog/`, export de ventas del turno → `shared/services/export/` — y `pos`,
+  que ya no tiene `data/` propio, entró a la lista).
+- ✅ Documentación reescrita contra este ADR (PLAN-68): `docs/02-architecture.md`,
+  `CLAUDE.md`, `AGENTS.md`, `docs/standards/*`.

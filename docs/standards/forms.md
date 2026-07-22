@@ -1,31 +1,34 @@
 # Estándar: Sistema de Formularios — Patrón 3 archivos (Angular)
 
 > Todo formulario de negocio sigue el mismo patrón de 3 archivos.
-> Implementación de referencia: `apps/pos-angular/src/app/features/auth/login.page.ts` + `login-form.presenter.ts` + `src/modules/auth/forms/login-form.{factory,mapper}.ts`.
+> Implementación de referencia: feature `auth` — `presentation/pages/login.page.ts` + `presentation/presenters/login-form.presenter.ts` + `presentation/forms/login-form.{factory,mapper}.ts` (todo dentro de `apps/pos-angular/src/app/features/auth/`).
 
 ---
 
 ## 0. Stack
 
-- **Schema + tipos + defaults**: Zod, TypeScript puro (`src/modules/<feature>/forms/`).
-- **Mapper entidad ↔ form ↔ payload**: TypeScript puro (`src/modules/<feature>/forms/`).
-- **Presenter**: Angular `@Injectable` con `NonNullableFormBuilder` y signal de errores (`apps/pos-angular/src/app/features/<feature>/presentation/presenters/<feature>-form.presenter.ts`).
+- **Schema + tipos + defaults**: Zod, TypeScript puro (`features/<feature>/presentation/forms/`).
+- **Mapper entidad ↔ form ↔ payload**: TypeScript puro (`features/<feature>/presentation/forms/`).
+- **Presenter**: Angular `@Injectable` con `NonNullableFormBuilder` y signal de errores (`features/<feature>/presentation/presenters/<feature>-form.presenter.ts`).
 - **Componente Angular**: standalone, importa `ReactiveFormsModule`, consume el presenter con `inject()`.
 
 Nada del flujo usa React, RHF, Zustand ni shadcn.
+
+> `presentation/forms/` es TS puro (schemas Zod + mappers) aunque viva en presentación: es el contrato del formulario, no del backend (ADR 0015 §3).
 
 ---
 
 ## 1. El patrón de 3 archivos
 
 ```
-src/modules/<feature>/forms/
-  <feature>-form.factory.ts        ← Zod schema + tipos + createDefaults()
-  <feature>-form.mapper.ts         ← entidad ↔ form ↔ payload (TS puro)
-
-apps/pos-angular/src/app/features/<feature>/
-  <feature>-form.presenter.ts      ← Reactive Form + validación Zod + setRootError()
-  <feature>.page.ts                ← componente standalone que consume el presenter
+apps/pos-angular/src/app/features/<feature>/presentation/
+  forms/
+    <feature>-form.factory.ts      ← Zod schema + tipos + createDefaults() (TS puro)
+    <feature>-form.mapper.ts       ← entidad ↔ form ↔ payload (TS puro)
+  presenters/
+    <feature>-form.presenter.ts    ← Reactive Form + validación Zod + setRootError()
+  pages/ (o dialogs/)
+    <feature>.page.ts              ← componente standalone que consume el presenter
 ```
 
 Cada archivo tiene **una sola responsabilidad**.
@@ -36,10 +39,10 @@ Cada archivo tiene **una sola responsabilidad**.
 
 **Qué va aquí:** schema Zod del formulario, tipos derivados, constantes de validación y `createDefaults()`.
 
-> **Distinto del DTO.** El DTO (`data/dtos/`) valida lo que llega al backend (RPC, Edge Function). El form schema valida lo que el usuario puede escribir en pantalla. Pueden diferir: por ejemplo, `tiendaId` no es campo del formulario — lo aporta el presenter desde el contexto de auth.
+> **Distinto del DTO.** El DTO (`domain/dtos/`) valida lo que llega al backend (RPC, Edge Function). El form schema valida lo que el usuario puede escribir en pantalla. Pueden diferir: por ejemplo, `tiendaId` no es campo del formulario — lo aporta el presenter desde el contexto de auth.
 
 ```typescript
-// src/modules/products/forms/product-form.factory.ts
+// features/products/presentation/forms/product-form.factory.ts
 import { z } from 'zod'
 import {
   salePriceSchema,
@@ -97,9 +100,9 @@ export function createProductFormDefaults(initial: Partial<ProductFormValue> = {
 **Qué va aquí:** traducción entidad ↔ valores del form, y form → payload de servicio Angular / RPC.
 
 ```typescript
-// src/modules/products/forms/product-form.mapper.ts
-import type { Product } from '../domain/entities/product.entity'
-import type { CreateProductDto, UpdateProductDto } from '../data/dtos/product.dto'
+// features/products/presentation/forms/product-form.mapper.ts
+import type { Product } from '@angular-app/features/products/domain/entities/product.entity'
+import type { CreateProductDto, UpdateProductDto } from '@angular-app/features/products/domain/dtos/product.dto'
 import type { ProductFormValue } from './product-form.factory'
 
 export const productFormMapper = {
@@ -166,14 +169,14 @@ export const productFormMapper = {
 **Qué va aquí:** crear el `FormGroup` desde los defaults, validar con Zod antes de leer `getRawValue()`, exponer signals de errores y submit.
 
 ```typescript
-// apps/pos-angular/src/app/features/products/presentation/presenters/product-form.presenter.ts
+// features/products/presentation/presenters/product-form.presenter.ts
 import { Injectable, inject, signal } from '@angular/core'
 import { NonNullableFormBuilder } from '@angular/forms'
 import {
   createProductFormDefaults,
   productFormSchema,
   type ProductFormValue,
-} from '@/modules/products/forms/product-form.factory'
+} from '@angular-app/features/products/presentation/forms/product-form.factory'
 
 type ProductFormErrors = Partial<Record<keyof ProductFormValue | 'root', string>>
 
@@ -224,14 +227,15 @@ export class ProductFormPresenter {
 ## 5. El componente Angular — delgado
 
 ```typescript
-// apps/pos-angular/src/app/features/products/presentation/pages/product-form.page.ts
+// features/products/presentation/pages/product-form.page.ts
 import { Component, inject, signal } from '@angular/core'
 import { ReactiveFormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
-import { SessionService } from '../../core/auth/session.service'
-import { ProductFormPresenter } from './product-form.presenter'
-import { productFormMapper } from '@/modules/products/forms/product-form.mapper'
-import { ProductService } from './product.service'
+import { SessionService } from '@angular-app/core/auth/session.service'
+import { ProductRepository } from '@angular-app/features/products/domain/repositories/product.repository'
+import { createProduct } from '@angular-app/features/products/domain/usecases/create-product.use-case'
+import { productFormMapper } from '@angular-app/features/products/presentation/forms/product-form.mapper'
+import { ProductFormPresenter } from '@angular-app/features/products/presentation/presenters/product-form.presenter'
 
 @Component({
   selector: 'mo-product-form-page',
@@ -242,7 +246,7 @@ import { ProductService } from './product.service'
 })
 export class ProductFormPage {
   private readonly sessionService = inject(SessionService)
-  private readonly productService = inject(ProductService)
+  private readonly repo = inject(ProductRepository)   // la ABSTRACCIÓN, nunca la clase Supabase
   private readonly router = inject(Router)
 
   readonly presenter = inject(ProductFormPresenter)
@@ -260,7 +264,8 @@ export class ProductFormPage {
     }
 
     this.isSubmitting.set(true)
-    const result = await this.productService.create(
+    const result = await createProduct(
+      { repo: this.repo },
       productFormMapper.toCreatePayload(value, auth.tiendaId),
     )
     this.isSubmitting.set(false)
@@ -277,7 +282,8 @@ export class ProductFormPage {
 ```
 
 **Reglas:**
-- El componente sólo invoca `presenter.validate()`, mappea y delega en un servicio Angular.
+- El componente sólo invoca `presenter.validate()`, mappea y delega en un **use-case** (escrituras) o en la abstracción del repositorio (lecturas simples) — ADR 0015 §6.3.
+- Inyecta el contrato de `domain/repositories/` (`abstract class`), nunca la implementación de `data/` — el linter lo bloquea.
 - Sin `subscribe` manuales: usa signals; si necesitas `Observable`, usa `toSignal()`.
 - Sin lógica de negocio en el template.
 
@@ -286,17 +292,19 @@ export class ProductFormPage {
 ## 6. Relación entre archivos
 
 ```
-domain/entities/product.entity.ts        ← Product interface
+(todo dentro de features/products/)
+
+domain/entities/product.entity.ts                    ← Product interface
         ↑
-forms/product-form.mapper.ts              ← entidad ↔ form ↔ payload (CreateProductDto, UpdateProductDto)
-        ↑                                    
-data/dtos/product.dto.ts           ← schemas Zod del backend
+domain/dtos/product.dto.ts                           ← schemas Zod del backend (CreateProductDto, UpdateProductDto)
         ↑
-forms/product-form.factory.ts             ← schema del form, tipo, createDefaults()
+presentation/forms/product-form.factory.ts           ← schema del form, tipo, createDefaults()
         ↑
-features/products/presentation/presenters/product-form.presenter.ts ← FormGroup + validate() + signals
+presentation/forms/product-form.mapper.ts            ← entidad ↔ form ↔ payload
         ↑
-features/products/presentation/pages/product-form.page.ts    ← componente standalone que consume presenter + servicio
+presentation/presenters/product-form.presenter.ts    ← FormGroup + validate() + signals
+        ↑
+presentation/pages/product-form.page.ts              ← componente standalone: presenter + use-case
 ```
 
 ---
@@ -316,29 +324,28 @@ No pre-dividas anticipando crecimiento.
 ## 8. Estructura del módulo completo
 
 ```
-src/modules/<feature>/                       (estructura ADR 0014)
+apps/pos-angular/src/app/features/<feature>/         (estructura ADR 0015)
+  <feature>.providers.ts     ← composition root: { provide: Contrato, useClass: Impl }
   domain/
     entities/                ← interfaces de dominio
-    repositories/            ← interfaces (firmadas en TS puro)
-    use-cases/               ← funciones puras con deps inyectadas + Zod + Result
-  data/
+    repositories/            ← contratos abstract class (TS puro, token de DI)
+    usecases/                ← funciones puras con deps inyectadas + Zod + Result
     dtos/
       <feature>.dto.ts       ← schemas Zod del backend (CreateDto, UpdateDto)
-    mappers/                 ← row ↔ entidad (TS puro)
-  forms/
-    <feature>-form.factory.ts
-    <feature>-form.mapper.ts
-
-apps/pos-angular/src/app/features/<feature>/
   data/
-    <feature>.repository.ts  ← @Injectable Supabase, implements la interfaz de dominio
+    models/                  ← row types + mappers row ↔ entidad
+    repositories/
+      <feature>.repository.ts ← @Injectable Supabase, extends el contrato de dominio
   presentation/
+    forms/
+      <feature>-form.factory.ts
+      <feature>-form.mapper.ts
     presenters/<feature>-form.presenter.ts
     pages/<feature>.page.ts
     dialogs/ · components/ · services/
 ```
 
-> Implementaciones de referencia: `expenses` (primer módulo cableado) y `customers` (patrón completo post-ADR 0014).
+> Implementaciones de referencia: `products`, `expenses` y `customers` (cableado completo post-ADR 0015).
 
 ---
 

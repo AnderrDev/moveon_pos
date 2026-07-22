@@ -18,10 +18,10 @@ import { correctPayment } from '@angular-app/features/sales/domain/usecases/corr
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { canVoidSale, canCorrectPayment } from '@angular-app/core/auth/role-policy'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
-import { ReceiptPrintService } from '@angular-app/features/pos/presentation/services/receipt-print.service'
+import { ReceiptPrintService } from '@angular-app/core/printing/receipt-print.service'
 import { VoidReasonDialog } from '@angular-app/shared/organisms/void-reason/void-reason.dialog'
 import { CorrectPaymentDialog } from '@angular-app/features/pos/presentation/dialogs/correct-payment.dialog'
-import { selectSessionSales } from '@angular-app/features/pos/presentation/services/sales-history.session-filter'
+import { selectSessionSales } from '@angular-app/features/pos/presentation/services/sales-history-session-filter'
 import { formatCurrency, formatShortDate, formatTime } from '@/shared/lib/format'
 import { PAYMENT_METHOD_CLOSURE_OPTIONS, getPaymentMethodLabel } from '@/shared/lib/payment-methods'
 import type { Sale } from '@angular-app/features/sales/domain/entities/sale.entity'
@@ -29,7 +29,7 @@ import type { PaymentMethod } from '@/shared/types'
 import type { CashMovement } from '@angular-app/features/cash-register/domain/entities/cash-session.entity'
 import { CashRegisterRepository } from '@angular-app/features/cash-register/domain/repositories/cash-register.repository'
 import { ExcelExportService } from '@angular-app/shared/services/export/excel-export.service'
-import { buildTurnSalesWorkbook } from '@angular-app/features/pos/presentation/services/sales-export'
+import { buildTurnSalesWorkbook } from '@angular-app/shared/services/export/turn-sales-export'
 
 @Component({
   selector: 'mo-sales-history-dialog',
