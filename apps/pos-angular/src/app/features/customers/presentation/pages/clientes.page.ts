@@ -1,4 +1,16 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import {
+  LucideAngularModule,
+  CupSoda,
+  FileDown,
+  IdCard,
+  Mail,
+  Pencil,
+  Phone,
+  Search,
+  Trash2,
+  UserPlus,
+} from 'lucide-angular'
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { PageHeaderComponent } from '@angular-app/shared/molecules/page-header.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
@@ -20,6 +32,7 @@ import { buildCustomersWorkbook } from '@angular-app/features/customers/presenta
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    LucideAngularModule,
     PageHeaderComponent,
     ButtonComponent,
     EmptyStateComponent,
@@ -30,14 +43,21 @@ import { buildCustomersWorkbook } from '@angular-app/features/customers/presenta
   ],
   template: `
     <section class="flex h-full min-h-0 flex-col">
-      <mo-page-header title="Clientes" subtitle="Directorio de clientes">
-        <input
-          type="search"
-          [value]="query()"
-          (input)="onQuery($event)"
-          placeholder="Buscar por nombre, email o telefono"
-          class="border-input bg-card focus:ring-ring h-10 w-72 rounded-lg border px-3 text-sm focus:ring-2 focus:outline-none"
-        />
+      <mo-page-header title="Clientes" [subtitle]="subtitle()">
+        <div class="relative">
+          <lucide-angular
+            [img]="icons.search"
+            class="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2"
+            aria-hidden="true"
+          />
+          <input
+            type="search"
+            [value]="query()"
+            (input)="onQuery($event)"
+            placeholder="Buscar por nombre, email o telefono"
+            class="border-input bg-card focus:ring-ring h-10 w-72 rounded-lg border pr-3 pl-9 text-sm focus:ring-2 focus:outline-none"
+          />
+        </div>
         @if (canExport()) {
           <mo-button
             variant="outline"
@@ -46,10 +66,14 @@ import { buildCustomersWorkbook } from '@angular-app/features/customers/presenta
             [disabled]="filtered().length === 0"
             (click)="exportCustomers()"
           >
+            <lucide-angular [img]="icons.download" class="mr-1.5 h-4 w-4" aria-hidden="true" />
             Descargar Excel
           </mo-button>
         }
-        <mo-button (click)="openCreate()">+ Nuevo cliente</mo-button>
+        <mo-button (click)="openCreate()">
+          <lucide-angular [img]="icons.userPlus" class="mr-1.5 h-4 w-4" aria-hidden="true" />
+          Nuevo cliente
+        </mo-button>
       </mo-page-header>
 
       @if (loading()) {
@@ -72,37 +96,81 @@ import { buildCustomersWorkbook } from '@angular-app/features/customers/presenta
           <table moTable>
             <thead moThead>
               <tr>
-                <th moTh>Nombre</th>
+                <th moTh>Cliente</th>
                 <th moTh>Documento</th>
-                <th moTh>Email</th>
-                <th moTh>Telefono</th>
+                <th moTh>Contacto</th>
                 <th moTh class="text-right">Acciones</th>
               </tr>
             </thead>
             <tbody class="divide-y">
               @for (c of filtered(); track c.id) {
-                <tr class="hover:bg-muted/30">
-                  <td moTd class="font-semibold">{{ c.nombre }}</td>
+                <tr class="hover:bg-muted/30 group">
+                  <td moTd>
+                    <div class="flex items-center gap-3">
+                      <span
+                        class="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-black uppercase"
+                      >
+                        {{ initials(c) }}
+                      </span>
+                      <div class="min-w-0">
+                        <div class="flex items-center gap-1.5">
+                          <p class="truncate font-semibold">{{ c.nombre }}</p>
+                          @if (c.autorizaFidelizacion) {
+                            <span
+                              class="bg-primary/10 text-primary inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold"
+                              title="Participa en MOVE ON Club"
+                            >
+                              <lucide-angular [img]="icons.cup" class="h-3 w-3" aria-hidden="true" />
+                              Club
+                            </span>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  </td>
                   <td moTd class="text-muted-foreground text-xs">
                     @if (c.tipoDocumento && c.numeroDocumento) {
-                      {{ c.tipoDocumento }} · {{ c.numeroDocumento }}
+                      <span class="inline-flex items-center gap-1.5">
+                        <lucide-angular [img]="icons.idCard" class="h-3.5 w-3.5" aria-hidden="true" />
+                        {{ c.tipoDocumento }} · {{ c.numeroDocumento }}
+                      </span>
                     } @else {
                       —
                     }
                   </td>
-                  <td moTd class="text-muted-foreground">{{ c.email ?? '—' }}</td>
-                  <td moTd class="text-muted-foreground">{{ c.telefono ?? '—' }}</td>
+                  <td moTd class="text-muted-foreground text-xs">
+                    <div class="space-y-0.5">
+                      @if (c.telefono) {
+                        <p class="flex items-center gap-1.5">
+                          <lucide-angular [img]="icons.phone" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                          {{ c.telefono }}
+                        </p>
+                      }
+                      @if (c.email) {
+                        <p class="flex items-center gap-1.5">
+                          <lucide-angular [img]="icons.mail" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                          <span class="truncate">{{ c.email }}</span>
+                        </p>
+                      }
+                      @if (!c.telefono && !c.email) {
+                        —
+                      }
+                    </div>
+                  </td>
                   <td moTd class="text-right">
                     <div class="flex justify-end gap-1">
-                      <mo-button size="sm" variant="outline" (click)="openLoyalty(c)"
-                        >Club</mo-button
-                      >
-                      <mo-button size="sm" variant="outline" (click)="openEdit(c)"
-                        >Editar</mo-button
-                      >
-                      <mo-button size="sm" variant="ghost" (click)="confirmDelete(c)"
-                        >Eliminar</mo-button
-                      >
+                      <mo-button size="sm" variant="outline" (click)="openLoyalty(c)">
+                        <lucide-angular [img]="icons.cup" class="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                        Club
+                      </mo-button>
+                      <mo-button size="sm" variant="outline" title="Editar cliente" (click)="openEdit(c)">
+                        <lucide-angular [img]="icons.pencil" class="h-3.5 w-3.5" aria-hidden="true" />
+                        <span class="sr-only">Editar</span>
+                      </mo-button>
+                      <mo-button size="sm" variant="ghost" title="Eliminar cliente" (click)="confirmDelete(c)">
+                        <lucide-angular [img]="icons.trash" class="text-destructive h-3.5 w-3.5" aria-hidden="true" />
+                        <span class="sr-only">Eliminar</span>
+                      </mo-button>
                     </div>
                   </td>
                 </tr>
@@ -153,6 +221,34 @@ export class ClientesPage {
         .includes(q)
     )
   })
+
+  readonly subtitle = computed(() => {
+    const total = this.clientes().length
+    if (total === 0) return 'Directorio de clientes'
+    const club = this.clientes().filter((c) => c.autorizaFidelizacion).length
+    return `${total} ${total === 1 ? 'cliente' : 'clientes'} · ${club} en MOVE ON Club`
+  })
+
+  readonly icons = {
+    search: Search,
+    download: FileDown,
+    userPlus: UserPlus,
+    cup: CupSoda,
+    idCard: IdCard,
+    mail: Mail,
+    phone: Phone,
+    pencil: Pencil,
+    trash: Trash2,
+  }
+
+  initials(c: Cliente): string {
+    return c.nombre
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0])
+      .join('')
+  }
 
   constructor() {
     void this.session.getRole()

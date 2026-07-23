@@ -9,6 +9,18 @@ import {
   signal,
 } from '@angular/core'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
+import {
+  LucideAngularModule,
+  CupSoda,
+  Gift,
+  History,
+  Medal,
+  Plus,
+  Minus,
+  RotateCcw,
+  SlidersHorizontal,
+  TimerOff,
+} from 'lucide-angular'
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { formatCurrency, formatShortDate, formatTime } from '@/shared/lib/format'
 import {
@@ -58,6 +70,7 @@ const TYPE_LABELS: Record<LoyaltyTransactionType, string> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     ReactiveFormsModule,
+    LucideAngularModule,
     DialogComponent,
     ButtonComponent,
     FormNumberInputComponent,
@@ -85,41 +98,103 @@ const TYPE_LABELS: Record<LoyaltyTransactionType, string> = {
         </div>
       } @else {
         <div class="space-y-5">
-          <!-- Resumen -->
-          <div class="grid gap-3 sm:grid-cols-3">
-            <div class="bg-primary/10 border-primary/25 rounded-xl border p-4">
-              <p class="text-muted-foreground text-xs font-semibold uppercase">Sellos</p>
-              <p class="font-display mt-1 text-2xl font-bold">
-                {{ summary()?.stampsBalance ?? 0 }}<span class="text-muted-foreground text-sm font-semibold">/{{ stampsPerReward() }}</span>
+          <!-- Tarjeta de sellos: metáfora de tarjeta física troquelada -->
+          <div
+            class="from-primary/15 via-primary/5 border-primary/25 relative overflow-hidden rounded-2xl border bg-gradient-to-br to-transparent p-5"
+          >
+            <lucide-angular
+              [img]="icons.cup"
+              class="text-primary/10 pointer-events-none absolute -top-4 -right-3 h-28 w-28 rotate-12"
+              aria-hidden="true"
+            />
+            <div class="relative flex items-baseline justify-between gap-3">
+              <p class="text-primary text-[11px] font-black tracking-widest uppercase">
+                Tarjeta de sellos
               </p>
-              <div class="bg-muted mt-2 h-2 overflow-hidden rounded-full">
-                <div class="bg-primary h-full rounded-full" [style.width.%]="progressPct()"></div>
+              <p class="font-display text-lg leading-none font-black tabular-nums">
+                {{ summary()?.stampsBalance ?? 0
+                }}<span class="text-muted-foreground text-sm font-bold">/{{ stampsPerReward() }}</span>
+              </p>
+            </div>
+            <div class="relative mt-4 flex flex-wrap gap-2.5">
+              @for (filled of stampSlots(); track $index) {
+                @if (filled) {
+                  <span
+                    class="bg-primary text-primary-foreground ring-primary/30 flex h-10 w-10 items-center justify-center rounded-full shadow-sm ring-2"
+                  >
+                    <lucide-angular [img]="icons.cup" class="h-5 w-5" aria-hidden="true" />
+                  </span>
+                } @else {
+                  <span
+                    class="border-primary/35 text-primary/30 flex h-10 w-10 items-center justify-center rounded-full border-2 border-dashed text-xs font-black tabular-nums"
+                  >
+                    {{ $index + 1 }}
+                  </span>
+                }
+              }
+            </div>
+            <p class="text-muted-foreground relative mt-3 text-[11px]">
+              @if (stampsRemaining() === 0) {
+                Tarjeta completa: la próxima compra genera la recompensa.
+              } @else {
+                {{ stampsRemaining() }}
+                {{ stampsRemaining() === 1 ? 'batido más' : 'batidos más' }} para el siguiente
+                batido gratis.
+              }
+            </p>
+          </div>
+
+          <!-- Métricas históricas -->
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div class="bg-card flex items-center gap-3 rounded-xl border p-3.5">
+              <span class="bg-muted text-muted-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
+                <lucide-angular [img]="icons.medal" class="h-4.5 w-4.5" aria-hidden="true" />
+              </span>
+              <div class="min-w-0">
+                <p class="text-muted-foreground text-[10px] font-bold tracking-wide uppercase">
+                  Sellos ganados (histórico)
+                </p>
+                <p class="font-display text-xl leading-tight font-black tabular-nums">
+                  {{ summary()?.totalStampsEarned ?? 0 }}
+                </p>
               </div>
             </div>
-            <div class="bg-card rounded-xl border p-4">
-              <p class="text-muted-foreground text-xs font-semibold uppercase">Total ganados</p>
-              <p class="font-display mt-1 text-2xl font-bold">{{ summary()?.totalStampsEarned ?? 0 }}</p>
-            </div>
-            <div class="bg-card rounded-xl border p-4">
-              <p class="text-muted-foreground text-xs font-semibold uppercase">Batidos canjeados</p>
-              <p class="font-display mt-1 text-2xl font-bold">{{ summary()?.totalRewardsRedeemed ?? 0 }}</p>
+            <div class="bg-card flex items-center gap-3 rounded-xl border p-3.5">
+              <span class="bg-muted text-muted-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
+                <lucide-angular [img]="icons.gift" class="h-4.5 w-4.5" aria-hidden="true" />
+              </span>
+              <div class="min-w-0">
+                <p class="text-muted-foreground text-[10px] font-bold tracking-wide uppercase">
+                  Batidos canjeados
+                </p>
+                <p class="font-display text-xl leading-tight font-black tabular-nums">
+                  {{ summary()?.totalRewardsRedeemed ?? 0 }}
+                </p>
+              </div>
             </div>
           </div>
 
           <!-- Recompensas vigentes -->
           @if (availableRewards().length > 0) {
-            <div class="border-primary/30 bg-primary/5 rounded-xl border p-4">
-              <p class="text-sm font-bold">
-                🎁 {{ availableRewards().length }}
-                {{ availableRewards().length === 1 ? 'batido gratis disponible' : 'batidos gratis disponibles' }}
-              </p>
-              <ul class="text-muted-foreground mt-1.5 space-y-0.5 text-xs">
-                @for (r of availableRewards(); track r.id) {
-                  <li>
-                    Hasta {{ formatCop(r.rewardValueCop) }} — vence el {{ formatDate(r.expiresAt) }}
-                  </li>
-                }
-              </ul>
+            <div class="border-primary/30 bg-primary/5 flex items-start gap-3 rounded-xl border p-4">
+              <span
+                class="bg-primary text-primary-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-lg shadow-sm"
+              >
+                <lucide-angular [img]="icons.gift" class="h-4.5 w-4.5" aria-hidden="true" />
+              </span>
+              <div class="min-w-0">
+                <p class="text-sm font-bold">
+                  {{ availableRewards().length }}
+                  {{ availableRewards().length === 1 ? 'batido gratis disponible' : 'batidos gratis disponibles' }}
+                </p>
+                <ul class="text-muted-foreground mt-1 space-y-0.5 text-xs">
+                  @for (r of availableRewards(); track r.id) {
+                    <li>
+                      Hasta {{ formatCop(r.rewardValueCop) }} — vence el {{ formatDate(r.expiresAt) }}
+                    </li>
+                  }
+                </ul>
+              </div>
             </div>
           }
 
@@ -130,7 +205,10 @@ const TYPE_LABELS: Record<LoyaltyTransactionType, string> = {
               (ngSubmit)="submitAdjust()"
               class="bg-muted/30 space-y-3 rounded-xl border p-4"
             >
-              <p class="text-xs font-bold tracking-wide uppercase">Ajuste manual de sellos</p>
+              <p class="flex items-center gap-1.5 text-xs font-bold tracking-wide uppercase">
+                <lucide-angular [img]="icons.adjust" class="h-3.5 w-3.5" aria-hidden="true" />
+                Ajuste manual de sellos
+              </p>
               <div class="grid gap-3 sm:grid-cols-[8rem_minmax(0,1fr)_auto]">
                 <mo-form-number-input
                   controlName="delta"
@@ -165,7 +243,10 @@ const TYPE_LABELS: Record<LoyaltyTransactionType, string> = {
 
           <!-- Historial (PLAN-57) -->
           <div>
-            <p class="mb-2 text-xs font-bold tracking-wide uppercase">Historial</p>
+            <p class="mb-2 flex items-center gap-1.5 text-xs font-bold tracking-wide uppercase">
+              <lucide-angular [img]="icons.history" class="h-3.5 w-3.5" aria-hidden="true" />
+              Historial
+            </p>
             @if (transactions().length === 0) {
               <p class="text-muted-foreground rounded-xl border border-dashed p-4 text-center text-sm">
                 Sin movimientos todavía. Los sellos aparecen al comprar batidos del club.
@@ -188,10 +269,24 @@ const TYPE_LABELS: Record<LoyaltyTransactionType, string> = {
                           {{ formatDate(t.createdAt) }} · {{ formatHour(t.createdAt) }}
                         </td>
                         <td moTd>
-                          <p class="font-semibold">{{ typeLabel(t.type) }}</p>
-                          @if (t.reason) {
-                            <p class="text-muted-foreground text-xs">{{ t.reason }}</p>
-                          }
+                          <div class="flex items-start gap-2">
+                            <span
+                              class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md"
+                              [class]="typeIconClass(t.type)"
+                            >
+                              <lucide-angular
+                                [img]="typeIcon(t.type)"
+                                class="h-3.5 w-3.5"
+                                aria-hidden="true"
+                              />
+                            </span>
+                            <span class="min-w-0">
+                              <p class="font-semibold">{{ typeLabel(t.type) }}</p>
+                              @if (t.reason) {
+                                <p class="text-muted-foreground text-xs">{{ t.reason }}</p>
+                              }
+                            </span>
+                          </div>
                         </td>
                         <td
                           moTd
@@ -248,12 +343,48 @@ export class ClienteLoyaltyDialog {
 
   readonly stampsPerReward = computed(() => this.config().sellosParaRecompensa)
 
-  readonly progressPct = computed(() => {
-    const per = this.stampsPerReward()
-    if (per <= 0) return 0
+  /** Casillas de la tarjeta física: true = sello ganado, false = pendiente. */
+  readonly stampSlots = computed<boolean[]>(() => {
+    const per = Math.max(0, this.stampsPerReward())
     const balance = this.summary()?.stampsBalance ?? 0
-    return Math.min(100, Math.round((balance / per) * 100))
+    return Array.from({ length: per }, (_, i) => i < balance)
   })
+
+  readonly stampsRemaining = computed(() =>
+    Math.max(0, this.stampsPerReward() - (this.summary()?.stampsBalance ?? 0)),
+  )
+
+  readonly icons = {
+    cup: CupSoda,
+    gift: Gift,
+    history: History,
+    medal: Medal,
+    adjust: SlidersHorizontal,
+  }
+
+  private readonly typeIcons: Record<LoyaltyTransactionType, typeof Plus> = {
+    earn: Plus,
+    redeem: Gift,
+    void: RotateCcw,
+    adjustment: SlidersHorizontal,
+    expire: TimerOff,
+  }
+
+  private readonly typeIconClasses: Record<LoyaltyTransactionType, string> = {
+    earn: 'bg-emerald-100 text-emerald-700',
+    redeem: 'bg-primary/15 text-primary',
+    void: 'bg-destructive/10 text-destructive',
+    adjustment: 'bg-muted text-muted-foreground',
+    expire: 'bg-amber-100 text-amber-700',
+  }
+
+  typeIcon(type: LoyaltyTransactionType): typeof Plus {
+    return this.typeIcons[type] ?? Minus
+  }
+
+  typeIconClass(type: LoyaltyTransactionType): string {
+    return this.typeIconClasses[type] ?? 'bg-muted text-muted-foreground'
+  }
 
   readonly availableRewards = computed<LoyaltyReward[]>(
     () => this.summary()?.availableRewards ?? [],

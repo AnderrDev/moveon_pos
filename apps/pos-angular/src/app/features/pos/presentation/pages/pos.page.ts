@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { Router } from '@angular/router'
+import { LucideAngularModule, Gift, UserRound } from 'lucide-angular'
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { formatCurrency } from '@/shared/lib/format'
 import { getPaymentMethodLabel, PAYMENT_METHOD_OPTIONS } from '@/shared/lib/payment-methods'
@@ -51,6 +52,7 @@ interface PostSaleOutputJob {
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [PosCartStore],
   imports: [
+    LucideAngularModule,
     SalesHistoryDialog,
     CustomerPickerDialog,
     ClienteFormDialog,
@@ -369,8 +371,9 @@ interface PostSaleOutputJob {
                             <div
                               class="flex items-center justify-between gap-2 rounded-md bg-emerald-500/15 px-2 py-1.5"
                             >
-                              <span class="text-[11px] font-semibold text-emerald-700">
-                                🎁 Premio aplicado · −{{ money(redemption.amount) }}
+                              <span class="flex items-center gap-1 text-[11px] font-semibold text-emerald-700">
+                                <lucide-angular [img]="icons.gift" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                                Premio aplicado · −{{ money(redemption.amount) }}
                               </span>
                               <button
                                 type="button"
@@ -384,9 +387,10 @@ interface PostSaleOutputJob {
                             <button
                               type="button"
                               (click)="redeemLoyaltyReward()"
-                              class="bg-primary text-primary-foreground w-full rounded-md py-1.5 text-xs font-bold transition-all hover:brightness-110"
+                              class="bg-primary text-primary-foreground flex w-full items-center justify-center gap-1.5 rounded-md py-1.5 text-xs font-bold transition-all hover:brightness-110"
                             >
-                              🎁 Canjear batido gratis
+                              <lucide-angular [img]="icons.gift" class="h-3.5 w-3.5" aria-hidden="true" />
+                              Canjear batido gratis
                               @if (summary.availableRewards.length > 1) {
                                 ({{ summary.availableRewards.length }} disponibles)
                               }
@@ -603,6 +607,38 @@ interface PostSaleOutputJob {
               }
             </div>
 
+            <!-- Cliente: última oportunidad de asociarlo antes de confirmar
+                 (después del cobro solo un admin puede corregirlo, RN-S13). -->
+            @if (cart.clienteId()) {
+              <div class="bg-primary/5 border-primary/20 flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5">
+                <span class="flex min-w-0 items-center gap-2">
+                  <lucide-angular [img]="icons.user" class="text-primary h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span class="min-w-0">
+                    <span class="text-muted-foreground block text-[10px] font-semibold tracking-wide uppercase">Cliente</span>
+                    <span class="block truncate text-sm font-semibold">{{ cart.clienteNombre() }}</span>
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  (click)="customerPickerOpen.set(true)"
+                  [disabled]="isSaving()"
+                  class="text-muted-foreground hover:text-primary shrink-0 text-xs font-semibold underline disabled:opacity-50"
+                >
+                  Cambiar
+                </button>
+              </div>
+            } @else {
+              <button
+                type="button"
+                (click)="customerPickerOpen.set(true)"
+                [disabled]="isSaving()"
+                class="text-muted-foreground hover:border-primary hover:text-primary flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed py-2.5 text-xs font-semibold transition-colors disabled:opacity-50"
+              >
+                <lucide-angular [img]="icons.user" class="h-4 w-4" aria-hidden="true" />
+                Asociar cliente a esta venta
+              </button>
+            }
+
             @if (cart.payments().length > 0) {
               <div class="space-y-1.5">
                 @for (payment of cart.payments(); track $index) {
@@ -699,7 +735,10 @@ interface PostSaleOutputJob {
 
             @if (cart.loyaltyRedemption(); as redemption) {
               <div class="flex items-center justify-between rounded-xl border border-emerald-600/30 bg-emerald-500/10 px-3 py-2">
-                <span class="text-xs font-bold text-emerald-700">🎁 Canje MOVE ON Club</span>
+                <span class="flex items-center gap-1.5 text-xs font-bold text-emerald-700">
+                  <lucide-angular [img]="icons.gift" class="h-3.5 w-3.5" aria-hidden="true" />
+                  Canje MOVE ON Club
+                </span>
                 <span class="text-xs font-semibold text-emerald-700 tabular-nums">
                   −{{ money(redemption.amount) }}
                 </span>
@@ -946,6 +985,8 @@ export class PosPage {
   readonly pendingReceiptOutput = signal<PostSaleOutputJob | null>(null)
   readonly openingCashDrawer = signal(false)
   readonly customerPickerOpen = signal(false)
+
+  readonly icons = { gift: Gift, user: UserRound }
   readonly customerFormOpen = signal(false)
   readonly loyaltySummary = signal<LoyaltySummary | null>(null)
   readonly loyaltyLoading = signal(false)
