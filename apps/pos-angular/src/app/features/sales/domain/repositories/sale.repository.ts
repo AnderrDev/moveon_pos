@@ -20,4 +20,15 @@ export abstract class SaleRepository {
     newMetodo: string,
     reason: string,
   ): Promise<void>
+  /**
+   * Asocia retroactivamente un cliente a una venta completada sin cliente
+   * (se olvidó en el cobro). Solo funciona si la venta no tiene ya un
+   * cliente asociado — reasignar de un cliente a otro no está soportado.
+   */
+  abstract correctSaleCustomer(
+    saleId: string,
+    tiendaId: string,
+    clienteId: string,
+    reason: string,
+  ): Promise<void>
 }

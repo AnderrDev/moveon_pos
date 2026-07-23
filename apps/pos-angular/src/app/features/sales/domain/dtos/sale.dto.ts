@@ -20,18 +20,31 @@ const paymentInputSchema = z.object({
   referencia: z.string().optional(),
 })
 
-export const createSaleSchema = z.object({
-  cashSessionId:  z.string().uuid('Sesión de caja inválida'),
-  clienteId:      z.string().uuid().optional(),
-  items:          z.array(saleItemSchema).min(1, 'La venta necesita al menos un ítem'),
-  payments:       z.array(paymentInputSchema).min(1, 'Se requiere al menos un pago'),
-  subtotal:       z.number().nonnegative(),
-  discountTotal:  z.number().nonnegative(),
-  taxTotal:       z.number().nonnegative(),
-  total:          z.number().nonnegative(),
-  change:         z.number().nonnegative(),
-  idempotencyKey: z.string().min(1),
-})
+export const createSaleSchema = z
+  .object({
+    cashSessionId:  z.string().uuid('Sesión de caja inválida'),
+    clienteId:      z.string().uuid().optional(),
+    items:          z.array(saleItemSchema).min(1, 'La venta necesita al menos un ítem'),
+    payments:       z.array(paymentInputSchema),
+    subtotal:       z.number().nonnegative(),
+    discountTotal:  z.number().nonnegative(),
+    taxTotal:       z.number().nonnegative(),
+    total:          z.number().nonnegative(),
+    change:         z.number().nonnegative(),
+    idempotencyKey: z.string().min(1),
+  })
+  .superRefine((data, ctx) => {
+    // Un canje/descuento puede cubrir el 100% del total (RN-LF: "hasta $X"
+    // del valor de la recompensa): la venta queda en $0 y no hay nada que
+    // pagar. Solo se exige al menos un pago cuando el total es > 0.
+    if (data.payments.length === 0 && data.total > 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['payments'],
+        message: 'Se requiere al menos un pago',
+      })
+    }
+  })
 
 export const voidSaleSchema = z.object({
   saleId:       z.string().uuid(),
@@ -51,3 +64,15 @@ export const correctPaymentSchema = z.object({
 })
 
 export type CorrectPaymentDto  = z.infer<typeof correctPaymentSchema>
+
+export const correctSaleCustomerSchema = z.object({
+  saleId:    z.string().uuid('ID de venta inválido'),
+  clienteId: z.string().uuid('Cliente inválido'),
+  reason: z
+    .string()
+    .trim()
+    .min(10, 'El motivo debe tener al menos 10 caracteres')
+    .max(200, 'El motivo no puede superar 200 caracteres'),
+})
+
+export type CorrectSaleCustomerDto = z.infer<typeof correctSaleCustomerSchema>

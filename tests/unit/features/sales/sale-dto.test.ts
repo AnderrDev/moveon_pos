@@ -3,6 +3,7 @@ import {
   createSaleSchema,
   voidSaleSchema,
   correctPaymentSchema,
+  correctSaleCustomerSchema,
 } from '@angular-app/features/sales/domain/dtos/sale.dto'
 
 const uuid = '11111111-1111-4111-8111-111111111111'
@@ -52,6 +53,19 @@ describe('createSaleSchema', () => {
     }
   })
 
+  it('acepta una venta sin pagos cuando el total queda en $0 (canje cubre el 100%)', () => {
+    const result = createSaleSchema.safeParse({
+      ...validSale,
+      items: [{ ...validSale.items[0], discountAmount: 100000, total: 0 }],
+      payments: [],
+      subtotal: 100000,
+      discountTotal: 100000,
+      taxTotal: 0,
+      total: 0,
+    })
+    expect(result.success).toBe(true)
+  })
+
   it('rechaza montos de pago negativos', () => {
     const result = createSaleSchema.safeParse({
       ...validSale,
@@ -60,6 +74,34 @@ describe('createSaleSchema', () => {
     expect(result.success).toBe(false)
     if (!result.success) {
       expect(result.error.issues[0].path).toEqual(['payments', 0, 'amount'])
+    }
+  })
+})
+
+describe('correctSaleCustomerSchema', () => {
+  const validPayload = {
+    saleId:    uuid,
+    clienteId: '22222222-2222-4222-8222-222222222222',
+    reason:    'El cliente llegó a caja después del cobro',
+  }
+
+  it('acepta una corrección válida', () => {
+    expect(correctSaleCustomerSchema.safeParse(validPayload).success).toBe(true)
+  })
+
+  it('rechaza clienteId que no es UUID', () => {
+    const result = correctSaleCustomerSchema.safeParse({ ...validPayload, clienteId: 'no-es-uuid' })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues[0].message).toMatch(/Cliente inválido/)
+    }
+  })
+
+  it('rechaza motivo con menos de 10 caracteres', () => {
+    const result = correctSaleCustomerSchema.safeParse({ ...validPayload, reason: 'corto' })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues[0].message).toMatch(/al menos 10 caracteres/)
     }
   })
 })

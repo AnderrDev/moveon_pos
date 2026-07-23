@@ -121,7 +121,11 @@ Los RPC leen esta config al momento de otorgar/generar — no hay valores hardco
   genera sello, aunque el producto participe.
 - **RN-LF03:** Los sellos se otorgan dentro de la misma transacción SQL que crea la venta
   (`create_sale_atomic` extendido llama a `register_loyalty_stamps`). No existe un paso
-  posterior desacoplado — evita ventanas de venta sin sellos por fallos de red.
+  posterior desacoplado — evita ventanas de venta sin sellos por fallos de red. **Única
+  excepción (2026-07-23):** si la venta se completó sin cliente (se olvidó en el cobro),
+  `correct_sale_customer_atomic` (RN-S13 en `docs/modules/sales.md`) puede otorgar esos
+  sellos retroactivamente al asociar el cliente después — protegido por el mismo índice
+  único de RN-LF04, así que no puede otorgarlos dos veces.
 - **RN-LF04:** Un mismo `sale_id` no puede generar sellos más de una vez. Índice único parcial
   `loyalty_transactions(sale_id) where type = 'earn'`.
 - **RN-LF05:** La línea que redime una recompensa (`sale_items.loyalty_reward_id is not null`)

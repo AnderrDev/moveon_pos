@@ -58,20 +58,18 @@ const rpcInputSchema = z.object({
       })
     )
     .min(1, 'La venta necesita al menos un ítem'),
-  payments: z
-    .array(
-      z.object({
-        metodo: z.enum(['cash', 'card', 'transfer', 'other']),
-        amount: z.number().positive(),
-        referencia: z.string().nullable().optional(),
-      })
-    )
-    .min(1, 'Se requiere al menos un pago'),
+  payments: z.array(
+    z.object({
+      metodo: z.enum(['cash', 'card', 'transfer', 'other']),
+      amount: z.number().positive(),
+      referencia: z.string().nullable().optional(),
+    })
+  ),
   totals: z.object({
     subtotal: z.number().nonnegative(),
     discountTotal: z.number().nonnegative(),
     taxTotal: z.number().nonnegative(),
-    total: z.number().positive(),
+    total: z.number().nonnegative(),
   }),
   globalDiscountTotal: z.number().nonnegative(),
   discountReason: z.string().trim().min(3, 'Escribe el motivo del descuento').nullable(),
@@ -83,6 +81,17 @@ const rpcInputSchema = z.object({
       })
     )
     .default([]),
+}).superRefine((data, ctx) => {
+  // Un canje/descuento puede cubrir el 100% del total (RN-LF: "hasta $X" del
+  // valor de la recompensa): en ese caso la venta queda en $0 y no hay nada
+  // que pagar. Solo se exige al menos un pago cuando el total es > 0.
+  if (data.payments.length === 0 && data.totals.total > 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['payments'],
+      message: 'Se requiere al menos un pago',
+    })
+  }
 })
 
 @Injectable({ providedIn: 'root' })

@@ -98,7 +98,7 @@ Toda creación de venta requiere `idempotencyKey`. Si llega una segunda request 
 
 ### RN-S06: Inmutabilidad post-creación
 
-Una venta `completed` no se puede editar. Solo se puede anular (que crea registros adicionales pero no modifica los originales, excepto los campos `voided_*` y `status`).
+Una venta `completed` no se puede editar. Solo se puede anular (que crea registros adicionales pero no modifica los originales, excepto los campos `voided_*` y `status`), o corregir vía las RPC de corrección auditada (ver RN-S13): `correct_payment_atomic` (`payments.metodo`) y `correct_sale_customer_atomic` (`sales.cliente_id`, solo si era `null`).
 
 ### RN-S07: Anulación reversa el inventario
 
@@ -133,6 +133,16 @@ Cada venta registra obligatoriamente el `cashier_id` del usuario autenticado y u
 ### RN-S12: Historial operativo del turno
 
 El historial del turno muestra por venta: productos y cantidades, precios, descuentos, IVA incluido, total, pagos y referencias, cambio entregado, cliente, usuario responsable, fecha, estado y motivo de anulación. El cambio histórico se reconstruye como `max(0, suma de pagos - total)`.
+
+### RN-S13: Asociar cliente retroactivamente (2026-07-23)
+
+Si el cajero olvidó asociar el cliente en el cobro, un admin puede corregirlo después vía `correct_sale_customer_atomic(sale_id, tienda_id, cliente_id, corrected_by, reason)` — mismo patrón que `correct_payment_atomic` (rol admin, motivo mínimo 10 caracteres, evento en `audit_logs`).
+
+- **Alcance acotado a propósito:** solo funciona si `sales.cliente_id` era `null`. Reasignar de un cliente A a un cliente B no está soportado (revertir los sellos ya otorgados a A es un caso distinto, fuera de este alcance) — el RPC rechaza la venta si ya tiene cliente.
+- **Sellos retroactivos del Club MOVE ON:** si algún `sale_item` participaba en fidelización (misma elegibilidad que `create_sale_atomic`: sin descuento de línea ni global, RN-LF01/02/05 en `docs/modules/loyalty.md`), el RPC otorga esos sellos en la misma transacción, sujeto a que el cliente esté activo, haya autorizado fidelización, y el programa siga activo. Si no cumple, el cliente queda asociado pero sin sellos.
+- **Idempotente:** un segundo intento sobre la misma venta falla (ya tiene cliente) — no puede otorgar sellos dos veces. `loyalty_transactions` tiene una restricción única por `sale_id` para `type = 'earn'` que además protege contra doble conteo si esta corrección coincidiera alguna vez con un reintento de `create_sale_atomic`.
+- **Nota:** `participa_fidelizacion` se evalúa contra el estado *actual* del producto — `sale_items` no guarda una foto histórica de ese flag (igual que el ajuste manual de sellos, RN-LF16).
+- **UI:** botón "Asociar cliente" en el detalle de la venta (`/caja` → Ventas del turno), visible solo cuando la venta está `completed` y sin cliente. Reusa `CustomerPickerDialog` (búsqueda) + un diálogo de motivo dedicado (`CorrectSaleCustomerDialog`).
 
 ---
 

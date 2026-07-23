@@ -15,12 +15,20 @@ import { BadgeComponent } from '@angular-app/shared/atoms/badge.component'
 import { SaleRepository } from '@angular-app/features/sales/domain/repositories/sale.repository'
 import { voidSale } from '@angular-app/features/sales/domain/usecases/void-sale.use-case'
 import { correctPayment } from '@angular-app/features/sales/domain/usecases/correct-payment.use-case'
+import { correctSaleCustomer } from '@angular-app/features/sales/domain/usecases/correct-sale-customer.use-case'
 import { SessionService } from '@angular-app/core/auth/session.service'
-import { canVoidSale, canCorrectPayment } from '@angular-app/core/auth/role-policy'
+import {
+  canVoidSale,
+  canCorrectPayment,
+  canCorrectSaleCustomer,
+} from '@angular-app/core/auth/role-policy'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import { ReceiptPrintService } from '@angular-app/core/printing/receipt-print.service'
 import { VoidReasonDialog } from '@angular-app/shared/organisms/void-reason/void-reason.dialog'
 import { CorrectPaymentDialog } from '@angular-app/features/pos/presentation/dialogs/correct-payment.dialog'
+import { CustomerPickerDialog } from '@angular-app/features/pos/presentation/dialogs/customer-picker.dialog'
+import { CorrectSaleCustomerDialog } from '@angular-app/features/pos/presentation/dialogs/correct-sale-customer.dialog'
+import type { Cliente } from '@angular-app/features/customers/domain/entities/cliente.entity'
 import { selectSessionSales } from '@angular-app/features/pos/presentation/services/sales-history-session-filter'
 import { formatCurrency, formatShortDate, formatTime } from '@/shared/lib/format'
 import { PAYMENT_METHOD_CLOSURE_OPTIONS, getPaymentMethodLabel } from '@/shared/lib/payment-methods'
@@ -35,7 +43,15 @@ import { buildTurnSalesWorkbook } from '@angular-app/shared/services/export/turn
   selector: 'mo-sales-history-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DialogComponent, ButtonComponent, BadgeComponent, VoidReasonDialog, CorrectPaymentDialog],
+  imports: [
+    DialogComponent,
+    ButtonComponent,
+    BadgeComponent,
+    VoidReasonDialog,
+    CorrectPaymentDialog,
+    CustomerPickerDialog,
+    CorrectSaleCustomerDialog,
+  ],
   template: `
     <mo-dialog
       [open]="open()"
@@ -418,6 +434,11 @@ import { buildTurnSalesWorkbook } from '@angular-app/shared/services/export/turn
                     >
                       Reimprimir tirilla
                     </mo-button>
+                    @if (sale.status === 'completed' && !sale.clienteId && canCorrectSaleCustomerComputed()) {
+                      <mo-button size="sm" variant="outline" (click)="openAssociateCustomer(sale)">
+                        Asociar cliente
+                      </mo-button>
+                    }
                     @if (sale.status === 'completed' && canVoid()) {
                       <mo-button size="sm" variant="destructive" (click)="confirmVoid(sale)">
                         Anular venta
@@ -448,6 +469,21 @@ import { buildTurnSalesWorkbook } from '@angular-app/shared/services/export/turn
       [saleNumber]="correctPaymentTarget()?.saleNumber ?? null"
       (closed)="correctPaymentDialogOpen.set(false)"
       (confirmed)="onCorrectPaymentConfirmed($event)"
+    />
+
+    <mo-customer-picker-dialog
+      [open]="customerPickerOpen()"
+      (closed)="customerPickerOpen.set(false)"
+      (selected)="onCustomerPicked($event)"
+      (createRequested)="onCustomerCreateRequested()"
+    />
+
+    <mo-correct-sale-customer-dialog
+      [open]="correctCustomerDialogOpen()"
+      [saleNumber]="correctCustomerTarget()?.sale?.saleNumber ?? null"
+      [clienteNombre]="correctCustomerTarget()?.cliente?.nombre ?? null"
+      (closed)="correctCustomerDialogOpen.set(false)"
+      (confirmed)="onCorrectCustomerConfirmed($event)"
     />
   `,
 })
@@ -507,6 +543,15 @@ export class SalesHistoryDialog {
   } | null>(null)
   readonly correctPaymentDialogOpen = signal(false)
 
+  /** Solo admin puede asociar retroactivamente un cliente (defensa en cliente; RLS protege en servidor). */
+  readonly canCorrectSaleCustomerComputed = computed(() => canCorrectSaleCustomer(this.session.role()))
+
+  /** Venta pendiente de asociar cliente + selector de cliente + dialog de motivo. */
+  readonly customerPickerOpen = signal(false)
+  readonly correctCustomerTarget = signal<{ sale: Sale; cliente: Cliente } | null>(null)
+  readonly correctCustomerDialogOpen = signal(false)
+  private pendingSaleForCustomer: Sale | null = null
+
   constructor() {
     // Asegura que el rol esté cargado para la visibilidad reactiva del botón (OnPush).
     void this.session.getRole()
@@ -527,6 +572,11 @@ export class SalesHistoryDialog {
         // No dejar el dialog de corrección colgado si se cierra el historial.
         this.correctPaymentDialogOpen.set(false)
         this.correctPaymentTarget.set(null)
+        // No dejar el flujo de asociar cliente colgado si se cierra el historial.
+        this.customerPickerOpen.set(false)
+        this.correctCustomerDialogOpen.set(false)
+        this.correctCustomerTarget.set(null)
+        this.pendingSaleForCustomer = null
         return
       }
       void this.load()
@@ -733,6 +783,54 @@ export class SalesHistoryDialog {
       this.changed.emit()
     } catch (error) {
       this.toast.error(getErrorMessage(error, 'No se pudo corregir el pago'))
+    }
+  }
+
+  openAssociateCustomer(sale: Sale): void {
+    // Defensa en profundidad: cortocircuitar si el rol no puede corregir ANTES de abrir.
+    if (!canCorrectSaleCustomer(this.session.role())) return
+
+    this.pendingSaleForCustomer = sale
+    this.customerPickerOpen.set(true)
+  }
+
+  onCustomerPicked(cliente: Cliente): void {
+    const sale = this.pendingSaleForCustomer
+    if (!sale) return
+    this.correctCustomerTarget.set({ sale, cliente })
+    this.correctCustomerDialogOpen.set(true)
+  }
+
+  onCustomerCreateRequested(): void {
+    this.toast.info('Crea el cliente desde el módulo Clientes y vuelve a intentar')
+  }
+
+  async onCorrectCustomerConfirmed(reason: string): Promise<void> {
+    // Defensa en profundidad: re-verificar el rol antes de ejecutar la corrección.
+    if (!canCorrectSaleCustomer(await this.session.getRole())) return
+
+    const target = this.correctCustomerTarget()
+    if (!target) return
+
+    const auth = await this.session.getAuthContext()
+    if (!auth) return
+
+    try {
+      const result = await correctSaleCustomer(
+        { repo: this.salesRepo, tiendaId: auth.tiendaId },
+        { saleId: target.sale.id, clienteId: target.cliente.id, reason },
+      )
+      if (!result.ok) {
+        this.toast.error(result.error.message)
+        return
+      }
+      this.toast.success(`Cliente ${target.cliente.nombre} asociado a la venta ${target.sale.saleNumber}`)
+      this.correctCustomerTarget.set(null)
+      this.pendingSaleForCustomer = null
+      await this.load()
+      this.changed.emit()
+    } catch (error) {
+      this.toast.error(getErrorMessage(error, 'No se pudo asociar el cliente'))
     }
   }
 }

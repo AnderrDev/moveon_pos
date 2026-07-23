@@ -119,4 +119,25 @@ export class SalesRepository extends SaleRepositoryContract {
     })
     if (error) throw new Error(error.message)
   }
+
+  async correctSaleCustomer(
+    saleId: string,
+    tiendaId: string,
+    clienteId: string,
+    reason: string,
+  ): Promise<void> {
+    const { data: userData } = await this.supabaseClient.supabase.auth.getUser()
+    const userId = userData.user?.id
+    if (!userId) throw new Error('No autenticado')
+
+    const client = this.supabaseClient.supabase as unknown as RpcClient
+    const { error } = await client.rpc<void>('correct_sale_customer_atomic', {
+      p_sale_id:      saleId,
+      p_tienda_id:    tiendaId,
+      p_cliente_id:   clienteId,
+      p_corrected_by: userId,
+      p_reason:       reason,
+    })
+    if (error) throw new Error(error.message)
+  }
 }
