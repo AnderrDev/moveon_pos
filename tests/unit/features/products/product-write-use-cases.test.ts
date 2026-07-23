@@ -125,6 +125,15 @@ describe('createCategoria / updateCategoria', () => {
     const result = await updateCategoria({ repo }, categoria.id, tiendaId, { nombre: 'Creatinas' })
     expect(result).toEqual({ ok: true, value: categoria })
   })
+
+  it('rechaza actualización con nombre vacío sin llamar al repositorio', async () => {
+    let called = false
+    const repo = { updateCategoria: async () => { called = true; return categoria } }
+    const result = await updateCategoria({ repo }, categoria.id, tiendaId, { nombre: '   ' })
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.error.code).toBe('validation')
+    expect(called).toBe(false)
+  })
 })
 
 describe('deactivateCategoria', () => {
