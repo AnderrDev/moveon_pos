@@ -56,7 +56,7 @@ type LookupState = 'idle' | 'loading' | 'found' | 'notFound' | 'error'
     .club-grid {
       display: grid;
       gap: clamp(28px, 4vw, 56px);
-      align-items: start;
+      align-items: center;
     }
     @media (min-width: 900px) {
       .club-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 460px); }
@@ -156,12 +156,12 @@ type LookupState = 'idle' | 'loading' | 'found' | 'notFound' | 'error'
       background: #f9d128;
       color: #000;
       box-shadow: 0 24px 60px -18px rgba(249, 209, 40, 0.35);
-      transform: rotate(-1.2deg);
+      margin: 0 auto;
       animation: club-pop 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2);
     }
     @keyframes club-pop {
-      from { opacity: 0; transform: rotate(-1.2deg) translateY(16px) scale(0.96); }
-      to { opacity: 1; transform: rotate(-1.2deg); }
+      from { opacity: 0; transform: translateY(16px) scale(0.96); }
+      to { opacity: 1; transform: none; }
     }
     .club-card-head {
       display: flex;
@@ -271,6 +271,8 @@ type LookupState = 'idle' | 'loading' | 'found' | 'notFound' | 'error'
 
     /* Tarjeta fantasma (estado inicial): promete el resultado. */
     .club-ghost {
+      margin: 0 auto;
+      width: 100%;
       border: 2px dashed rgba(255, 255, 255, 0.18);
       color: rgba(255, 255, 255, 0.4);
       min-height: 240px;
