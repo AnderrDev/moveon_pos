@@ -69,6 +69,23 @@
 
 ---
 
+## 3.1 PLAN-70 implementado en esta misma sesión (ADR 0016)
+
+- Migración `20260723020000_storefront_club_progress.sql`: RPC pública por celular,
+  proyección mínima, sin oráculo de existencia. **Aplicada solo a local** — probada como
+  `anon` vía REST: encontrado (7/8 sellos), no registrado, entrada basura y sin autorización
+  devuelven lo esperado; lectura directa de `loyalty_*` como anon sigue bloqueada por RLS.
+- `apps/landing-web/src/app/features/club/`: `club-progress.service.ts` +
+  `club-progress.component.ts` (sección `#club` con tarjeta de sellos amarilla, animación de
+  estampado, mensajes genéricos, nota de privacidad). Link "Mi Club" en la navegación.
+- Gotcha encontrado: la encapsulación de estilos de Angular impide usar las clases `mo3-*`
+  del catálogo dentro del componente hijo — se replicaron los tokens localmente (las
+  variables `--mo-fs-*` sí cascadean).
+- De paso: el typecheck del landing estaba roto desde antes (3 errores en
+  `catalogo.service.ts` por tipos generados desactualizados — el landing no corre en el
+  `pnpm typecheck` principal). Corregido con casts estructurales; considerar agregar
+  `typecheck:landing` al pipeline habitual.
+
 ## 4. Pendientes heredados
 
 - Commit de TODO lo acumulado desde ayer (fix canje $0, RN-S13 retroactivo, migración

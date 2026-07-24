@@ -7,6 +7,7 @@ import {
   signal,
 } from '@angular/core'
 import { CommonModule } from '@angular/common'
+import { ClubProgressComponent } from '../club/club-progress.component'
 import {
   CatalogoService,
   type CatalogoProducto,
@@ -45,7 +46,7 @@ interface CategoryChip {
   selector: 'mo-catalogo-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule],
+  imports: [CommonModule, ClubProgressComponent],
   template: `
 <!-- ── ESTILOS (diseño oficial: Catalogo Move On v4) ─────────── -->
 <!-- Las fuentes de Google (Montserrat) se cargan desde index.html -->
@@ -262,6 +263,7 @@ interface CategoryChip {
       <nav id="catalog-mobile-menu" class="mo3-nav" aria-label="Secciones del catálogo">
         <a href="#catalogo" class="mo3-navlink" (click)="closeMobileMenu()">Catálogo</a>
         <a href="#batidos" class="mo3-navlink" (click)="closeMobileMenu()">Batidos</a>
+        <a href="#club" class="mo3-navlink" (click)="closeMobileMenu()">Mi Club</a>
         <a href="#cafe" class="mo3-navlink" (click)="closeMobileMenu()">Café</a>
         <a href="#ubicacion" class="mo3-navlink" (click)="closeMobileMenu()">Ubicación</a>
         <a href="#contacto" class="mo3-navlink" (click)="closeMobileMenu()">Contacto</a>
@@ -547,6 +549,9 @@ interface CategoryChip {
       <a [href]="waBatidos()" target="_blank" rel="noopener" class="mo3-blackbtn">Pedir por WhatsApp →</a>
     </div>
   </section>
+
+  <!-- ══ MI CLUB (ADR 0016) ══ -->
+  <mo-club-progress />
 
   <!-- ══ CAFÉ Y SNACKS ══ -->
   <section id="cafe" style="border-bottom:1px solid rgba(255,255,255,.12);">

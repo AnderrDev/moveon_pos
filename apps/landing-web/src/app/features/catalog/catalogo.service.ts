@@ -61,7 +61,9 @@ export class CatalogoService {
       categoria_nombre: string | null
       categoria_orden: number | null
     }
-    const rows: ProductRow[] = data ?? []
+    // Los tipos generados de vistas marcan todo nullable (Postgres no infiere
+    // not-null en vistas); las filas reales vienen de productos activos.
+    const rows = (data ?? []) as ProductRow[]
 
     const categoriaMap = new Map<string, CatalogoCategoria>()
     const sinCategoria: CatalogoProducto[] = []
@@ -107,7 +109,33 @@ export class CatalogoService {
   }
 
   async getContactSettings(): Promise<CatalogoContactSettings | null> {
-    const { data, error } = await this.db.supabase
+    // `storefront_contact_settings` no está en database.types.ts (generado
+    // antes de esa migración): cast estructural, mismo patrón que los repos
+    // del POS para tablas fuera de los tipos generados.
+    interface ContactClient {
+      from(table: 'storefront_contact_settings'): {
+        select(cols: string): {
+          eq(
+            col: 'is_active',
+            value: boolean,
+          ): {
+            order(
+              col: string,
+              opts: { ascending: boolean },
+            ): {
+              limit(n: number): {
+                maybeSingle<T>(): Promise<{
+                  data: T | null
+                  error: { message: string } | null
+                }>
+              }
+            }
+          }
+        }
+      }
+    }
+    const client = this.db.supabase as unknown as ContactClient
+    const { data, error } = await client
       .from('storefront_contact_settings')
       .select('whatsapp_number, whatsapp_display, instagram_url, instagram_handle')
       .eq('is_active', true)

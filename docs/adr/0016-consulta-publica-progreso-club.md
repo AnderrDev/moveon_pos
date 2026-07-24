@@ -3,7 +3,7 @@
 | Campo | Valor |
 |---|---|
 | Fecha | 2026-07-23 |
-| Estado | **Propuesto** — pendiente de implementación (PLAN-70) |
+| Estado | **Aceptado** (2026-07-23) — implementado en PLAN-70; migración aplicada a local, pendiente prod |
 | Decisores | Dueño del negocio (directriz de transparencia) + Arquitecto (Claude) |
 | Relacionado | ADR 0013 (MOVE ON Club), `docs/modules/loyalty.md`, catálogo público (`apps/landing-web`) |
 
