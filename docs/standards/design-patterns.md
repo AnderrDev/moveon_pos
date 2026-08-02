@@ -8,19 +8,19 @@
 
 **Qué resuelve:** desacopla la lógica de negocio del acceso a datos.
 
-**Dónde:** `src/modules/<modulo>/domain/repositories/` (interfaz) y `src/modules/<modulo>/infrastructure/repositories/` (implementación).
+**Dónde:** `features/<feature>/domain/repositories/` (contrato como `abstract class`, ADR 0015 §6.1) y `features/<feature>/data/repositories/` (implementación `@Injectable` que `extends` el contrato). El binding vive en `<feature>.providers.ts`.
 
 ```
-ProductRepository (interfaz en domain)
+ProductRepository (abstract class en domain/ — también es el token de DI)
     ↑
-SupabaseProductRepository (implementación en infrastructure)
+ProductsRepository (implementación Supabase en data/)
 InMemoryProductRepository (implementación para tests)
 ```
 
 **Reglas:**
-- La interfaz solo define operaciones de negocio, no operaciones SQL.
-- El método de retorno es siempre `Promise<Result<T, E>>`.
-- Los repositories nunca devuelven tipos de Supabase (`PostgrestError`, etc.). Mapean a errores de dominio.
+- El contrato solo define operaciones de negocio, no operaciones SQL.
+- Es `abstract class` (no `interface`): existe en runtime y sirve como token del inyector sin meter Angular al dominio.
+- Los repositories nunca devuelven tipos de Supabase (`PostgrestError`, etc.). Mapean a entidades/errores de dominio.
 
 ---
 
@@ -28,7 +28,7 @@ InMemoryProductRepository (implementación para tests)
 
 **Qué resuelve:** conecta el sistema con servicios externos sin contaminar el dominio.
 
-**Dónde:** `src/modules/<modulo>/infrastructure/adapters/`.
+**Dónde:** contrato en `features/<feature>/domain/repositories/`, adaptador en `features/<feature>/data/datasources|repositories/`. Si la capacidad es transversal a varias features, vive en `core/` (ej. real: impresión QZ Tray en `core/printing/`, ADR 0010).
 
 ```typescript
 // Interfaz en dominio
@@ -85,7 +85,7 @@ const err = <E>(error: E): Result<never, E> => ({ ok: false, error });
 **Dónde:** método estático `create()` en las entidades del dominio.
 
 ```typescript
-// src/modules/sales/domain/entities/sale.entity.ts
+// features/sales/domain/entities/sale.entity.ts (ejemplo ilustrativo)
 export class Sale {
   private constructor(
     public readonly id: string,
@@ -128,10 +128,10 @@ export class Sale {
 
 **Qué resuelve:** traduce entre la representación de DB y la entidad de dominio.
 
-**Dónde:** `src/modules/<modulo>/infrastructure/mappers/`.
+**Dónde:** `features/<feature>/data/models/` — única frontera fila-DB ↔ entidad; el `snake_case` muere aquí.
 
 ```typescript
-// src/modules/products/infrastructure/mappers/product.mapper.ts
+// features/products/data/models/product.mapper.ts
 import type { Database } from '@/infrastructure/supabase/database.types';
 import { Product } from '../../domain/entities/product.entity';
 

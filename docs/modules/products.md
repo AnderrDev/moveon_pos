@@ -41,7 +41,7 @@ Ver `/docs/03-data-model.md` tablas `categorias` y `productos`.
 ## Importación CSV (v1.0) — Migración desde Siigo (PLAN-18)
 
 Script CLI local que importa el catálogo de Siigo a Supabase. Toda la lógica de
-parseo/validación/mapeo vive en el **módulo puro** `src/modules/products/import/siigo-csv.ts`
+parseo/validación/mapeo vive en el **módulo puro** `apps/pos-angular/src/app/features/products/data/import/siigo-csv.ts`
 (TS, sin Node/Supabase/Angular, testeable con vitest). El **script** `scripts/import-siigo-csv.mjs`
 es el único lugar que usa el SERVICE ROLE y conecta a Supabase.
 

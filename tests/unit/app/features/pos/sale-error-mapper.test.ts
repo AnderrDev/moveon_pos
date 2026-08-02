@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   mapSaleError,
   type SaleErrorCartItem,
-} from '../../../../../apps/pos-angular/src/app/features/pos/sale-error-mapper'
+} from '@angular-app/features/pos/presentation/services/sale-error-mapper'
 
 const item = (
   nombre: string,

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router'
 import { SessionService } from '../auth/session.service'
-import { ToastHostComponent } from '../../shared/feedback/toast-host.component'
+import { ToastHostComponent } from '../../shared/organisms/toast/toast-host.component'
 
 interface NavItem {
   label: string

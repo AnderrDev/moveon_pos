@@ -7,7 +7,7 @@ import {
   monthEnd,
   prevMonthStart,
   resolvePreset,
-} from '@angular-app/features/reports/report-period.helpers'
+} from '@angular-app/features/reports/presentation/services/report-period.helpers'
 
 // ─── isoDate ──────────────────────────────────────────────────────────────
 

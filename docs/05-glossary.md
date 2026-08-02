@@ -52,10 +52,10 @@
 
 | Término | Definición |
 |---|---|
-| **Módulo** | Bounded context de negocio. Cada módulo tiene su propia carpeta en `src/modules/`. |
+| **Módulo / Feature** | Bounded context de negocio. Cada feature es autocontenida en `apps/pos-angular/src/app/features/<feature>/{domain,data,presentation}` (ADR 0015). |
 | **Dominio** | Capa con entidades y reglas de negocio puras, sin dependencias de frameworks. |
 | **Use case** | Caso de uso. Orquesta lógica del dominio para responder a una acción concreta del usuario. |
-| **Repositorio** | Interfaz para persistir/leer entidades. Implementación vive en `infrastructure/`. |
+| **Repositorio** | Contrato (`abstract class`) para persistir/leer entidades, en `domain/repositories/`. Implementación Supabase vive en `data/repositories/`. |
 | **Adapter** | Implementación concreta de una interfaz para integrar con un sistema externo. |
 | **Server Action** | Función Next.js ejecutada en server, llamable desde componentes cliente. |
 | **Edge Function** | Función Supabase que corre cerca de la DB, en infra Deno. |

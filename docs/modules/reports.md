@@ -43,12 +43,12 @@ Componentes presentacionales:
 - `stock-report-table.component.ts` — tabla del tab Stock. El selector de período está oculto en este tab (el stock es estado actual).
 - `report-period.helpers.ts` — TS puro con lógica de fechas/presets y tipos `TabId`, `Preset`, `SalesSubTabId`, `SalesStatusFilter`.
 
-`reports.service.ts` sigue siendo el único punto de acceso a datos del módulo; si se divide en el futuro es un ticket aparte.
+`features/reports/data/repositories/reports.repository.ts` (`ReportsRepository`, implementación del contrato `ReportRepository` de `domain/repositories/` — ex `reports.service.ts`) sigue siendo el único punto de acceso a datos del módulo; si se divide en el futuro es un ticket aparte.
 
 ## Tendencia: ventas por hora y por día (PLAN-38)
 
 - `ReportsService.getDailyReport` agrega dos campos a `DailyReport`: `hourlySales` (ventas completadas por hora local `0..23`, sumadas entre todos los días del período) y `dailySales` (ventas completadas por día calendario local `YYYY-MM-DD`). Se calculan en cliente sobre las mismas `sales` ya cargadas para el período — cero queries nuevas a Supabase.
-- La agregación pura vive en `src/modules/reports/domain/services/sales-trend.ts` (`groupSalesByLocalHour`, `groupSalesByLocalDay`), mismo patrón que `group-sales-by-cashier.ts`: TS puro, sin Angular/Supabase, usa `Intl.DateTimeFormat` con `timeZone` explícito (la misma `timezone` ya resuelta por `TiendaInfoService` al inicio de `getDailyReport`) para bucketear por hora/día LOCAL de la tienda, nunca por hora/día UTC del runtime.
+- La agregación pura vive en `features/reports/domain/services/sales-trend.ts` (`groupSalesByLocalHour`, `groupSalesByLocalDay`), mismo patrón que `group-sales-by-cashier.ts`: TS puro, sin Angular/Supabase, usa `Intl.DateTimeFormat` con `timeZone` explícito (la misma `timezone` ya resuelta por `TiendaInfoService` al inicio de `getDailyReport`) para bucketear por hora/día LOCAL de la tienda, nunca por hora/día UTC del runtime.
 - Solo ventas `status === 'completed'` cuentan; las `voided` se excluyen por completo de ambas tablas (no generan fila ni aportan a los totales) — consistente con `countAnuladas`, que ya se reporta aparte en las tarjetas KPI.
 - **Decisión explícita: NO se rellenan horas/días sin ventas.** Solo se emite una fila por hora/día con al menos una venta completada. Rellenar las 24 horas (o cada día del rango) no aporta valor a un reporte tabular de "qué pasó" y forzaría a depender de `addDays`/`isoDate` de `report-period.helpers.ts` (capa Angular-feature) desde el dominio, rompiendo el layering. `report-period.helpers.ts` sigue siendo solo para el selector de período (presets), no para padding de tendencia.
 - UI: `sales-trend-tables.component.ts`, sección "Tendencia" en el tab "Ventas", compuesta entre "Cierres de caja" y "Detalle de ventas".
@@ -56,15 +56,15 @@ Componentes presentacionales:
 ## Top productos por periodo (PLAN-39)
 
 - `ReportsService.getDailyReport` agrega dos campos a `DailyProductSale`: `numVentas` (cantidad de ventas DISTINTAS en las que aparece el producto, no cantidad de líneas) y `avgPrice` (precio promedio **ponderado**: `total / qty`, no `avg(unitPrice)` simple — refleja correctamente el precio efectivo cuando se venden distintas cantidades de la misma referencia).
-- La agregación pura vive en `src/modules/reports/domain/services/top-products.ts` (`groupSalesByProduct`), mismo patrón que `group-sales-by-cashier.ts`/`sales-trend.ts`: TS puro, sin Angular/Supabase, usa `Set<saleId>` por producto para contar ventas distintas. Se calcula en cliente sobre las mismas `sales` ya cargadas para el período — cero queries nuevas a Supabase.
-- El enriquecimiento de costo/utilidad/margen (`costoUnitario`, `costoTotal`, `utilidad`, `margenPct`) sigue resolviéndose en `reports.service.ts` después de llamar a `groupSalesByProduct`, porque depende de `products.costo` (fuente externa al dominio puro de ventas) — no se movió al servicio de dominio nuevo.
+- La agregación pura vive en `features/reports/domain/services/top-products.ts` (`groupSalesByProduct`), mismo patrón que `group-sales-by-cashier.ts`/`sales-trend.ts`: TS puro, sin Angular/Supabase, usa `Set<saleId>` por producto para contar ventas distintas. Se calcula en cliente sobre las mismas `sales` ya cargadas para el período — cero queries nuevas a Supabase.
+- El enriquecimiento de costo/utilidad/margen (`costoUnitario`, `costoTotal`, `utilidad`, `margenPct`) sigue resolviéndose en `reports.repository.ts` después de llamar a `groupSalesByProduct`, porque depende de `products.costo` (fuente externa al dominio puro de ventas) — no se movió al servicio de dominio nuevo.
 - UI: `top-products-table.component.ts`. Muestra **todos** los productos del período (no solo top 5), con un toggle "Unidades"/"Facturación" que reordena en cliente vía un `signal` local — no dispara ninguna petición de red.
 
 ## Zona horaria del reporte diario (PLAN-01)
 
 - El reporte diario filtra ventas y sesiones por el **día calendario en la zona horaria de la tienda**, no por el día UTC. Una venta a las 23:30 hora Colombia pertenece a ESE día local.
 - La TZ es configurable por tienda en `tiendas.timezone` (`text not null default 'America/Bogota'`, multi-sede). Migración: `supabase/migrations/20260527_001_add_tienda_timezone.sql`.
-- El cálculo del rango UTC `[start, end)` (semiabierto) vive en el dominio puro: `src/modules/reports/domain/services/day-range.ts` → `getStoreDayRangeUtc(dateIso, timezone)` y `DEFAULT_TIMEZONE`. Deriva el offset vía `Intl` (sin hardcodear −5 ni `setHours`).
+- El cálculo del rango UTC `[start, end)` (semiabierto) vive en el dominio puro: `features/reports/domain/services/day-range.ts` → `getStoreDayRangeUtc(dateIso, timezone)` y `DEFAULT_TIMEZONE`. Deriva el offset vía `Intl` (sin hardcodear −5 ni `setHours`).
 - `ReportsService.getDailyReport(tiendaId, dateIso)` resuelve la TZ vía `TiendaInfoService` (fallback `DEFAULT_TIMEZONE`) y pasa el rango a `SalesRepository.listByDate(tiendaId, start, end)` (usa `.gte(start)` + `.lt(end)`, no `.lte 23:59:59.999`) y a `CashRegisterRepository.listSessionsByDateRange`.
 - `reportes.page.ts` `todayIso(timezone)` usa `Intl.DateTimeFormat('en-CA', { timeZone })` para "hoy" en la TZ de la tienda, no la del navegador.
 - `created_at` se sigue guardando en UTC (timestamptz); no cambia la escritura.

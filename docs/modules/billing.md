@@ -15,7 +15,7 @@ Orquestar la emisión de documentos electrónicos (factura electrónica o docume
 ## Interfaz principal
 
 ```typescript
-// src/modules/billing/domain/billing-provider.interface.ts
+// features/billing/domain/repositories/billing-provider.ts (futuro; como abstract class según ADR 0015 §6.1)
 
 export interface BillingProvider {
   issueDocument(input: IssueDocumentInput): Promise<Result<IssueDocumentResult, BillingError>>;

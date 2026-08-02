@@ -4,7 +4,7 @@
  *
  * Orquestador delgado: posee el I/O, la lectura de `.env.local` y el cliente
  * Supabase con SERVICE ROLE. Toda la lógica de parseo/validación/mapeo vive en
- * el módulo puro `src/modules/products/import/siigo-csv.ts` (cero secretos,
+ * el módulo puro `apps/pos-angular/src/app/features/products/data/import/siigo-csv.ts` (cero secretos,
  * cero deps Node/Supabase), que aquí se transpila con esbuild y se importa.
  *
  * Uso:
@@ -30,7 +30,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..')
 const ENV_FILE = join(ROOT, '.env.local')
 const SRC_DIR = join(ROOT, 'src')
-const PURE_MODULE = join(SRC_DIR, 'modules/products/import/siigo-csv.ts')
+const PURE_MODULE = join(
+  ROOT,
+  'apps/pos-angular/src/app/features/products/data/import/siigo-csv.ts',
+)
 
 const DEFAULT_TIENDA_ID = 'a1b2c3d4-0000-0000-0000-000000000001'
 const BATCH_SIZE = 100

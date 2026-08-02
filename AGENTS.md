@@ -44,12 +44,13 @@ Antes de programar, lee:
 ## 2. Reglas no negociables
 
 ### Arquitectura
-- Clean Architecture por módulos (`domain`, `application`).
-- Dominio en TypeScript puro (vive en `src/modules/<feature>/domain`).
-- DTOs Zod y use-cases puros viven en `src/modules/<feature>/application/{dtos,use-cases}`.
-- Forms factory + mapper compartidos viven en `src/modules/<feature>/forms/`.
-- La capa de UI/orquestación Angular vive **únicamente** en `apps/pos-angular/src/app/**`.
+- Clean Architecture **feature-first** (ADR 0015): cada feature es autocontenida en `apps/pos-angular/src/app/features/<feature>/{domain,data,presentation}` + `<feature>.providers.ts`. `src/modules/` ya no existe.
+- `domain/` es TypeScript puro (entities, value-objects, contratos `abstract class` en `repositories/`, services, `usecases/`, `dtos/` Zod). No importa Angular, RxJS ni Supabase — lo hace cumplir ESLint.
+- `data/` (datasources, models/mappers, repos Supabase que `extends` el contrato) es el único lugar que conoce Supabase.
+- `presentation/` (pages, dialogs, components, presenters, `forms/` factory+mapper Zod, services UI) inyecta SOLO abstracciones de dominio; toda escritura pasa por un use-case, las lecturas simples van directo a la abstracción.
+- El binding abstracción → implementación vive en `<feature>.providers.ts`, registrado en `app.config.ts`.
 - Las escrituras críticas (ventas, cierres, anulaciones) se hacen vía RPC transaccional o Edge Function, **no** desde el componente.
+- Detalle completo en `/docs/02-architecture.md` (fuente de verdad).
 
 ### Datos
 - Toda tabla operativa lleva `tienda_id`.
@@ -82,7 +83,7 @@ Antes de programar, lee:
 
 ### Al implementar
 - Incrementos pequeños.
-- Sigue la estructura existente: `apps/pos-angular/src/app/features/<modulo>` para UI, `src/modules/<modulo>` para dominio + DTOs + use-cases + forms factory/mapper.
+- Sigue la estructura existente: todo lo de una feature vive junto en `apps/pos-angular/src/app/features/<feature>/{domain,data,presentation}` (ADR 0015).
 - Tipos compartidos en `/src/shared/types/`.
 - Migrations versionadas en `/supabase/migrations/`.
 
@@ -139,10 +140,10 @@ Los estándares están en `/docs/standards/`. Léelos antes de crear componentes
 | Patrones de diseño | `/docs/standards/design-patterns.md` |
 
 **Resumen crítico:**
-- Componentes Angular reutilizables → `apps/pos-angular/src/app/shared/`. Standalone components.
-- Formularios → Angular Reactive Forms + Zod schema (factory en `src/modules/.../forms/`). Presenter en `apps/pos-angular/src/app/features/<modulo>/<feature>-form.presenter.ts`.
-- Use-cases → función con deps inyectadas. `Result` para errores de dominio.
-- Repositories → vivirán dentro de `apps/pos-angular/src/app/features/<modulo>/infrastructure/` cuando se porten; nunca exponer tipos crudos de Supabase a presenters/components.
+- Componentes Angular reutilizables → design system atómico en `apps/pos-angular/src/app/shared/{atoms,molecules,organisms}`. Standalone components.
+- Formularios → Angular Reactive Forms + Zod schema. Patrón 3 archivos: factory + mapper en `features/<feature>/presentation/forms/` (TS puro), presenter en `features/<feature>/presentation/presenters/`.
+- Use-cases → función con deps inyectadas (`features/<feature>/domain/usecases/`). `Result` para errores de dominio. Toda escritura pasa por use-case.
+- Repositories → contrato `abstract class` en `features/<feature>/domain/repositories/`, implementación en `features/<feature>/data/repositories/`; nunca exponer tipos crudos de Supabase a presenters/components.
 
 ## 7. Specs de sesión
 

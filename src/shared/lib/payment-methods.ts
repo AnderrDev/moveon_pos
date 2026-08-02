@@ -1,6 +1,6 @@
 import type { PaymentMethod } from '@/shared/types'
 
-export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   cash:     'Efectivo',
   card:     'Tarjeta',
   transfer: 'Transferencia',

@@ -26,6 +26,16 @@ export function canCorrectPayment(rol: Role | null): boolean {
 }
 
 /**
+ * Decide si un rol puede asociar retroactivamente un cliente a una venta
+ * que se completó sin cliente (se olvidó en el cobro). Solo `admin` — mismo
+ * nivel de confianza que corregir el método de pago, porque puede otorgar
+ * sellos del Club MOVE ON.
+ */
+export function canCorrectSaleCustomer(rol: Role | null): boolean {
+  return rol === 'admin'
+}
+
+/**
  * Decide si un rol puede anular un movimiento de caja (entrada/salida/gasto).
  * Solo `admin` — la caja es compartida (ADR 0007) pero anular requiere el
  * mismo nivel de confianza que anular una venta: cualquier cajero puede
