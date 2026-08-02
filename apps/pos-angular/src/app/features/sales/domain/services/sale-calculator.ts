@@ -142,15 +142,22 @@ export function validatePaymentsForSale(
   return null
 }
 
+/**
+ * RN-S09 (rev. 2026-08-02): el descuento discrecional puede llegar al 100% del
+ * subtotal — una venta puede quedar en $0 (cortesía, reposición, promoción).
+ * El único tope que queda es estructural: no se puede descontar más de lo que
+ * vale la venta. El `role` se conserva en la firma porque la política de
+ * autorización es un punto de extensión conocido (antes 10%, luego 50%).
+ */
 export function validateDiscountAuthorization(
   role: Role,
   subtotal: number,
   discountTotal: number,
-  threshold = 0.5
+  threshold = 1
 ): string | null {
   if (role === 'admin') return null
   if (discountTotal > Math.round(subtotal * threshold)) {
-    return 'Descuentos mayores al 50% requieren aprobación de admin'
+    return 'El descuento no puede superar el 100% del subtotal'
   }
 
   return null
