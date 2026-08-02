@@ -29,6 +29,7 @@ import {
 import { DEFAULT_LOYALTY_CONFIG } from '@angular-app/features/loyalty/domain/loyalty-config'
 import { countEligibleStampUnits } from '@angular-app/features/loyalty/domain/services/stamps'
 import { ItemDiscountDialog, type ItemDiscountResult } from '@angular-app/features/pos/presentation/dialogs/item-discount.dialog'
+import { ProductOptionDialog, type ProductOptionResult } from '@angular-app/features/pos/presentation/dialogs/product-option.dialog'
 import { ProductInfoDialog } from '@angular-app/features/pos/presentation/dialogs/product-info.dialog'
 import {
   ReceiptOutputStatusDialog,
@@ -57,6 +58,7 @@ interface PostSaleOutputJob {
     CustomerPickerDialog,
     ClienteFormDialog,
     ItemDiscountDialog,
+    ProductOptionDialog,
     ProductInfoDialog,
     ReceiptOutputStatusDialog,
     ButtonComponent,
@@ -418,6 +420,14 @@ interface PostSaleOutputJob {
                         <div class="flex items-start justify-between gap-2">
                           <div class="min-w-0 flex-1">
                             <p class="truncate text-sm font-semibold">{{ item.nombre }}</p>
+                            @if (item.option; as option) {
+                              <p class="text-primary text-[11px] font-semibold">
+                                {{ option.nombre }}
+                                @if (option.precioExtra > 0) {
+                                  · +{{ money(option.precioExtra) }}
+                                }
+                              </p>
+                            }
                             @if (item.sku) {
                               <p class="text-muted-foreground font-mono text-[11px]">
                                 {{ item.sku }}
@@ -763,9 +773,6 @@ interface PostSaleOutputJob {
                 />
                 <p class="text-muted-foreground text-[11px]">
                   El motivo queda en el historial y la auditoría.
-                  @if (!isAdmin()) {
-                    Descuentos mayores al 50% requieren un administrador.
-                  }
                 </p>
                 @if (discountAuthorizationError()) {
                   <p class="text-destructive text-xs font-semibold">
@@ -934,6 +941,13 @@ interface PostSaleOutputJob {
       (applied)="onItemDiscountApplied($event)"
     />
 
+    <mo-product-option-dialog
+      [open]="optionProduct() !== null"
+      [product]="optionProduct()"
+      (closed)="optionProduct.set(null)"
+      (picked)="onProductOptionPicked($event)"
+    />
+
     <mo-product-info-dialog
       [open]="productInfo() !== null"
       [product]="productInfo()"
@@ -993,6 +1007,8 @@ export class PosPage {
   // PLAN-59: se actualiza en load() con settings.data.fidelizacion de la tienda.
   readonly stampsPerReward = signal(DEFAULT_LOYALTY_CONFIG.sellosParaRecompensa)
   readonly discountItem = signal<PosCartItem | null>(null)
+  /** Producto esperando que el cajero elija una opción (ej. proteína del batido). */
+  readonly optionProduct = signal<PosProduct | null>(null)
   readonly productInfo = signal<PosProduct | null>(null)
   readonly isAdmin = this.sessionService.isAdmin
   readonly globalDiscountInput = signal('')
@@ -1025,7 +1041,7 @@ export class PosPage {
 
   /**
    * Descuento discrecional = total − canje MOVE ON Club. El canje no exige
-   * motivo ni cuenta para el tope del 50% del cajero (RN-LF12 / ADR 0013 §5).
+   * motivo (RN-LF12 / ADR 0013 §5).
    */
   readonly discretionaryDiscountTotal = computed(
     () => this.cart.totals().discountTotal - (this.cart.loyaltyRedemption()?.amount ?? 0),
@@ -1041,7 +1057,7 @@ export class PosPage {
         participaFidelizacion: item.participaFidelizacion,
         quantity: item.quantity,
         discountAmount: item.discountAmount,
-        hasRedemption: redemption?.productId === item.key,
+        hasRedemption: redemption?.itemKey === item.key,
       })),
     )
   })
@@ -1229,7 +1245,22 @@ export class PosPage {
   }
 
   selectProduct(product: PosProduct): void {
+    // Con opciones activas la elección es obligatoria: el precio y el consumo
+    // de inventario dependen de ella (ADR 0017).
+    if (product.options.length > 0) {
+      this.optionProduct.set(product)
+      return
+    }
     this.cart.addItem(product)
+  }
+
+  onProductOptionPicked(result: ProductOptionResult): void {
+    this.cart.addItem(result.product, {
+      id: result.option.id,
+      nombre: result.option.nombre,
+      precioExtra: result.option.precioExtra,
+    })
+    this.optionProduct.set(null)
   }
 
   openProductInfo(product: PosProduct): void {
@@ -1493,13 +1524,13 @@ export class PosPage {
         items: this.cart.items(),
         payments: this.cart.payments(),
         totals: this.cart.totals(),
-        globalDiscountTotal: this.cart.globalDiscount(),
+        globalDiscountTotal: this.cart.effectiveGlobalDiscount(),
         // Solo el descuento discrecional exige motivo; el canje lleva motivo
         // reservado automático en el RPC (ADR 0013 §5).
         discountReason: this.discretionaryDiscountTotal() > 0 ? this.discountReason().trim() : null,
         change: this.cart.change(),
         loyaltyRedemptions: redemption
-          ? [{ rewardId: redemption.rewardId, productId: redemption.productId }]
+          ? [{ rewardId: redemption.rewardId, itemKey: redemption.itemKey }]
           : [],
       })
 

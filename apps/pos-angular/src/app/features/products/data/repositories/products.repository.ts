@@ -14,6 +14,7 @@ import {
   ProductRepository as ProductRepositoryContract,
   type InitialStockInput,
   type ProductComponent,
+  type ProductOption,
   type SearchProductsParams,
 } from '@angular-app/features/products/domain/repositories/product.repository'
 import {
@@ -21,6 +22,11 @@ import {
   buildComponentInsertRows,
   type ProductComponentRow,
 } from '@angular-app/features/products/data/models/product-component.mapper'
+import {
+  rowToProductOption,
+  buildOptionUpsertRows,
+  type ProductOptionRow,
+} from '@angular-app/features/products/data/models/product-option.mapper'
 
 const PRODUCT_COLS =
   'id, tienda_id, nombre, sku, codigo_barras, categoria_id, proveedor, para_que_sirve, recomendado_para, image_url, tipo, unidad, precio_venta, costo, iva_tasa, stock_minimo, participa_fidelizacion, is_active, deleted_at, created_at, updated_at'
@@ -62,6 +68,34 @@ interface ProductComponentsClient {
       }
     }
     insert(values: Record<string, unknown>[]): Promise<{ error: { message: string } | null }>
+  }
+}
+
+interface ProductOptionsClient {
+  from(table: 'product_options'): {
+    select(cols: string): {
+      eq(
+        col: 'producto_id',
+        value: string,
+      ): {
+        eq(
+          col: 'tienda_id',
+          value: string,
+        ): {
+          order(col: 'orden'): Promise<{
+            data: ProductOptionRow[] | null
+            error: { message: string } | null
+          }>
+        }
+      }
+    }
+    upsert(
+      values: Record<string, unknown>[],
+      options: { onConflict: string },
+    ): Promise<{ error: { message: string } | null }>
+    update(values: Record<string, unknown>): {
+      in(col: 'id', values: string[]): Promise<{ error: { message: string } | null }>
+    }
   }
 }
 
@@ -304,6 +338,59 @@ export class ProductsRepository extends ProductRepositoryContract {
       .insert(buildComponentInsertRows(productId, tiendaId, components))
 
     if (insError) throw new Error(insError.message)
+  }
+
+  async getOptions(productId: string, tiendaId: string): Promise<ProductOption[]> {
+    const db = this.supabaseClient.supabase as unknown as ProductOptionsClient
+    const { data, error } = await db
+      .from('product_options')
+      .select(
+        'id, grupo, nombre, precio_extra, componente_id, componente_cantidad, es_default, orden, is_active, productos!componente_id(nombre)',
+      )
+      .eq('producto_id', productId)
+      .eq('tienda_id', tiendaId)
+      .order('orden')
+
+    if (error) throw new Error(error.message)
+    return (data ?? []).filter((row) => row.is_active).map(rowToProductOption)
+  }
+
+  /**
+   * Guarda las opciones por su clave natural (producto, grupo, nombre): las
+   * existentes se actualizan y las que el admin quitó se DESACTIVAN, nunca se
+   * borran — `sale_items.option_id` de ventas pasadas apunta a esas filas
+   * (ADR 0017 §2.2).
+   */
+  async saveOptions(
+    productId: string,
+    tiendaId: string,
+    options: ProductOption[],
+  ): Promise<void> {
+    const db = this.supabaseClient.supabase as unknown as ProductOptionsClient
+    const previous = await this.getOptions(productId, tiendaId)
+
+    if (options.length > 0) {
+      const { error } = await db
+        .from('product_options')
+        .upsert(buildOptionUpsertRows(productId, tiendaId, options), {
+          onConflict: 'producto_id,grupo,nombre',
+        })
+      if (error) throw new Error(error.message)
+    }
+
+    const keep = new Set(options.map((option) => `${option.grupo}::${option.nombre}`))
+    const removedIds = previous
+      .filter((option) => !keep.has(`${option.grupo}::${option.nombre}`))
+      .map((option) => option.id)
+      .filter((id): id is string => Boolean(id))
+
+    if (removedIds.length > 0) {
+      const { error } = await db
+        .from('product_options')
+        .update({ is_active: false, es_default: false })
+        .in('id', removedIds)
+      if (error) throw new Error(error.message)
+    }
   }
 
   async deactivateCategoria(id: string, tiendaId: string): Promise<void> {

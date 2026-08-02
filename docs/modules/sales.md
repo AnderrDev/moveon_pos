@@ -112,8 +112,9 @@ Al anular una venta, por cada `sale_item` se crea un `inventory_movement` tipo `
 ### RN-S09: Descuentos
 
 - Todo descuento exige un motivo operativo de mínimo 3 caracteres.
-- El cajero puede aplicar hasta el 50% del subtotal bruto (subido desde 10% el 2026-06-23). La RPC rechaza cualquier monto superior.
-- El admin puede aplicar descuentos superiores; `sales.discount_approved_by` conserva la aprobación.
+- **No hay tope por rol**: cualquier rol puede descontar hasta el 100% del subtotal bruto y dejar la venta en $0 (10% → 50% el 2026-06-23 → 100% el 2026-08-02). El límite es estructural: el descuento por línea no puede superar el precio de venta y el descuento global no puede superar el total disponible, así que el descuento nunca pasa del 100%.
+- Cuando un admin aplica un descuento discrecional mayor al 50%, `sales.discount_approved_by` conserva su firma como traza de auditoría.
+- Una venta con total $0 se completa sin pagos: el POS no exige pago cuando el total es 0.
 - `sales.item_discount_total` y `sales.global_discount_total` separan el origen del descuento; su suma debe ser igual a `discount_total`.
 - El descuento global se prorratea entre líneas en `sale_items.global_discount_amount` para reconciliar total e IVA.
 - Toda venta con descuento crea el evento `sale.discount_applied` en `audit_logs`, con porcentaje, desglose, motivo y aprobador.
@@ -125,6 +126,19 @@ Al anular una venta, por cada `sale_item` se crea un `inventory_movement` tipo `
 `producto.iva_tasa` para discriminarlo en ventas, reportes y tickets, sin sumarlo nuevamente al total.
 El IVA total de la venta es la suma de los IVAs incluidos por ítem después de aplicar el descuento
 directo y la parte prorrateada del descuento global.
+
+### RN-S14: Opciones de venta (2026-08-02, ADR 0017)
+
+Un producto preparado puede ofrecer opciones excluyentes que el cajero elige al venderlo. Para los batidos el grupo es **Proteína**: `CH+` (predeterminada, sin recargo), `Bipro` (+$2.000) y `Best Whey` (+$1.000).
+
+- **El precio efectivo lo calcula el servidor**: `create_sale_atomic` usa `productos.precio_venta + product_options.precio_extra` y valida que la opción pertenezca al producto, a la tienda y esté activa. Angular nunca decide el precio.
+- Si el producto tiene opciones activas y la venta no manda ninguna, se aplica la marcada `es_default`.
+- `sale_items` guarda snapshots (`option_nombre`, `option_extra`); `unit_price` ya incluye el recargo, así que `unit_price × quantity` sigue cuadrando con el total de la línea. `option_extra` es solo desglose.
+- El inventario lo descuenta `tg_consume_sale_components`: además de los componentes fijos del preparado (el vaso), genera un `sale_exit` por el `componente_id × componente_cantidad` de la opción (Bipro → 1 sachet Bipro; Best Whey → 1 sachet Best Whey; CH+ no descuenta). Política sin cambios: **advertir, no bloquear** — el stock puede quedar negativo.
+- En el POS la opción es parte de la identidad de la línea (`key = productId:optionId`): dos batidos con proteína distinta son dos líneas.
+- El admin administra las opciones (nombre, recargo, producto que descuenta, cantidad, predeterminada) desde el formulario del producto. Quitar una opción la **desactiva**, no la borra: las ventas pasadas la referencian.
+- MOVE ON Club no cambia: el sello se genera igual y el canje aplica sobre la línea — si el batido con recargo cuesta más que la recompensa, el cliente paga la diferencia (RN-LF08).
+- **Limitación conocida:** `void_sale_atomic` no devuelve componentes al anular (preexistente: anular un batido tampoco devuelve el vaso). El sachet hereda esa limitación.
 
 ### RN-S11: Usuario responsable
 

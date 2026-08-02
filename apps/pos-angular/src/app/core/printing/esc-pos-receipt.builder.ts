@@ -73,7 +73,10 @@ export function buildEscPosReceipt(input: EscPosReceiptInput): string {
 
   output.push(divider())
   for (const item of sale.items) {
-    output.push(COMMAND.boldOn, ...lines(item.productoNombre), COMMAND.boldOff)
+    const itemName = item.optionNombre
+      ? `${item.productoNombre} (${item.optionNombre})`
+      : item.productoNombre
+    output.push(COMMAND.boldOn, ...lines(itemName), COMMAND.boldOff)
     output.push(
       ...pairLines(
         `${formatQuantity(item.quantity)} x ${formatMoney(item.unitPrice)}`,

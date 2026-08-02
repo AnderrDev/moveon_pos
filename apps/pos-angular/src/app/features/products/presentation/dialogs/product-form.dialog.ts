@@ -25,12 +25,16 @@ import { ProductFormPresenter } from '@angular-app/features/products/presentatio
 import { ProductImageFieldComponent } from '@angular-app/features/products/presentation/components/product-image-field.component'
 import { productFormMapper } from '@angular-app/features/products/presentation/forms/product-form.mapper'
 import type { Product, Categoria } from '@angular-app/features/products/domain/entities/product.entity'
-import { ProductRepository, type ProductComponent } from '@angular-app/features/products/domain/repositories/product.repository'
+import { ProductRepository, type ProductComponent, type ProductOption } from '@angular-app/features/products/domain/repositories/product.repository'
 import { createProduct } from '@angular-app/features/products/domain/usecases/create-product.use-case'
 import { updateProduct } from '@angular-app/features/products/domain/usecases/update-product.use-case'
 import { saveProductComponents } from '@angular-app/features/products/domain/usecases/save-product-components.use-case'
+import { saveProductOptions } from '@angular-app/features/products/domain/usecases/save-product-options.use-case'
 import { ProductsCacheStore } from '@angular-app/core/catalog/products-cache.store'
-import { filterComponentCandidates } from '@angular-app/features/products/presentation/services/product-component.helpers'
+import {
+  filterComponentCandidates,
+  filterOptionComponentCandidates,
+} from '@angular-app/features/products/presentation/services/product-component.helpers'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import type { InventoryLocation } from '@/shared/types'
@@ -241,6 +245,168 @@ const INITIAL_STOCK_LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
               </button>
             </div>
           </section>
+
+          <section class="rounded-xl border p-4 space-y-3">
+            <div>
+              <h3 class="text-sm font-semibold">Opciones de venta</h3>
+              <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
+                El cajero elige una al vender (ej. el tipo de proteína del batido). El recargo se
+                suma al precio y el producto asignado se descuenta del inventario.
+              </p>
+            </div>
+
+            <div>
+              <label
+                for="product-option-grupo"
+                class="text-muted-foreground mb-1 block text-[11px] font-semibold tracking-wide uppercase"
+              >
+                Nombre del grupo
+              </label>
+              <input
+                id="product-option-grupo"
+                type="text"
+                [value]="optionGrupo()"
+                (input)="optionGrupo.set($any($event.target).value)"
+                placeholder="Proteína"
+                class="border-input bg-background focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2"
+              />
+            </div>
+
+            @for (option of options(); track option.nombre) {
+              <div class="border-border space-y-2 rounded-lg border px-3 py-2.5">
+                <div class="flex items-center gap-3">
+                  <span class="min-w-0 flex-1 truncate text-sm font-medium">{{ option.nombre }}</span>
+                  <span class="text-muted-foreground shrink-0 text-xs tabular-nums">
+                    @if (option.precioExtra > 0) {
+                      +{{ option.precioExtra }}
+                    } @else {
+                      sin recargo
+                    }
+                  </span>
+                  <button
+                    type="button"
+                    (click)="removeOption(option.nombre)"
+                    class="text-muted-foreground hover:text-destructive shrink-0 transition-colors"
+                    aria-label="Quitar opción"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
+                      <path d="M18 6 6 18M6 6l12 12"/>
+                    </svg>
+                  </button>
+                </div>
+                <div class="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+                  <label class="flex items-center gap-1.5">
+                    <input
+                      type="radio"
+                      name="product-option-default"
+                      [checked]="option.esDefault"
+                      (change)="setDefaultOption(option.nombre)"
+                    />
+                    Predeterminada
+                  </label>
+                  @if (option.componenteId) {
+                    <span>
+                      Descuenta {{ option.componenteNombre }} × {{ option.componenteCantidad }}
+                    </span>
+                  } @else {
+                    <span>Sin descuento de inventario</span>
+                  }
+                </div>
+              </div>
+            }
+
+            @if (options().length === 0) {
+              <p class="text-muted-foreground text-xs">
+                Sin opciones. El producto se vende directo, sin preguntar nada.
+              </p>
+            }
+
+            <div class="grid gap-2 pt-1 sm:grid-cols-2">
+              <div>
+                <label
+                  for="product-option-nombre"
+                  class="text-muted-foreground mb-1 block text-[11px] font-semibold tracking-wide uppercase"
+                >
+                  Opción
+                </label>
+                <input
+                  id="product-option-nombre"
+                  type="text"
+                  [value]="pendingOptionNombre()"
+                  (input)="pendingOptionNombre.set($any($event.target).value)"
+                  placeholder="Ej. Bipro"
+                  class="border-input bg-background focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2"
+                />
+              </div>
+              <div>
+                <label
+                  for="product-option-extra"
+                  class="text-muted-foreground mb-1 block text-[11px] font-semibold tracking-wide uppercase"
+                >
+                  Recargo (COP)
+                </label>
+                <input
+                  id="product-option-extra"
+                  type="number"
+                  min="0"
+                  step="500"
+                  [value]="pendingOptionExtra()"
+                  (input)="pendingOptionExtra.set(+$any($event.target).value)"
+                  class="border-input bg-background focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2"
+                />
+              </div>
+              <div>
+                <label
+                  for="product-option-componente"
+                  class="text-muted-foreground mb-1 block text-[11px] font-semibold tracking-wide uppercase"
+                >
+                  Descuenta del inventario
+                </label>
+                <select
+                  id="product-option-componente"
+                  [value]="pendingOptionComponentId()"
+                  (change)="pendingOptionComponentId.set($any($event.target).value)"
+                  class="border-input bg-background focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2"
+                >
+                  <option value="">Nada</option>
+                  @for (p of optionComponentCandidates(); track p.id) {
+                    <option [value]="p.id">{{ p.nombre }}</option>
+                  }
+                </select>
+              </div>
+              <div class="flex items-end gap-2">
+                <div class="w-24 shrink-0">
+                  <label
+                    for="product-option-cantidad"
+                    class="text-muted-foreground mb-1 block text-[11px] font-semibold tracking-wide uppercase"
+                  >
+                    Cantidad
+                  </label>
+                  <input
+                    id="product-option-cantidad"
+                    type="number"
+                    min="0"
+                    step="1"
+                    [value]="pendingOptionQty()"
+                    (input)="pendingOptionQty.set(+$any($event.target).value)"
+                    class="border-input bg-background focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2"
+                  />
+                </div>
+                <button
+                  type="button"
+                  (click)="addOption()"
+                  [disabled]="!pendingOptionNombre().trim()"
+                  class="bg-primary text-primary-foreground disabled:opacity-40 h-10 flex-1 rounded-lg px-3 text-sm font-semibold transition-opacity"
+                >
+                  Agregar opción
+                </button>
+              </div>
+            </div>
+
+            @if (optionsError()) {
+              <p class="text-destructive text-xs font-semibold">{{ optionsError() }}</p>
+            }
+          </section>
         }
 
         <div class="space-y-4 rounded-xl border p-4">
@@ -364,6 +530,20 @@ export class ProductFormDialog {
   )
   // --------------------------------
 
+  // --- Opciones de venta (ADR 0017) ---
+  readonly options = signal<ProductOption[]>([])
+  readonly optionGrupo = signal('Proteína')
+  readonly optionsError = signal<string | null>(null)
+  readonly pendingOptionNombre = signal('')
+  readonly pendingOptionExtra = signal(0)
+  readonly pendingOptionComponentId = signal('')
+  readonly pendingOptionQty = signal(1)
+
+  readonly optionComponentCandidates = computed(() =>
+    filterOptionComponentCandidates(this.allProducts(), this.product()?.id),
+  )
+  // ------------------------------------
+
   readonly categoriaOptions = computed<FormSelectOption<string>[]>(() =>
     this.categorias().map((c) => ({ value: c.id, label: c.nombre })),
   )
@@ -377,6 +557,10 @@ export class ProductFormDialog {
         this.components.set([])
         this.pendingComponentId.set('')
         this.pendingComponentQty.set(1)
+        this.options.set([])
+        this.optionGrupo.set('Proteína')
+        this.optionsError.set(null)
+        this.resetPendingOption()
         void this.initComponents()
       }
     })
@@ -397,9 +581,64 @@ export class ProductFormDialog {
 
     const product = this.product()
     if (product?.tipo === 'prepared') {
-      const comps = await this.repo.getComponents(product.id, auth.tiendaId)
+      const [comps, options] = await Promise.all([
+        this.repo.getComponents(product.id, auth.tiendaId),
+        this.repo.getOptions(product.id, auth.tiendaId),
+      ])
       this.components.set(comps)
+      this.options.set(options)
+      if (options.length > 0) this.optionGrupo.set(options[0].grupo)
     }
+  }
+
+  addOption(): void {
+    const nombre = this.pendingOptionNombre().trim()
+    if (!nombre) return
+    if (this.options().some((o) => o.nombre.toLowerCase() === nombre.toLowerCase())) {
+      this.optionsError.set('Ya existe una opción con ese nombre')
+      return
+    }
+
+    const componenteId = this.pendingOptionComponentId() || null
+    const componente = this.allProducts().find((p) => p.id === componenteId)
+
+    this.options.update((prev) => [
+      ...prev,
+      {
+        grupo: this.optionGrupo().trim() || 'Proteína',
+        nombre,
+        precioExtra: Math.max(0, Math.round(this.pendingOptionExtra())),
+        componenteId,
+        componenteNombre: componente?.nombre ?? '',
+        componenteCantidad: componenteId ? Math.max(0, this.pendingOptionQty()) : 0,
+        // La primera opción que se crea queda como predeterminada.
+        esDefault: prev.length === 0,
+      },
+    ])
+    this.optionsError.set(null)
+    this.resetPendingOption()
+  }
+
+  removeOption(nombre: string): void {
+    this.options.update((prev) => {
+      const next = prev.filter((o) => o.nombre !== nombre)
+      // Si se quitó la predeterminada, la primera que quede toma el relevo.
+      if (next.length > 0 && !next.some((o) => o.esDefault)) {
+        return next.map((o, index) => ({ ...o, esDefault: index === 0 }))
+      }
+      return next
+    })
+  }
+
+  setDefaultOption(nombre: string): void {
+    this.options.update((prev) => prev.map((o) => ({ ...o, esDefault: o.nombre === nombre })))
+  }
+
+  private resetPendingOption(): void {
+    this.pendingOptionNombre.set('')
+    this.pendingOptionExtra.set(0)
+    this.pendingOptionComponentId.set('')
+    this.pendingOptionQty.set(1)
   }
 
   addComponent(): void {
@@ -462,6 +701,19 @@ export class ProductFormDialog {
           auth.tiendaId,
           this.components().map((c) => ({ componenteId: c.componenteId, cantidad: c.cantidad })),
         )
+
+        const grupo = this.optionGrupo().trim() || 'Proteína'
+        const optionsResult = await saveProductOptions(
+          { repo: this.repo },
+          saved.id,
+          auth.tiendaId,
+          this.options().map((option) => ({ ...option, grupo })),
+        )
+        if (!optionsResult.ok) {
+          this.optionsError.set(optionsResult.error.message)
+          this.presenter.setRootError(optionsResult.error.message)
+          return
+        }
       }
 
       this.toast.success(

@@ -13,19 +13,33 @@ import {
 import { capQuantity } from '@angular-app/features/pos/presentation/services/stock-cap'
 import type { PosProduct, PosProductComponent, PaymentEntry } from '@angular-app/features/pos/presentation/services/pos.types'
 
+/** Opción elegida para la línea (ej. proteína del batido). ADR 0017. */
+export interface PosCartOption {
+  id: string
+  nombre: string
+  precioExtra: number
+}
+
 export interface PosCartItem extends CartItemCalculated {
+  /**
+   * Identidad de la línea: `productId`, o `productId:optionId` cuando el
+   * producto se vendió con una opción. Dos batidos con proteína distinta son
+   * dos líneas; con la misma proteína, se acumulan (ADR 0017 §2.5).
+   */
   key: string
   /** Stock disponible. `null` = el producto no rastrea stock (ej. `prepared`). */
   maxQuantity: number | null
   /** MOVE ON Club: la línea puede generar sellos o canjear una recompensa. */
   participaFidelizacion: boolean
   components: PosProductComponent[]
+  option: PosCartOption | null
 }
 
 /** Canje MOVE ON Club aplicado al carrito (una recompensa por venta en la UI). */
 export interface LoyaltyRedemptionEntry {
   rewardId: string
-  productId: string
+  /** `PosCartItem.key` de la línea canjeada, no el id del producto. */
+  itemKey: string
   /** Descuento efectivo: min(precio unitario, valor de la recompensa). */
   amount: number
 }
@@ -43,15 +57,22 @@ interface ToCartItemInput extends CartItemInput {
   maxQuantity: number | null
   participaFidelizacion: boolean
   components: PosProductComponent[]
+  option: PosCartOption | null
+}
+
+/** Clave de línea: el producto, más la opción cuando la hay (ADR 0017 §2.5). */
+export function cartItemKey(productId: string, optionId: string | null): string {
+  return optionId ? `${productId}:${optionId}` : productId
 }
 
 function toCartItem(input: ToCartItemInput): PosCartItem {
   return {
     ...calculateCartItem(input),
-    key: input.productId,
+    key: cartItemKey(input.productId, input.option?.id ?? null),
     maxQuantity: input.maxQuantity,
     participaFidelizacion: input.participaFidelizacion,
     components: input.components,
+    option: input.option,
   }
 }
 
@@ -94,21 +115,37 @@ export class PosCartStore {
     const redemption = this.loyaltyRedemptionState()
     if (!redemption) return null
     if (!this.clienteIdState()) return null
-    const item = this.itemsState().find((i) => i.key === redemption.productId)
+    const item = this.itemsState().find((i) => i.key === redemption.itemKey)
     if (!item || item.discountAmount > 0 || !item.participaFidelizacion) return null
     return redemption
   })
 
-  readonly totals = computed<CartTotals>(() => {
+  /** Ítems con el canje MOVE ON Club ya aplicado: base de todos los totales. */
+  private readonly itemsForTotals = computed<PosCartItem[]>(() => {
     const redemption = this.loyaltyRedemption()
-    const items = redemption
-      ? this.itemsState().map((item) =>
-          item.key === redemption.productId
-            ? applyLoyaltyDiscountToItem(item, redemption.amount)
-            : item,
-        )
-      : this.itemsState()
-    return calculateCartTotals(items, this.globalDiscountState())
+    if (!redemption) return this.itemsState()
+    return this.itemsState().map((item) =>
+      item.key === redemption.itemKey
+        ? applyLoyaltyDiscountToItem(item, redemption.amount)
+        : item,
+    )
+  })
+
+  readonly totals = computed<CartTotals>(() =>
+    calculateCartTotals(this.itemsForTotals(), this.globalDiscountState()),
+  )
+
+  /**
+   * Descuento global recortado al total realmente disponible (tras descuentos
+   * de línea y canje). `calculateCartTotals` ya lo recorta para mostrar el
+   * total, pero el RPC rechaza un `p_global_discount_total` mayor al total
+   * disponible ("El descuento global no puede superar el total disponible").
+   * Este es el valor que se envía a `create_sale_atomic`, de modo que un
+   * descuento del 100% (o un monto tecleado de más) pase sin error.
+   */
+  readonly effectiveGlobalDiscount = computed(() => {
+    const available = calculateCartTotals(this.itemsForTotals()).total
+    return Math.max(0, Math.min(Math.round(this.globalDiscountState()), available))
   })
   readonly totalPaid = computed(() =>
     this.paymentsState().reduce((sum, payment) => sum + payment.amount, 0),
@@ -116,22 +153,31 @@ export class PosCartStore {
   readonly remainingAmount = computed(() => Math.max(0, this.totals().total - this.totalPaid()))
   readonly change = computed(() => Math.max(0, this.totalPaid() - this.totals().total))
 
-  addItem(product: PosProduct): void {
+  /**
+   * Agrega una unidad del producto. `option` viene del diálogo de selección
+   * (ADR 0017); su recargo se suma al precio unitario mostrado, pero el precio
+   * que manda es el que recalcula el RPC al confirmar la venta.
+   */
+  addItem(product: PosProduct, option: PosCartOption | null = null): void {
+    const key = cartItemKey(product.id, option?.id ?? null)
+    const unitPrice = product.precioVenta + (option?.precioExtra ?? 0)
+
     this.itemsState.update((items) => {
-      const existing = items.find((item) => item.key === product.id)
+      const existing = items.find((item) => item.key === key)
       if (existing) {
         const { quantity, capped } = capQuantity(existing.quantity + 1, product.stockDisponible)
         if (capped) this.flagStockCap(product.nombre, product.stockDisponible)
         // Si el tope deja la misma cantidad (ya estaba al máximo) no recreamos el ítem.
         if (quantity === existing.quantity) return items
         return items.map((item) =>
-          item.key === product.id
+          item.key === key
             ? toCartItem({
                 ...item,
                 quantity,
                 maxQuantity: product.stockDisponible,
                 participaFidelizacion: item.participaFidelizacion,
                 components: item.components,
+                option: item.option,
               })
             : item,
         )
@@ -148,31 +194,32 @@ export class PosCartStore {
           productId: product.id,
           nombre: product.nombre,
           sku: product.sku,
-          unitPrice: product.precioVenta,
+          unitPrice,
           ivaTasa: product.ivaTasa,
           quantity,
           discountAmount: 0,
           maxQuantity: product.stockDisponible,
           participaFidelizacion: product.participaFidelizacion,
           components: product.components,
+          option,
         }),
       ]
     })
   }
 
-  removeItem(productId: string): void {
-    this.itemsState.update((items) => items.filter((item) => item.key !== productId))
+  removeItem(itemKey: string): void {
+    this.itemsState.update((items) => items.filter((item) => item.key !== itemKey))
   }
 
-  updateQuantity(productId: string, quantity: number): void {
+  updateQuantity(itemKey: string, quantity: number): void {
     if (quantity <= 0) {
-      this.removeItem(productId)
+      this.removeItem(itemKey)
       return
     }
 
     this.itemsState.update((items) =>
       items.map((item) => {
-        if (item.key !== productId) return item
+        if (item.key !== itemKey) return item
         const capped = capQuantity(quantity, item.maxQuantity)
         if (capped.capped) this.flagStockCap(item.nombre, item.maxQuantity)
         return toCartItem({ ...item, quantity: capped.quantity, maxQuantity: item.maxQuantity })
@@ -180,10 +227,10 @@ export class PosCartStore {
     )
   }
 
-  updateDiscount(productId: string, discountAmount: number): void {
+  updateDiscount(itemKey: string, discountAmount: number): void {
     this.itemsState.update((items) =>
       items.map((item) => {
-        if (item.key !== productId) return item
+        if (item.key !== itemKey) return item
         // El descuento no cambia la cantidad; el tope se mantiene por seguridad.
         const capped = capQuantity(item.quantity, item.maxQuantity)
         return toCartItem({
@@ -231,7 +278,7 @@ export class PosCartStore {
     if (!item.participaFidelizacion || item.discountAmount > 0) return
     this.loyaltyRedemptionState.set({
       rewardId,
-      productId: item.key,
+      itemKey: item.key,
       amount: rewardDiscountForPrice(item.unitPrice, rewardValueCop),
     })
   }

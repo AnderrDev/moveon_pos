@@ -111,6 +111,11 @@ import type { Sale } from '@angular-app/features/sales/domain/entities/sale.enti
                             </span>
                             <div class="min-w-0 flex-1">
                               <p class="text-sm leading-snug font-bold">{{ item.productoNombre }}</p>
+                              @if (item.optionNombre) {
+                                <p class="text-primary text-[11px] font-semibold">
+                                  {{ item.optionNombre }}
+                                </p>
+                              }
                               <p class="text-muted-foreground mt-1 text-xs">
                                 {{ money(item.unitPrice) }} c/u
                                 @if (item.productoSku) {

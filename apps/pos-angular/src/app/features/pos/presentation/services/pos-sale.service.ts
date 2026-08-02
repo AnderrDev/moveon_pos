@@ -19,8 +19,8 @@ export interface CreatePosSaleInput {
   globalDiscountTotal: number
   discountReason: string | null
   change: number
-  /** Canjes MOVE ON Club: recompensa → producto del carrito al que se aplica. */
-  loyaltyRedemptions?: { rewardId: string; productId: string }[]
+  /** Canjes MOVE ON Club: recompensa → línea del carrito a la que se aplica. */
+  loyaltyRedemptions?: { rewardId: string; itemKey: string }[]
 }
 
 export interface CreatePosSaleResult {
@@ -46,12 +46,17 @@ const rpcInputSchema = z.object({
   items: z
     .array(
       z.object({
+        key: z.string().min(1),
         productId: z.string().uuid(),
         nombre: z.string().min(1),
         sku: z.string().nullable().optional(),
         quantity: z.number().positive(),
         unitPrice: z.number().nonnegative(),
         discountAmount: z.number().nonnegative(),
+        option: z
+          .object({ id: z.string().uuid(), nombre: z.string(), precioExtra: z.number() })
+          .nullable()
+          .optional(),
         ivaTasa: z.number().nonnegative(),
         taxAmount: z.number().nonnegative(),
         total: z.number().nonnegative(),
@@ -77,7 +82,7 @@ const rpcInputSchema = z.object({
     .array(
       z.object({
         rewardId: z.string().uuid('Recompensa inválida'),
-        productId: z.string().uuid(),
+        itemKey: z.string().min(1),
       })
     )
     .default([]),
@@ -125,8 +130,10 @@ export class PosSaleService {
     }
 
     // El RPC identifica la línea canjeada por índice (0-based) dentro de p_items.
+    // Se busca por `key` (producto + opción), no por producto: dos líneas del
+    // mismo batido con proteína distinta son líneas distintas (ADR 0017 §2.5).
     const loyaltyRedemptions = (input.loyaltyRedemptions ?? []).map((redemption) => {
-      const itemIndex = input.items.findIndex((item) => item.productId === redemption.productId)
+      const itemIndex = input.items.findIndex((item) => item.key === redemption.itemKey)
       return { reward_id: redemption.rewardId, item_index: itemIndex }
     })
     if (loyaltyRedemptions.some((redemption) => redemption.item_index < 0)) {
@@ -156,6 +163,7 @@ export class PosSaleService {
         producto_sku: item.sku ?? null,
         quantity: item.quantity,
         unit_price: item.unitPrice,
+        option_id: item.option?.id ?? null,
         discount_amount: item.discountAmount,
         tax_rate: item.ivaTasa,
         tax_amount: item.taxAmount,

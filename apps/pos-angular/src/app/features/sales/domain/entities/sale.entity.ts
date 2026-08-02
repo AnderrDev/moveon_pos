@@ -7,7 +7,12 @@ export interface SaleItem {
   productoNombre: string
   productoSku: string | null
   quantity: number
+  /** Precio efectivo por unidad: precio base + recargo de la opción (ADR 0017). */
   unitPrice: number
+  /** Opción con la que se preparó (ej. proteína del batido). `null` = sin opción. */
+  optionNombre: string | null
+  /** Recargo unitario de la opción, ya incluido en `unitPrice`. Solo desglose. */
+  optionExtra: number
   discountAmount: number
   /** Parte del descuento global asignada a esta línea. */
   globalDiscountAmount: number

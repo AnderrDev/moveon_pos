@@ -22,6 +22,23 @@ export interface ProductComponent {
 }
 
 /**
+ * Opción de venta de un producto preparado (ADR 0017): el cajero elige una al
+ * vender. `precioExtra` se suma al precio base y `componenteId` se descuenta
+ * del inventario.
+ */
+export interface ProductOption {
+  /** Ausente en las opciones nuevas que aún no se han guardado. */
+  id?: string
+  grupo: string
+  nombre: string
+  precioExtra: number
+  componenteId: string | null
+  componenteNombre: string
+  componenteCantidad: number
+  esDefault: boolean
+}
+
+/**
  * Contrato de persistencia de productos y categorías. Abstract class
  * (ADR 0015 §6.1). Reescrito desde el uso real (2026-07-17): la
  * implementación Angular maneja productos y categorías en una sola clase
@@ -45,6 +62,12 @@ export abstract class ProductRepository {
     productId: string,
     tiendaId: TiendaId,
     components: { componenteId: string; cantidad: number }[],
+  ): Promise<void>
+  abstract getOptions(productId: string, tiendaId: TiendaId): Promise<ProductOption[]>
+  abstract saveOptions(
+    productId: string,
+    tiendaId: TiendaId,
+    options: ProductOption[],
   ): Promise<void>
   abstract deactivateCategoria(id: string, tiendaId: TiendaId): Promise<void>
 }

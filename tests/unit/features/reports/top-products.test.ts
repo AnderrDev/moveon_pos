@@ -28,6 +28,8 @@ function makeItem(overrides: {
     productoSku: overrides.productoSku ?? null,
     quantity: overrides.quantity,
     unitPrice: overrides.unitPrice,
+    optionNombre: null,
+    optionExtra: 0,
     discountAmount: 0,
     globalDiscountAmount: 0,
     taxRate: 0,

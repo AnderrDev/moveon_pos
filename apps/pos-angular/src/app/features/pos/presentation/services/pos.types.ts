@@ -5,6 +5,19 @@ export interface PosProductComponent {
   cantidad: number
 }
 
+/**
+ * Opción excluyente que el cajero elige al vender (ej. tipo de proteína del
+ * batido). El recargo es informativo en el cliente: el precio efectivo lo
+ * recalcula `create_sale_atomic` desde la base (ADR 0017 §2.3).
+ */
+export interface PosProductOption {
+  id: string
+  grupo: string
+  nombre: string
+  precioExtra: number
+  esDefault: boolean
+}
+
 export interface PosProduct {
   id: string
   nombre: string
@@ -24,6 +37,8 @@ export interface PosProduct {
   stockDisponible: number | null
   /** Componentes que se descuentan automáticamente al vender este producto. */
   components: PosProductComponent[]
+  /** Opciones elegibles al venderlo. Vacío = se vende directo, sin diálogo. */
+  options: PosProductOption[]
 }
 
 export interface PosCategory {

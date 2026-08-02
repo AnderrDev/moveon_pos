@@ -41,6 +41,8 @@ interface SaleItemRow {
   unit_price: number
   discount_amount: number
   global_discount_amount: number
+  option_nombre: string | null
+  option_extra: string | number | null
   tax_rate: number
   tax_amount: number
   total: number
@@ -66,6 +68,8 @@ function rowToSaleItem(row: SaleItemRow): SaleItem {
     unitPrice: Number(row.unit_price),
     discountAmount: Number(row.discount_amount),
     globalDiscountAmount: Number(row.global_discount_amount),
+    optionNombre: row.option_nombre ?? null,
+    optionExtra: Number(row.option_extra ?? 0),
     taxRate: Number(row.tax_rate),
     taxAmount: Number(row.tax_amount),
     total: Number(row.total),
