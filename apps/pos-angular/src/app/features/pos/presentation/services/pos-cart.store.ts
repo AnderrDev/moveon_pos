@@ -243,6 +243,53 @@ export class PosCartStore {
     )
   }
 
+  /**
+   * Cambia la opción de una línea ya agregada (ej. el cajero pasa el batido de
+   * CH+ a Bipro). Al cambiar la opción cambia la clave de la línea: si ya hay
+   * otra línea del mismo producto con esa opción, las dos se fusionan sumando
+   * cantidades en vez de dejar dos líneas idénticas.
+   *
+   * El precio unitario se recalcula con el recargo nuevo y el descuento manual
+   * se recorta al precio nuevo — bajar de Bipro a CH+ podría dejar un descuento
+   * mayor al precio, que el RPC rechazaría.
+   */
+  updateOption(itemKey: string, option: PosCartOption | null, basePrice: number): void {
+    const target = this.itemsState().find((item) => item.key === itemKey)
+    if (!target) return
+
+    const newKey = cartItemKey(target.productId, option?.id ?? null)
+    if (newKey === itemKey) return
+
+    const unitPrice = basePrice + (option?.precioExtra ?? 0)
+    const merged = this.itemsState().find((item) => item.key === newKey)
+
+    this.itemsState.update((items) =>
+      items
+        // La línea destino absorbe la cantidad de la que se está cambiando.
+        .filter((item) => item.key !== itemKey || !merged)
+        .map((item) => {
+          if (item.key !== (merged ? newKey : itemKey)) return item
+          const quantity = merged ? merged.quantity + target.quantity : target.quantity
+          const capped = capQuantity(quantity, item.maxQuantity)
+          if (capped.capped) this.flagStockCap(item.nombre, item.maxQuantity)
+          return toCartItem({
+            ...item,
+            quantity: capped.quantity,
+            unitPrice: merged ? item.unitPrice : unitPrice,
+            discountAmount: Math.min(item.discountAmount, merged ? item.unitPrice : unitPrice),
+            option: merged ? item.option : option,
+          })
+        }),
+    )
+
+    // El canje sigue a la línea si era la que se cambió (el computed lo
+    // invalidaría al no encontrar la clave vieja).
+    const redemption = this.loyaltyRedemptionState()
+    if (redemption?.itemKey === itemKey) {
+      this.loyaltyRedemptionState.set({ ...redemption, itemKey: newKey })
+    }
+  }
+
   /** Limpia el feedback de tope tras consumirlo en la página. */
   clearStockCapFeedback(): void {
     this.stockCapFeedbackState.set(null)

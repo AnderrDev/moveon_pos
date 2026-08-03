@@ -421,12 +421,17 @@ interface PostSaleOutputJob {
                           <div class="min-w-0 flex-1">
                             <p class="truncate text-sm font-semibold">{{ item.nombre }}</p>
                             @if (item.option; as option) {
-                              <p class="text-primary text-[11px] font-semibold">
+                              <button
+                                type="button"
+                                (click)="openItemOption(item)"
+                                class="border-primary/30 text-primary hover:bg-primary/10 mt-1 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold transition-colors"
+                              >
                                 {{ option.nombre }}
                                 @if (option.precioExtra > 0) {
                                   · +{{ money(option.precioExtra) }}
                                 }
-                              </p>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="h-3 w-3 shrink-0"><path d="m6 9 6 6 6-6"/></svg>
+                              </button>
                             }
                             @if (item.sku) {
                               <p class="text-muted-foreground font-mono text-[11px]">
@@ -942,9 +947,10 @@ interface PostSaleOutputJob {
     />
 
     <mo-product-option-dialog
-      [open]="optionProduct() !== null"
+      [open]="optionItem() !== null"
       [product]="optionProduct()"
-      (closed)="optionProduct.set(null)"
+      [currentOptionId]="optionItem()?.option?.id ?? null"
+      (closed)="optionItem.set(null)"
       (picked)="onProductOptionPicked($event)"
     />
 
@@ -1007,8 +1013,15 @@ export class PosPage {
   // PLAN-59: se actualiza en load() con settings.data.fidelizacion de la tienda.
   readonly stampsPerReward = signal(DEFAULT_LOYALTY_CONFIG.sellosParaRecompensa)
   readonly discountItem = signal<PosCartItem | null>(null)
-  /** Producto esperando que el cajero elija una opción (ej. proteína del batido). */
-  readonly optionProduct = signal<PosProduct | null>(null)
+  /** Línea del carrito a la que se le está cambiando la opción (ej. proteína). */
+  readonly optionItem = signal<PosCartItem | null>(null)
+
+  /** Producto de la línea en edición: de ahí salen las opciones y el precio base. */
+  readonly optionProduct = computed<PosProduct | null>(() => {
+    const item = this.optionItem()
+    if (!item) return null
+    return this.products().find((p) => p.id === item.productId) ?? null
+  })
   readonly productInfo = signal<PosProduct | null>(null)
   readonly isAdmin = this.sessionService.isAdmin
   readonly globalDiscountInput = signal('')
@@ -1245,22 +1258,37 @@ export class PosPage {
   }
 
   selectProduct(product: PosProduct): void {
-    // Con opciones activas la elección es obligatoria: el precio y el consumo
-    // de inventario dependen de ella (ADR 0017).
-    if (product.options.length > 0) {
-      this.optionProduct.set(product)
-      return
-    }
-    this.cart.addItem(product)
+    // Vender es un toque: el producto entra con su opción por defecto (CH+ en
+    // los batidos). Cambiarla es la excepción y se hace desde el carrito.
+    const preferred = product.options.find((o) => o.esDefault) ?? product.options[0]
+    this.cart.addItem(
+      product,
+      preferred
+        ? { id: preferred.id, nombre: preferred.nombre, precioExtra: preferred.precioExtra }
+        : null,
+    )
+  }
+
+  /** Abre el selector de opción para una línea ya agregada. */
+  openItemOption(item: PosCartItem): void {
+    const product = this.products().find((p) => p.id === item.productId)
+    if (!product || product.options.length === 0) return
+    this.optionItem.set(item)
   }
 
   onProductOptionPicked(result: ProductOptionResult): void {
-    this.cart.addItem(result.product, {
-      id: result.option.id,
-      nombre: result.option.nombre,
-      precioExtra: result.option.precioExtra,
-    })
-    this.optionProduct.set(null)
+    const item = this.optionItem()
+    if (!item) return
+    this.cart.updateOption(
+      item.key,
+      {
+        id: result.option.id,
+        nombre: result.option.nombre,
+        precioExtra: result.option.precioExtra,
+      },
+      result.product.precioVenta,
+    )
+    this.optionItem.set(null)
   }
 
   openProductInfo(product: PosProduct): void {

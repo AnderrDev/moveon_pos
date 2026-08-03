@@ -11,8 +11,9 @@ export interface ProductOptionResult {
 
 /**
  * Selección de la opción con la que se prepara un producto (ADR 0017): para los
- * batidos, el tipo de proteína. Se abre al tocar un producto con opciones
- * activas; el default llega preseleccionado para que agregar sea un toque más.
+ * batidos, el tipo de proteína. No se abre al agregar (el producto entra con su
+ * opción por defecto); se abre desde la línea del carrito cuando el cliente
+ * pide otra proteína.
  */
 @Component({
   selector: 'mo-product-option-dialog',
@@ -62,7 +63,9 @@ export interface ProductOptionResult {
 
           <div class="flex justify-end gap-2">
             <mo-button variant="outline" type="button" (click)="onClose()">Cancelar</mo-button>
-            <mo-button type="button" [disabled]="!selected()" (click)="submit()">Agregar</mo-button>
+            <mo-button type="button" [disabled]="!selected()" (click)="submit()">
+              {{ confirmLabel() }}
+            </mo-button>
           </div>
         </div>
       }
@@ -72,6 +75,9 @@ export interface ProductOptionResult {
 export class ProductOptionDialog {
   readonly open = input<boolean>(false)
   readonly product = input<PosProduct | null>(null)
+  /** Opción vigente de la línea que se está editando. `null` = usar el default. */
+  readonly currentOptionId = input<string | null>(null)
+  readonly confirmLabel = input<string>('Cambiar')
 
   readonly closed = output<void>()
   readonly picked = output<ProductOptionResult>()
@@ -89,11 +95,13 @@ export class ProductOptionDialog {
   )
 
   constructor() {
-    // Al abrir, preselecciona la opción por defecto (o la primera de la lista).
+    // Al abrir, preselecciona la opción vigente de la línea; si no hay (alta
+    // nueva), la marcada por defecto y, en su defecto, la primera.
     effect(() => {
       if (!this.open()) return
       const options = this.product()?.options ?? []
-      const preferred = options.find((o) => o.esDefault) ?? options[0]
+      const current = options.find((o) => o.id === this.currentOptionId())
+      const preferred = current ?? options.find((o) => o.esDefault) ?? options[0]
       this.selectedId.set(preferred?.id ?? '')
     })
   }
