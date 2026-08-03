@@ -13,6 +13,7 @@ import {
   CashRegisterRepository as CashRegisterRepositoryContract,
   type AddMovementInput,
   type CloseSessionInput,
+  type CorrectMovementInput,
   type CorrectOpeningInput,
   type OpenSessionInput,
   type PaymentBreakdown,
@@ -241,6 +242,26 @@ export class CashRegisterRepository extends CashRegisterRepositoryContract {
       changes: { actualCashAmount: input.actualCashAmount, notasCierre: input.notasCierre ?? null },
     })
     return session
+  }
+
+  async correctMovement(input: CorrectMovementInput): Promise<void> {
+    const rpc = this.supabaseClient.supabase as unknown as RpcClient
+    const { error } = await rpc.rpc<string>('correct_cash_movement_atomic', {
+      p_movement_id: input.movementId,
+      p_tienda_id: input.tiendaId,
+      p_new_amount: input.newAmount,
+      p_new_motivo: input.newMotivo,
+      p_corrected_by: input.correctedBy,
+      p_reason: input.reason,
+    })
+    if (error) throw new Error(error.message)
+    void this.audit.log({
+      tiendaId: input.tiendaId,
+      entityType: 'movimiento_caja',
+      entityId: input.movementId,
+      action: 'correct_movement',
+      changes: { newAmount: input.newAmount, newMotivo: input.newMotivo, reason: input.reason },
+    })
   }
 
   async correctOpening(input: CorrectOpeningInput): Promise<CashSession> {

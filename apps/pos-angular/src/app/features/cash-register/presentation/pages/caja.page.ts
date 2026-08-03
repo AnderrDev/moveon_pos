@@ -17,6 +17,7 @@ import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import { AddMovementDialog } from '@angular-app/features/cash-register/presentation/dialogs/add-movement.dialog'
 import { CloseSessionDialog, type ExpectedByMethod } from '@angular-app/features/cash-register/presentation/dialogs/close-session.dialog'
 import { CorrectOpeningDialog } from '@angular-app/features/cash-register/presentation/dialogs/correct-opening.dialog'
+import { CorrectMovementDialog } from '@angular-app/features/cash-register/presentation/dialogs/correct-movement.dialog'
 import { ClosedSessionsListComponent } from '@angular-app/features/cash-register/presentation/components/closed-sessions-list.component'
 import { SaleDetailListComponent } from '@angular-app/shared/organisms/sale-detail-list.component'
 import { formatCurrency, formatTime, formatShortDate } from '@/shared/lib/format'
@@ -53,6 +54,7 @@ import {
     AddMovementDialog,
     CloseSessionDialog,
     CorrectOpeningDialog,
+    CorrectMovementDialog,
     SaleDetailListComponent,
     ClosedSessionsListComponent,
     VoidReasonDialog,
@@ -193,9 +195,7 @@ import {
                     <th class="px-4 py-2">Tipo</th>
                     <th class="px-4 py-2">Motivo</th>
                     <th class="px-4 py-2 text-right">Monto</th>
-                    @if (canVoid()) {
-                      <th class="px-4 py-2"></th>
-                    }
+                    <th class="px-4 py-2"></th>
                   </tr>
                 </thead>
                 <tbody class="divide-y">
@@ -226,15 +226,20 @@ import {
                       >
                         {{ mov.tipo === 'cash_in' ? '+' : '−' }}{{ money(mov.amount) }}
                       </td>
-                      @if (canVoid()) {
-                        <td class="px-4 py-2 text-right">
-                          @if (mov.status === 'active') {
-                            <mo-button size="sm" variant="outline" (click)="confirmVoidMovement(mov)">
-                              Anular
+                      <td class="px-4 py-2 text-right">
+                        @if (mov.status === 'active') {
+                          <div class="flex justify-end gap-1.5">
+                            <mo-button size="sm" variant="outline" (click)="correctingMovement.set(mov)">
+                              Corregir
                             </mo-button>
-                          }
-                        </td>
-                      }
+                            @if (canVoid()) {
+                              <mo-button size="sm" variant="outline" (click)="confirmVoidMovement(mov)">
+                                Anular
+                              </mo-button>
+                            }
+                          </div>
+                        }
+                      </td>
                     </tr>
                   }
                 </tbody>
@@ -301,6 +306,13 @@ import {
       (saved)="onClosed()"
     />
 
+    <mo-correct-movement-dialog
+      [open]="correctingMovement() !== null"
+      [movement]="correctingMovement()"
+      (closed)="correctingMovement.set(null)"
+      (saved)="reloadMovements()"
+    />
+
     <mo-correct-opening-dialog
       [open]="correctOpeningOpen()"
       [cashSession]="openSession()"
@@ -337,6 +349,8 @@ export class CajaPage {
   readonly movementOpen = signal(false)
   readonly closeOpen = signal(false)
   readonly correctOpeningOpen = signal(false)
+  /** Movimiento del turno al que se le está corrigiendo monto/concepto (RN-C16). */
+  readonly correctingMovement = signal<CashMovement | null>(null)
   readonly exporting = signal(false)
   readonly openingDrawer = signal(false)
   readonly paymentFilter = signal('')

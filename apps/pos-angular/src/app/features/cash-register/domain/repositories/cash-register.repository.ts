@@ -37,6 +37,15 @@ export interface CloseSessionInput {
   notasCierre?: string
 }
 
+export interface CorrectMovementInput {
+  movementId: string
+  tiendaId: string
+  newAmount: number
+  newMotivo: string
+  correctedBy: string
+  reason: string
+}
+
 export interface CorrectOpeningInput {
   sessionId: string
   tiendaId: string
@@ -66,4 +75,5 @@ export abstract class CashRegisterRepository {
   abstract getPaymentBreakdown(sessionId: string, tiendaId: string): Promise<PaymentBreakdown[]>
   abstract closeSession(input: CloseSessionInput): Promise<CashSession>
   abstract correctOpening(input: CorrectOpeningInput): Promise<CashSession>
+  abstract correctMovement(input: CorrectMovementInput): Promise<void>
 }

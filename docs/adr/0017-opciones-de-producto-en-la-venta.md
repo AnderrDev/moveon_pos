@@ -115,8 +115,13 @@ batido). CH+ queda mapeable desde la app el día que decidan medirlo.
 `PosCartItem.key` pasa de `productId` a `productId` + `:optionId` cuando hay opción. Dos batidos
 con proteína distinta son dos líneas; dos batidos con la misma proteína se acumulan en una.
 
-Al tocar un producto con opciones activas, el POS abre un diálogo de selección con el default
-preseleccionado. Un toque más por batido, que es el costo real de la funcionalidad.
+**Revisión 2026-08-03 (dueño):** tocar el producto lo agrega **directo con su opción por
+defecto** (CH+ en los batidos); la proteína se cambia después desde la línea del carrito, con un
+chip que abre el mismo diálogo. La primera versión abría el diálogo al agregar y el dueño lo
+rechazó tras usarlo: el batido con CH+ es la venta normal, así que la elección obligatoria
+cobraba un toque extra en el 99% de los casos para servir al 1%. Cambiar la opción de una línea
+recalcula el precio, recorta el descuento manual al precio nuevo, arrastra el canje del Club si
+lo tenía, y fusiona la línea si ya existía otra con esa misma proteína.
 
 ## 3. Consecuencias
 
@@ -132,7 +137,8 @@ preseleccionado. Un toque más por batido, que es el costo real de la funcionali
 
 - Toca `create_sale_atomic`, que es el camino del dinero. Mitigado: el cambio se concentra en
   el cálculo del precio unitario y una validación; el resto del cuerpo se conserva idéntico.
-- Un toque adicional en el flujo de venta más frecuente del negocio.
+- Vender un batido con proteína distinta a la de por defecto cuesta dos toques más (abrir el
+  chip de la línea y confirmar). Es el caso minoritario; el flujo normal quedó en un toque.
 - **`void_sale_atomic` no devuelve componentes al anular** (limitación preexistente: anular un
   batido tampoco devuelve el vaso). El sachet hereda esa limitación. Queda registrado como
   deuda conocida, no se resuelve aquí para no cambiar el comportamiento de anulación en la

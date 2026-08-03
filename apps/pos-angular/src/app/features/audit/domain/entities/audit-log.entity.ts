@@ -19,6 +19,7 @@ export type AuditAction =
   | 'transfer'
   | 'correct_payment'
   | 'correct_opening'
+  | 'correct_movement'
 
 export interface AuditLog {
   id: string
