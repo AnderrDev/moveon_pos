@@ -29,6 +29,24 @@ export const closeSessionSchema = z.object({
   notasCierre:      z.string().max(500).optional(),
 })
 
+/**
+ * Corrección de un movimiento ya registrado (RN-C16): solo monto y motivo. El
+ * `tipo` no se corrige — cambiar un ingreso por un egreso invierte el signo del
+ * cuadre, y para eso está la anulación.
+ */
+export const correctMovementSchema = z.object({
+  movementId: z.string().uuid(),
+  newAmount: z.number().positive('El monto debe ser mayor a 0'),
+  newMotivo: z.string().trim().min(3, 'Describe el motivo').max(200),
+  reason: z
+    .string()
+    .trim()
+    .min(
+      VOID_MOVEMENT_REASON_MIN_LENGTH,
+      `El motivo de la corrección debe tener al menos ${VOID_MOVEMENT_REASON_MIN_LENGTH} caracteres`,
+    ),
+})
+
 export const correctOpeningSchema = z.object({
   sessionId: z.string().uuid(),
   newAmount: z.number().nonnegative('El monto de apertura no puede ser negativo'),

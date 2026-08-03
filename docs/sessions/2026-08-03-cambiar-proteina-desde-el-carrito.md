@@ -7,7 +7,7 @@
 | Fecha | 2026-08-03 |
 | Sprint | Sprint 4 |
 | Agente | Claude Code |
-| HUs trabajadas | PLAN-71 (ajuste de UX), RN-S14 |
+| HUs trabajadas | PLAN-71 (ajuste de UX) · RN-S14 · PLAN-72 / RN-C16 |
 | Estado | Completada |
 
 ---
@@ -20,6 +20,9 @@ obligar a confirmar la proteína cada vez agrega fricción al flujo más frecuen
 
 Nuevo comportamiento: tocar el batido lo agrega directo con CH+; la proteína se cambia desde
 la línea del carrito solo cuando el cliente pide otra.
+
+**Segunda petición, ya avanzada la sesión:** "editar los movimientos del turno de la caja por si
+se equivoca alguien" (PLAN-72 / RN-C16, ver §9).
 
 ---
 
@@ -98,6 +101,46 @@ _Qué debe hacer el próximo agente o sesión para continuar._
 2. Decidir si CH+ debe descontar del tarro `ISO CH+ 2LB` y con qué cantidad (hoy no descuenta).
 3. Deuda conocida de PLAN-71: `void_sale_atomic` no devuelve componentes al anular — ni el vaso
    ni el sachet.
+
+---
+
+## 9. Segunda tarea — Corregir movimientos del turno (PLAN-72, RN-C16)
+
+### 9.1 El problema real
+
+Ya existía una respuesta al error: RN-C12 dice que un movimiento mal registrado se **anula** con
+motivo y se vuelve a registrar. Pero anular es **admin-only**, así que un cajero que teclea un
+cero de más queda trabado hasta que aparezca un admin. Ese era el problema, no la falta de una
+forma de deshacer.
+
+### 9.2 Decisiones del dueño
+
+| Pregunta | Respuesta | Consecuencia |
+|---|---|---|
+| ¿Qué se corrige? | Monto y motivo | El `tipo` no: cambiar un ingreso por un egreso invierte el signo del cuadre. Para eso sigue la anulación. |
+| ¿Quién? | Cualquier usuario activo de la tienda | Mismo criterio que corregir la apertura (RN-C13): corregir no borra rastro. "Anular" sigue siendo admin-only. |
+| ¿Qué turnos? | Solo el abierto | Un turno cerrado ya tiene su `difference` calculado y firmado; corregir después lo dejaría mintiendo. |
+
+### 9.3 Archivos creados
+- `supabase/migrations/20260803135727_correct_cash_movement.sql` — `correct_cash_movement_atomic`,
+  espejo de `correct_cash_session_opening_atomic`.
+- `apps/pos-angular/.../cash-register/domain/usecases/correct-movement.use-case.ts`
+- `apps/pos-angular/.../cash-register/presentation/dialogs/correct-movement.dialog.ts`
+- `tests/unit/features/cash-register/correct-movement.test.ts` — 6 tests del use-case.
+
+### 9.4 Archivos modificados
+- `cash-register.dto.ts` — `correctMovementSchema`.
+- `cash-register.repository.ts` (contrato y implementación) — `correctMovement`.
+- `caja.page.ts` — botón "Corregir" por movimiento; la columna de acciones deja de ser
+  admin-only (antes solo existía para mostrar "Anular").
+- `audit-log.entity.ts` + `auditoria.page.ts` — acción `correct_movement`.
+- `docs/modules/cash-register.md` (RN-C16), `docs/plan-de-trabajo.md` (PLAN-72).
+
+### 9.5 Estado
+
+Migración **no aplicada todavía** — pasó el ensayo en seco contra el remoto (transacción
+revertida, la función compila y queda con la firma esperada), pero falta el visto bueno para
+aplicarla de verdad.
 
 ---
 
