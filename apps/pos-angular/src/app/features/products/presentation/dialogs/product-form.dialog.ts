@@ -696,6 +696,11 @@ export class ProductFormDialog {
     // opciones de venta siguen siendo exclusivas de los preparados (ADR 0017).
     if (product.tipo === 'combo') {
       this.components.set(await this.repo.getComponents(product.id, auth.tiendaId))
+      // El costo guardado es una foto del momento en que se armó el combo. Al
+      // abrirlo se refresca contra los costos actuales para que el dueño vea si
+      // subió algún componente. El margen histórico no depende de esto: las
+      // ventas ya guardaron su propio costo (ADR 0019).
+      this.syncComboCost()
       return
     }
 

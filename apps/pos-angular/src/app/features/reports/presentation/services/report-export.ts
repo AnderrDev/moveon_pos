@@ -47,7 +47,7 @@ export function buildDailyReportWorkbook(
             `${report.averageDiscountPercentage.toFixed(2)}%`,
           ],
           ['Ventas', 'IVA incluido', null, report.taxTotal],
-          ['Ventas', 'Utilidad total (costo actual)', null, report.utilidadTotal],
+          ['Ventas', 'Utilidad total', null, report.utilidadTotal],
           ...report.paymentBreakdown.map(
             (payment) =>
               [
@@ -144,7 +144,7 @@ export function buildDailyReportWorkbook(
       {
         name: 'Utilidad',
         title: `Utilidad por producto · ${periodTitle}`,
-        subtitle: 'Costo actual del producto, no histórico (ver docs/modules/reports.md)',
+        subtitle: 'Costo capturado en el momento de cada venta (ADR 0019)',
         columns: [
           { header: 'Producto', width: 38 },
           { header: 'SKU', width: 16 },

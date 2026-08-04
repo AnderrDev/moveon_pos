@@ -9,6 +9,12 @@ export interface SaleItem {
   quantity: number
   /** Precio efectivo por unidad: precio base + recargo de la opción (ADR 0017). */
   unitPrice: number
+  /**
+   * Costo unitario congelado en el momento de la venta (ADR 0019). `null` =
+   * costo desconocido: la línea se excluye de la utilidad, nunca se asume 0.
+   * En un combo es la suma del costo de los productos incluidos.
+   */
+  unitCost: number | null
   /** Opción con la que se preparó (ej. proteína del batido). `null` = sin opción. */
   optionNombre: string | null
   /** Recargo unitario de la opción, ya incluido en `unitPrice`. Solo desglose. */

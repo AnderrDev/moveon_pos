@@ -39,6 +39,7 @@ interface SaleItemRow {
   producto_sku: string | null
   quantity: number
   unit_price: number
+  unit_cost: string | number | null
   discount_amount: number
   global_discount_amount: number
   option_nombre: string | null
@@ -66,6 +67,8 @@ function rowToSaleItem(row: SaleItemRow): SaleItem {
     productoSku: row.producto_sku,
     quantity: Number(row.quantity),
     unitPrice: Number(row.unit_price),
+    // Nulo se preserva: significa "costo desconocido", no cero.
+    unitCost: row.unit_cost == null ? null : Number(row.unit_cost),
     discountAmount: Number(row.discount_amount),
     globalDiscountAmount: Number(row.global_discount_amount),
     optionNombre: row.option_nombre ?? null,

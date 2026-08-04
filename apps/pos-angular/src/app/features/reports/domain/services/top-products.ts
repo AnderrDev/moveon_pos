@@ -32,6 +32,12 @@ export interface ProductSalesSummary {
   total: number
   /** Precio promedio ponderado por cantidad: `total / qty`. */
   avgPrice: number
+  /**
+   * Costo total de lo vendido, sumando el costo congelado de cada línea
+   * (ADR 0019). `null` si a alguna línea le falta el costo: se prefiere no
+   * reportar utilidad antes que reportarla incompleta.
+   */
+  costoTotal: number | null
 }
 
 /**
@@ -65,6 +71,9 @@ export function groupSalesByProduct(sales: Sale[]): ProductSalesSummary[] {
     saleIds: Set<string>
     qty: number
     total: number
+    costoTotal: number
+    /** Alguna línea se vendió sin costo conocido: el total deja de ser fiable. */
+    costoIncompleto: boolean
   }
 
   const byProduct = new Map<string, Accumulator>()
@@ -79,11 +88,19 @@ export function groupSalesByProduct(sales: Sale[]): ProductSalesSummary[] {
         saleIds: new Set<string>(),
         qty: 0,
         total: 0,
+        costoTotal: 0,
+        costoIncompleto: false,
       }
 
       current.saleIds.add(sale.id)
       current.qty += item.quantity
       current.total += item.total
+
+      if (item.unitCost == null) {
+        current.costoIncompleto = true
+      } else {
+        current.costoTotal += item.unitCost * item.quantity
+      }
 
       byProduct.set(item.productId, current)
     }
@@ -98,6 +115,7 @@ export function groupSalesByProduct(sales: Sale[]): ProductSalesSummary[] {
       qty: v.qty,
       total: v.total,
       avgPrice: v.qty > 0 ? Math.round((v.total / v.qty) * 100) / 100 : 0,
+      costoTotal: v.costoIncompleto ? null : Math.round(v.costoTotal),
     }))
     .sort((a, b) => {
       if (b.total !== a.total) return b.total - a.total

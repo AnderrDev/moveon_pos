@@ -19,6 +19,7 @@ function makeItem(overrides: {
   quantity: number
   unitPrice: number
   total: number
+  unitCost?: number | null
 }): SaleItem {
   return {
     id: `item-${overrides.productId}-${Math.random()}`,
@@ -28,6 +29,7 @@ function makeItem(overrides: {
     productoSku: overrides.productoSku ?? null,
     quantity: overrides.quantity,
     unitPrice: overrides.unitPrice,
+    unitCost: overrides.unitCost ?? null,
     optionNombre: null,
     optionExtra: 0,
     discountAmount: 0,
@@ -167,5 +169,112 @@ describe('groupSalesByProduct', () => {
     ])
 
     expect(result.map((r) => r.productId)).toEqual(['prod-m', 'prod-a', 'prod-z'])
+  })
+})
+
+// ─── costoTotal: costo congelado en la venta (ADR 0019) ──────────────────────
+
+describe('groupSalesByProduct — costo de lo vendido', () => {
+  it('suma el costo unitario por la cantidad de cada línea', () => {
+    const [producto] = groupSalesByProduct([
+      makeSale({
+        id: 'sale-1',
+        status: 'completed',
+        items: [
+          makeItem({ productId: 'p1', quantity: 2, unitPrice: 95000, total: 190000, unitCost: 60000 }),
+        ],
+      }),
+    ])
+
+    expect(producto.costoTotal).toBe(120000)
+  })
+
+  it('acumula el costo entre varias ventas del período', () => {
+    const [producto] = groupSalesByProduct([
+      makeSale({
+        id: 'sale-1',
+        status: 'completed',
+        items: [makeItem({ productId: 'p1', quantity: 1, unitPrice: 95000, total: 95000, unitCost: 60000 })],
+      }),
+      makeSale({
+        id: 'sale-2',
+        status: 'completed',
+        items: [makeItem({ productId: 'p1', quantity: 3, unitPrice: 95000, total: 285000, unitCost: 60000 })],
+      }),
+    ])
+
+    expect(producto.costoTotal).toBe(240000)
+  })
+
+  it('respeta costos distintos del mismo producto entre ventas (el costo cambió)', () => {
+    const [producto] = groupSalesByProduct([
+      makeSale({
+        id: 'sale-1',
+        status: 'completed',
+        items: [makeItem({ productId: 'p1', quantity: 1, unitPrice: 95000, total: 95000, unitCost: 60000 })],
+      }),
+      makeSale({
+        id: 'sale-2',
+        status: 'completed',
+        items: [makeItem({ productId: 'p1', quantity: 1, unitPrice: 95000, total: 95000, unitCost: 70000 })],
+      }),
+    ])
+
+    // Con el costo actual del catálogo ambas habrían costado lo mismo; con el
+    // costo congelado cada venta conserva el suyo.
+    expect(producto.costoTotal).toBe(130000)
+  })
+
+  it('devuelve null si a alguna línea le falta el costo, en vez de subestimarlo', () => {
+    const [producto] = groupSalesByProduct([
+      makeSale({
+        id: 'sale-1',
+        status: 'completed',
+        items: [makeItem({ productId: 'p1', quantity: 1, unitPrice: 95000, total: 95000, unitCost: 60000 })],
+      }),
+      makeSale({
+        id: 'sale-2',
+        status: 'completed',
+        items: [makeItem({ productId: 'p1', quantity: 1, unitPrice: 95000, total: 95000, unitCost: null })],
+      }),
+    ])
+
+    expect(producto.costoTotal).toBeNull()
+  })
+
+  it('devuelve null cuando ninguna línea tiene costo', () => {
+    const [producto] = groupSalesByProduct([
+      makeSale({
+        id: 'sale-1',
+        status: 'completed',
+        items: [makeItem({ productId: 'p1', quantity: 1, unitPrice: 11000, total: 11000 })],
+      }),
+    ])
+
+    expect(producto.costoTotal).toBeNull()
+  })
+
+  it('las ventas anuladas no aportan costo', () => {
+    const result = groupSalesByProduct([
+      makeSale({
+        id: 'sale-1',
+        status: 'voided',
+        items: [makeItem({ productId: 'p1', quantity: 5, unitPrice: 95000, total: 475000, unitCost: 60000 })],
+      }),
+    ])
+
+    expect(result).toEqual([])
+  })
+
+  it('un costo de 0 es un costo conocido, no un costo ausente', () => {
+    const [producto] = groupSalesByProduct([
+      makeSale({
+        id: 'sale-1',
+        status: 'completed',
+        items: [makeItem({ productId: 'p1', quantity: 2, unitPrice: 5000, total: 10000, unitCost: 0 })],
+      }),
+    ])
+
+    expect(producto.costoTotal).toBe(0)
   })
 })

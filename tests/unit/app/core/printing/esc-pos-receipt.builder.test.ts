@@ -26,6 +26,7 @@ const sale: Sale = {
       productoSku: null,
       quantity: 1,
       unitPrice: 22_000,
+      unitCost: null,
       optionNombre: null,
       optionExtra: 0,
       discountAmount: 0,

@@ -77,8 +77,8 @@ import type { DailyProductSale } from '@angular-app/features/reports/domain/enti
         </table>
       </div>
       <p class="text-muted-foreground mt-3 text-xs">
-        Utilidad calculada con el costo actual de cada producto, no el costo al momento de la
-        venta. Productos sin costo capturado muestran "—" y no se incluyen en la utilidad total.
+        Utilidad calculada con el costo que tenía el producto al momento de cada venta. Los
+        productos vendidos sin costo capturado muestran "—" y no se incluyen en la utilidad total.
       </p>
     }
   `,

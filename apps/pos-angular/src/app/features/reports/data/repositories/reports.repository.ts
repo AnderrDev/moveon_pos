@@ -51,10 +51,11 @@ export class ReportsRepository extends ReportRepository {
 
     const { start: dayStart, end: dayEnd } = getStoreRangeUtc(fromIso, toIso, timezone)
 
-    const [sales, filteredSessions, products] = await Promise.all([
+    // Desde ADR 0019 el costo viaja en cada línea de venta, así que el reporte
+    // ya no necesita cargar el catálogo completo para calcular márgenes.
+    const [sales, filteredSessions] = await Promise.all([
       this.salesRepo.listByDate(tiendaId, dayStart, dayEnd),
       this.cashRepo.listSessionsByDateRange(tiendaId, dayStart, dayEnd),
-      this.productsRepo.listProducts({ tiendaId, soloActivos: false }),
     ])
 
     const completed = sales.filter((s) => s.status === 'completed')
@@ -94,16 +95,18 @@ export class ReportsRepository extends ReportRepository {
     // scripts/reports/business-status-report.sql). Cero queries nuevas.
     const productGroups = groupSalesByProduct(completed)
 
-    // Costo actual del producto (no histórico, ver docs/modules/reports.md):
-    // suficiente para "cuánto se está ganando ahora", no exacto si el costo
-    // cambió desde que se vendió. Productos sin costo capturado quedan en
-    // `null` y se excluyen de utilidadTotal (no se asume costo 0).
-    const costMap = new Map(products.map((p) => [p.id, p.costo]))
-
+    // Costo congelado en la venta (ADR 0019): `sale_items.unit_cost`, agregado
+    // por producto en `groupSalesByProduct`. El margen de un período pasado ya
+    // no cambia cuando se actualiza el costo del catálogo. Si a alguna línea le
+    // falta el costo, el producto queda en `null` y se excluye de
+    // `utilidadTotal` — nunca se asume costo 0.
     let utilidadTotal = 0
     const productSales: DailyProductSale[] = productGroups.map((v) => {
-      const costoUnitario = costMap.get(v.productId) ?? null
-      const costoTotal = costoUnitario != null ? Math.round(costoUnitario * v.qty) : null
+      const costoTotal = v.costoTotal
+      // Costo unitario promedio ponderado: el costo pudo cambiar entre ventas
+      // del período, así que ya no hay un único costo por producto.
+      const costoUnitario =
+        costoTotal != null && v.qty > 0 ? Math.round(costoTotal / v.qty) : null
       const utilidad = costoTotal != null ? v.total - costoTotal : null
       const margenPct = utilidad != null && v.total > 0 ? (utilidad / v.total) * 100 : null
       if (utilidad != null) utilidadTotal += utilidad

@@ -93,6 +93,16 @@ Los cambios de esta sesión son solo de frontend: no tocan la base ni requieren 
 
 ---
 
+## 6.bis Continuación: PLAN-74 (ADR 0019)
+
+Al preguntar el dueño cómo se calcula la utilidad de un combo, la auditoría destapó que el
+costo actual del catálogo alimentaba **tres** cálculos (reporte de productos, utilidad neta de
+Finanzas y el COGS del fondo de reinversión), y que en los combos el número estaba mal incluso
+para el día de hoy. Se implementó `sale_items.unit_cost` en la misma sesión — ver
+`docs/adr/0019-costo-capturado-en-la-venta.md` y la migración `20260804030000`.
+
+---
+
 ## 7. Próximos pasos
 
 1. Crear los combos reales del negocio desde `/productos` (todavía no existe ninguno en
