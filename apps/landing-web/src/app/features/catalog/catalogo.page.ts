@@ -8,6 +8,7 @@ import {
 } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { ClubProgressComponent } from '../club/club-progress.component'
+import { OffersCarouselComponent } from './offers-carousel.component'
 import {
   CatalogoService,
   type CatalogoProducto,
@@ -36,6 +37,11 @@ const BADGE_STYLES: Record<string, [string, string]> = {
 }
 const BADGE_DEFAULT: [string, string] = ['#161616', '#F9D128']
 
+// Orden de prioridad en la cinta de ofertas del header; cualquier otra
+// etiqueta cuenta como destacado y va al final.
+const OFFER_PRIORITY = ['Promoción', 'Más vendido', 'Nuevo']
+const OFFERS_MAX = 6
+
 interface CategoryChip {
   id: string
   nombre: string
@@ -46,7 +52,7 @@ interface CategoryChip {
   selector: 'mo-catalogo-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ClubProgressComponent],
+  imports: [CommonModule, ClubProgressComponent, OffersCarouselComponent],
   template: `
 <!-- ── ESTILOS (diseño oficial: Catalogo Move On v4) ─────────── -->
 <!-- Las fuentes de Google (Montserrat) se cargan desde index.html -->
@@ -291,6 +297,11 @@ interface CategoryChip {
       </button>
     </div>
   </header>
+
+  <!-- ══ CINTA DE OFERTAS (carrusel del header) ══ -->
+  @if (!loading() && ofertas().length > 0) {
+    <mo-offers-carousel [productos]="ofertas()" [whatsappNumber]="whatsappNumber()" />
+  }
 
   <!-- ══ HERO ══ -->
   <section id="inicio" class="mo3-hero">
@@ -739,6 +750,17 @@ export class CatalogoPage implements OnInit {
 
   readonly totalProductos = computed(() => this.allProducts().length)
 
+  readonly ofertas = computed(() => {
+    const priority = (p: CatalogoProducto): number => {
+      const i = OFFER_PRIORITY.indexOf(p.etiqueta ?? '')
+      return i === -1 ? OFFER_PRIORITY.length : i
+    }
+    return this.allProducts()
+      .filter((p) => p.etiqueta)
+      .sort((a, b) => priority(a) - priority(b) || a.nombre.localeCompare(b.nombre))
+      .slice(0, OFFERS_MAX)
+  })
+
   readonly productosFiltrados = computed(() => {
     const selected = this.selectedCategory()
     const query = this.normalize(this.search())
@@ -787,6 +809,7 @@ export class CatalogoPage implements OnInit {
   readonly mapsUrl = MAPS_URL
   readonly currentYear = new Date().getFullYear()
   readonly whatsappDisplay = computed(() => this.contactSettings().whatsappDisplay)
+  readonly whatsappNumber = computed(() => this.contactSettings().whatsappNumber)
 
   readonly confianza = [
     { titulo: 'Asesoría personalizada', texto: 'Te ayudamos a elegir según tu entrenamiento y tu objetivo. Sin enredos.' },
