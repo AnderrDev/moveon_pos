@@ -6,6 +6,7 @@ const PRODUCT_TYPE_LABELS: Record<Product['tipo'], string> = {
   simple: 'Simple',
   prepared: 'Preparado',
   ingredient: 'Ingrediente',
+  combo: 'Combo',
 }
 
 export function buildProductsWorkbook(

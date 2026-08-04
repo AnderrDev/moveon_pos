@@ -1,4 +1,5 @@
 import type { Product } from '@angular-app/features/products/domain/entities/product.entity'
+import { tracksOwnStock } from '@/shared/lib/product-type'
 
 /** Productos que pueden asignarse como componente de un preparado.
  *  Solo ingredientes activos, excluyendo el propio producto y los ya asignados. */
@@ -22,5 +23,24 @@ export function filterOptionComponentCandidates(
   allProducts: Product[],
   selfId: string | undefined,
 ): Product[] {
-  return allProducts.filter((p) => p.isActive && p.tipo !== 'prepared' && p.id !== selfId)
+  return allProducts.filter((p) => p.isActive && tracksOwnStock(p.tipo) && p.id !== selfId)
+}
+
+/**
+ * Productos que pueden incluirse en un combo (ADR 0018). A diferencia de los
+ * componentes de un preparado, aquí lo normal es incluir productos `simple`:
+ * un combo es "proteína + shaker", no "vaso + tapa".
+ *
+ * Se excluye todo lo que no rastrea stock propio (otro combo o un batido):
+ * incluirlo generaría un movimiento de salida sobre un producto sin inventario
+ * y lo dejaría en negativo sin significado.
+ */
+export function filterComboItemCandidates(
+  allProducts: Product[],
+  assignedIds: Set<string>,
+  selfId: string | undefined,
+): Product[] {
+  return allProducts.filter(
+    (p) => p.isActive && tracksOwnStock(p.tipo) && p.id !== selfId && !assignedIds.has(p.id),
+  )
 }

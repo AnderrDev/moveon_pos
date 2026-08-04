@@ -58,6 +58,12 @@ Todo `adjustment` deja entrada en `audit_logs`.
 
 Aunque la suma matemática puede dar negativo (si hubo ajuste por inventario físico), la UI muestra `max(stock, 0)` y advierte.
 
+### RN-I09: Productos sin stock propio
+
+Los tipos `prepared` (batidos) y `combo` (promociones, ADR 0018) no llevan inventario propio: al venderlos se descuenta el stock de los productos que consumen, declarados en `product_components`. Nunca se marcan como "bajo stock" ni "agotado" (`low-stock.ts`), no aceptan inventario inicial y el POS no valida su stock en el servidor.
+
+Para los combos el POS muestra una disponibilidad **derivada**: `min(floor(stock / cantidad))` sobre los productos incluidos, es decir cuántos combos alcanzan a armarse con el más escaso. Es un tope de cliente: el servidor mantiene la política de advertir sin bloquear, así que el stock de un componente puede quedar negativo si el catálogo cacheado está desactualizado.
+
 ---
 
 ## Use cases

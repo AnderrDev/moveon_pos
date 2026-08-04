@@ -10,6 +10,7 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { getErrorMessage } from '@/shared/lib/error-message'
+import { formatCurrency } from '@/shared/lib/format'
 import { ReactiveFormsModule } from '@angular/forms'
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
@@ -32,9 +33,11 @@ import { saveProductComponents } from '@angular-app/features/products/domain/use
 import { saveProductOptions } from '@angular-app/features/products/domain/usecases/save-product-options.use-case'
 import { ProductsCacheStore } from '@angular-app/core/catalog/products-cache.store'
 import {
+  filterComboItemCandidates,
   filterComponentCandidates,
   filterOptionComponentCandidates,
 } from '@angular-app/features/products/presentation/services/product-component.helpers'
+import { comboSavings } from '@angular-app/features/products/domain/services/combo-pricing'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import type { InventoryLocation } from '@/shared/types'
@@ -43,6 +46,7 @@ const TIPO_OPTIONS: FormSelectOption<string>[] = [
   { value: 'simple', label: 'Simple' },
   { value: 'prepared', label: 'Preparado' },
   { value: 'ingredient', label: 'Ingrediente' },
+  { value: 'combo', label: 'Combo' },
 ]
 
 const IVA_OPTIONS: FormSelectOption<number>[] = [
@@ -143,9 +147,13 @@ const INITIAL_STOCK_LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
               </p>
             </div>
 
-            @if (selectedType() === 'prepared') {
+            @if (showComponents()) {
               <div class="border-border bg-card text-muted-foreground mt-4 rounded-lg border px-3.5 py-3 text-xs">
-                Los productos preparados no controlan stock propio. Asigna componentes consumibles abajo.
+                @if (isCombo()) {
+                  Los combos no controlan stock propio. Agrega abajo los productos incluidos.
+                } @else {
+                  Los productos preparados no controlan stock propio. Asigna componentes consumibles abajo.
+                }
               </div>
             } @else {
               <div class="mt-4 grid gap-x-4 gap-y-5 sm:grid-cols-2">
@@ -174,12 +182,19 @@ const INITIAL_STOCK_LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
           </section>
         }
 
-        @if (selectedType() === 'prepared') {
+        @if (showComponents()) {
           <section class="rounded-xl border p-4 space-y-3">
             <div>
-              <h3 class="text-sm font-semibold">Componentes consumibles</h3>
+              <h3 class="text-sm font-semibold">
+                {{ isCombo() ? 'Productos incluidos' : 'Componentes consumibles' }}
+              </h3>
               <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
-                Al vender este batido se descuenta el stock de cada componente (ej. vaso, ingredientes).
+                @if (isCombo()) {
+                  Al vender el combo se descuenta el stock de cada producto incluido. El combo no
+                  lleva inventario propio: cuántos puedes vender lo decide el producto más escaso.
+                } @else {
+                  Al vender este batido se descuenta el stock de cada componente (ej. vaso, ingredientes).
+                }
               </p>
             </div>
 
@@ -201,7 +216,36 @@ const INITIAL_STOCK_LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
             }
 
             @if (components().length === 0) {
-              <p class="text-muted-foreground text-xs">Sin componentes asignados.</p>
+              <p class="text-muted-foreground text-xs">
+                {{ isCombo() ? 'Sin productos incluidos todavía.' : 'Sin componentes asignados.' }}
+              </p>
+            }
+
+            @if (isCombo() && components().length > 0) {
+              <div class="border-primary/20 bg-primary/[0.035] rounded-lg border px-3.5 py-3">
+                <dl class="flex flex-wrap items-baseline gap-x-5 gap-y-1 text-xs">
+                  <div class="flex items-baseline gap-1.5">
+                    <dt class="text-muted-foreground">Suma normal</dt>
+                    <dd class="font-semibold tabular-nums">{{ money(savings().sumaNormal) }}</dd>
+                  </div>
+                  <div class="flex items-baseline gap-1.5">
+                    <dt class="text-muted-foreground">Precio del combo</dt>
+                    <dd class="font-semibold tabular-nums">{{ money(precioVenta()) }}</dd>
+                  </div>
+                  @if (savings().ahorro > 0) {
+                    <div class="flex items-baseline gap-1.5">
+                      <dt class="text-muted-foreground">Ahorro</dt>
+                      <dd class="text-primary font-semibold tabular-nums">
+                        {{ money(savings().ahorro) }} ({{ savings().porcentaje }}%)
+                      </dd>
+                    </div>
+                  } @else {
+                    <div class="text-muted-foreground">
+                      Sin ahorro: el combo no cuesta menos que comprarlos por separado.
+                    </div>
+                  }
+                </dl>
+              </div>
             }
 
             <div class="flex gap-2 items-end pt-1">
@@ -245,7 +289,11 @@ const INITIAL_STOCK_LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
               </button>
             </div>
           </section>
+        }
 
+        <!-- Las opciones de venta (ADR 0017) son exclusivas de los preparados:
+             un combo se vende tal cual, sin preguntar nada al cajero. -->
+        @if (selectedType() === 'prepared') {
           <section class="rounded-xl border p-4 space-y-3">
             <div>
               <h3 class="text-sm font-semibold">Opciones de venta</h3>
@@ -521,14 +569,47 @@ export class ProductFormDialog {
   readonly pendingComponentId = signal('')
   readonly pendingComponentQty = signal(1)
 
-  readonly componentCandidates = computed(() =>
-    filterComponentCandidates(
-      this.allProducts(),
-      new Set(this.components().map((c) => c.componenteId)),
-      this.product()?.id,
-    ),
-  )
+  /**
+   * Un combo incluye productos vendibles (proteína, shaker); un preparado
+   * consume ingredientes (vaso). Son catálogos distintos a propósito.
+   */
+  readonly componentCandidates = computed(() => {
+    const assigned = new Set(this.components().map((c) => c.componenteId))
+    const selfId = this.product()?.id
+
+    return this.isCombo()
+      ? filterComboItemCandidates(this.allProducts(), assigned, selfId)
+      : filterComponentCandidates(this.allProducts(), assigned, selfId)
+  })
   // --------------------------------
+
+  // --- Combos (ADR 0018) ---
+  readonly isCombo = computed(() => this.selectedType() === 'combo')
+
+  /** Preparados y combos comparten la sección de componentes; el copy cambia. */
+  readonly showComponents = computed(
+    () => this.isCombo() || this.selectedType() === 'prepared',
+  )
+
+  readonly precioVenta = toSignal(this.presenter.form.controls.precioVenta.valueChanges, {
+    initialValue: this.presenter.form.controls.precioVenta.value,
+  })
+
+  /** Precio y costo de cada producto incluido, resueltos contra el catálogo. */
+  private readonly comboItems = computed(() => {
+    const byId = new Map(this.allProducts().map((p) => [p.id, p]))
+
+    return this.components().flatMap((c) => {
+      const product = byId.get(c.componenteId)
+      return product
+        ? [{ cantidad: c.cantidad, precioVenta: product.precioVenta, costo: product.costo }]
+        : []
+    })
+  })
+
+  /** Cuánto ahorra el cliente frente a comprar los productos sueltos. */
+  readonly savings = computed(() => comboSavings(this.precioVenta(), this.comboItems()))
+  // --------------------------
 
   // --- Opciones de venta (ADR 0017) ---
   readonly options = signal<ProductOption[]>([])
@@ -565,7 +646,9 @@ export class ProductFormDialog {
       }
     })
     effect(() => {
-      if (this.selectedType() === 'prepared') {
+      // Ni los preparados ni los combos controlan inventario propio: el RPC
+      // rechaza el stock inicial, así que el formulario ni lo ofrece.
+      if (this.showComponents()) {
         this.presenter.form.controls.stockInicial.setValue(0, { emitEvent: false })
       }
     })
@@ -580,7 +663,16 @@ export class ProductFormDialog {
     this.allProducts.set(all)
 
     const product = this.product()
-    if (product?.tipo === 'prepared') {
+    if (!product) return
+
+    // Los combos también tienen componentes (los productos incluidos), pero las
+    // opciones de venta siguen siendo exclusivas de los preparados (ADR 0017).
+    if (product.tipo === 'combo') {
+      this.components.set(await this.repo.getComponents(product.id, auth.tiendaId))
+      return
+    }
+
+    if (product.tipo === 'prepared') {
       const [comps, options] = await Promise.all([
         this.repo.getComponents(product.id, auth.tiendaId),
         this.repo.getOptions(product.id, auth.tiendaId),
@@ -694,14 +786,18 @@ export class ProductFormDialog {
       }
       const saved = result.value
 
-      if (saved.tipo === 'prepared') {
+      // Los productos incluidos de un combo se guardan igual que los
+      // componentes de un preparado; las opciones de venta no aplican al combo.
+      if (saved.tipo === 'prepared' || saved.tipo === 'combo') {
         await saveProductComponents(
           { repo: this.repo },
           saved.id,
           auth.tiendaId,
           this.components().map((c) => ({ componenteId: c.componenteId, cantidad: c.cantidad })),
         )
+      }
 
+      if (saved.tipo === 'prepared') {
         const grupo = this.optionGrupo().trim() || 'Proteína'
         const optionsResult = await saveProductOptions(
           { repo: this.repo },
@@ -731,6 +827,10 @@ export class ProductFormDialog {
       this.saving.set(false)
       this.presenter.form.enable({ emitEvent: false })
     }
+  }
+
+  money(amount: number): string {
+    return formatCurrency(amount)
   }
 
   onClose(): void {

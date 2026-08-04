@@ -4,7 +4,10 @@ import {
   buildComponentInsertRows,
   type ProductComponentRow,
 } from '@angular-app/features/products/data/models/product-component.mapper'
-import { filterComponentCandidates } from '@angular-app/features/products/presentation/services/product-component.helpers'
+import {
+  filterComboItemCandidates,
+  filterComponentCandidates,
+} from '@angular-app/features/products/presentation/services/product-component.helpers'
 import type { Product } from '@angular-app/features/products/domain/entities/product.entity'
 
 // ─── fixtures ───────────────────────────────────────────────────────────────
@@ -115,6 +118,44 @@ describe('filterComponentCandidates', () => {
   it('devuelve lista vacía si no hay ingredientes disponibles', () => {
     const sinIngredientes = [whey, batido]
     expect(filterComponentCandidates(sinIngredientes, new Set(), undefined)).toEqual([])
+  })
+})
+
+// ─── filterComboItemCandidates ───────────────────────────────────────────────
+
+describe('filterComboItemCandidates', () => {
+  const vaso = makeProduct({ id: 'vaso-1', tipo: 'ingredient', nombre: 'Vaso 16oz' })
+  const whey = makeProduct({ id: 'whey-1', tipo: 'simple', nombre: 'Whey Protein', precioVenta: 180_000 })
+  const shaker = makeProduct({ id: 'shaker-1', tipo: 'simple', nombre: 'Shaker', precioVenta: 35_000 })
+  const batido = makeProduct({ id: 'batido-1', tipo: 'prepared', nombre: 'Batido en Leche' })
+  const otroCombo = makeProduct({ id: 'combo-2', tipo: 'combo', nombre: 'Combo Creatina' })
+  const inactivo = makeProduct({ id: 'inac-1', tipo: 'simple', nombre: 'Inactivo', isActive: false })
+
+  const allProducts = [vaso, whey, shaker, batido, otroCombo, inactivo]
+
+  it('incluye productos simple, que es lo normal en un combo', () => {
+    const result = filterComboItemCandidates(allProducts, new Set(), undefined)
+    expect(result.map((p) => p.id)).toEqual(expect.arrayContaining(['whey-1', 'shaker-1']))
+  })
+
+  it('también admite ingredientes', () => {
+    const result = filterComboItemCandidates(allProducts, new Set(), undefined)
+    expect(result.map((p) => p.id)).toContain('vaso-1')
+  })
+
+  it('excluye preparados y otros combos: no rastrean stock propio', () => {
+    const result = filterComboItemCandidates(allProducts, new Set(), undefined)
+    expect(result.map((p) => p.id)).not.toContain('batido-1')
+    expect(result.map((p) => p.id)).not.toContain('combo-2')
+  })
+
+  it('excluye inactivos, el propio combo y los ya incluidos', () => {
+    const result = filterComboItemCandidates(allProducts, new Set(['shaker-1']), 'whey-1')
+    const ids = result.map((p) => p.id)
+    expect(ids).not.toContain('inac-1')
+    expect(ids).not.toContain('whey-1')
+    expect(ids).not.toContain('shaker-1')
+    expect(ids).toContain('vaso-1')
   })
 })
 

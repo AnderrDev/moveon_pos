@@ -1,6 +1,8 @@
 import type { IvaRate, PaymentMethod, ProductType } from '@/shared/types'
 
 export interface PosProductComponent {
+  /** Necesario para derivar la disponibilidad de un combo desde su stock. */
+  componenteId: string
   nombre: string
   cantidad: number
 }
@@ -33,7 +35,11 @@ export interface PosProduct {
   tipo: ProductType
   /** MOVE ON Club: genera sellos y puede canjearse como recompensa (RN-LF06). */
   participaFidelizacion: boolean
-  /** Stock disponible. `null` = el producto no rastrea stock (ej. `prepared`). */
+  /**
+   * Stock disponible. `null` = el producto no rastrea stock ni se puede derivar
+   * (`prepared`). En los combos es un valor derivado del producto incluido más
+   * escaso, no un stock propio (ADR 0018).
+   */
   stockDisponible: number | null
   /** Componentes que se descuentan automáticamente al vender este producto. */
   components: PosProductComponent[]

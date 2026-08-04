@@ -5,7 +5,7 @@ export type UserId = string
 
 export type IvaRate = 0 | 5 | 19
 
-export type ProductType = 'simple' | 'prepared' | 'ingredient'
+export type ProductType = 'simple' | 'prepared' | 'ingredient' | 'combo'
 
 export type SaleStatus = 'completed' | 'voided'
 

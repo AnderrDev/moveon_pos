@@ -371,9 +371,15 @@ export function parseSiigoRow(
   const categoria = categoriaRaw === '' ? undefined : categoriaRaw
 
   // tipo (vacío→simple; otro→error).
+  //
+  // Los combos no se importan: se arman en el formulario de producto eligiendo
+  // los productos incluidos (ADR 0018). Un combo sin componentes se vendería sin
+  // descontar nada del inventario, y el CSV de Siigo no puede expresarlos.
   const tipoRaw = cell(record, 'tipo').toLowerCase()
   let tipo: ProductType = 'simple'
-  if (tipoRaw !== '') {
+  if (tipoRaw === 'combo') {
+    push('tipo', 'los combos se crean desde el formulario de producto, no por importación')
+  } else if (tipoRaw !== '') {
     const tipoParsed = productTypeSchema.safeParse(tipoRaw)
     if (!tipoParsed.success) {
       push('tipo', `tipo inválido: "${tipoRaw}" (usa simple, prepared o ingredient)`)

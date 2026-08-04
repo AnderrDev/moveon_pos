@@ -4,7 +4,7 @@ import { z } from 'zod'
 
 export const ivaRateSchema = z.union([z.literal(0), z.literal(5), z.literal(19)])
 
-export const productTypeSchema = z.enum(['simple', 'prepared', 'ingredient'])
+export const productTypeSchema = z.enum(['simple', 'prepared', 'ingredient', 'combo'])
 
 // ─── Dinero ───────────────────────────────────────────────────────────────────
 

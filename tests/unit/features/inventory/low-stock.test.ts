@@ -29,6 +29,10 @@ describe('isLowStock', () => {
   it('simple con mínimo 0 y stock 0 está bajo (no se altera la regla)', () => {
     expect(isLowStock({ tipo: 'simple', currentStock: 0, minimumStock: 0 })).toBe(true)
   })
+
+  it('combo NO está bajo: su disponibilidad la dan los productos incluidos', () => {
+    expect(isLowStock({ tipo: 'combo', currentStock: 0, minimumStock: 10 })).toBe(false)
+  })
 })
 
 describe('isOutOfStock', () => {
@@ -50,5 +54,9 @@ describe('isOutOfStock', () => {
 
   it('simple con stock 1 NO está agotado', () => {
     expect(isOutOfStock({ tipo: 'simple', currentStock: 1 })).toBe(false)
+  })
+
+  it('combo con stock 0 NO está agotado: no lleva inventario propio', () => {
+    expect(isOutOfStock({ tipo: 'combo', currentStock: 0 })).toBe(false)
   })
 })

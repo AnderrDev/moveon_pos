@@ -104,6 +104,8 @@ Una venta `completed` no se puede editar. Solo se puede anular (que crea registr
 
 Al anular una venta, por cada `sale_item` se crea un `inventory_movement` tipo `void_return` con cantidad positiva.
 
+Los productos que no rastrean stock propio (`prepared` y `combo`) no devuelven la línea vendida —nunca generaron `sale_exit`—, pero **sí devuelven lo que consumieron**: los componentes fijos de `product_components` y el componente de la opción elegida (ADR 0017). Corregido el 2026-08-03 en `20260803200100_combo_support.sql`; antes de esa fecha los componentes quedaban descontados tras anular.
+
 ### RN-S08: Permisos
 
 - Cajero: puede crear ventas, no puede anular.

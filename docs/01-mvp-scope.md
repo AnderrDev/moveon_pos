@@ -38,6 +38,7 @@
 - Carrito con productos y cantidades.
 - Edición de cantidades en carrito.
 - Descuentos manuales (porcentaje o monto fijo) con permiso por rol.
+- Combos/promociones: producto de tipo `combo` con precio fijo propio que al venderse descuenta los productos incluidos (agregado al scope por decisión del dueño el 2026-08-03, ADR 0018).
 - Cálculo automático de subtotal, IVA y total.
 - Selección de cliente (opcional, para fidelización futura).
 - Bloqueo de venta si caja no está abierta.

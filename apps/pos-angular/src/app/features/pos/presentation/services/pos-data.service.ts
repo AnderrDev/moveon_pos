@@ -4,6 +4,7 @@ import { InventoryRepository } from '@angular-app/features/inventory/domain/repo
 import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import type { OpenCashSession, PosCategory, PosProduct, PosProductComponent, PosProductOption } from '@angular-app/features/pos/presentation/services/pos.types'
+import { deriveComboStock } from '@angular-app/features/pos/presentation/services/combo-stock'
 
 interface CashSessionRow {
   id: string
@@ -12,6 +13,7 @@ interface CashSessionRow {
 
 interface ComponentRow {
   producto_id: string
+  componente_id: string
   cantidad: number
   componente: { nombre: string }
 }
@@ -82,7 +84,11 @@ export class PosDataService {
     const componentsByProduct = new Map<string, PosProductComponent[]>()
     for (const row of componentRows) {
       const list = componentsByProduct.get(row.producto_id) ?? []
-      list.push({ nombre: row.componente.nombre, cantidad: row.cantidad })
+      list.push({
+        componenteId: row.componente_id,
+        nombre: row.componente.nombre,
+        cantidad: row.cantidad,
+      })
       componentsByProduct.set(row.producto_id, list)
     }
 
@@ -101,32 +107,61 @@ export class PosDataService {
 
     return products
       .filter((p) => p.isActive)
-      .map((p) => ({
-        id: p.id,
-        nombre: p.nombre,
-        sku: p.sku,
-        codigoBarras: p.codigoBarras,
-        precioVenta: p.precioVenta,
-        costo: canViewCost ? p.costo : null,
-        ivaTasa: p.ivaTasa,
-        categoriaId: p.categoriaId,
-        paraQueSirve: p.paraQueSirve,
-        recomendadoPara: p.recomendadoPara,
-        tipo: p.tipo,
-        participaFidelizacion: p.participaFidelizacion,
-        // `prepared` no rastrea stock. Para simple/ingredient, stock real
-        // acotado a >= 0 (RN-I06): el máximo nunca es negativo.
-        stockDisponible: p.tipo === 'prepared' ? null : Math.max(0, stockByProduct.get(p.id) ?? 0),
-        components: componentsByProduct.get(p.id) ?? [],
-        options: optionsByProduct.get(p.id) ?? [],
-      }))
+      .map((p) => {
+        const components = componentsByProduct.get(p.id) ?? []
+
+        return {
+          id: p.id,
+          nombre: p.nombre,
+          sku: p.sku,
+          codigoBarras: p.codigoBarras,
+          precioVenta: p.precioVenta,
+          costo: canViewCost ? p.costo : null,
+          ivaTasa: p.ivaTasa,
+          categoriaId: p.categoriaId,
+          paraQueSirve: p.paraQueSirve,
+          recomendadoPara: p.recomendadoPara,
+          tipo: p.tipo,
+          participaFidelizacion: p.participaFidelizacion,
+          stockDisponible: this.resolveStock(p.tipo, p.id, components, stockByProduct),
+          components,
+          options: optionsByProduct.get(p.id) ?? [],
+        }
+      })
+  }
+
+  /**
+   * - `prepared`: no rastrea stock y no se deriva (los ingredientes de un batido
+   *   no se miden por unidad vendida) → `null`, nunca topa la cantidad.
+   * - `combo`: sin stock propio, pero sí derivable del producto incluido más
+   *   escaso (ADR 0018).
+   * - resto: stock real acotado a >= 0 (RN-I06), el máximo nunca es negativo.
+   */
+  private resolveStock(
+    tipo: PosProduct['tipo'],
+    productId: string,
+    components: PosProductComponent[],
+    stockByProduct: Map<string, number>,
+  ): number | null {
+    if (tipo === 'prepared') return null
+
+    if (tipo === 'combo') {
+      return deriveComboStock(
+        components.map((c) => ({
+          cantidad: c.cantidad,
+          stockDisponible: Math.max(0, stockByProduct.get(c.componenteId) ?? 0),
+        })),
+      )
+    }
+
+    return Math.max(0, stockByProduct.get(productId) ?? 0)
   }
 
   private async fetchComponents(tiendaId: string): Promise<ComponentRow[]> {
     const db = this.supabaseClient.supabase as unknown as ProductComponentsClient
     const { data, error } = await db
       .from('product_components')
-      .select('producto_id, cantidad, componente:componente_id(nombre)')
+      .select('producto_id, componente_id, cantidad, componente:componente_id(nombre)')
       .eq('tienda_id', tiendaId)
 
     if (error) throw new Error((error as { message: string }).message)

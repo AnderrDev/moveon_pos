@@ -181,10 +181,19 @@ describe('parseSiigoRow — filas inválidas', () => {
     if (!r.ok) expect(r.error.some((e) => e.column === 'precio_venta')).toBe(true)
   })
 
-  it("tipo 'combo' → error en columna tipo", () => {
-    const r = firstRow('Whey,WHY-001,,,combo,,110000,70000,19,0')
+  it("tipo desconocido 'servicio' → error en columna tipo", () => {
+    const r = firstRow('Whey,WHY-001,,,servicio,,110000,70000,19,0')
     expect(r.ok).toBe(false)
     if (!r.ok) expect(r.error.some((e) => e.column === 'tipo')).toBe(true)
+  })
+
+  it("tipo 'combo' → error: los combos se arman en el formulario, no se importan", () => {
+    const r = firstRow('Whey,WHY-001,,,combo,,110000,70000,19,0')
+    expect(r.ok).toBe(false)
+    if (!r.ok) {
+      const error = r.error.find((e) => e.column === 'tipo')
+      expect(error?.message).toContain('formulario de producto')
+    }
   })
 
   it('nombre vacío → error en columna nombre', () => {

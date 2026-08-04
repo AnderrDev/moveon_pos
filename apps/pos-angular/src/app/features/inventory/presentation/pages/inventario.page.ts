@@ -327,6 +327,7 @@ export class InventarioPage {
       simple: 'Simple',
       prepared: 'Preparado',
       ingredient: 'Ingrediente',
+      combo: 'Combo',
     }
     return labels[tipo] ?? tipo
   }

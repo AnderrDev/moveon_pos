@@ -307,6 +307,7 @@ export class ProductosPage {
       simple: 'Simple',
       prepared: 'Preparado',
       ingredient: 'Ingrediente',
+      combo: 'Combo',
     }
     return labels[tipo] ?? tipo
   }
