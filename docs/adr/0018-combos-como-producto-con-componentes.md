@@ -104,12 +104,28 @@ Lo que **sí** funciona sin cambios: descuentos manuales (el tope por línea se 
 precio del combo), MOVE ON Club (`participa_fidelizacion` es una columna del producto) y la
 anulación.
 
-### 2.5 Ayuda de precio en el formulario (no es una regla de cobro)
+### 2.5 Ayuda de precio y costo automático en el formulario
 
 Al armar el combo, el formulario muestra en vivo `Suma normal · Precio del combo · Ahorro (%)`
 con `combo-pricing.ts`. Es solo apoyo de captura para que el dueño vea cuánto está descontando:
 lo que se persiste es un único `precio_venta` y el servidor cobra eso. Un combo más caro que la
 suma muestra "sin ahorro" en vez de un porcentaje negativo.
+
+El **costo sí se calcula automáticamente**: al agregar o quitar un producto incluido, el campo
+`costo` se reescribe con `sumComboItemCost` (la suma de `costo × cantidad` de lo que consume).
+Es la definición correcta del costo de un combo, y evita que el dueño lo calcule a mano y
+falsee el margen.
+
+Dos decisiones deliberadas:
+
+- **Se dispara desde `addComponent`/`removeComponent`, no desde un `effect`.** Un efecto
+  reactivo pisaría el costo guardado al abrir un combo existente, apenas terminara de cargar la
+  lista de componentes. Así el valor persistido se respeta hasta que se toque la lista.
+- **El campo queda editable**, con una nota que explica de dónde sale el número. Un combo puede
+  tener costo extra (empaque, bolsa) que el catálogo no conoce.
+
+Si algún producto incluido no tiene costo registrado, suma $0 y la nota lo advierte por nombre:
+el margen se vería mejor de lo que es y eso no puede pasar en silencio.
 
 ## 3. Deuda saldada: la anulación devuelve los componentes
 

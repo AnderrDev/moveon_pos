@@ -37,7 +37,10 @@ import {
   filterComponentCandidates,
   filterOptionComponentCandidates,
 } from '@angular-app/features/products/presentation/services/product-component.helpers'
-import { comboSavings } from '@angular-app/features/products/domain/services/combo-pricing'
+import {
+  comboSavings,
+  sumComboItemCost,
+} from '@angular-app/features/products/domain/services/combo-pricing'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import type { InventoryLocation } from '@/shared/types'
@@ -492,6 +495,7 @@ const INITIAL_STOCK_LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
           <mo-form-currency-input
             controlName="costo"
             label="Costo"
+            [description]="comboCostHint()"
             [error]="presenter.errors().costo ?? null"
           />
         </div>
@@ -609,6 +613,29 @@ export class ProductFormDialog {
 
   /** Cuánto ahorra el cliente frente a comprar los productos sueltos. */
   readonly savings = computed(() => comboSavings(this.precioVenta(), this.comboItems()))
+
+  /**
+   * Productos incluidos sin costo registrado. Suman 0 al costo del combo, así
+   * que el margen se vería mejor de lo que es y el dueño debe saberlo.
+   */
+  readonly comboItemsSinCosto = computed(() =>
+    this.components().filter((c) => {
+      const product = this.allProducts().find((p) => p.id === c.componenteId)
+      return product ? product.costo === null : false
+    }),
+  )
+
+  readonly comboCostHint = computed<string | null>(() => {
+    if (!this.isCombo() || this.components().length === 0) return null
+
+    const sinCosto = this.comboItemsSinCosto()
+    if (sinCosto.length > 0) {
+      const nombres = sinCosto.map((c) => c.componenteNombre).join(', ')
+      return `Se calcula sumando el costo de los productos incluidos, pero ${nombres} no tiene costo registrado y suma $0. El margen se verá mejor de lo que es.`
+    }
+
+    return 'Se calcula solo sumando el costo de los productos incluidos. Puedes ajustarlo si el combo tiene un costo extra.'
+  })
   // --------------------------
 
   // --- Opciones de venta (ADR 0017) ---
@@ -745,10 +772,27 @@ export class ProductFormDialog {
     ])
     this.pendingComponentId.set('')
     this.pendingComponentQty.set(1)
+    this.syncComboCost()
   }
 
   removeComponent(componenteId: string): void {
     this.components.update((prev) => prev.filter((c) => c.componenteId !== componenteId))
+    this.syncComboCost()
+  }
+
+  /**
+   * El costo de un combo es lo que cuesta lo que consume, así que se recalcula
+   * solo al cambiar los productos incluidos.
+   *
+   * Se dispara desde `addComponent`/`removeComponent` y NO desde un `effect`
+   * a propósito: al abrir un combo existente el efecto pisaría el costo
+   * guardado (que el dueño pudo haber ajustado a mano) apenas cargaran los
+   * componentes. Así el valor guardado se respeta hasta que se toque la lista.
+   */
+  private syncComboCost(): void {
+    if (!this.isCombo()) return
+    // `costo` es opcional en el schema, así que el control es nullable en el tipo.
+    this.presenter.form.controls.costo?.setValue(sumComboItemCost(this.comboItems()))
   }
 
   async submit(): Promise<void> {

@@ -39,6 +39,14 @@ describe('sumComboItemCost', () => {
       ]),
     ).toBe(120000)
   })
+
+  it('multiplica el costo por la cantidad incluida', () => {
+    expect(sumComboItemCost([{ cantidad: 3, precioVenta: 8000, costo: 4500 }])).toBe(13500)
+  })
+
+  it('devuelve 0 sin productos incluidos', () => {
+    expect(sumComboItemCost([])).toBe(0)
+  })
 })
 
 describe('comboSavings', () => {

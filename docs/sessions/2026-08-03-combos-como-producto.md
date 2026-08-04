@@ -58,7 +58,8 @@ Decisiones de producto acordadas antes de diseñar:
   `filterOptionComponentCandidates` pasa a `tracksOwnStock` para excluir también combos.
 - `features/products/presentation/dialogs/product-form.dialog.ts` — tipo "Combo"; el bloque de
   componentes se comparte entre preparados y combos con copy distinto; **las opciones de venta
-  quedan en su propio `@if`, exclusivas de `prepared`**; resumen de ahorro en vivo.
+  quedan en su propio `@if`, exclusivas de `prepared`**; resumen de ahorro en vivo y **costo
+  calculado automáticamente** al agregar o quitar productos incluidos (ADR 0018 §2.5).
 - `features/pos/presentation/services/{pos.types.ts,pos-data.service.ts}` — `PosProductComponent`
   gana `componenteId` (el `select` ahora lo trae) y `resolveStock` deriva la disponibilidad del
   combo.
@@ -84,6 +85,8 @@ Decisiones de producto acordadas antes de diseñar:
 | Incluir el fix de `void_sale_atomic` | Dejarlo como deuda | Con batidos el faltante al anular era un vaso; con un combo es una proteína de $180.000 |
 | Tope de stock del combo solo en el cliente | Validar componentes en `create_sale_atomic` | Mantiene la política "advertir, no bloquear" de ADR 0017 y evita validar N componentes bajo advisory lock en el camino del dinero. Con 1 sola caja el riesgo de carrera es despreciable |
 | El importador CSV rechaza combos | Aceptarlos como cualquier tipo | Un combo importado no tendría componentes: se vendería sin descontar nada. El CSV de Siigo no puede expresar qué lleva dentro |
+| Costo del combo calculado al agregar/quitar componentes | Un `effect` reactivo sobre la lista | El efecto pisaría el costo guardado al abrir un combo existente, apenas cargaran los componentes. Llamarlo desde las acciones respeta el valor persistido |
+| El campo de costo queda editable | Bloquearlo por ser derivado | Un combo puede tener costo extra (empaque) que el catálogo no conoce. La nota explica de dónde sale el número |
 
 ---
 
