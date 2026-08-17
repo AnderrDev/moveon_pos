@@ -108,8 +108,8 @@ Los productos que no rastrean stock propio (`prepared` y `combo`) no devuelven l
 
 ### RN-S08: Permisos
 
-- Cajero: puede crear ventas, no puede anular.
-- Admin: puede anular ventas dentro de la sesión actual de caja del cashier original (si la sesión ya cerró, requiere reapertura manual o ajuste contable).
+- Cajero: puede crear ventas, no puede anular. Puede corregir el método de pago (`correct_payment_atomic`, RN-S06) — mismo requisito de sesión de caja abierta y motivo mínimo 10 caracteres que admin. Desde 2026-08-16 (`20260816000100_allow_any_role_correct_payment.sql`) ya no es admin-only.
+- Admin: puede anular ventas dentro de la sesión actual de caja del cashier original (si la sesión ya cerró, requiere reapertura manual o ajuste contable). También es el único que puede asociar cliente retroactivamente (RN-S13).
 
 ### RN-S09: Descuentos
 
@@ -153,7 +153,7 @@ El historial del turno muestra por venta: productos y cantidades, precios, descu
 
 ### RN-S13: Asociar cliente retroactivamente (2026-07-23)
 
-Si el cajero olvidó asociar el cliente en el cobro, un admin puede corregirlo después vía `correct_sale_customer_atomic(sale_id, tienda_id, cliente_id, corrected_by, reason)` — mismo patrón que `correct_payment_atomic` (rol admin, motivo mínimo 10 caracteres, evento en `audit_logs`).
+Si el cajero olvidó asociar el cliente en el cobro, un admin puede corregirlo después vía `correct_sale_customer_atomic(sale_id, tienda_id, cliente_id, corrected_by, reason)` — mismo patrón de auditoría que `correct_payment_atomic` (motivo mínimo 10 caracteres, evento en `audit_logs`), pero a diferencia de este, sigue siendo **admin-only** porque puede otorgar sellos de fidelización.
 
 - **Alcance acotado a propósito:** solo funciona si `sales.cliente_id` era `null`. Reasignar de un cliente A a un cliente B no está soportado (revertir los sellos ya otorgados a A es un caso distinto, fuera de este alcance) — el RPC rechaza la venta si ya tiene cliente.
 - **Sellos retroactivos del Club MOVE ON:** si algún `sale_item` participaba en fidelización (misma elegibilidad que `create_sale_atomic`: sin descuento de línea ni global, RN-LF01/02/05 en `docs/modules/loyalty.md`), el RPC otorga esos sellos en la misma transacción, sujeto a que el cliente esté activo, haya autorizado fidelización, y el programa siga activo. Si no cumple, el cliente queda asociado pero sin sellos.

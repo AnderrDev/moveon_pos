@@ -7,8 +7,8 @@ describe('canCorrectPayment', () => {
     expect(canCorrectPayment('admin')).toBe(true)
   })
 
-  it('niega corregir el método de pago a cajero', () => {
-    expect(canCorrectPayment('cajero')).toBe(false)
+  it('permite corregir el método de pago a cajero', () => {
+    expect(canCorrectPayment('cajero')).toBe(true)
   })
 
   it('niega corregir el método de pago cuando no hay rol (null)', () => {

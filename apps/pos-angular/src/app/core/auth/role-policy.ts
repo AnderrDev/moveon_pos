@@ -19,10 +19,12 @@ export function canVoidSale(rol: Role | null): boolean {
 }
 
 /**
- * Decide si un rol puede corregir el método de pago de una venta. Solo `admin`.
+ * Decide si un rol puede corregir el método de pago de una venta.
+ * Cualquier usuario autenticado (admin o cajero) — no requiere ser admin,
+ * a diferencia de anular ventas o asociar cliente retroactivamente.
  */
 export function canCorrectPayment(rol: Role | null): boolean {
-  return rol === 'admin'
+  return rol !== null
 }
 
 /**

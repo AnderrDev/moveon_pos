@@ -35,8 +35,8 @@ describe('canCorrectPayment', () => {
     expect(canCorrectPayment('admin')).toBe(true)
   })
 
-  it('niega corregir pago a cajero', () => {
-    expect(canCorrectPayment('cajero')).toBe(false)
+  it('permite corregir pago a cajero', () => {
+    expect(canCorrectPayment('cajero')).toBe(true)
   })
 
   it('niega corregir pago a contexto sin rol (null)', () => {

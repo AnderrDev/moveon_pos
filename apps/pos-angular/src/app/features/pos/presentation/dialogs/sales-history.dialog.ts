@@ -537,7 +537,7 @@ export class SalesHistoryDialog {
   /** Solo admin puede anular ventas (defensa en cliente; RLS protege en servidor). */
   readonly canVoid = computed(() => canVoidSale(this.session.role()))
 
-  /** Solo admin puede corregir métodos de pago (defensa en cliente; RLS protege en servidor). */
+  /** Cualquier usuario autenticado puede corregir métodos de pago (defensa en cliente; RPC protege en servidor). */
   readonly canCorrectPaymentComputed = computed(() => canCorrectPayment(this.session.role()))
 
   /** Pago seleccionado para corrección y visibilidad del dialog de corrección. */
