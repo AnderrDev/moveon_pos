@@ -7,8 +7,10 @@ describe('SOCIAL_LINKS', () => {
     expect(new Set(SOCIAL_LINKS.map((link) => link.href)).size).toBe(SOCIAL_LINKS.length)
   })
 
-  it('publica solo enlaces HTTPS', () => {
-    expect(SOCIAL_LINKS.every((link) => link.href.startsWith('https://'))).toBe(true)
+  it('publica solo enlaces HTTPS o mailto', () => {
+    expect(
+      SOCIAL_LINKS.every((link) => link.href.startsWith('https://') || link.href.startsWith('mailto:')),
+    ).toBe(true)
   })
 
   it('mantiene WhatsApp como única acción destacada', () => {

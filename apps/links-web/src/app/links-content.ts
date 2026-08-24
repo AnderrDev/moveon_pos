@@ -1,4 +1,4 @@
-export type LinkIcon = 'whatsapp' | 'catalog' | 'instagram' | 'maps'
+export type LinkIcon = 'whatsapp' | 'catalog' | 'instagram' | 'maps' | 'email'
 
 export interface SocialLink {
   readonly id: string
@@ -38,6 +38,13 @@ export const SOCIAL_LINKS: readonly SocialLink[] = [
     description: 'Viva Fontibón · Bogotá',
     href: 'https://maps.app.goo.gl/bkRg1w8si7BK9Rtq8',
     icon: 'maps',
+  },
+  {
+    id: 'email',
+    label: 'Escríbenos por correo',
+    description: 'contacto@moveonnutrition.com',
+    href: 'mailto:contacto@moveonnutrition.com',
+    icon: 'email',
   },
 ]
 
