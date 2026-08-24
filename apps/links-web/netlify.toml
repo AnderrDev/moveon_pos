@@ -1,0 +1,12 @@
+[build]
+  command = "pnpm build:links"
+  publish = "apps/links-web/dist/browser"
+
+[build.environment]
+  NODE_VERSION = "20.19.0"
+  PNPM_VERSION = "9.0.0"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

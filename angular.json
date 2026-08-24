@@ -164,9 +164,84 @@
           }
         }
       }
+    },
+    "links-web": {
+      "projectType": "application",
+      "root": "apps/links-web",
+      "sourceRoot": "apps/links-web/src",
+      "prefix": "mo",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "outputPath": "apps/links-web/dist",
+            "index": "apps/links-web/src/index.html",
+            "browser": "apps/links-web/src/main.ts",
+            "tsConfig": "apps/links-web/tsconfig.app.json",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "apps/links-web/public",
+                "output": "/"
+              },
+              {
+                "glob": "**/*",
+                "input": "apps/landing-web/public/assets/catalog",
+                "output": "/assets/catalog"
+              }
+            ],
+            "styles": ["apps/links-web/src/styles.css"],
+            "scripts": []
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "220kB",
+                  "maximumError": "300kB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "16kB",
+                  "maximumError": "24kB"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "links-web:build:production"
+            },
+            "development": {
+              "buildTarget": "links-web:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "lint": {
+          "builder": "@angular-eslint/builder:lint",
+          "options": {
+            "lintFilePatterns": ["apps/links-web/src/**/*.ts", "apps/links-web/src/**/*.html"]
+          }
+        }
+      }
     }
   },
   "cli": {
-    "analytics": false
+    "analytics": false,
+    "cache": {
+      "enabled": true
+    }
   }
 }
