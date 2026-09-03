@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
 import { fetchAllPages } from '@angular-app/core/supabase/fetch-all-pages'
+import { AuditLogRepository } from '@angular-app/features/audit/domain/repositories/audit-log.repository'
 import { normalizePhoneCO } from '@angular-app/features/customers/domain/value-objects/phone-co'
 import type { Cliente } from '@angular-app/features/customers/domain/entities/cliente.entity'
 import {
@@ -42,6 +43,7 @@ interface UntypedClient {
 @Injectable({ providedIn: 'root' })
 export class CustomersRepository extends CustomerRepositoryContract {
   private readonly supabaseClient = inject(SupabaseClientService)
+  private readonly audit = inject(AuditLogRepository)
 
   async list(tiendaId: string): Promise<Cliente[]> {
     const rows = await fetchAllPages<ClienteRow>(async (from, to) => {
@@ -98,7 +100,16 @@ export class CustomersRepository extends CustomerRepositoryContract {
       .single<ClienteRow>()
     if (error) throw mapWriteError(error.message)
     if (!data) throw new Error('Cliente creado sin respuesta')
-    return rowToCliente(data)
+    const cliente = rowToCliente(data)
+    void this.audit.log({
+      tiendaId,
+      entityType: 'cliente',
+      entityId: cliente.id,
+      entityLabel: cliente.nombre,
+      action: 'create',
+      changes: { tipoDocumento: cliente.tipoDocumento, numeroDocumento: cliente.numeroDocumento },
+    })
+    return cliente
   }
 
   async update(id: string, tiendaId: string, input: ClienteInput): Promise<Cliente> {
@@ -112,12 +123,32 @@ export class CustomersRepository extends CustomerRepositoryContract {
       .single<ClienteRow>()
     if (error) throw mapWriteError(error.message)
     if (!data) throw new Error('Cliente actualizado sin respuesta')
-    return rowToCliente(data)
+    const cliente = rowToCliente(data)
+    const auditChanges: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(input)) if (v !== undefined) auditChanges[k] = v
+    void this.audit.log({
+      tiendaId,
+      entityType: 'cliente',
+      entityId: id,
+      entityLabel: cliente.nombre,
+      action: 'update',
+      changes: auditChanges,
+    })
+    return cliente
   }
 
   async delete(id: string, tiendaId: string): Promise<void> {
+    const { data } = await this.supabaseClient.supabase
+      .from('clientes')
+      .select(CLIENTE_COLS)
+      .eq('id', id)
+      .eq('tienda_id', tiendaId)
+      .maybeSingle<ClienteRow>()
+    const label = data ? rowToCliente(data).nombre : id
+
     const client = this.supabaseClient.supabase as unknown as UntypedClient
     const { error } = await client.from('clientes').delete().eq('id', id).eq('tienda_id', tiendaId)
     if (error) throw new Error(error.message)
+    void this.audit.log({ tiendaId, entityType: 'cliente', entityId: id, entityLabel: label, action: 'delete' })
   }
 }

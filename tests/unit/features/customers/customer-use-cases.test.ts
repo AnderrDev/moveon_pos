@@ -24,16 +24,29 @@ const cliente: Cliente = {
 }
 
 describe('createCustomer', () => {
+  const documento = { tipoDocumento: 'CC', numeroDocumento: '1023456789' }
+
   it('crea el cliente cuando los datos son válidos', async () => {
     const repo = { create: async () => cliente }
-    const result = await createCustomer({ repo, tiendaId }, { nombre: 'Ana Ramirez', telefono: '3012244006' })
+    const result = await createCustomer(
+      { repo, tiendaId },
+      { nombre: 'Ana Ramirez', ...documento, telefono: '3012244006' },
+    )
     expect(result).toEqual({ ok: true, value: cliente })
   })
 
   it('rechaza nombre demasiado corto sin llamar al repositorio', async () => {
     let called = false
     const repo = { create: async () => { called = true; return cliente } }
-    const result = await createCustomer({ repo, tiendaId }, { nombre: 'A' })
+    const result = await createCustomer({ repo, tiendaId }, { nombre: 'A', ...documento })
+    expect(result.ok).toBe(false)
+    expect(called).toBe(false)
+  })
+
+  it('RN-CL03: rechaza cliente sin documento sin llamar al repositorio', async () => {
+    let called = false
+    const repo = { create: async () => { called = true; return cliente } }
+    const result = await createCustomer({ repo, tiendaId }, { nombre: 'Ana Ramirez' })
     expect(result.ok).toBe(false)
     expect(called).toBe(false)
   })
@@ -42,7 +55,7 @@ describe('createCustomer', () => {
     const repo = { create: async () => cliente }
     const result = await createCustomer(
       { repo, tiendaId },
-      { nombre: 'Ana Ramirez', autorizaFidelizacion: true, telefono: '123' },
+      { nombre: 'Ana Ramirez', ...documento, autorizaFidelizacion: true, telefono: '123' },
     )
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.error.message).toMatch(/celular colombiano válido/)
@@ -52,7 +65,7 @@ describe('createCustomer', () => {
     const repo = { create: async () => cliente }
     const result = await createCustomer(
       { repo, tiendaId },
-      { nombre: 'Ana Ramirez', autorizaFidelizacion: true, telefono: '3012244006' },
+      { nombre: 'Ana Ramirez', ...documento, autorizaFidelizacion: true, telefono: '3012244006' },
     )
     expect(result.ok).toBe(true)
   })
@@ -61,7 +74,11 @@ describe('createCustomer', () => {
 describe('updateCustomer', () => {
   it('actualiza el cliente cuando los datos son válidos', async () => {
     const repo = { update: async () => cliente }
-    const result = await updateCustomer({ repo, tiendaId }, cliente.id, { nombre: 'Ana Ramirez' })
+    const result = await updateCustomer({ repo, tiendaId }, cliente.id, {
+      nombre: 'Ana Ramirez',
+      tipoDocumento: 'CC',
+      numeroDocumento: '1023456789',
+    })
     expect(result).toEqual({ ok: true, value: cliente })
   })
 
@@ -69,6 +86,14 @@ describe('updateCustomer', () => {
     let called = false
     const repo = { update: async () => { called = true; return cliente } }
     const result = await updateCustomer({ repo, tiendaId }, cliente.id, { nombre: '' })
+    expect(result.ok).toBe(false)
+    expect(called).toBe(false)
+  })
+
+  it('RN-CL03: rechaza actualización sin documento sin llamar al repositorio', async () => {
+    let called = false
+    const repo = { update: async () => { called = true; return cliente } }
+    const result = await updateCustomer({ repo, tiendaId }, cliente.id, { nombre: 'Ana Ramirez' })
     expect(result.ok).toBe(false)
     expect(called).toBe(false)
   })

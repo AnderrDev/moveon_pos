@@ -5,8 +5,8 @@ import { CLIENTE_NOMBRE_MIN, CLIENTE_NOMBRE_MAX } from '@angular-app/features/cu
 export const clienteFormSchema = z
   .object({
     nombre: z.string().trim().min(CLIENTE_NOMBRE_MIN, `El nombre debe tener al menos ${CLIENTE_NOMBRE_MIN} caracteres`).max(CLIENTE_NOMBRE_MAX),
-    tipoDocumento: z.string(),
-    numeroDocumento: z.string(),
+    tipoDocumento: z.string().trim().min(1, 'El tipo de documento es obligatorio'),
+    numeroDocumento: z.string().trim().min(1, 'El número de documento es obligatorio'),
     email: z.string().trim().email('Email inválido').optional().or(z.literal('')),
     telefono: z.string(),
     autorizaFidelizacion: z.boolean().default(false),

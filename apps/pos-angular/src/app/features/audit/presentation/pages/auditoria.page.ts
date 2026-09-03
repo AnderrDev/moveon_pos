@@ -51,6 +51,7 @@ const MODULE_LABELS: Record<string, string> = {
   venta: 'Venta',
   movimiento_inventario: 'Inventario',
   sesion_caja: 'Caja',
+  cliente: 'Cliente',
 }
 
 const ACTION_VARIANT: Record<string, 'default' | 'warning' | 'destructive'> = {
@@ -90,6 +91,7 @@ const ACTION_VARIANT: Record<string, 'default' | 'warning' | 'destructive'> = {
           <option value="venta">Ventas</option>
           <option value="movimiento_inventario">Inventario</option>
           <option value="sesion_caja">Caja</option>
+          <option value="cliente">Clientes</option>
         </select>
         <select
           [value]="dateRange()"

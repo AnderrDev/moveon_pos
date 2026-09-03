@@ -59,10 +59,16 @@ const TIPO_OPTIONS: FormSelectOption<string>[] = [
           <mo-form-select
             controlName="tipoDocumento"
             label="Tipo de documento"
-            placeholder="(opcional)"
+            [required]="true"
             [options]="tipoOptions"
+            [error]="presenter.errors().tipoDocumento ?? null"
           />
-          <mo-form-input controlName="numeroDocumento" label="Numero de documento" />
+          <mo-form-input
+            controlName="numeroDocumento"
+            label="Numero de documento"
+            [required]="true"
+            [error]="presenter.errors().numeroDocumento ?? null"
+          />
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2">
