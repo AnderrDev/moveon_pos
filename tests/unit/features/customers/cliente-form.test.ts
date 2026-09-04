@@ -40,13 +40,26 @@ describe('clienteFormSchema', () => {
     expect(clienteFormSchema.safeParse(valid).success).toBe(true)
   })
 
-  it('acepta un cliente mínimo con solo nombre y documento', () => {
+  it('por defecto autoriza fidelización y mensajes promocionales, lo que exige celular para guardar', () => {
     expect(
       clienteFormSchema.safeParse({
         ...createClienteFormDefaults(),
         nombre: 'María',
         tipoDocumento: 'CC',
         numeroDocumento: '1023456789',
+      }).success,
+    ).toBe(false)
+  })
+
+  it('acepta un cliente mínimo con solo nombre y documento cuando se desmarca fidelización', () => {
+    expect(
+      clienteFormSchema.safeParse({
+        ...createClienteFormDefaults(),
+        nombre: 'María',
+        tipoDocumento: 'CC',
+        numeroDocumento: '1023456789',
+        autorizaFidelizacion: false,
+        aceptaMensajesPromocionales: false,
       }).success,
     ).toBe(true)
   })
@@ -107,15 +120,15 @@ describe('clienteFormSchema', () => {
 })
 
 describe('createClienteFormDefaults', () => {
-  it('devuelve valores vacíos con fidelización desactivada', () => {
+  it('devuelve valores vacíos con fidelización y mensajes promocionales activados por defecto', () => {
     expect(createClienteFormDefaults()).toEqual({
       nombre: '',
       tipoDocumento: '',
       numeroDocumento: '',
       email: '',
       telefono: '',
-      autorizaFidelizacion: false,
-      aceptaMensajesPromocionales: false,
+      autorizaFidelizacion: true,
+      aceptaMensajesPromocionales: true,
     })
   })
 

@@ -9,8 +9,8 @@ export const clienteFormSchema = z
     numeroDocumento: z.string().trim().min(1, 'El número de documento es obligatorio'),
     email: z.string().trim().email('Email inválido').optional().or(z.literal('')),
     telefono: z.string(),
-    autorizaFidelizacion: z.boolean().default(false),
-    aceptaMensajesPromocionales: z.boolean().default(false),
+    autorizaFidelizacion: z.boolean().default(true),
+    aceptaMensajesPromocionales: z.boolean().default(true),
   })
   .superRefine((value, ctx) => {
     // RN-CL04/RN-CL06: para participar en MOVE ON Club se necesita un
@@ -35,7 +35,7 @@ export function createClienteFormDefaults(
     numeroDocumento: initial.numeroDocumento ?? '',
     email: initial.email ?? '',
     telefono: initial.telefono ?? '',
-    autorizaFidelizacion: initial.autorizaFidelizacion ?? false,
-    aceptaMensajesPromocionales: initial.aceptaMensajesPromocionales ?? false,
+    autorizaFidelizacion: initial.autorizaFidelizacion ?? true,
+    aceptaMensajesPromocionales: initial.aceptaMensajesPromocionales ?? true,
   }
 }
