@@ -15,8 +15,8 @@ export const clienteFormMapper = {
       numeroDocumento: cliente?.numeroDocumento ?? '',
       email: cliente?.email ?? '',
       telefono: cliente?.telefono ?? '',
-      autorizaFidelizacion: cliente?.autorizaFidelizacion ?? false,
-      aceptaMensajesPromocionales: cliente?.aceptaMensajesPromocionales ?? false,
+      autorizaFidelizacion: cliente?.autorizaFidelizacion ?? true,
+      aceptaMensajesPromocionales: cliente?.aceptaMensajesPromocionales ?? true,
     }
   },
 

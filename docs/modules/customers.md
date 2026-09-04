@@ -9,9 +9,13 @@ Gestión de clientes para historial de compras y futura fidelización.
 - RN-CL01: cliente es opcional en una venta.
 - RN-CL02: si cliente solicita factura, los datos fiscales son obligatorios.
 - RN-CL03: nombre y documento (tipo + número) son obligatorios al crear o editar un cliente
-  desde el directorio de clientes; el resto de los campos (email, celular, autorizaciones) son
-  opcionales. Documento + tipo único por tienda (índice parcial, ver migración
-  `20260426034930`).
+  desde el directorio de clientes; el resto de los campos (email, celular) son opcionales.
+  Documento + tipo único por tienda (índice parcial, ver migración `20260426034930`).
+- RN-CL08: en el formulario de alta/edición, "Autoriza fidelización" y "Acepta mensajes
+  promocionales" inician marcados por defecto (opt-out, no opt-in) — el cajero los desmarca si el
+  cliente no autoriza. Como "Autoriza fidelización" en `true` exige celular colombiano válido
+  (RN-CL04/RN-CL06), en la práctica un cliente nuevo sin celular requiere que el cajero desmarque
+  ambos checkbox para poder guardarse.
 
 ## Reglas (planeadas para v1.3 — MOVE ON Club, ver `docs/modules/loyalty.md`)
 

@@ -66,13 +66,20 @@ const TIPO_OPTIONS: FormSelectOption<string>[] = [
           <mo-form-input
             controlName="numeroDocumento"
             label="Numero de documento"
+            placeholder="1023456789"
             [required]="true"
             [error]="presenter.errors().numeroDocumento ?? null"
           />
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2">
-          <mo-form-input controlName="email" type="email" label="Email" [error]="presenter.errors().email ?? null" />
+          <mo-form-input
+            controlName="email"
+            type="email"
+            label="Email"
+            placeholder="cliente@correo.com"
+            [error]="presenter.errors().email ?? null"
+          />
           <mo-form-input
             controlName="telefono"
             label="Celular"
