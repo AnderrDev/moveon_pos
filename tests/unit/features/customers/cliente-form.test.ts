@@ -40,10 +40,24 @@ describe('clienteFormSchema', () => {
     expect(clienteFormSchema.safeParse(valid).success).toBe(true)
   })
 
-  it('acepta un cliente mínimo con solo nombre', () => {
+  it('acepta un cliente mínimo con solo nombre y documento', () => {
     expect(
-      clienteFormSchema.safeParse({ ...createClienteFormDefaults(), nombre: 'María' }).success,
+      clienteFormSchema.safeParse({
+        ...createClienteFormDefaults(),
+        nombre: 'María',
+        tipoDocumento: 'CC',
+        numeroDocumento: '1023456789',
+      }).success,
     ).toBe(true)
+  })
+
+  it('RN-CL03: rechaza cliente sin tipo o número de documento', () => {
+    expect(
+      clienteFormSchema.safeParse({ ...valid, tipoDocumento: '' }).success,
+    ).toBe(false)
+    expect(
+      clienteFormSchema.safeParse({ ...valid, numeroDocumento: '' }).success,
+    ).toBe(false)
   })
 
   it('rechaza nombre demasiado corto o demasiado largo', () => {
@@ -183,7 +197,7 @@ describe('clienteFormMapper.toPayload', () => {
     })
   })
 
-  it('convierte campos vacíos u opcionales en undefined', () => {
+  it('convierte campos opcionales vacíos en undefined, pero conserva el documento tal cual', () => {
     const payload = clienteFormMapper.toPayload({
       nombre: 'María',
       tipoDocumento: '',
@@ -193,8 +207,8 @@ describe('clienteFormMapper.toPayload', () => {
       autorizaFidelizacion: false,
       aceptaMensajesPromocionales: false,
     })
-    expect(payload.tipoDocumento).toBeUndefined()
-    expect(payload.numeroDocumento).toBeUndefined()
+    expect(payload.tipoDocumento).toBe('')
+    expect(payload.numeroDocumento).toBe('')
     expect(payload.email).toBeUndefined()
     expect(payload.telefono).toBeUndefined()
   })
@@ -202,8 +216,8 @@ describe('clienteFormMapper.toPayload', () => {
   it('trata email undefined como ausente', () => {
     const payload = clienteFormMapper.toPayload({
       nombre: 'María',
-      tipoDocumento: '',
-      numeroDocumento: '',
+      tipoDocumento: 'CC',
+      numeroDocumento: '1023456789',
       email: undefined,
       telefono: '',
       autorizaFidelizacion: false,

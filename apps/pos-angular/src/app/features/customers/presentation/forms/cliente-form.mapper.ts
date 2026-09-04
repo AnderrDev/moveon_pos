@@ -24,8 +24,8 @@ export const clienteFormMapper = {
   toPayload(value: ClienteFormValue): ClienteInput {
     return {
       nombre: value.nombre.trim(),
-      tipoDocumento: value.tipoDocumento || undefined,
-      numeroDocumento: value.numeroDocumento.trim() || undefined,
+      tipoDocumento: value.tipoDocumento.trim(),
+      numeroDocumento: value.numeroDocumento.trim(),
       email: value.email?.trim() || undefined,
       telefono: value.telefono.trim() || undefined,
       autorizaFidelizacion: value.autorizaFidelizacion,

@@ -5,17 +5,18 @@ export const CLIENTE_NOMBRE_MIN = 2
 export const CLIENTE_NOMBRE_MAX = 100
 
 /**
- * Valida el payload de escritura de cliente (RN-CL04/RN-CL06: celular
- * colombiano válido obligatorio si autoriza fidelización). Distinto del
- * schema de formulario (`presentation/forms/cliente-form.factory.ts`): este
- * es el contrato de borde que valida el use-case antes de escribir, sin
- * confiar solo en que el presenter ya validó.
+ * Valida el payload de escritura de cliente (RN-CL03: nombre y documento son
+ * obligatorios; RN-CL04/RN-CL06: celular colombiano válido obligatorio si
+ * autoriza fidelización). Distinto del schema de formulario
+ * (`presentation/forms/cliente-form.factory.ts`): este es el contrato de
+ * borde que valida el use-case antes de escribir, sin confiar solo en que el
+ * presenter ya validó.
  */
 export const clienteInputSchema = z
   .object({
     nombre: z.string().trim().min(CLIENTE_NOMBRE_MIN, `El nombre debe tener al menos ${CLIENTE_NOMBRE_MIN} caracteres`).max(CLIENTE_NOMBRE_MAX),
-    tipoDocumento: z.string().optional(),
-    numeroDocumento: z.string().optional(),
+    tipoDocumento: z.string().trim().min(1, 'El tipo de documento es obligatorio'),
+    numeroDocumento: z.string().trim().min(1, 'El número de documento es obligatorio'),
     email: z.string().trim().email('Email inválido').optional(),
     telefono: z.string().optional(),
     autorizaFidelizacion: z.boolean().optional(),

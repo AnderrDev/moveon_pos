@@ -8,7 +8,10 @@ Gestión de clientes para historial de compras y futura fidelización.
 
 - RN-CL01: cliente es opcional en una venta.
 - RN-CL02: si cliente solicita factura, los datos fiscales son obligatorios.
-- RN-CL03: documento + tipo único por tienda.
+- RN-CL03: nombre y documento (tipo + número) son obligatorios al crear o editar un cliente
+  desde el directorio de clientes; el resto de los campos (email, celular, autorizaciones) son
+  opcionales. Documento + tipo único por tienda (índice parcial, ver migración
+  `20260426034930`).
 
 ## Reglas (planeadas para v1.3 — MOVE ON Club, ver `docs/modules/loyalty.md`)
 

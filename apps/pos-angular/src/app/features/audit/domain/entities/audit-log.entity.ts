@@ -4,6 +4,7 @@ export type AuditEntityType =
   | 'movimiento_inventario'
   | 'sesion_caja'
   | 'movimiento_caja'
+  | 'cliente'
 
 export type AuditAction =
   | 'create'
