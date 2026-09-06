@@ -7,7 +7,8 @@ import { saveProductComponents } from '@angular-app/features/products/domain/use
 import { createCategoria } from '@angular-app/features/products/domain/usecases/create-categoria.use-case'
 import { updateCategoria } from '@angular-app/features/products/domain/usecases/update-categoria.use-case'
 import { deactivateCategoria } from '@angular-app/features/products/domain/usecases/deactivate-categoria.use-case'
-import type { Product, Categoria } from '@angular-app/features/products/domain/entities/product.entity'
+import { createProveedor } from '@angular-app/features/products/domain/usecases/create-proveedor.use-case'
+import type { Product, Categoria, Proveedor } from '@angular-app/features/products/domain/entities/product.entity'
 
 const tiendaId = '11111111-1111-4111-8111-111111111111'
 const now = new Date('2026-07-17T00:00:00.000Z')
@@ -19,7 +20,8 @@ const product: Product = {
   sku: null,
   codigoBarras: null,
   categoriaId: null,
-  proveedor: null,
+  proveedorId: null,
+  proveedorNombre: null,
   paraQueSirve: null,
   recomendadoPara: null,
   imageUrl: null,
@@ -41,6 +43,15 @@ const categoria: Categoria = {
   tiendaId,
   nombre: 'Proteínas',
   orden: 0,
+  isActive: true,
+  createdAt: now,
+  updatedAt: now,
+}
+
+const proveedor: Proveedor = {
+  id: 'proveedor-1',
+  tiendaId,
+  nombre: 'Distribuidora Healthy',
   isActive: true,
   createdAt: now,
   updatedAt: now,
@@ -142,5 +153,21 @@ describe('deactivateCategoria', () => {
     const repo = { deactivateCategoria: async (id: string, tid: string) => { received = [id, tid] } }
     await deactivateCategoria({ repo }, categoria.id, tiendaId)
     expect(received).toEqual([categoria.id, tiendaId])
+  })
+})
+
+describe('createProveedor', () => {
+  it('crea el proveedor cuando el nombre es válido', async () => {
+    const repo = { createProveedor: async () => proveedor }
+    const result = await createProveedor({ repo }, tiendaId, { nombre: 'Distribuidora Healthy' })
+    expect(result).toEqual({ ok: true, value: proveedor })
+  })
+
+  it('rechaza nombre vacío sin llamar al repositorio', async () => {
+    let called = false
+    const repo = { createProveedor: async () => { called = true; return proveedor } }
+    const result = await createProveedor({ repo }, tiendaId, { nombre: '   ' })
+    expect(result.ok).toBe(false)
+    expect(called).toBe(false)
   })
 })

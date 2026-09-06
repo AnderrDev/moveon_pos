@@ -4,12 +4,15 @@ import { AuditLogRepository } from '@angular-app/features/audit/domain/repositor
 import {
   rowToCategoria,
   rowToProduct,
+  rowToProveedor,
   type CategoriaRow,
   type ProductRow,
+  type ProveedorRow,
 } from '@angular-app/features/products/data/models/product.mapper'
-import type { Categoria, Product } from '@angular-app/features/products/domain/entities/product.entity'
+import type { Categoria, Product, Proveedor } from '@angular-app/features/products/domain/entities/product.entity'
 import type { CreateProductDto, UpdateProductDto } from '@angular-app/features/products/domain/dtos/product.dto'
 import type { CreateCategoriaDto, UpdateCategoriaDto } from '@angular-app/features/products/domain/dtos/categoria.dto'
+import type { CreateProveedorDto } from '@angular-app/features/products/domain/dtos/proveedor.dto'
 import {
   ProductRepository as ProductRepositoryContract,
   type InitialStockInput,
@@ -29,8 +32,9 @@ import {
 } from '@angular-app/features/products/data/models/product-option.mapper'
 
 const PRODUCT_COLS =
-  'id, tienda_id, nombre, sku, codigo_barras, categoria_id, proveedor, para_que_sirve, recomendado_para, image_url, tipo, unidad, precio_venta, costo, iva_tasa, stock_minimo, participa_fidelizacion, is_active, deleted_at, created_at, updated_at'
+  'id, tienda_id, nombre, sku, codigo_barras, categoria_id, proveedor_id, proveedores(nombre), para_que_sirve, recomendado_para, image_url, tipo, unidad, precio_venta, costo, iva_tasa, stock_minimo, participa_fidelizacion, is_active, deleted_at, created_at, updated_at'
 const CATEGORIA_COLS = 'id, tienda_id, nombre, orden, is_active, created_at, updated_at'
+const PROVEEDOR_COLS = 'id, tienda_id, nombre, is_active, created_at, updated_at'
 
 interface UntypedClient {
   from(table: string): {
@@ -144,6 +148,31 @@ export class ProductsRepository extends ProductRepositoryContract {
     return (data ?? []).map(rowToCategoria)
   }
 
+  async listProveedores(tiendaId: string): Promise<Proveedor[]> {
+    const { data, error } = await this.supabaseClient.supabase
+      .from('proveedores')
+      .select(PROVEEDOR_COLS)
+      .eq('tienda_id', tiendaId)
+      .eq('is_active', true)
+      .order('nombre', { ascending: true })
+      .returns<ProveedorRow[]>()
+
+    if (error) throw new Error(error.message)
+    return (data ?? []).map(rowToProveedor)
+  }
+
+  async createProveedor(dto: CreateProveedorDto, tiendaId: string): Promise<Proveedor> {
+    const client = this.supabaseClient.supabase as unknown as UntypedClient
+    const { data, error } = await client
+      .from('proveedores')
+      .insert({ tienda_id: tiendaId, nombre: dto.nombre, is_active: true })
+      .select(PROVEEDOR_COLS)
+      .single<ProveedorRow>()
+    if (error) throw new Error(error.message)
+    if (!data) throw new Error('Proveedor creado sin respuesta')
+    return rowToProveedor(data)
+  }
+
   async createProduct(dto: CreateProductDto, initialStock: InitialStockInput): Promise<Product> {
     const client = this.supabaseClient.supabase as unknown as RpcClient
     const { data: productId, error } = await client.rpc<string>(
@@ -154,7 +183,7 @@ export class ProductsRepository extends ProductRepositoryContract {
         p_sku: dto.sku ?? null,
         p_codigo_barras: dto.codigoBarras ?? null,
         p_categoria_id: dto.categoriaId ?? null,
-        p_proveedor: dto.proveedor ?? null,
+        p_proveedor_id: dto.proveedorId ?? null,
         p_para_que_sirve: dto.paraQueSirve ?? null,
         p_recomendado_para: dto.recomendadoPara ?? null,
         p_image_url: dto.imageUrl ?? null,
@@ -204,7 +233,7 @@ export class ProductsRepository extends ProductRepositoryContract {
     if (dto.sku !== undefined) patch['sku'] = dto.sku ?? null
     if (dto.codigoBarras !== undefined) patch['codigo_barras'] = dto.codigoBarras ?? null
     if (dto.categoriaId !== undefined) patch['categoria_id'] = dto.categoriaId ?? null
-    if (dto.proveedor !== undefined) patch['proveedor'] = dto.proveedor ?? null
+    if (dto.proveedorId !== undefined) patch['proveedor_id'] = dto.proveedorId ?? null
     if (dto.paraQueSirve !== undefined) patch['para_que_sirve'] = dto.paraQueSirve ?? null
     if (dto.recomendadoPara !== undefined) patch['recomendado_para'] = dto.recomendadoPara ?? null
     if (dto.imageUrl !== undefined) patch['image_url'] = dto.imageUrl ?? null

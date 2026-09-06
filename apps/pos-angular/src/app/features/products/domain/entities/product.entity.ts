@@ -7,7 +7,9 @@ export interface Product {
   sku: string | null
   codigoBarras: string | null
   categoriaId: string | null
-  proveedor: string | null
+  proveedorId: string | null
+  /** Nombre del proveedor, resuelto vía join — solo lectura. */
+  proveedorNombre: string | null
   paraQueSirve: string | null
   recomendadoPara: string | null
   imageUrl: string | null
@@ -30,6 +32,15 @@ export interface Categoria {
   tiendaId: TiendaId
   nombre: string
   orden: number
+  isActive: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface Proveedor {
+  id: string
+  tiendaId: TiendaId
+  nombre: string
   isActive: boolean
   createdAt: Date
   updatedAt: Date

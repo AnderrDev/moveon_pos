@@ -25,10 +25,12 @@ import { DialogFooterComponent } from '@angular-app/shared/molecules/dialog-foot
 import { ProductFormPresenter } from '@angular-app/features/products/presentation/presenters/product-form.presenter'
 import { ProductImageFieldComponent } from '@angular-app/features/products/presentation/components/product-image-field.component'
 import { productFormMapper } from '@angular-app/features/products/presentation/forms/product-form.mapper'
-import type { Product, Categoria } from '@angular-app/features/products/domain/entities/product.entity'
+import { PROVEEDOR_NUEVO } from '@angular-app/features/products/presentation/forms/product-form.factory'
+import type { Product, Categoria, Proveedor } from '@angular-app/features/products/domain/entities/product.entity'
 import { ProductRepository, type ProductComponent, type ProductOption } from '@angular-app/features/products/domain/repositories/product.repository'
 import { createProduct } from '@angular-app/features/products/domain/usecases/create-product.use-case'
 import { updateProduct } from '@angular-app/features/products/domain/usecases/update-product.use-case'
+import { createProveedor } from '@angular-app/features/products/domain/usecases/create-proveedor.use-case'
 import { saveProductComponents } from '@angular-app/features/products/domain/usecases/save-product-components.use-case'
 import { saveProductOptions } from '@angular-app/features/products/domain/usecases/save-product-options.use-case'
 import { ProductsCacheStore } from '@angular-app/core/catalog/products-cache.store'
@@ -130,13 +132,23 @@ const INITIAL_STOCK_LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
           />
         </div>
 
-        <mo-form-input
-          controlName="proveedor"
+        <mo-form-select
+          controlName="proveedorId"
           label="Proveedor"
-          placeholder="Ej. Distribuidora Healthy Sports"
+          placeholder="Sin proveedor"
           description="Se usa para filtrar el inventario y armar pedidos por proveedor."
-          [error]="presenter.errors().proveedor ?? null"
+          [options]="proveedorOptions()"
+          [error]="presenter.errors().proveedorId ?? null"
         />
+        @if (proveedorIdValue() === proveedorNuevoValue) {
+          <mo-form-input
+            controlName="proveedorNombreNuevo"
+            label="Nombre del nuevo proveedor"
+            placeholder="Ej. Distribuidora Healthy Sports"
+            [required]="true"
+            [error]="presenter.errors().proveedorNombreNuevo ?? null"
+          />
+        }
 
         <mo-product-image-field formControlName="imageUrl" [tiendaId]="tiendaId()" />
         <mo-form-error [message]="presenter.errors().imageUrl ?? null" />
@@ -560,6 +572,12 @@ export class ProductFormDialog {
   readonly open = input<boolean>(false)
   readonly product = input<Product | null>(null)
   readonly categorias = input<Categoria[]>([])
+  readonly proveedores = input<Proveedor[]>([])
+
+  readonly proveedorNuevoValue = PROVEEDOR_NUEVO
+  readonly proveedorIdValue = toSignal(this.presenter.form.controls.proveedorId.valueChanges, {
+    initialValue: this.presenter.form.controls.proveedorId.value,
+  })
 
   readonly closed = output<void>()
   readonly saved = output<Product>()
@@ -655,6 +673,11 @@ export class ProductFormDialog {
   readonly categoriaOptions = computed<FormSelectOption<string>[]>(() =>
     this.categorias().map((c) => ({ value: c.id, label: c.nombre })),
   )
+
+  readonly proveedorOptions = computed<FormSelectOption<string>[]>(() => [
+    ...this.proveedores().map((p) => ({ value: p.id, label: p.nombre })),
+    { value: PROVEEDOR_NUEVO, label: '+ Nuevo proveedor...' },
+  ])
 
   readonly dialogTitle = computed(() => (this.product() ? 'Editar producto' : 'Nuevo producto'))
 
@@ -802,7 +825,7 @@ export class ProductFormDialog {
 
   async submit(): Promise<void> {
     if (this.saving()) return
-    const value = this.presenter.validate()
+    let value = this.presenter.validate()
     if (!value) return
 
     const auth = await this.session.getAuthContext()
@@ -815,6 +838,20 @@ export class ProductFormDialog {
     this.presenter.form.disable({ emitEvent: false })
 
     try {
+      if (value.proveedorId === PROVEEDOR_NUEVO) {
+        const proveedorResult = await createProveedor(
+          { repo: this.repo },
+          auth.tiendaId,
+          { nombre: value.proveedorNombreNuevo },
+        )
+        if (!proveedorResult.ok) {
+          this.presenter.setRootError(proveedorResult.error.message)
+          return
+        }
+        this.cache.upsertProveedor(proveedorResult.value)
+        value = { ...value, proveedorId: proveedorResult.value.id }
+      }
+
       const product = this.product()
       const result = product
         ? await updateProduct(

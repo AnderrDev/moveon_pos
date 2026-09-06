@@ -6,6 +6,7 @@ import {
 import {
   createProductFormDefaults,
   productFormSchema,
+  PROVEEDOR_NUEVO,
 } from '@angular-app/features/products/presentation/forms/product-form.factory'
 
 describe('categoriaFormSchema', () => {
@@ -37,7 +38,8 @@ describe('productFormSchema', () => {
     sku: 'WHY-001',
     codigoBarras: '',
     categoriaId: '',
-    proveedor: 'Distribuidora Healthy',
+    proveedorId: '44444444-4444-4444-8444-444444444444',
+    proveedorNombreNuevo: '',
     paraQueSirve: 'Apoya la recuperacion muscular.',
     recomendadoPara: 'Personas activas que buscan complementar su proteina diaria.',
     tipo: 'simple',
@@ -179,24 +181,46 @@ describe('productFormSchema', () => {
     if (!result.success) expect(result.error.issues[0].path).toEqual(['stockInicial'])
   })
 
-  // ── Proveedor (opcional) ──────────────────────────────────────────────────────
+  // ── Proveedor (opcional; '__nuevo__' exige nombre nuevo) ───────────────────────
 
-  it('acepta proveedor vacío y lo conserva como string vacío', () => {
-    const result = productFormSchema.safeParse({ ...validProduct, proveedor: '' })
+  it('acepta proveedorId vacío ("sin proveedor")', () => {
+    const result = productFormSchema.safeParse({ ...validProduct, proveedorId: '' })
     expect(result.success).toBe(true)
-    if (result.success) expect(result.data.proveedor).toBe('')
+    if (result.success) expect(result.data.proveedorId).toBe('')
   })
 
-  it('trimmea el proveedor', () => {
-    const result = productFormSchema.safeParse({ ...validProduct, proveedor: '  Megaplex  ' })
+  it('acepta proveedorId de un proveedor existente', () => {
+    const result = productFormSchema.safeParse({ ...validProduct, proveedorId: '55555555-5555-4555-8555-555555555555' })
     expect(result.success).toBe(true)
-    if (result.success) expect(result.data.proveedor).toBe('Megaplex')
   })
 
-  it('rechaza proveedor que supera el límite', () => {
-    const result = productFormSchema.safeParse({ ...validProduct, proveedor: 'a'.repeat(101) })
+  it('RN-P08: exige nombre cuando proveedorId es "crear nuevo"', () => {
+    const result = productFormSchema.safeParse({
+      ...validProduct,
+      proveedorId: PROVEEDOR_NUEVO,
+      proveedorNombreNuevo: '',
+    })
     expect(result.success).toBe(false)
-    if (!result.success) expect(result.error.issues[0].path).toEqual(['proveedor'])
+    if (!result.success) expect(result.error.issues[0].path).toEqual(['proveedorNombreNuevo'])
+  })
+
+  it('acepta "crear nuevo" cuando trae el nombre del proveedor', () => {
+    const result = productFormSchema.safeParse({
+      ...validProduct,
+      proveedorId: PROVEEDOR_NUEVO,
+      proveedorNombreNuevo: 'Megaplex',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('rechaza el nombre del nuevo proveedor si supera el límite', () => {
+    const result = productFormSchema.safeParse({
+      ...validProduct,
+      proveedorId: PROVEEDOR_NUEVO,
+      proveedorNombreNuevo: 'a'.repeat(101),
+    })
+    expect(result.success).toBe(false)
+    if (!result.success) expect(result.error.issues[0].path).toEqual(['proveedorNombreNuevo'])
   })
 
   it('rechaza categorías que no son uuid cuando se envían', () => {
@@ -226,7 +250,8 @@ describe('createProductFormDefaults', () => {
     const defaults = createProductFormDefaults()
     expect(defaults.nombre).toBe('')
     expect(defaults.sku).toBe('')
-    expect(defaults.proveedor).toBe('')
+    expect(defaults.proveedorId).toBe('')
+    expect(defaults.proveedorNombreNuevo).toBe('')
     expect(defaults.paraQueSirve).toBe('')
     expect(defaults.recomendadoPara).toBe('')
     expect(defaults.precioVenta).toBe(0)
@@ -259,7 +284,8 @@ describe('createProductFormDefaults', () => {
       sku: 'BAR-001',
       codigoBarras: '770000000001',
       categoriaId: '11111111-1111-4111-8111-111111111111',
-      proveedor: 'Distribuidora Healthy',
+      proveedorId: '44444444-4444-4444-8444-444444444444',
+      proveedorNombreNuevo: '',
       paraQueSirve: 'Aporta proteina.',
       recomendadoPara: 'Personas activas.',
       imageUrl: 'https://example.com/barra.jpg',
