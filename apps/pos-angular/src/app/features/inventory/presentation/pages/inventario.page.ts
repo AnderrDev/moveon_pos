@@ -14,8 +14,13 @@ import { RegisterEntryDialog } from '@angular-app/features/inventory/presentatio
 import { AdjustStockDialog } from '@angular-app/features/inventory/presentation/dialogs/adjust-stock.dialog'
 import { TransferStockDialog } from '@angular-app/features/inventory/presentation/dialogs/transfer-stock.dialog'
 import { KardexDialog } from '@angular-app/features/inventory/presentation/dialogs/kardex.dialog'
+import type { EntryCostCorrectionRequest } from '@angular-app/features/inventory/presentation/dialogs/kardex.dialog'
+import { CorrectEntryCostDialog } from '@angular-app/features/inventory/presentation/dialogs/correct-entry-cost.dialog'
 import type { Product } from '@angular-app/features/products/domain/entities/product.entity'
-import type { StockLevel } from '@angular-app/features/inventory/domain/entities/inventory.entity'
+import type {
+  InventoryMovement,
+  StockLevel,
+} from '@angular-app/features/inventory/domain/entities/inventory.entity'
 import { isLowStock, isOutOfStock } from '@angular-app/features/inventory/domain/services/low-stock'
 import { ExcelExportService } from '@angular-app/shared/services/export/excel-export.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
@@ -52,6 +57,7 @@ interface StockRow {
     AdjustStockDialog,
     TransferStockDialog,
     KardexDialog,
+    CorrectEntryCostDialog,
   ],
   template: `
     <section class="flex h-full min-h-0 flex-col">
@@ -177,15 +183,21 @@ interface StockRow {
                   </td>
                   <td moTd class="text-right">
                     <div class="flex justify-end gap-1">
-                      <mo-button size="sm" variant="outline" (click)="openEntry(row)"
+                      <mo-button
+                        size="sm"
+                        variant="outline"
+                        (click)="openEntry(row)"
+                        [disabled]="!tracksStock(row.tipo)"
                         >+ Entrada</mo-button
                       >
-                      <mo-button size="sm" variant="ghost" (click)="openAdjust(row)"
-                        >Ajustar</mo-button
-                      >
-                      <mo-button size="sm" variant="ghost" (click)="openTransfer(row)"
-                        >Trasladar</mo-button
-                      >
+                      @if (tracksStock(row.tipo)) {
+                        <mo-button size="sm" variant="ghost" (click)="openAdjust(row)"
+                          >Ajustar</mo-button
+                        >
+                        <mo-button size="sm" variant="ghost" (click)="openTransfer(row)"
+                          >Trasladar</mo-button
+                        >
+                      }
                       <mo-button size="sm" variant="ghost" (click)="openKardex(row)"
                         >Kardex</mo-button
                       >
@@ -224,6 +236,16 @@ interface StockRow {
       [open]="kardexOpen()"
       [product]="selected()"
       (closed)="kardexOpen.set(false)"
+      (correctCostRequested)="openCostCorrection($event)"
+    />
+
+    <mo-correct-entry-cost-dialog
+      [open]="costCorrectionOpen()"
+      [movement]="selectedMovement()"
+      [product]="selected()"
+      [isLatestEntry]="selectedMovementIsLatest()"
+      (closed)="closeCostCorrection()"
+      (saved)="onCostCorrected()"
     />
   `,
 })
@@ -247,6 +269,9 @@ export class InventarioPage {
   readonly adjustOpen = signal(false)
   readonly transferOpen = signal(false)
   readonly kardexOpen = signal(false)
+  readonly costCorrectionOpen = signal(false)
+  readonly selectedMovement = signal<InventoryMovement | null>(null)
+  readonly selectedMovementIsLatest = signal(false)
   readonly selectedRow = signal<StockRow | null>(null)
 
   readonly selected = computed(() => {
@@ -277,7 +302,7 @@ export class InventarioPage {
         id: p.id,
         nombre: p.nombre,
         sku: p.sku,
-        proveedor: p.proveedor,
+        proveedor: p.proveedorNombre,
         tipo: p.tipo,
         costo: p.costo,
         precioVenta: p.precioVenta,
@@ -297,7 +322,7 @@ export class InventarioPage {
 
   readonly proveedores = computed(() => {
     const names = new Set<string>()
-    for (const p of this.products()) if (p.proveedor) names.add(p.proveedor)
+    for (const p of this.products()) if (p.proveedorNombre) names.add(p.proveedorNombre)
     return [...names].sort((a, b) => a.localeCompare(b, 'es'))
   })
 
@@ -330,6 +355,10 @@ export class InventarioPage {
       combo: 'Combo',
     }
     return labels[tipo] ?? tipo
+  }
+
+  tracksStock(tipo: string): boolean {
+    return tipo !== 'prepared' && tipo !== 'combo'
   }
 
   onQuery(event: Event): void {
@@ -391,5 +420,23 @@ export class InventarioPage {
   openKardex(row: StockRow): void {
     this.selectedRow.set(row)
     this.kardexOpen.set(true)
+  }
+
+  openCostCorrection(request: EntryCostCorrectionRequest): void {
+    this.selectedMovement.set(request.movement)
+    this.selectedMovementIsLatest.set(request.isLatestEntry)
+    this.kardexOpen.set(false)
+    this.costCorrectionOpen.set(true)
+  }
+
+  closeCostCorrection(): void {
+    this.costCorrectionOpen.set(false)
+    this.selectedMovement.set(null)
+    this.selectedMovementIsLatest.set(false)
+  }
+
+  onCostCorrected(): void {
+    this.closeCostCorrection()
+    void this.load()
   }
 }

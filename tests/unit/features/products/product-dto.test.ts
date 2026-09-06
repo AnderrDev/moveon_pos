@@ -8,6 +8,7 @@ import {
   createCategoriaSchema,
   updateCategoriaSchema,
 } from '@angular-app/features/products/domain/dtos/categoria.dto'
+import { createProveedorSchema } from '@angular-app/features/products/domain/dtos/proveedor.dto'
 
 const tiendaId = '11111111-1111-4111-8111-111111111111'
 const categoriaId = '22222222-2222-4222-8222-222222222222'
@@ -72,5 +73,19 @@ describe('categoria DTO schemas', () => {
   it('rechazan categorías vacías', () => {
     expect(createCategoriaSchema.safeParse({ nombre: '   ' }).success).toBe(false)
     expect(updateCategoriaSchema.safeParse({ nombre: '' }).success).toBe(false)
+  })
+})
+
+describe('proveedor DTO schema', () => {
+  it('acepta un proveedor válido', () => {
+    expect(createProveedorSchema.safeParse({ nombre: 'Distribuidora Healthy' }).success).toBe(true)
+  })
+
+  it('rechaza nombre vacío', () => {
+    expect(createProveedorSchema.safeParse({ nombre: '   ' }).success).toBe(false)
+  })
+
+  it('rechaza nombre que supera el límite', () => {
+    expect(createProveedorSchema.safeParse({ nombre: 'a'.repeat(101) }).success).toBe(false)
   })
 })

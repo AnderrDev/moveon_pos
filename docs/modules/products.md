@@ -19,7 +19,7 @@ Ver `/docs/03-data-model.md` tablas `categorias` y `productos`.
 - RN-P06: La taxonomia operativa del POS separa proteinas, creatinas, pre-entrenos, aminoacidos y recuperacion, bienestar y salud, termogenicos, ganadores de peso, energizantes, alimentos proteicos, batidos e ingredientes para batidos.
 - RN-P07: Al crear un producto se puede registrar inventario inicial opcional. Producto y movimiento `entry` se crean en una sola transaccion; el costo unitario usa el costo del producto y la ubicacion por defecto es `bodega`.
 - RN-P09: Tipo `combo` (ADR 0018): promoción que se vende como UN producto con precio fijo propio (`precio_venta`) y una sola línea en el ticket. No lleva inventario propio: al venderlo se descuenta el stock de los productos incluidos, declarados en `product_components` igual que los componentes de un preparado. Su disponibilidad es derivada — `min(floor(stock / cantidad))` del producto incluido más escaso — y el servidor no bloquea la venta por faltantes (advertir, no bloquear). Un combo no puede contener otro combo ni un batido (ninguno rastrea stock propio), no admite opciones de venta (ADR 0017), no acepta inventario inicial y no se puede crear por importación CSV. Se activa y desactiva con `is_active`; no tiene fechas de vigencia. No aparece en el catálogo público.
-- RN-P08: `proveedor` es un campo de texto libre opcional (max 100 caracteres) en `productos`. Se usa para filtrar el inventario por proveedor y ver faltantes al armar el siguiente pedido. No hay tabla de proveedores en el MVP; si el caso de uso crece (contactos, condiciones de pago), se normaliza en una tabla propia.
+- RN-P08 (revisada 2026-09-04): `productos.proveedor_id` referencia la tabla `proveedores` (id, tienda_id, nombre, is_active — sin contacto ni condiciones de pago, alcance mínimo). Se usa para filtrar el inventario por proveedor y ver faltantes al armar el siguiente pedido. Reemplaza el texto libre original (migración `20260904020000`, backfill desde los valores distintos ya usados en `productos.proveedor`); si el caso de uso crece (contactos, condiciones de pago), se extiende esta misma tabla. En el formulario de producto el campo es un selector con opción "+ Nuevo proveedor..." que crea el proveedor al vuelo (mismo flujo rápido que el texto libre, sin duplicados/errores de tipeo).
 
 ## Informacion para recomendacion
 
@@ -104,6 +104,12 @@ El script lee `SUPABASE_URL` (con fallback a `NEXT_PUBLIC_SUPABASE_URL`) y
   se modifica directamente.
 - Orden de escritura: categorías → productos → movimientos, en lotes de ~100. Sin
   transacción única: ante un error se detiene y reporta lo ya escrito.
+
+## Filtros de la página de productos
+
+- Búsqueda por nombre/SKU/código de barras, filtro por categoría, filtro por proveedor
+  (incluye "Sin proveedor") y filtro por estado (activos/inactivos/todos). El filtro de
+  proveedor usa `proveedorId` (RN-P08) — mismo criterio que ya tenía el filtro de inventario.
 
 ## Exportación Excel
 

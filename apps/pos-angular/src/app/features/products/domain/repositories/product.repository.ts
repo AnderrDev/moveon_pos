@@ -1,6 +1,7 @@
-import type { Product, Categoria } from '@angular-app/features/products/domain/entities/product.entity'
+import type { Product, Categoria, Proveedor } from '@angular-app/features/products/domain/entities/product.entity'
 import type { CreateProductDto, UpdateProductDto } from '@angular-app/features/products/domain/dtos/product.dto'
 import type { CreateCategoriaDto, UpdateCategoriaDto } from '@angular-app/features/products/domain/dtos/categoria.dto'
+import type { CreateProveedorDto } from '@angular-app/features/products/domain/dtos/proveedor.dto'
 import type { InventoryLocation, TiendaId } from '@/shared/types'
 
 export interface SearchProductsParams {
@@ -51,6 +52,8 @@ export interface ProductOption {
 export abstract class ProductRepository {
   abstract listProducts(params: SearchProductsParams): Promise<Product[]>
   abstract listCategorias(tiendaId: TiendaId): Promise<Categoria[]>
+  abstract listProveedores(tiendaId: TiendaId): Promise<Proveedor[]>
+  abstract createProveedor(dto: CreateProveedorDto, tiendaId: TiendaId): Promise<Proveedor>
   abstract createProduct(dto: CreateProductDto, initialStock: InitialStockInput): Promise<Product>
   abstract updateProduct(id: string, tiendaId: TiendaId, dto: UpdateProductDto): Promise<Product>
   abstract deleteProduct(id: string, tiendaId: TiendaId): Promise<void>

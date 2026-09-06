@@ -7,7 +7,9 @@ import { inventoryLocationSchema } from '@angular-app/features/inventory/domain/
 const PRODUCT_NAME_MIN = 2
 const PRODUCT_NAME_MAX = 100
 const PRODUCT_INFO_MAX = 800
-const PRODUCT_PROVEEDOR_MAX = 100
+
+/** Sentinel del select de proveedor: "+ Nuevo proveedor..." (no es un uuid real). */
+export const PROVEEDOR_NUEVO = '__nuevo__'
 
 // ── Schema del formulario ─────────────────────────────────────────────────────
 // Distinto del DTO del backend:
@@ -37,12 +39,16 @@ export const productFormSchema = z.object({
     .optional()
     .or(z.literal('')),
 
-  proveedor: z
+  // Como categoriaId/tipoDocumento en otros formularios: siempre string (nunca
+  // undefined) para que el control de Angular no quede opcional en el tipo —
+  // '' representa "sin proveedor" o "ninguno seleccionado".
+  proveedorId: z.string(),
+
+  /** Solo se usa cuando `proveedorId === PROVEEDOR_NUEVO`. */
+  proveedorNombreNuevo: z
     .string()
     .trim()
-    .max(PRODUCT_PROVEEDOR_MAX, `El proveedor no puede superar ${PRODUCT_PROVEEDOR_MAX} caracteres`)
-    .optional()
-    .or(z.literal('')),
+    .max(100, 'El nombre del proveedor no puede superar 100 caracteres'),
 
   paraQueSirve: z
     .string()
@@ -123,6 +129,13 @@ export const productFormSchema = z.object({
       message: 'Los productos preparados no controlan inventario',
     })
   }
+  if (value.proveedorId === PROVEEDOR_NUEVO && !value.proveedorNombreNuevo.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['proveedorNombreNuevo'],
+      message: 'Escribe el nombre del nuevo proveedor',
+    })
+  }
 })
 
 // ── Tipos derivados (nunca se definen a mano) ─────────────────────────────────
@@ -141,7 +154,8 @@ export function createProductFormDefaults(
     sku:          initial.sku          ?? '',
     codigoBarras: initial.codigoBarras ?? '',
     categoriaId:  initial.categoriaId  ?? '',
-    proveedor:    initial.proveedor    ?? '',
+    proveedorId:  initial.proveedorId  ?? '',
+    proveedorNombreNuevo: initial.proveedorNombreNuevo ?? '',
     paraQueSirve: initial.paraQueSirve ?? '',
     recomendadoPara: initial.recomendadoPara ?? '',
     imageUrl:     initial.imageUrl     ?? '',

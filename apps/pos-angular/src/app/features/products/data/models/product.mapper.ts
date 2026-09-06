@@ -1,4 +1,4 @@
-import type { Product, Categoria } from '@angular-app/features/products/domain/entities/product.entity'
+import type { Product, Categoria, Proveedor } from '@angular-app/features/products/domain/entities/product.entity'
 import type { IvaRate, ProductType } from '@/shared/types'
 
 export interface ProductRow {
@@ -8,7 +8,9 @@ export interface ProductRow {
   sku: string | null
   codigo_barras: string | null
   categoria_id: string | null
-  proveedor: string | null
+  proveedor_id: string | null
+  /** Embed de Supabase (`proveedores(nombre)`); ausente/null cuando no hay proveedor. */
+  proveedores: { nombre: string } | null
   para_que_sirve: string | null
   recomendado_para: string | null
   image_url: string | null
@@ -35,6 +37,15 @@ export interface CategoriaRow {
   updated_at: string
 }
 
+export interface ProveedorRow {
+  id: string
+  tienda_id: string
+  nombre: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
 export function rowToProduct(row: ProductRow): Product {
   return {
     id: row.id,
@@ -43,7 +54,8 @@ export function rowToProduct(row: ProductRow): Product {
     sku: row.sku,
     codigoBarras: row.codigo_barras,
     categoriaId: row.categoria_id,
-    proveedor: row.proveedor,
+    proveedorId: row.proveedor_id,
+    proveedorNombre: row.proveedores?.nombre ?? null,
     paraQueSirve: row.para_que_sirve,
     recomendadoPara: row.recomendado_para,
     imageUrl: row.image_url,
@@ -67,6 +79,17 @@ export function rowToCategoria(row: CategoriaRow): Categoria {
     tiendaId: row.tienda_id,
     nombre: row.nombre,
     orden: row.orden,
+    isActive: row.is_active,
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
+  }
+}
+
+export function rowToProveedor(row: ProveedorRow): Proveedor {
+  return {
+    id: row.id,
+    tiendaId: row.tienda_id,
+    nombre: row.nombre,
     isActive: row.is_active,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),

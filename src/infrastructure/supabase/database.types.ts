@@ -1048,7 +1048,7 @@ export type Database = {
           para_que_sirve: string | null
           participa_fidelizacion: boolean
           precio_venta: number
-          proveedor: string | null
+          proveedor_id: string | null
           recomendado_para: string | null
           recommended_audience: string | null
           sku: string | null
@@ -1075,7 +1075,7 @@ export type Database = {
           para_que_sirve?: string | null
           participa_fidelizacion?: boolean
           precio_venta: number
-          proveedor?: string | null
+          proveedor_id?: string | null
           recomendado_para?: string | null
           recommended_audience?: string | null
           sku?: string | null
@@ -1102,7 +1102,7 @@ export type Database = {
           para_que_sirve?: string | null
           participa_fidelizacion?: boolean
           precio_venta?: number
-          proveedor?: string | null
+          proveedor_id?: string | null
           recomendado_para?: string | null
           recommended_audience?: string | null
           sku?: string | null
@@ -1122,7 +1122,49 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "productos_proveedor_id_fkey"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "productos_tienda_id_fkey"
+            columns: ["tienda_id"]
+            isOneToOne: false
+            referencedRelation: "tiendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proveedores: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          nombre: string
+          tienda_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          nombre: string
+          tienda_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          nombre?: string
+          tienda_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proveedores_tienda_id_fkey"
             columns: ["tienda_id"]
             isOneToOne: false
             referencedRelation: "tiendas"
@@ -1563,7 +1605,7 @@ export type Database = {
           p_para_que_sirve: string
           p_participa_fidelizacion?: boolean
           p_precio_venta: number
-          p_proveedor?: string
+          p_proveedor_id?: string
           p_recomendado_para: string
           p_sku: string
           p_stock_minimo: number

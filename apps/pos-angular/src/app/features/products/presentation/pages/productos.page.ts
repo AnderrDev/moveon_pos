@@ -89,6 +89,18 @@ import { buildProductsWorkbook } from '@angular-app/features/products/presentati
           }
         </select>
         <select
+          [value]="filterProveedor()"
+          (change)="filterProveedor.set(getSelectValue($event))"
+          class="border-input bg-card focus:ring-ring h-10 rounded-lg border px-3 text-sm focus:ring-2 focus:outline-none"
+          aria-label="Filtrar por proveedor"
+        >
+          <option value="all">Todos los proveedores</option>
+          @for (prov of proveedores(); track prov.id) {
+            <option [value]="prov.id">{{ prov.nombre }}</option>
+          }
+          <option value="__sin__">Sin proveedor</option>
+        </select>
+        <select
           [value]="filterEstado()"
           (change)="onEstadoChange($event)"
           class="border-input bg-card focus:ring-ring h-10 rounded-lg border px-3 text-sm focus:ring-2 focus:outline-none"
@@ -209,6 +221,7 @@ import { buildProductsWorkbook } from '@angular-app/features/products/presentati
       [open]="dialogOpen()"
       [product]="editingProduct()"
       [categorias]="categorias()"
+      [proveedores]="proveedores()"
       (closed)="closeDialog()"
       (saved)="onSaved($event)"
     />
@@ -264,6 +277,7 @@ export class ProductosPage {
 
   readonly products = computed(() => this.store.products() ?? [])
   readonly categorias = computed(() => this.store.categorias() ?? [])
+  readonly proveedores = computed(() => this.store.activeProveedores())
   readonly stockLevels = signal<StockLevel[]>([])
   readonly loading = signal(true)
   readonly loadError = signal<string | null>(null)
@@ -275,6 +289,7 @@ export class ProductosPage {
   readonly stockMap = computed(() => new Map(this.stockLevels().map((s) => [s.productId, s])))
 
   readonly filterCategoria = signal<string>('all')
+  readonly filterProveedor = signal<string>('all')
   readonly filterEstado = signal<'all' | 'active' | 'inactive'>('active')
   readonly deleteConfirmOpen = signal(false)
   readonly deletingProduct = signal<Product | null>(null)
@@ -284,10 +299,13 @@ export class ProductosPage {
   readonly filteredProducts = computed(() => {
     const q = this.query().trim().toLowerCase()
     const cat = this.filterCategoria()
+    const prov = this.filterProveedor()
     const estado = this.filterEstado()
     return this.products().filter((p) => {
       if (q && !([p.nombre, p.sku ?? '', p.codigoBarras ?? ''].join(' ').toLowerCase().includes(q))) return false
       if (cat !== 'all' && p.categoriaId !== cat) return false
+      if (prov === '__sin__' && p.proveedorId) return false
+      if (prov !== 'all' && prov !== '__sin__' && p.proveedorId !== prov) return false
       if (estado === 'active' && !p.isActive) return false
       if (estado === 'inactive' && p.isActive) return false
       return true
@@ -391,9 +409,10 @@ export class ProductosPage {
     try {
       const auth = await this.session.getAuthContext()
       if (!auth) throw new Error('No autenticado')
-      const [, , stockLevels] = await Promise.all([
+      const [, , , stockLevels] = await Promise.all([
         this.store.ensureProducts(auth.tiendaId, { force: options.force }),
         this.store.ensureCategorias(auth.tiendaId, { force: options.force }),
+        this.store.ensureProveedores(auth.tiendaId, { force: options.force }),
         this.inventoryRepo.getStockLevels(auth.tiendaId),
       ])
       this.stockLevels.set(stockLevels)

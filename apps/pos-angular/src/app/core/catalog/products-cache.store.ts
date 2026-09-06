@@ -2,7 +2,7 @@ import { computed, effect, inject, Injectable, signal } from '@angular/core'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ProductRepository } from '@angular-app/features/products/domain/repositories/product.repository'
 import { TtlCache } from '@/shared/cache/ttl-cache'
-import type { Categoria, Product } from '@angular-app/features/products/domain/entities/product.entity'
+import type { Categoria, Product, Proveedor } from '@angular-app/features/products/domain/entities/product.entity'
 
 const DEFAULT_TTL_MS = 5 * 60 * 1000
 
@@ -18,17 +18,21 @@ export class ProductsCacheStore {
 
   private readonly _products = signal<Product[] | null>(null)
   private readonly _categorias = signal<Categoria[] | null>(null)
+  private readonly _proveedores = signal<Proveedor[] | null>(null)
 
   private readonly productsCache = new TtlCache<Product[]>({ ttlMs: DEFAULT_TTL_MS })
   private readonly categoriasCache = new TtlCache<Categoria[]>({ ttlMs: DEFAULT_TTL_MS })
+  private readonly proveedoresCache = new TtlCache<Proveedor[]>({ ttlMs: DEFAULT_TTL_MS })
 
   private lastUserId: string | null = null
 
   readonly products = this._products.asReadonly()
   readonly categorias = this._categorias.asReadonly()
+  readonly proveedores = this._proveedores.asReadonly()
 
   readonly activeProducts = computed(() => (this._products() ?? []).filter((p) => p.isActive))
   readonly activeCategorias = computed(() => (this._categorias() ?? []).filter((c) => c.isActive))
+  readonly activeProveedores = computed(() => (this._proveedores() ?? []).filter((p) => p.isActive))
 
   constructor() {
     effect(() => {
@@ -58,6 +62,21 @@ export class ProductsCacheStore {
     )
     this._categorias.set(data)
     return data
+  }
+
+  async ensureProveedores(tiendaId: string, options: EnsureOptions = {}): Promise<Proveedor[]> {
+    const data = await this.proveedoresCache.ensure(
+      tiendaId,
+      () => this.repo.listProveedores(tiendaId),
+      options,
+    )
+    this._proveedores.set(data)
+    return data
+  }
+
+  upsertProveedor(proveedor: Proveedor): void {
+    this._proveedores.set(upsertById(this._proveedores() ?? [], proveedor, 'append'))
+    this.proveedoresCache.set(proveedor.tiendaId, this._proveedores() as Proveedor[])
   }
 
   upsertProduct(product: Product): void {
@@ -97,8 +116,10 @@ export class ProductsCacheStore {
   invalidate(): void {
     this._products.set(null)
     this._categorias.set(null)
+    this._proveedores.set(null)
     this.productsCache.invalidate()
     this.categoriasCache.invalidate()
+    this.proveedoresCache.invalidate()
   }
 }
 
