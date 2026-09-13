@@ -1,9 +1,11 @@
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
+import { fetchAllPages } from '@angular-app/core/supabase/fetch-all-pages'
 import type { LoyaltyTransaction } from '@angular-app/features/loyalty/domain/entities/loyalty.entity'
 import {
   LoyaltyRepository as LoyaltyRepositoryContract,
   type AdjustStampsInput,
+  type LoyaltyCustomerProgress,
   type LoyaltySummary,
 } from '@angular-app/features/loyalty/domain/repositories/loyalty.repository'
 import {
@@ -18,11 +20,63 @@ import {
 interface RpcClient {
   rpc<T>(
     fn: string,
-    args: Record<string, unknown>,
+    args: Record<string, unknown>
   ): Promise<{ data: T | null; error: { message: string } | null }>
 }
 
 type QueryResult<T> = Promise<{ data: T | null; error: { message: string } | null }>
+
+interface AccountProgressRow {
+  cliente_id: string
+  stamps_balance: number
+}
+
+interface RewardProgressRow {
+  id: string
+  cliente_id: string
+}
+
+interface AccountProgressOrderedQuery {
+  range(from: number, to: number): QueryResult<AccountProgressRow[]>
+}
+
+interface RewardProgressOrderedQuery {
+  order(col: string, opts: { ascending: boolean }): RewardProgressOrderedQuery
+  range(from: number, to: number): QueryResult<RewardProgressRow[]>
+}
+
+interface LoyaltyProgressDbClient {
+  from(table: 'loyalty_accounts'): {
+    select(cols: string): {
+      eq(
+        col: string,
+        value: unknown
+      ): {
+        order(col: string, opts: { ascending: boolean }): AccountProgressOrderedQuery
+      }
+    }
+  }
+  from(table: 'loyalty_rewards'): {
+    select(cols: string): {
+      eq(
+        col: string,
+        value: unknown
+      ): {
+        eq(
+          col: string,
+          value: unknown
+        ): {
+          gt(
+            col: string,
+            value: unknown
+          ): {
+            order(col: string, opts: { ascending: boolean }): RewardProgressOrderedQuery
+          }
+        }
+      }
+    }
+  }
+}
 
 /**
  * Las tablas de fidelización aún no existen en database.types.ts generado;
@@ -32,8 +86,14 @@ type QueryResult<T> = Promise<{ data: T | null; error: { message: string } | nul
 interface LoyaltyDbClient {
   from(table: 'loyalty_accounts'): {
     select(cols: string): {
-      eq(col: string, value: unknown): {
-        eq(col: string, value: unknown): {
+      eq(
+        col: string,
+        value: unknown
+      ): {
+        eq(
+          col: string,
+          value: unknown
+        ): {
           maybeSingle(): QueryResult<AccountRow>
         }
       }
@@ -41,10 +101,22 @@ interface LoyaltyDbClient {
   }
   from(table: 'loyalty_rewards'): {
     select(cols: string): {
-      eq(col: string, value: unknown): {
-        eq(col: string, value: unknown): {
-          eq(col: string, value: unknown): {
-            gt(col: string, value: unknown): {
+      eq(
+        col: string,
+        value: unknown
+      ): {
+        eq(
+          col: string,
+          value: unknown
+        ): {
+          eq(
+            col: string,
+            value: unknown
+          ): {
+            gt(
+              col: string,
+              value: unknown
+            ): {
               order(col: string, opts: { ascending: boolean }): QueryResult<RewardRow[]>
             }
           }
@@ -54,9 +126,18 @@ interface LoyaltyDbClient {
   }
   from(table: 'loyalty_transactions'): {
     select(cols: string): {
-      eq(col: string, value: unknown): {
-        eq(col: string, value: unknown): {
-          order(col: string, opts: { ascending: boolean }): {
+      eq(
+        col: string,
+        value: unknown
+      ): {
+        eq(
+          col: string,
+          value: unknown
+        ): {
+          order(
+            col: string,
+            opts: { ascending: boolean }
+          ): {
             limit(n: number): QueryResult<TransactionRow[]>
           }
         }
@@ -71,6 +152,54 @@ export class LoyaltyRepository extends LoyaltyRepositoryContract {
 
   private get db(): LoyaltyDbClient {
     return this.supabaseClient.supabase as unknown as LoyaltyDbClient
+  }
+
+  /** Dos lecturas paginadas para todo el directorio; evita el patrón N+1 por cliente. */
+  async listCustomerProgress(tiendaId: string): Promise<LoyaltyCustomerProgress[]> {
+    const db = this.supabaseClient.supabase as unknown as LoyaltyProgressDbClient
+    const [accounts, rewards] = await Promise.all([
+      fetchAllPages<AccountProgressRow>(async (from, to) => {
+        const { data, error } = await db
+          .from('loyalty_accounts')
+          .select('cliente_id, stamps_balance')
+          .eq('tienda_id', tiendaId)
+          .order('cliente_id', { ascending: true })
+          .range(from, to)
+        if (error) throw new Error(error.message)
+        return data ?? []
+      }),
+      fetchAllPages<RewardProgressRow>(async (from, to) => {
+        const { data, error } = await db
+          .from('loyalty_rewards')
+          .select('id, cliente_id')
+          .eq('tienda_id', tiendaId)
+          .eq('status', 'available')
+          .gt('expires_at', new Date().toISOString())
+          .order('cliente_id', { ascending: true })
+          .order('id', { ascending: true })
+          .range(from, to)
+        if (error) throw new Error(error.message)
+        return data ?? []
+      }),
+    ])
+
+    const byCustomer = new Map<string, LoyaltyCustomerProgress>()
+    for (const account of accounts) {
+      byCustomer.set(account.cliente_id, {
+        clienteId: account.cliente_id,
+        stampsBalance: account.stamps_balance,
+        availableRewards: 0,
+      })
+    }
+    for (const reward of rewards) {
+      const current = byCustomer.get(reward.cliente_id)
+      byCustomer.set(reward.cliente_id, {
+        clienteId: reward.cliente_id,
+        stampsBalance: current?.stampsBalance ?? 0,
+        availableRewards: (current?.availableRewards ?? 0) + 1,
+      })
+    }
+    return [...byCustomer.values()]
   }
 
   /** Progreso + recompensas vigentes del cliente. Cliente sin cuenta = 0 sellos. */
@@ -104,10 +233,16 @@ export class LoyaltyRepository extends LoyaltyRepositoryContract {
   }
 
   /** Ledger cronológico del cliente (acumulaciones, canjes, anulaciones, ajustes). */
-  async listTransactions(tiendaId: string, clienteId: string, limit = 50): Promise<LoyaltyTransaction[]> {
+  async listTransactions(
+    tiendaId: string,
+    clienteId: string,
+    limit = 50
+  ): Promise<LoyaltyTransaction[]> {
     const { data, error } = await this.db
       .from('loyalty_transactions')
-      .select('id, tienda_id, cliente_id, sale_id, type, stamps_delta, balance_after, reason, created_by, created_at')
+      .select(
+        'id, tienda_id, cliente_id, sale_id, type, stamps_delta, balance_after, reason, created_by, created_at'
+      )
       .eq('tienda_id', tiendaId)
       .eq('cliente_id', clienteId)
       .order('created_at', { ascending: false })

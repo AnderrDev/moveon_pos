@@ -298,6 +298,9 @@ create policy "read_own_tienda_loyalty_accounts" on loyalty_accounts
   (acumulaciones, redenciones, anulaciones, ajustes, vencimientos) y — solo admin — ajuste manual
   de sellos con motivo obligatorio (schema Zod en
   `features/loyalty/presentation/forms/adjust-stamps-form.factory.ts`).
+- Directorio `/clientes`: proyección paginada de saldo y recompensas vigentes para mostrar el
+  progreso X/N en cada fila y destacar, sin abrir el diálogo, a quien ya tiene premio o está más
+  cerca del siguiente. El umbral N proviene de `settings.data.fidelizacion.sellosParaRecompensa`.
 - Sección "MOVE ON Club" en `/configuracion` (PLAN-59): edita `settings.data.fidelizacion`
   (activo, sellos por recompensa, valor máximo, vigencia). Patrón factory/mapper/presenter en
   `features/settings/presentation/forms/loyalty-settings-form.*` + el repositorio de
