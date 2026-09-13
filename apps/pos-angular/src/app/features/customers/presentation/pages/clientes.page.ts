@@ -26,6 +26,9 @@ import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import type { Cliente } from '@angular-app/features/customers/domain/entities/cliente.entity'
 import { ExcelExportService } from '@angular-app/shared/services/export/excel-export.service'
 import { buildCustomersWorkbook } from '@angular-app/features/customers/presentation/services/customer-export'
+import { CustomerLoyaltyHighlightComponent } from '@angular-app/features/loyalty/presentation/components/customer-loyalty-highlight.component'
+import { CustomerLoyaltyProgressComponent } from '@angular-app/features/loyalty/presentation/components/customer-loyalty-progress.component'
+import { CustomerLoyaltyOverviewStore } from '@angular-app/features/customers/presentation/services/customer-loyalty-overview.store'
 
 @Component({
   selector: 'mo-clientes-page',
@@ -39,8 +42,11 @@ import { buildCustomersWorkbook } from '@angular-app/features/customers/presenta
     ClienteFormDialog,
     ClienteLoyaltyDialog,
     TableShellComponent,
+    CustomerLoyaltyHighlightComponent,
+    CustomerLoyaltyProgressComponent,
     MO_TABLE,
   ],
+  providers: [CustomerLoyaltyOverviewStore],
   template: `
     <section class="flex h-full min-h-0 flex-col">
       <mo-page-header title="Clientes" [subtitle]="subtitle()">
@@ -55,6 +61,9 @@ import { buildCustomersWorkbook } from '@angular-app/features/customers/presenta
             [value]="query()"
             (input)="onQuery($event)"
             placeholder="Buscar por nombre, email o telefono"
+            aria-label="Buscar clientes"
+            name="customer-search"
+            autocomplete="off"
             class="border-input bg-card focus:ring-ring h-10 w-72 rounded-lg border pr-3 pl-9 text-sm focus:ring-2 focus:outline-none"
           />
         </div>
@@ -76,6 +85,21 @@ import { buildCustomersWorkbook } from '@angular-app/features/customers/presenta
         </mo-button>
       </mo-page-header>
 
+      @if (!loading() && loyaltyState() === 'ready') {
+        @if (featured(); as item) {
+          <mo-customer-loyalty-highlight [item]="item" [stampsPerReward]="stampsPerReward()" />
+        }
+      } @else if (!loading() && loyaltyState() === 'error') {
+        <div
+          class="border-border bg-muted/40 text-muted-foreground mb-3 rounded-lg border px-3 py-2 text-xs"
+          role="status"
+          aria-live="polite"
+        >
+          El progreso de MOVE ON Club no está disponible temporalmente. El directorio sigue
+          operativo.
+        </div>
+      }
+
       @if (loading()) {
         <div class="bg-card flex-1 animate-pulse rounded-xl border p-8">
           <div class="bg-muted/50 h-72 rounded-xl"></div>
@@ -93,13 +117,14 @@ import { buildCustomersWorkbook } from '@angular-app/features/customers/presenta
         </mo-empty-state>
       } @else {
         <mo-table-shell class="flex-1">
-          <table moTable>
+          <table moTable class="min-w-[57rem] table-fixed">
             <thead moThead>
               <tr>
-                <th moTh>Cliente</th>
-                <th moTh>Documento</th>
-                <th moTh>Contacto</th>
-                <th moTh class="text-right">Acciones</th>
+                <th moTh class="w-60">Cliente</th>
+                <th moTh class="w-36">Documento</th>
+                <th moTh class="w-48">Contacto</th>
+                <th moTh class="w-44">Progreso Club</th>
+                <th moTh class="w-40 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody class="divide-y">
@@ -112,7 +137,7 @@ import { buildCustomersWorkbook } from '@angular-app/features/customers/presenta
                       >
                         {{ initials(c) }}
                       </span>
-                      <div class="min-w-0">
+                      <div class="max-w-44 min-w-0">
                         <div class="flex items-center gap-1.5">
                           <p class="truncate font-semibold">{{ c.nombre }}</p>
                           @if (c.autorizaFidelizacion) {
@@ -120,10 +145,24 @@ import { buildCustomersWorkbook } from '@angular-app/features/customers/presenta
                               class="bg-primary/10 text-primary inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold"
                               title="Participa en MOVE ON Club"
                             >
-                              <lucide-angular [img]="icons.cup" class="h-3 w-3" aria-hidden="true" />
+                              <lucide-angular
+                                [img]="icons.cup"
+                                class="h-3 w-3"
+                                aria-hidden="true"
+                              />
                               Club
                             </span>
                           }
+                        </div>
+                        <div class="mt-1 md:hidden">
+                          <mo-customer-loyalty-progress
+                            [participates]="c.autorizaFidelizacion"
+                            [state]="loyaltyState()"
+                            [progress]="loyaltyOverview.progressFor(c.id)"
+                            [stampsPerReward]="stampsPerReward()"
+                            [customerName]="c.nombre"
+                            [compact]="true"
+                          />
                         </div>
                       </div>
                     </div>
@@ -131,7 +170,11 @@ import { buildCustomersWorkbook } from '@angular-app/features/customers/presenta
                   <td moTd class="text-muted-foreground text-xs">
                     @if (c.tipoDocumento && c.numeroDocumento) {
                       <span class="inline-flex items-center gap-1.5">
-                        <lucide-angular [img]="icons.idCard" class="h-3.5 w-3.5" aria-hidden="true" />
+                        <lucide-angular
+                          [img]="icons.idCard"
+                          class="h-3.5 w-3.5"
+                          aria-hidden="true"
+                        />
                         {{ c.tipoDocumento }} · {{ c.numeroDocumento }}
                       </span>
                     } @else {
@@ -139,17 +182,27 @@ import { buildCustomersWorkbook } from '@angular-app/features/customers/presenta
                     }
                   </td>
                   <td moTd class="text-muted-foreground text-xs">
-                    <div class="space-y-0.5">
+                    <div class="max-w-40 space-y-0.5">
                       @if (c.telefono) {
                         <p class="flex items-center gap-1.5">
-                          <lucide-angular [img]="icons.phone" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                          <lucide-angular
+                            [img]="icons.phone"
+                            class="h-3.5 w-3.5 shrink-0"
+                            aria-hidden="true"
+                          />
                           {{ c.telefono }}
                         </p>
                       }
                       @if (c.email) {
                         <p class="flex items-center gap-1.5">
-                          <lucide-angular [img]="icons.mail" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                          <span class="truncate">{{ c.email }}</span>
+                          <lucide-angular
+                            [img]="icons.mail"
+                            class="h-3.5 w-3.5 shrink-0"
+                            aria-hidden="true"
+                          />
+                          <span class="block max-w-36 truncate" [title]="c.email">{{
+                            c.email
+                          }}</span>
                         </p>
                       }
                       @if (!c.telefono && !c.email) {
@@ -157,18 +210,49 @@ import { buildCustomersWorkbook } from '@angular-app/features/customers/presenta
                       }
                     </div>
                   </td>
+                  <td moTd class="min-w-40">
+                    <mo-customer-loyalty-progress
+                      [participates]="c.autorizaFidelizacion"
+                      [state]="loyaltyState()"
+                      [progress]="loyaltyOverview.progressFor(c.id)"
+                      [stampsPerReward]="stampsPerReward()"
+                      [customerName]="c.nombre"
+                    />
+                  </td>
                   <td moTd class="text-right">
                     <div class="flex justify-end gap-1">
                       <mo-button size="sm" variant="outline" (click)="openLoyalty(c)">
-                        <lucide-angular [img]="icons.cup" class="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                        <lucide-angular
+                          [img]="icons.cup"
+                          class="mr-1 h-3.5 w-3.5"
+                          aria-hidden="true"
+                        />
                         Club
                       </mo-button>
-                      <mo-button size="sm" variant="outline" title="Editar cliente" (click)="openEdit(c)">
-                        <lucide-angular [img]="icons.pencil" class="h-3.5 w-3.5" aria-hidden="true" />
+                      <mo-button
+                        size="sm"
+                        variant="outline"
+                        title="Editar cliente"
+                        (click)="openEdit(c)"
+                      >
+                        <lucide-angular
+                          [img]="icons.pencil"
+                          class="h-3.5 w-3.5"
+                          aria-hidden="true"
+                        />
                         <span class="sr-only">Editar</span>
                       </mo-button>
-                      <mo-button size="sm" variant="ghost" title="Eliminar cliente" (click)="confirmDelete(c)">
-                        <lucide-angular [img]="icons.trash" class="text-destructive h-3.5 w-3.5" aria-hidden="true" />
+                      <mo-button
+                        size="sm"
+                        variant="ghost"
+                        title="Eliminar cliente"
+                        (click)="confirmDelete(c)"
+                      >
+                        <lucide-angular
+                          [img]="icons.trash"
+                          class="text-destructive h-3.5 w-3.5"
+                          aria-hidden="true"
+                        />
                         <span class="sr-only">Eliminar</span>
                       </mo-button>
                     </div>
@@ -191,7 +275,7 @@ import { buildCustomersWorkbook } from '@angular-app/features/customers/presenta
     <mo-cliente-loyalty-dialog
       [open]="loyaltyFor() !== null"
       [cliente]="loyaltyFor()"
-      (closed)="loyaltyFor.set(null)"
+      (closed)="closeLoyalty()"
     />
   `,
 })
@@ -200,6 +284,7 @@ export class ClientesPage {
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
   private readonly excel = inject(ExcelExportService)
+  readonly loyaltyOverview = inject(CustomerLoyaltyOverviewStore)
 
   readonly clientes = signal<Cliente[]>([])
   readonly loading = signal(true)
@@ -209,6 +294,8 @@ export class ClientesPage {
   readonly editing = signal<Cliente | null>(null)
   readonly loyaltyFor = signal<Cliente | null>(null)
   readonly exporting = signal(false)
+  readonly loyaltyState = this.loyaltyOverview.state
+  readonly stampsPerReward = this.loyaltyOverview.stampsPerReward
   readonly canExport = this.session.isAdmin
 
   readonly filtered = computed(() => {
@@ -228,6 +315,8 @@ export class ClientesPage {
     const club = this.clientes().filter((c) => c.autorizaFidelizacion).length
     return `${total} ${total === 1 ? 'cliente' : 'clientes'} · ${club} en MOVE ON Club`
   })
+
+  readonly featured = computed(() => this.loyaltyOverview.featured(this.clientes()))
 
   readonly icons = {
     search: Search,
@@ -279,7 +368,11 @@ export class ClientesPage {
     try {
       const auth = await this.session.getAuthContext()
       if (!auth) throw new Error('No autenticado')
-      this.clientes.set(await this.repo.list(auth.tiendaId))
+      const [clientes] = await Promise.all([
+        this.repo.list(auth.tiendaId),
+        this.loyaltyOverview.load(auth.tiendaId),
+      ])
+      this.clientes.set(clientes)
     } catch (error) {
       this.loadError.set(getErrorMessage(error, 'Error al cargar'))
     } finally {
@@ -299,6 +392,11 @@ export class ClientesPage {
 
   openLoyalty(c: Cliente): void {
     this.loyaltyFor.set(c)
+  }
+
+  closeLoyalty(): void {
+    this.loyaltyFor.set(null)
+    void this.refreshLoyaltyOverview()
   }
 
   closeDialog(): void {
@@ -329,5 +427,10 @@ export class ClientesPage {
     } catch (error) {
       this.toast.error(getErrorMessage(error, 'No se pudo eliminar'))
     }
+  }
+
+  private async refreshLoyaltyOverview(): Promise<void> {
+    const auth = await this.session.getAuthContext()
+    if (auth) await this.loyaltyOverview.load(auth.tiendaId)
   }
 }

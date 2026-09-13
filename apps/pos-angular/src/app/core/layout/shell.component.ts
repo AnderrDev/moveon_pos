@@ -15,6 +15,7 @@ interface NavItem {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, RouterLinkActive, RouterOutlet, ToastHostComponent],
+  host: { class: 'fixed inset-0 block overflow-hidden' },
   template: `
     <div class="bg-background flex h-dvh flex-col overflow-hidden md:flex-row">
       <aside

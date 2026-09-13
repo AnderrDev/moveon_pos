@@ -54,3 +54,12 @@ Especificación funcional completa, modelo de datos, RPC y reglas de negocio en
 - La descarga masiva respeta el filtro activo e incluye únicamente los datos visibles del directorio.
 - El botón y la acción se restringen al rol `admin`; los cajeros conservan el acceso operativo a búsqueda y edición, pero no a exportación masiva.
 - No se exportan UUID ni `tienda_id`.
+
+## Directorio y progreso MOVE ON Club
+
+- El directorio muestra el progreso autorizado de fidelización sin abrir el detalle: en escritorio
+  aparece una columna "Progreso Club" y en móvil se presenta debajo del nombre del cliente.
+- Un destacado sobre el listado prioriza clientes con premio vigente; si no los hay, muestra el
+  cliente con mayor saldo positivo y cuántos sellos le faltan para el siguiente batido gratis.
+- El resumen se obtiene en bloque desde cuentas y recompensas vigentes, sin una consulta por
+  cliente. Si fidelización no está disponible, el directorio conserva búsqueda, edición y scroll.

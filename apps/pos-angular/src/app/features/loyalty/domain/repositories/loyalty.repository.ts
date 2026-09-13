@@ -1,4 +1,7 @@
-import type { LoyaltyReward, LoyaltyTransaction } from '@angular-app/features/loyalty/domain/entities/loyalty.entity'
+import type {
+  LoyaltyReward,
+  LoyaltyTransaction,
+} from '@angular-app/features/loyalty/domain/entities/loyalty.entity'
 
 export interface LoyaltySummary {
   stampsBalance: number
@@ -6,6 +9,13 @@ export interface LoyaltySummary {
   totalRewardsRedeemed: number
   /** Recompensas disponibles y vigentes, la más próxima a vencer primero. */
   availableRewards: LoyaltyReward[]
+}
+
+/** Proyección liviana para mostrar el estado del Club en listados de clientes. */
+export interface LoyaltyCustomerProgress {
+  clienteId: string
+  stampsBalance: number
+  availableRewards: number
 }
 
 export interface AdjustStampsInput {
@@ -22,10 +32,16 @@ export interface AdjustStampsInput {
  * `LoyaltyRepository` (2026-07-17).
  */
 export abstract class LoyaltyRepository {
+  /** Progreso de todos los clientes de una tienda en una sola carga masiva. */
+  abstract listCustomerProgress(tiendaId: string): Promise<LoyaltyCustomerProgress[]>
   /** Progreso + recompensas vigentes del cliente. Cliente sin cuenta = 0 sellos. */
   abstract getSummary(tiendaId: string, clienteId: string): Promise<LoyaltySummary>
   /** Ledger cronológico del cliente (acumulaciones, canjes, anulaciones, ajustes). */
-  abstract listTransactions(tiendaId: string, clienteId: string, limit?: number): Promise<LoyaltyTransaction[]>
+  abstract listTransactions(
+    tiendaId: string,
+    clienteId: string,
+    limit?: number
+  ): Promise<LoyaltyTransaction[]>
   /** Barrido de vencimiento (RN-LF09): marca `expired` las recompensas vencidas. Devuelve cuántas marcó. */
   abstract expireRewards(tiendaId: string): Promise<number>
   /** Ajuste manual admin-only (RN-LF16). Devuelve el nuevo saldo. */
