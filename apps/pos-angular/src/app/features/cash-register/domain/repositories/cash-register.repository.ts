@@ -33,6 +33,7 @@ export interface CloseSessionInput {
   tiendaId: string
   closedBy: string
   actualCashAmount: number
+  cashLeftAmount: number
   actualPayments: { metodo: PaymentMethod; total: number }[]
   notasCierre?: string
 }
@@ -65,6 +66,7 @@ export interface CorrectOpeningInput {
  */
 export abstract class CashRegisterRepository {
   abstract getOpenSession(tiendaId: string): Promise<CashSession | null>
+  abstract getSuggestedOpeningAmount(tiendaId: string): Promise<number | null>
   abstract getSessionById(id: string, tiendaId: string): Promise<CashSession | null>
   abstract listSessions(tiendaId: string, limit?: number): Promise<CashSession[]>
   abstract listSessionsByDateRange(tiendaId: string, start: Date, end: Date): Promise<CashSession[]>

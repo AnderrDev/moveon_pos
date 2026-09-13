@@ -23,10 +23,14 @@ export const voidMovementSchema = z.object({
 
 export const closeSessionSchema = z.object({
   actualCashAmount: z.number().nonnegative('El conteo de efectivo no puede ser negativo'),
+  cashLeftAmount: z.number().nonnegative('El efectivo dejado no puede ser negativo'),
   actualCardAmount: z.number().nonnegative('El total de tarjeta no puede ser negativo').default(0),
   actualTransferAmount: z.number().nonnegative('El total de transferencias no puede ser negativo').default(0),
   actualOtherAmount: z.number().nonnegative('El total de otros medios no puede ser negativo').default(0),
   notasCierre:      z.string().max(500).optional(),
+}).refine((value) => value.cashLeftAmount <= value.actualCashAmount, {
+  path: ['cashLeftAmount'],
+  message: 'El efectivo dejado no puede superar el efectivo contado',
 })
 
 /**
@@ -55,4 +59,3 @@ export const correctOpeningSchema = z.object({
     .trim()
     .min(VOID_MOVEMENT_REASON_MIN_LENGTH, `El motivo debe tener al menos ${VOID_MOVEMENT_REASON_MIN_LENGTH} caracteres`),
 })
-

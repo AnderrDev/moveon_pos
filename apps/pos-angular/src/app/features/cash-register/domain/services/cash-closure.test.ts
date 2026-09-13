@@ -1,10 +1,21 @@
 import { describe, expect, it } from 'vitest'
 import {
   CASH_DIFFERENCE_THRESHOLD,
+  computeClosingWithdrawal,
   computeMethodDifference,
   exceedsThreshold,
   isBalanced,
 } from '@angular-app/features/cash-register/domain/services/cash-closure'
+
+describe('computeClosingWithdrawal', () => {
+  it('calcula el retiro como efectivo contado menos efectivo dejado', () => {
+    expect(computeClosingWithdrawal(480_000, 150_000)).toBe(330_000)
+  })
+
+  it('devuelve cero cuando todo el efectivo contado queda en caja', () => {
+    expect(computeClosingWithdrawal(150_000, 150_000)).toBe(0)
+  })
+})
 
 describe('computeMethodDifference', () => {
   it('devuelve 0 cuando el conteo coincide con lo esperado', () => {

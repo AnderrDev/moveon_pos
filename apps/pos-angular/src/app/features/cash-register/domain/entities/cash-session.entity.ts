@@ -15,6 +15,8 @@ export interface CashSession {
   openingAmount: number
   expectedCashAmount: number | null
   actualCashAmount: number | null
+  closingWithdrawalAmount: number | null
+  cashLeftAmount: number | null
   difference: number | null
   expectedSalesAmount: number | null
   actualSalesAmount: number | null

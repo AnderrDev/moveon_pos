@@ -24,6 +24,14 @@
  */
 export const CASH_DIFFERENCE_THRESHOLD = 5000
 
+/** Efectivo separado después de contar el cajón y antes de finalizar el cierre. */
+export function computeClosingWithdrawal(
+  actualCashAmount: number,
+  cashLeftAmount: number,
+): number {
+  return actualCashAmount - cashLeftAmount
+}
+
 /**
  * Live, UI-facing difference for a single payment method.
  *

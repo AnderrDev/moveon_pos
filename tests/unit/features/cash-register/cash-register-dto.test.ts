@@ -73,14 +73,18 @@ describe('voidMovementSchema', () => {
 
 describe('closeSessionSchema', () => {
   it('acepta cierre con efectivo contado', () => {
-    expect(closeSessionSchema.safeParse({ actualCashAmount: 50000 }).success).toBe(true)
+    expect(closeSessionSchema.safeParse({
+      actualCashAmount: 50_000,
+      cashLeftAmount: 50_000,
+    }).success).toBe(true)
   })
 
   it('acepta cierre con confirmacion por medios de pago', () => {
     const result = closeSessionSchema.safeParse({
-      actualCashAmount:     50000,
-      actualCardAmount:     30000,
-      actualTransferAmount: 40000,
+      actualCashAmount:     50_000,
+      cashLeftAmount:       20_000,
+      actualCardAmount:     30_000,
+      actualTransferAmount: 40_000,
       actualOtherAmount:    0,
     })
 
@@ -88,16 +92,38 @@ describe('closeSessionSchema', () => {
   })
 
   it('rechaza conteo negativo', () => {
-    expect(closeSessionSchema.safeParse({ actualCashAmount: -1000 }).success).toBe(false)
+    expect(closeSessionSchema.safeParse({ actualCashAmount: -1000, cashLeftAmount: 0 }).success).toBe(false)
   })
 
   it('rechaza confirmaciones digitales negativas', () => {
     const result = closeSessionSchema.safeParse({
       actualCashAmount: 50000,
+      cashLeftAmount: 50_000,
       actualCardAmount: -1,
     })
 
     expect(result.success).toBe(false)
+  })
+
+  it('rechaza dejar más efectivo del que se contó', () => {
+    const result = closeSessionSchema.safeParse({
+      actualCashAmount: 100_000,
+      cashLeftAmount: 100_001,
+    })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(
+        'El efectivo dejado no puede superar el efectivo contado',
+      )
+    }
+  })
+
+  it('rechaza efectivo dejado negativo', () => {
+    expect(closeSessionSchema.safeParse({
+      actualCashAmount: 100_000,
+      cashLeftAmount: -1,
+    }).success).toBe(false)
   })
 })
 
