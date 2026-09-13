@@ -29,6 +29,7 @@ turno y el efectivo que debería existir físicamente antes de cerrar la caja.
 - Este spec de sesión.
 - `docs/superpowers/specs/2026-09-13-cierre-caja-retiro-opcional-design.md` con el diseño
   funcional y técnico aprobado.
+- `docs/superpowers/plans/2026-09-13-cierre-caja-retiro-opcional.md` con siete entregas TDD.
 
 ### 2.2 Archivos modificados
 
@@ -67,15 +68,16 @@ turno y el efectivo que debería existir físicamente antes de cerrar la caja.
 
 ## 6. Bloqueos y preguntas pendientes
 
-- [ ] Revisión final del spec escrito por parte del usuario.
+- [x] Revisión final del spec escrito por parte del usuario.
+- [ ] Elegir modalidad de ejecución del plan.
 
 ---
 
 ## 7. Próximos pasos
 
-1. Obtener aprobación del spec escrito.
-2. Crear el plan de implementación detallado.
-3. Implementar mediante TDD y verificar migración, aplicación e historial.
+1. Elegir ejecución con subagentes o ejecución inline.
+2. Implementar mediante TDD y verificar migración, aplicación e historial.
+3. Actualizar este spec con los resultados y comandos finales.
 
 ---
 
