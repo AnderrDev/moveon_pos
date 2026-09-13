@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { BadgeComponent } from '@angular-app/shared/atoms/badge.component'
+import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 import { CardComponent } from '@angular-app/shared/atoms/card.component'
 import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
 import { SaleDetailListComponent } from '@angular-app/shared/organisms/sale-detail-list.component'
@@ -9,8 +10,19 @@ import { SaleRepository } from '@angular-app/features/sales/domain/repositories/
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import { formatCurrency, formatTime, formatShortDate } from '@/shared/lib/format'
-import type { CashMovement, CashSession } from '@angular-app/features/cash-register/domain/entities/cash-session.entity'
+import type {
+  CashMovement,
+  CashSession,
+} from '@angular-app/features/cash-register/domain/entities/cash-session.entity'
 import type { Sale } from '@angular-app/features/sales/domain/entities/sale.entity'
+import { ExcelExportService } from '@angular-app/shared/services/export/excel-export.service'
+import { buildTurnSalesWorkbook } from '@angular-app/shared/services/export/turn-sales-export'
+
+interface ClosedPaymentSummary {
+  metodo: 'cash' | 'transfer'
+  count: number
+  total: number
+}
 
 /**
  * Historial de turnos ya cerrados (admin-only, ver `canViewClosedSessions`).
@@ -23,7 +35,7 @@ import type { Sale } from '@angular-app/features/sales/domain/entities/sale.enti
   selector: 'mo-closed-sessions-list',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BadgeComponent, CardComponent, MO_TABLE, SaleDetailListComponent],
+  imports: [BadgeComponent, ButtonComponent, CardComponent, MO_TABLE, SaleDetailListComponent],
   template: `
     <mo-card padding="none">
       <div class="flex items-center justify-between border-b px-4 py-3">
@@ -51,18 +63,41 @@ import type { Sale } from '@angular-app/features/sales/domain/entities/sale.enti
                 <div class="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p class="text-sm font-semibold">
-                      {{ shortDate(s.openedAt) }} · {{ time(s.openedAt) }} → {{ s.closedAt ? time(s.closedAt) : '—' }}
+                      {{ shortDate(s.openedAt) }} · {{ time(s.openedAt) }} →
+                      {{ s.closedAt ? time(s.closedAt) : '—' }}
                     </p>
-                    <p class="text-muted-foreground text-xs">Apertura {{ money(s.openingAmount) }}</p>
+                    <p class="text-muted-foreground text-xs">
+                      Apertura {{ money(s.openingAmount) }}
+                    </p>
                   </div>
                   <div class="flex items-center gap-4 text-xs">
                     <div class="text-right">
                       <p class="text-muted-foreground">Caja esp.</p>
-                      <p class="font-semibold tabular-nums">{{ s.expectedCashAmount !== null ? money(s.expectedCashAmount) : '—' }}</p>
+                      <p class="font-semibold tabular-nums">
+                        {{ s.expectedCashAmount !== null ? money(s.expectedCashAmount) : '—' }}
+                      </p>
                     </div>
                     <div class="text-right">
-                      <p class="text-muted-foreground">Caja real</p>
-                      <p class="font-semibold tabular-nums">{{ s.actualCashAmount !== null ? money(s.actualCashAmount) : '—' }}</p>
+                      <p class="text-muted-foreground">Contado</p>
+                      <p class="font-semibold tabular-nums">
+                        {{ s.actualCashAmount !== null ? money(s.actualCashAmount) : '—' }}
+                      </p>
+                    </div>
+                    <div class="text-right">
+                      <p class="text-muted-foreground">Retirado</p>
+                      <p class="font-semibold tabular-nums">
+                        {{
+                          s.closingWithdrawalAmount !== null
+                            ? money(s.closingWithdrawalAmount)
+                            : '—'
+                        }}
+                      </p>
+                    </div>
+                    <div class="text-right">
+                      <p class="text-muted-foreground">Quedó</p>
+                      <p class="font-semibold tabular-nums">
+                        {{ s.cashLeftAmount !== null ? money(s.cashLeftAmount) : '—' }}
+                      </p>
                     </div>
                     <div class="text-right">
                       <p class="text-muted-foreground">Diferencia</p>
@@ -82,6 +117,49 @@ import type { Sale } from '@angular-app/features/sales/domain/entities/sale.enti
                   @if (loadingDetail()) {
                     <p class="text-muted-foreground text-sm">Cargando detalle del turno...</p>
                   } @else {
+                    <div class="mb-4 grid gap-3 md:grid-cols-3">
+                      @for (payment of expectedPayments(s); track payment.metodo) {
+                        <div class="bg-card rounded-xl border p-3">
+                          <p class="text-muted-foreground text-xs font-semibold uppercase">
+                            Ventas
+                            {{ payment.metodo === 'cash' ? 'en efectivo' : 'por transferencia' }}
+                          </p>
+                          <p class="mt-1 font-bold tabular-nums">{{ money(payment.total) }}</p>
+                          <p class="text-muted-foreground text-xs">
+                            {{ payment.count }} {{ payment.count === 1 ? 'venta' : 'ventas' }}
+                          </p>
+                        </div>
+                      }
+                      <div class="bg-card rounded-xl border p-3">
+                        <p class="text-muted-foreground text-xs font-semibold uppercase">
+                          Resultado del cierre
+                        </p>
+                        <p class="mt-1 font-bold tabular-nums">
+                          Quedó {{ s.cashLeftAmount !== null ? money(s.cashLeftAmount) : '—' }}
+                        </p>
+                        <p class="text-muted-foreground text-xs">
+                          Retiro:
+                          {{
+                            s.closingWithdrawalAmount !== null
+                              ? money(s.closingWithdrawalAmount)
+                              : '—'
+                          }}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div class="mb-4 flex justify-end">
+                      <mo-button
+                        size="sm"
+                        variant="outline"
+                        [loading]="exportingSessionId() === s.id"
+                        loadingText="Generando..."
+                        (click)="exportSession($event, s)"
+                      >
+                        Descargar Excel del turno
+                      </mo-button>
+                    </div>
+
                     <div class="mb-4">
                       <h4 class="font-display mb-2 text-xs font-bold tracking-wide uppercase">
                         Movimientos ({{ expandedMovements().length }})
@@ -102,7 +180,9 @@ import type { Sale } from '@angular-app/features/sales/domain/entities/sale.enti
                             <tbody class="divide-y">
                               @for (mov of expandedMovements(); track mov.id) {
                                 <tr [class.opacity-50]="mov.status === 'voided'">
-                                  <td moTd class="text-muted-foreground text-xs">{{ time(mov.createdAt) }}</td>
+                                  <td moTd class="text-muted-foreground text-xs">
+                                    {{ time(mov.createdAt) }}
+                                  </td>
                                   <td moTd>{{ movLabel(mov.tipo) }}</td>
                                   <td moTd class="text-muted-foreground">{{ mov.motivo }}</td>
                                   <td moTd class="text-right font-semibold tabular-nums">
@@ -138,6 +218,7 @@ export class ClosedSessionsListComponent {
   private readonly salesRepo = inject(SaleRepository)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
+  private readonly excel = inject(ExcelExportService)
 
   readonly sessions = signal<CashSession[]>([])
   readonly loading = signal(true)
@@ -147,6 +228,7 @@ export class ClosedSessionsListComponent {
   readonly expandedSales = signal<Sale[]>([])
   readonly expandedSaleId = signal<string | null>(null)
   readonly loadingDetail = signal(false)
+  readonly exportingSessionId = signal<string | null>(null)
 
   constructor() {
     void this.load()
@@ -192,6 +274,50 @@ export class ClosedSessionsListComponent {
       this.toast.error(getErrorMessage(error, 'No se pudo cargar el detalle del turno'))
     } finally {
       this.loadingDetail.set(false)
+    }
+  }
+
+  expectedPayments(session: CashSession): ClosedPaymentSummary[] {
+    const closure = session.paymentClosure
+    const expected =
+      typeof closure === 'object' && closure !== null && 'expected' in closure
+        ? (closure as { expected?: unknown }).expected
+        : null
+
+    return (['cash', 'transfer'] as const).map((metodo) => {
+      if (!Array.isArray(expected)) return { metodo, count: 0, total: 0 }
+      const raw = expected.find(
+        (value): value is Record<string, unknown> =>
+          typeof value === 'object' && value !== null && value['metodo'] === metodo
+      )
+      const count = typeof raw?.['count'] === 'number' ? raw['count'] : Number(raw?.['count'] ?? 0)
+      const total = typeof raw?.['total'] === 'number' ? raw['total'] : Number(raw?.['total'] ?? 0)
+      return {
+        metodo,
+        count: Number.isFinite(count) ? count : 0,
+        total: Number.isFinite(total) ? total : 0,
+      }
+    })
+  }
+
+  async exportSession(event: Event, cashSession: CashSession): Promise<void> {
+    event.stopPropagation()
+    if (this.exportingSessionId()) return
+
+    this.exportingSessionId.set(cashSession.id)
+    try {
+      const auth = await this.session.getAuthContext()
+      if (!auth) throw new Error('Sesión expirada')
+      const [movements, sales] = await Promise.all([
+        this.repo.listMovements(cashSession.id),
+        this.salesRepo.listBySession(cashSession.id, auth.tiendaId),
+      ])
+      await this.excel.download(buildTurnSalesWorkbook(cashSession, sales, movements))
+      this.toast.success('Turno descargado en Excel')
+    } catch (error) {
+      this.toast.error(getErrorMessage(error, 'No se pudo generar el archivo'))
+    } finally {
+      this.exportingSessionId.set(null)
     }
   }
 

@@ -1,4 +1,7 @@
-import type { CashMovement } from '@angular-app/features/cash-register/domain/entities/cash-session.entity'
+import type {
+  CashMovement,
+  CashSession,
+} from '@angular-app/features/cash-register/domain/entities/cash-session.entity'
 import type { Sale } from '@angular-app/features/sales/domain/entities/sale.entity'
 import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
 import type { ExcelWorkbookDefinition } from '@angular-app/shared/services/export/excel-export.service'
@@ -24,6 +27,7 @@ function cashierLabel(sale: Sale): string {
 }
 
 export function buildTurnSalesWorkbook(
+  cashSession: CashSession | null,
   sales: readonly Sale[],
   cashMovements: readonly CashMovement[]
 ): ExcelWorkbookDefinition {
@@ -56,6 +60,21 @@ export function buildTurnSalesWorkbook(
           { header: 'Valor', width: 18, format: 'currency' },
         ],
         rows: [
+          ...(cashSession
+            ? [
+                ['Caja', 'Base de apertura', null, cashSession.openingAmount],
+                [
+                  'Caja',
+                  'Efectivo esperado antes del retiro',
+                  null,
+                  cashSession.expectedCashAmount,
+                ],
+                ['Caja', 'Efectivo contado', null, cashSession.actualCashAmount],
+                ['Caja', 'Diferencia de caja', null, cashSession.difference],
+                ['Caja', 'Retiro al cierre', null, cashSession.closingWithdrawalAmount],
+                ['Caja', 'Efectivo dejado en caja', null, cashSession.cashLeftAmount],
+              ]
+            : []),
           ['Ventas', 'Ventas completadas', completed.length, completedTotal],
           ['Ventas', 'Ventas anuladas', voided.length, null],
           [

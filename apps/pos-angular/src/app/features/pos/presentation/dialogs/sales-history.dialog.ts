@@ -367,7 +367,11 @@ import { buildTurnSalesWorkbook } from '@angular-app/shared/services/export/turn
                                 <span class="font-bold tabular-nums">{{
                                   money(payment.amount)
                                 }}</span>
-                                @if (sale.status === 'completed' && canCorrectPaymentComputed() && cashSessionIsOpen()) {
+                                @if (
+                                  sale.status === 'completed' &&
+                                  canCorrectPaymentComputed() &&
+                                  cashSessionIsOpen()
+                                ) {
                                   <button
                                     type="button"
                                     class="text-muted-foreground hover:text-primary border-border hover:border-primary rounded-lg border px-2 py-1 text-[11px] font-semibold transition-colors"
@@ -439,7 +443,11 @@ import { buildTurnSalesWorkbook } from '@angular-app/shared/services/export/turn
                     >
                       Reimprimir tirilla
                     </mo-button>
-                    @if (sale.status === 'completed' && !sale.clienteId && canCorrectSaleCustomerComputed()) {
+                    @if (
+                      sale.status === 'completed' &&
+                      !sale.clienteId &&
+                      canCorrectSaleCustomerComputed()
+                    ) {
                       <mo-button size="sm" variant="outline" (click)="openAssociateCustomer(sale)">
                         Asociar cliente
                       </mo-button>
@@ -549,7 +557,9 @@ export class SalesHistoryDialog {
   readonly correctPaymentDialogOpen = signal(false)
 
   /** Solo admin puede asociar retroactivamente un cliente (defensa en cliente; RLS protege en servidor). */
-  readonly canCorrectSaleCustomerComputed = computed(() => canCorrectSaleCustomer(this.session.role()))
+  readonly canCorrectSaleCustomerComputed = computed(() =>
+    canCorrectSaleCustomer(this.session.role())
+  )
 
   /** Venta pendiente de asociar cliente + selector de cliente + dialog de motivo. */
   readonly customerPickerOpen = signal(false)
@@ -668,7 +678,7 @@ export class SalesHistoryDialog {
   async exportTurn(): Promise<void> {
     this.exporting.set(true)
     try {
-      await this.excel.download(buildTurnSalesWorkbook(this.sales(), this.cashMovements()))
+      await this.excel.download(buildTurnSalesWorkbook(null, this.sales(), this.cashMovements()))
       this.toast.success('Ventas del turno descargadas')
     } catch (error) {
       this.toast.error(getErrorMessage(error, 'No se pudo generar el archivo'))
@@ -737,7 +747,7 @@ export class SalesHistoryDialog {
     try {
       const result = await voidSale(
         { repo: this.salesRepo, tiendaId: auth.tiendaId },
-        { saleId: sale.id, voidedReason: reason },
+        { saleId: sale.id, voidedReason: reason }
       )
       if (!result.ok) {
         this.toast.error(result.error.message)
@@ -777,7 +787,7 @@ export class SalesHistoryDialog {
     try {
       const result = await correctPayment(
         { repo: this.salesRepo, tiendaId: auth.tiendaId },
-        { paymentId: event.paymentId, newMetodo: event.newMetodo, reason: event.reason },
+        { paymentId: event.paymentId, newMetodo: event.newMetodo, reason: event.reason }
       )
       if (!result.ok) {
         this.toast.error(result.error.message)
@@ -823,13 +833,15 @@ export class SalesHistoryDialog {
     try {
       const result = await correctSaleCustomer(
         { repo: this.salesRepo, tiendaId: auth.tiendaId },
-        { saleId: target.sale.id, clienteId: target.cliente.id, reason },
+        { saleId: target.sale.id, clienteId: target.cliente.id, reason }
       )
       if (!result.ok) {
         this.toast.error(result.error.message)
         return
       }
-      this.toast.success(`Cliente ${target.cliente.nombre} asociado a la venta ${target.sale.saleNumber}`)
+      this.toast.success(
+        `Cliente ${target.cliente.nombre} asociado a la venta ${target.sale.saleNumber}`
+      )
       this.correctCustomerTarget.set(null)
       this.pendingSaleForCustomer = null
       await this.load()
