@@ -9,12 +9,13 @@ import {
   signal,
 } from '@angular/core'
 import { getErrorMessage } from '@/shared/lib/error-message'
-import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
+import { ReactiveFormsModule } from '@angular/forms'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 import { FormCurrencyInputComponent } from '@angular-app/shared/molecules/form-currency-input.component'
 import { FormTextareaComponent } from '@angular-app/shared/molecules/form-textarea.component'
+import { FormCheckboxComponent } from '@angular-app/shared/molecules/form-checkbox.component'
 import { FormErrorComponent } from '@angular-app/shared/molecules/form-error.component'
 import { DialogFooterComponent } from '@angular-app/shared/molecules/dialog-footer.component'
 import { CashRegisterRepository } from '@angular-app/features/cash-register/domain/repositories/cash-register.repository'
@@ -25,12 +26,15 @@ import { formatCurrency } from '@/shared/lib/format'
 import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
 import {
   CASH_DIFFERENCE_THRESHOLD,
+  computeClosingWithdrawal,
   computeMethodDifference,
   exceedsThreshold,
   isBalanced,
 } from '@angular-app/features/cash-register/domain/services/cash-closure'
 import type { CashSession } from '@angular-app/features/cash-register/domain/entities/cash-session.entity'
 import type { PaymentMethod } from '@/shared/types'
+import { CloseSessionFormPresenter } from '@angular-app/features/cash-register/presentation/presenters/close-session-form.presenter'
+import { closeSessionFormMapper } from '@angular-app/features/cash-register/presentation/forms/close-session-form.mapper'
 
 /** Esperado por método, tipo simple del dominio (sin acoplar a Supabase). */
 export interface ExpectedByMethod {
@@ -60,12 +64,14 @@ const NON_CASH_METHODS: { metodo: Exclude<PaymentMethod, 'cash'>; controlName: s
   selector: 'mo-close-session-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [CloseSessionFormPresenter],
   imports: [
     ReactiveFormsModule,
     DialogComponent,
     ButtonComponent,
     FormCurrencyInputComponent,
     FormTextareaComponent,
+    FormCheckboxComponent,
     FormErrorComponent,
     DialogFooterComponent,
   ],
@@ -108,6 +114,38 @@ const NON_CASH_METHODS: { metodo: Exclude<PaymentMethod, 'cash'>; controlName: s
           }
         </div>
 
+        <div class="bg-muted/30 space-y-3 rounded-xl border p-4">
+          <mo-form-checkbox
+            controlName="withdrawAtClose"
+            label="Retirar efectivo al cerrar"
+            description="Opcional. Separa efectivo y deja una base lista para el siguiente turno."
+          />
+
+          @if (withdrawAtClose()) {
+            <mo-form-currency-input
+              controlName="cashLeftAmount"
+              label="Efectivo que dejarás en caja"
+              [required]="true"
+            />
+            <div class="grid gap-2 rounded-lg bg-background p-3 text-sm sm:grid-cols-2">
+              <div>
+                <p class="text-muted-foreground text-xs">Retiro calculado</p>
+                <p class="font-display text-lg font-bold tabular-nums">
+                  {{ money(closingWithdrawal()) }}
+                </p>
+              </div>
+              <div class="sm:text-right">
+                <p class="text-muted-foreground text-xs">Quedará en el cajón</p>
+                <p class="font-semibold tabular-nums">{{ money(cashLeftAfterClosing()) }}</p>
+              </div>
+            </div>
+          } @else {
+            <p class="text-muted-foreground text-xs">
+              Se dejará todo el efectivo contado: {{ money(cashLeftAfterClosing()) }}.
+            </p>
+          }
+        </div>
+
         <mo-form-textarea
           controlName="notasCierre"
           label="Notas de cierre"
@@ -137,6 +175,7 @@ export class CloseSessionDialog {
   private readonly repo = inject(CashRegisterRepository)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
+  private readonly presenter = inject(CloseSessionFormPresenter)
 
   readonly open = input<boolean>(false)
   readonly cashSession = input<CashSession | null>(null)
@@ -149,21 +188,37 @@ export class CloseSessionDialog {
   readonly saved = output<void>()
 
   readonly saving = signal(false)
-  readonly rootError = signal<string | null>(null)
-
-  readonly form = new FormGroup({
-    actualCashAmount: new FormControl<number>(0, {
-      nonNullable: true,
-      validators: [Validators.required, Validators.min(0)],
-    }),
-    actualTransferAmount: new FormControl<number>(0, { nonNullable: true }),
-    notasCierre: new FormControl<string>('', { nonNullable: true }),
+  readonly rootError = computed(() => {
+    const errors = this.presenter.errors()
+    return errors.root
+      ?? errors.cashLeftAmount
+      ?? errors.actualCashAmount
+      ?? errors.actualTransferAmount
+      ?? errors.notasCierre
+      ?? null
   })
+
+  readonly form = this.presenter.form
 
   /** Espejo reactivo del form para recalcular las diferencias al teclear. */
   private readonly formValue = toSignal(this.form.valueChanges, {
     initialValue: this.form.getRawValue(),
   })
+
+  readonly withdrawAtClose = computed(() => this.formValue().withdrawAtClose ?? false)
+  readonly cashLeftAfterClosing = computed(() => {
+    const value = this.formValue()
+    return this.withdrawAtClose()
+      ? (value.cashLeftAmount ?? 0)
+      : (value.actualCashAmount ?? 0)
+  })
+  readonly closingWithdrawal = computed(() => Math.max(
+    0,
+    computeClosingWithdrawal(
+      this.formValue().actualCashAmount ?? 0,
+      this.cashLeftAfterClosing(),
+    ),
+  ))
 
   /** Esperado por método, indexado para lookup O(1). */
   private readonly expectedMap = computed(() => {
@@ -225,12 +280,14 @@ export class CloseSessionDialog {
   constructor() {
     effect(() => {
       if (this.open()) {
-        this.form.reset({
-          actualCashAmount: this.cashSession()?.openingAmount ?? 0,
-          actualTransferAmount: 0,
+        const expectedCash = this.expectedCash()
+        this.presenter.reset({
+          actualCashAmount: expectedCash,
+          actualTransferAmount: this.expectedMap().get('transfer')?.total ?? 0,
+          withdrawAtClose: false,
+          cashLeftAmount: Math.min(this.cashSession()?.openingAmount ?? 0, expectedCash),
           notasCierre: '',
         })
-        this.rootError.set(null)
       }
     })
   }
@@ -253,16 +310,16 @@ export class CloseSessionDialog {
 
   async submit(): Promise<void> {
     if (this.saving()) return
-    this.form.markAllAsTouched()
-    if (this.form.invalid) return
+    const value = this.presenter.validate()
+    if (!value) return
 
     const cashSession = this.cashSession()
     if (!cashSession) return
 
     // RN-C10 replicado en cliente: si alguna diferencia supera el umbral, la nota
     // es obligatoria. El RPC sigue siendo la autoridad y volverá a validarlo.
-    if (this.hasThresholdBreach() && this.form.controls.notasCierre.value.trim() === '') {
-      this.rootError.set(
+    if (this.hasThresholdBreach() && value.notasCierre.trim() === '') {
+      this.presenter.setRootError(
         `Las diferencias superan ${formatCurrency(CASH_DIFFERENCE_THRESHOLD)}: agrega una nota de cierre`,
       )
       return
@@ -270,7 +327,7 @@ export class CloseSessionDialog {
 
     const auth = await this.session.getAuthContext()
     if (!auth) {
-      this.rootError.set('Sesion expirada')
+      this.presenter.setRootError('Sesion expirada')
       return
     }
 
@@ -278,24 +335,20 @@ export class CloseSessionDialog {
     this.form.disable({ emitEvent: false })
 
     try {
-      const value = this.form.getRawValue()
+      const payload = closeSessionFormMapper.toPayload(value)
       const result = await closeCashSession(
         { repo: this.repo, sessionId: cashSession.id, tiendaId: auth.tiendaId, closedBy: auth.userId },
-        {
-          actualCashAmount: value.actualCashAmount,
-          actualTransferAmount: value.actualTransferAmount,
-          notasCierre: value.notasCierre.trim() || undefined,
-        },
+        payload,
       )
       if (!result.ok) {
-        this.rootError.set(result.error.message)
+        this.presenter.setRootError(result.error.message)
         return
       }
       this.toast.success('Caja cerrada')
       this.saved.emit()
       this.closed.emit()
     } catch (error) {
-      this.rootError.set(getErrorMessage(error, 'Error al cerrar caja'))
+      this.presenter.setRootError(getErrorMessage(error, 'Error al cerrar caja'))
     } finally {
       this.saving.set(false)
       this.form.enable({ emitEvent: false })
