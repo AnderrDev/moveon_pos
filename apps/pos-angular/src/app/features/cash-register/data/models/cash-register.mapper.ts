@@ -10,6 +10,8 @@ export interface CashSessionRow {
   opening_amount: number
   expected_cash_amount: number | null
   actual_cash_amount: number | null
+  closing_withdrawal_amount: number | null
+  cash_left_amount: number | null
   difference: number | null
   expected_sales_amount: number | null
   actual_sales_amount: number | null
@@ -45,6 +47,9 @@ export function rowToCashSession(row: CashSessionRow): CashSession {
     expectedCashAmount:
       row.expected_cash_amount !== null ? Number(row.expected_cash_amount) : null,
     actualCashAmount: row.actual_cash_amount !== null ? Number(row.actual_cash_amount) : null,
+    closingWithdrawalAmount:
+      row.closing_withdrawal_amount !== null ? Number(row.closing_withdrawal_amount) : null,
+    cashLeftAmount: row.cash_left_amount !== null ? Number(row.cash_left_amount) : null,
     difference: row.difference !== null ? Number(row.difference) : null,
     expectedSalesAmount:
       row.expected_sales_amount !== null ? Number(row.expected_sales_amount) : null,

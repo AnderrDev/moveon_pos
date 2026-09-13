@@ -21,7 +21,7 @@ import {
 } from '@angular-app/features/cash-register/domain/repositories/cash-register.repository'
 
 const SESSION_COLS =
-  'id, tienda_id, opened_by, closed_by, status, opening_amount, expected_cash_amount, actual_cash_amount, difference, expected_sales_amount, actual_sales_amount, sales_difference, payment_closure, notas_cierre, opened_at, closed_at'
+  'id, tienda_id, opened_by, closed_by, status, opening_amount, expected_cash_amount, actual_cash_amount, closing_withdrawal_amount, cash_left_amount, difference, expected_sales_amount, actual_sales_amount, sales_difference, payment_closure, notas_cierre, opened_at, closed_at'
 const MOV_COLS =
   'id, cash_session_id, tipo, amount, motivo, created_by, created_at, status, voided_by, voided_at, voided_reason'
 
@@ -57,6 +57,22 @@ export class CashRegisterRepository extends CashRegisterRepositoryContract {
       .returns<CashSessionRow>()
     if (error) throw new Error(error.message)
     return data ? rowToCashSession(data) : null
+  }
+
+  async getSuggestedOpeningAmount(tiendaId: string): Promise<number | null> {
+    const { data, error } = await this.supabaseClient.supabase
+      .from('cash_sessions')
+      .select('cash_left_amount')
+      .eq('tienda_id', tiendaId)
+      .eq('status', 'closed')
+      .not('cash_left_amount', 'is', null)
+      .order('closed_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (error) throw new Error(error.message)
+    return data?.cash_left_amount === null || data?.cash_left_amount === undefined
+      ? null
+      : Number(data.cash_left_amount)
   }
 
   async getSessionById(id: string, tiendaId: string): Promise<CashSession | null> {
@@ -223,6 +239,7 @@ export class CashRegisterRepository extends CashRegisterRepositoryContract {
       p_tienda_id: input.tiendaId,
       p_closed_by: input.closedBy,
       p_actual_cash: input.actualCashAmount,
+      p_cash_left: input.cashLeftAmount,
       p_actual_payments: input.actualPayments.map((p) => ({
         metodo: p.metodo,
         total: p.total,
@@ -239,7 +256,12 @@ export class CashRegisterRepository extends CashRegisterRepositoryContract {
       entityType: 'sesion_caja',
       entityId: input.sessionId,
       action: 'close',
-      changes: { actualCashAmount: input.actualCashAmount, notasCierre: input.notasCierre ?? null },
+      changes: {
+        actualCashAmount: input.actualCashAmount,
+        closingWithdrawalAmount: input.actualCashAmount - input.cashLeftAmount,
+        cashLeftAmount: input.cashLeftAmount,
+        notasCierre: input.notasCierre ?? null,
+      },
     })
     return session
   }
