@@ -56,7 +56,7 @@ create policy "cash_sessions_open_insert_only"
     and expected_sales_amount is null
     and actual_sales_amount is null
     and sales_difference is null
-    and payment_closure is null
+    and payment_closure = '{}'::jsonb
     and notas_cierre is null
     and closed_at is null
   );

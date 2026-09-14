@@ -6,7 +6,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(21);
+select plan(22);
 
 do $$
 declare
@@ -341,6 +341,30 @@ select is(
   'closed',
   'el cierre válido finaliza la sesión una sola vez'
 );
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'a7333333-3333-4333-8333-333333333333', true);
+
+select lives_ok(
+  $$
+    insert into public.cash_sessions (
+      id,
+      tienda_id,
+      opened_by,
+      opening_amount,
+      status
+    ) values (
+      'a7655555-5555-4655-8655-555555555555',
+      'a7111111-1111-4111-8111-111111111111',
+      'a7333333-3333-4333-8333-333333333333',
+      100000,
+      'open'
+    )
+  $$,
+  'authenticated conserva el INSERT legítimo de apertura'
+);
+
+reset role;
 
 select * from finish();
 

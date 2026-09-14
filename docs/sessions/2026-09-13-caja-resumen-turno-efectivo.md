@@ -32,7 +32,7 @@ turno y el efectivo que debería existir físicamente antes de cerrar la caja.
 - `docs/superpowers/plans/2026-09-13-cierre-caja-retiro-opcional.md` con siete entregas TDD.
 - `supabase/migrations/20260913184519_cash_closing_withdrawal.sql` con columnas, checks y
   nueva firma del cierre atómico.
-- `supabase/tests/cash-closing-withdrawal.test.sql` con 21 verificaciones pgTAP.
+- `supabase/tests/cash-closing-withdrawal.test.sql` con 22 verificaciones pgTAP.
 - Factory, mapper y presenter del formulario de cierre en
   `features/cash-register/presentation/{forms,presenters}`.
 - Pruebas unitarias del mapper, formulario de cierre y exportación del turno.
@@ -76,7 +76,7 @@ turno y el efectivo que debería existir físicamente antes de cerrar la caja.
 - [x] `CI=1 pnpm typecheck` — TypeScript y build Angular PASS
 - [x] `CI=1 pnpm lint` — PASS, cero hallazgos
 - [x] `CI=1 pnpm test` — 77 archivos, 700 pruebas PASS
-- [x] suites focales de cierre y corrección de apertura — 2 archivos, 30/30 PASS
+- [x] suites focales de cierre y corrección de apertura — 2 archivos, 31/31 PASS
 - [x] pruebas focalizadas de dominio, DTO, casos de uso, formulario, mapper y Excel
 
 ---
