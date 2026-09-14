@@ -45,6 +45,8 @@ turno y el efectivo que debería existir físicamente antes de cerrar la caja.
 - Página de Caja con ventas en efectivo/transferencia, cuadre explicado, retiro directo y
   sugerencia editable para la próxima apertura.
 - Historial de turnos con contado, retiro, efectivo restante y descarga Excel por cierre.
+- El historial de turnos permanece disponible para administradores incluso cuando no existe una
+  caja abierta; se añadió una prueba E2E de regresión para este estado.
 - Exportador de turno y diálogo de historial de ventas adaptados al resumen de caja.
 - Tipos generados de Supabase y documentación del módulo.
 
@@ -78,6 +80,7 @@ turno y el efectivo que debería existir físicamente antes de cerrar la caja.
 - [x] `CI=1 pnpm test` — 77 archivos, 700 pruebas PASS
 - [x] suites focales de cierre y corrección de apertura — 2 archivos, 31/31 PASS
 - [x] pruebas focalizadas de dominio, DTO, casos de uso, formulario, mapper y Excel
+- [x] E2E de historial sin turno abierto — `1/1` PASS en Chrome local
 
 ---
 

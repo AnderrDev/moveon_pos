@@ -358,9 +358,10 @@ import type { CashMovementType } from '@/shared/types'
           (toggleSale)="toggleSale($event)"
         />
 
-        @if (canViewHistory()) {
-          <mo-closed-sessions-list />
-        }
+      }
+
+      @if (!loading() && !loadError() && canViewHistory()) {
+        <mo-closed-sessions-list />
       }
     </section>
 
