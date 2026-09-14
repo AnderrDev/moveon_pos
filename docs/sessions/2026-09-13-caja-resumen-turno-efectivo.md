@@ -10,7 +10,7 @@
 | Sprint | Mantenimiento post-MVP |
 | Agente | Codex |
 | HUs trabajadas | Mejora operativa de Caja (sin HU asignada) |
-| Estado | En progreso |
+| Estado | Implementado; pendiente integración a `main` |
 
 ---
 
@@ -30,10 +30,23 @@ turno y el efectivo que debería existir físicamente antes de cerrar la caja.
 - `docs/superpowers/specs/2026-09-13-cierre-caja-retiro-opcional-design.md` con el diseño
   funcional y técnico aprobado.
 - `docs/superpowers/plans/2026-09-13-cierre-caja-retiro-opcional.md` con siete entregas TDD.
+- `supabase/migrations/20260913184519_cash_closing_withdrawal.sql` con columnas, checks y
+  nueva firma del cierre atómico.
+- `supabase/tests/cash-closing-withdrawal.test.sql` con 16 verificaciones pgTAP.
+- Factory, mapper y presenter del formulario de cierre en
+  `features/cash-register/presentation/{forms,presenters}`.
+- Pruebas unitarias del mapper, formulario de cierre y exportación del turno.
 
 ### 2.2 Archivos modificados
 
-- Ningún archivo de aplicación; la implementación está pendiente del plan.
+- Dominio, DTO, repositorio, caso de uso y mapeo de Caja para propagar
+  `cashLeftAmount` y `closingWithdrawalAmount`.
+- Diálogo de cierre con retiro opcional y cálculo en vivo de lo retirado y lo dejado.
+- Página de Caja con ventas en efectivo/transferencia, cuadre explicado, retiro directo y
+  sugerencia editable para la próxima apertura.
+- Historial de turnos con contado, retiro, efectivo restante y descarga Excel por cierre.
+- Exportador de turno y diálogo de historial de ventas adaptados al resumen de caja.
+- Tipos generados de Supabase y documentación del módulo.
 
 ### 2.3 Archivos eliminados
 
@@ -60,24 +73,26 @@ turno y el efectivo que debería existir físicamente antes de cerrar la caja.
 
 ## 5. Tests
 
-- [ ] `pnpm typecheck`
-- [ ] `pnpm lint`
-- [ ] `pnpm test`
+- [x] `CI=1 pnpm typecheck` — TypeScript y build Angular PASS
+- [x] `CI=1 pnpm lint` — PASS, cero hallazgos
+- [x] `CI=1 pnpm test` — 77 archivos, 700 pruebas PASS
+- [x] `supabase test db supabase/tests/cash-closing-withdrawal.test.sql` — 16/16 PASS
+- [x] pruebas focalizadas de dominio, DTO, casos de uso, formulario, mapper y Excel
 
 ---
 
 ## 6. Bloqueos y preguntas pendientes
 
 - [x] Revisión final del spec escrito por parte del usuario.
-- [ ] Elegir modalidad de ejecución del plan.
+- [x] Modalidad elegida: ejecución inline en worktree aislado.
 
 ---
 
 ## 7. Próximos pasos
 
-1. Elegir ejecución con subagentes o ejecución inline.
-2. Implementar mediante TDD y verificar migración, aplicación e historial.
-3. Actualizar este spec con los resultados y comandos finales.
+1. Aplicar la migración al Supabase remoto durante el despliegue.
+2. Completar la revisión visual contra el esquema remoto actualizado.
+3. Integrar la rama `codex/caja-retiro-cierre` cuando sea aprobada.
 
 ---
 
@@ -85,3 +100,8 @@ turno y el efectivo que debería existir físicamente antes de cerrar la caja.
 
 El retiro de efectivo debe conservar trazabilidad por turno y no confundirse con una venta ni con
 el conteo físico capturado al cierre.
+
+La revisión visual local confirmó login y navegación hasta `/caja`, pero el entorno remoto aún no
+tiene `cash_sessions.closing_withdrawal_amount`; la página no puede cargar antes de desplegar la
+migración. No se modificó el Supabase remoto. En macOS, el caché LMDB de Angular aborta el proceso;
+`CI=1` desactiva solo ese caché y permitió verificar el build completo.
