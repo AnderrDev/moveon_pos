@@ -32,7 +32,7 @@ turno y el efectivo que debería existir físicamente antes de cerrar la caja.
 - `docs/superpowers/plans/2026-09-13-cierre-caja-retiro-opcional.md` con siete entregas TDD.
 - `supabase/migrations/20260913184519_cash_closing_withdrawal.sql` con columnas, checks y
   nueva firma del cierre atómico.
-- `supabase/tests/cash-closing-withdrawal.test.sql` con 16 verificaciones pgTAP.
+- `supabase/tests/cash-closing-withdrawal.test.sql` con 20 verificaciones pgTAP.
 - Factory, mapper y presenter del formulario de cierre en
   `features/cash-register/presentation/{forms,presenters}`.
 - Pruebas unitarias del mapper, formulario de cierre y exportación del turno.
@@ -76,7 +76,7 @@ turno y el efectivo que debería existir físicamente antes de cerrar la caja.
 - [x] `CI=1 pnpm typecheck` — TypeScript y build Angular PASS
 - [x] `CI=1 pnpm lint` — PASS, cero hallazgos
 - [x] `CI=1 pnpm test` — 77 archivos, 700 pruebas PASS
-- [x] `supabase test db supabase/tests/cash-closing-withdrawal.test.sql` — 16/16 PASS
+- [x] `pnpm exec supabase test db supabase/tests/cash-closing-withdrawal.test.sql` — 20/20 PASS
 - [x] pruebas focalizadas de dominio, DTO, casos de uso, formulario, mapper y Excel
 
 ---
@@ -105,3 +105,9 @@ La revisión visual local confirmó login y navegación hasta `/caja`, pero el e
 tiene `cash_sessions.closing_withdrawal_amount`; la página no puede cargar antes de desplegar la
 migración. No se modificó el Supabase remoto. En macOS, el caché LMDB de Angular aborta el proceso;
 `CI=1` desactiva solo ese caché y permitió verificar el build completo.
+
+La revisión de código detectó y se corrigió que PostgreSQL aceptaba montos `NULL` en el RPC y que
+`authenticated` conservaba `UPDATE` directo sobre `cash_sessions`. El RPC ahora rechaza ambos
+montos nulos, un `CHECK NOT VALID` protege las escrituras nuevas sin romper cierres históricos y
+la tabla solo se actualiza mediante RPC con auditoría. La CLI local de Supabase quedó fijada en
+`2.109.1`, compatible con PostgreSQL 17, para reproducir pgTAP mediante `pnpm exec supabase`.

@@ -21,14 +21,19 @@ alter table public.cash_sessions
   add constraint cash_sessions_close_cash_consistency
     check (
       status <> 'closed'
-      or actual_cash_amount is null
       or (
-        closing_withdrawal_amount is not null
+        actual_cash_amount is not null
+        and closing_withdrawal_amount is not null
         and cash_left_amount is not null
         and cash_left_amount <= actual_cash_amount
         and closing_withdrawal_amount = actual_cash_amount - cash_left_amount
       )
-    );
+    ) not valid;
+
+-- Las escrituras de cash_sessions se realizan mediante RPC SECURITY DEFINER
+-- para preservar invariantes, bloqueo de fila y audit_logs. SELECT e INSERT
+-- permanecen disponibles según RLS; service_role conserva acceso operativo.
+revoke update on public.cash_sessions from public, anon, authenticated;
 
 drop function if exists public.close_cash_session_atomic(uuid, uuid, uuid, numeric, jsonb, text);
 
@@ -63,6 +68,14 @@ declare
 begin
   if v_uid is null or v_uid <> p_closed_by then
     raise exception 'No autenticado';
+  end if;
+
+  if p_actual_cash is null then
+    raise exception 'El efectivo contado es obligatorio';
+  end if;
+
+  if p_cash_left is null then
+    raise exception 'El efectivo dejado es obligatorio';
   end if;
 
   if p_actual_cash < 0 then

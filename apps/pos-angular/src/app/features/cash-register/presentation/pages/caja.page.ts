@@ -529,7 +529,7 @@ export class CajaPage {
 
   movLabel(tipo: string): string {
     if (tipo === 'cash_in') return 'Entrada'
-    if (tipo === 'cash_out') return 'Salida'
+    if (tipo === 'cash_out') return 'Retiro'
     if (tipo === 'expense') return 'Gasto'
     if (tipo === 'correction') return 'Correccion'
     return tipo

@@ -6,7 +6,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(16);
+select plan(20);
 
 do $$
 declare
@@ -209,6 +209,50 @@ select throws_ok(
   $$,
   'El efectivo dejado no puede ser negativo',
   'rechaza efectivo dejado negativo'
+);
+
+select throws_ok(
+  $$
+    select public.close_cash_session_atomic(
+      'a7633333-3333-4633-8633-333333333333',
+      'a7111111-1111-4111-8111-111111111111',
+      'a7333333-3333-4333-8333-333333333333',
+      null,
+      0,
+      '[]'::jsonb,
+      null
+    )
+  $$,
+  'El efectivo contado es obligatorio',
+  'rechaza efectivo contado nulo'
+);
+
+select throws_ok(
+  $$
+    select public.close_cash_session_atomic(
+      'a7633333-3333-4633-8633-333333333333',
+      'a7111111-1111-4111-8111-111111111111',
+      'a7333333-3333-4333-8333-333333333333',
+      100000,
+      null,
+      '[]'::jsonb,
+      null
+    )
+  $$,
+  'El efectivo dejado es obligatorio',
+  'rechaza efectivo dejado nulo'
+);
+
+select is(
+  has_table_privilege('authenticated', 'public.cash_sessions', 'UPDATE'),
+  false,
+  'authenticated no puede modificar cash_sessions directamente'
+);
+
+select is(
+  has_table_privilege('anon', 'public.cash_sessions', 'UPDATE'),
+  false,
+  'anon no puede modificar cash_sessions directamente'
 );
 
 select is(
