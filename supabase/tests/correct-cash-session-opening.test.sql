@@ -62,8 +62,30 @@ begin
   values (v_session_id, v_tienda_id, v_admin, 100000, 'open');
 
   -- Sesión ya cerrada, para el caso de rechazo.
-  insert into public.cash_sessions (id, tienda_id, opened_by, opening_amount, status, closed_by, closed_at)
-  values (v_closed_id, v_tienda_id, v_admin, 50000, 'closed', v_admin, now());
+  insert into public.cash_sessions (
+    id,
+    tienda_id,
+    opened_by,
+    opening_amount,
+    status,
+    closed_by,
+    actual_cash_amount,
+    closing_withdrawal_amount,
+    cash_left_amount,
+    closed_at
+  )
+  values (
+    v_closed_id,
+    v_tienda_id,
+    v_admin,
+    50000,
+    'closed',
+    v_admin,
+    50000,
+    0,
+    50000,
+    now()
+  );
 
   -- Tienda B con un usuario activo que NO pertenece a la tienda A.
   insert into auth.users (id, email, raw_user_meta_data)
@@ -83,16 +105,16 @@ end $$;
 --    corregir la apertura (prueba el gate de caja compartida, no owner-only).
 select set_config('request.jwt.claim.sub', 'e2222222-2222-2222-2222-222222222223', true);
 
-prepare correccion_cajero as
-  select public.correct_cash_session_opening_atomic(
-    'e3333333-3333-3333-3333-333333333333'::uuid,  -- sesión abierta por el ADMIN
-    'e1111111-1111-1111-1111-111111111111'::uuid,  -- tienda
-    150000,                                          -- nuevo monto
-    'e2222222-2222-2222-2222-222222222223'::uuid,  -- p_corrected_by = CAJERO (no es opened_by)
-    'Se digito mal el monto de apertura del turno'
-  );
-
-select isnt(execute('correccion_cajero')::text, '',
+select lives_ok(
+  $$
+    select public.correct_cash_session_opening_atomic(
+      'e3333333-3333-3333-3333-333333333333'::uuid,
+      'e1111111-1111-1111-1111-111111111111'::uuid,
+      150000,
+      'e2222222-2222-2222-2222-222222222223'::uuid,
+      'Se digito mal el monto de apertura del turno'
+    )
+  $$,
   'caja compartida: el cajero corrige la apertura de la sesión que abrió el admin (retorna UUID)');
 
 -- 2. opening_amount refleja el nuevo valor.
@@ -109,8 +131,8 @@ select is(
      and entity_id  = 'e3333333-3333-3333-3333-333333333333'
      and entity_type = 'cash_session'
      and action = 'cash_session.opening_corrected'
-     and metadata->>'old_amount' = '100000'
-     and metadata->>'new_amount' = '150000'
+     and (metadata->>'old_amount')::numeric = 100000
+     and (metadata->>'new_amount')::numeric = 150000
      and metadata->>'reason' = 'Se digito mal el monto de apertura del turno'),
   1,
   'audit_logs registra old_amount/new_amount/reason de la corrección'

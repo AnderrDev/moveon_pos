@@ -35,6 +35,32 @@ alter table public.cash_sessions
 -- permanecen disponibles según RLS; service_role conserva acceso operativo.
 revoke update on public.cash_sessions from public, anon, authenticated;
 
+-- La apertura sigue siendo INSERT directo, pero una policy restrictiva evita
+-- fabricar por Data API una sesión cerrada que eluda el RPC y altere la base
+-- sugerida del turno siguiente.
+drop policy if exists "cash_sessions_open_insert_only" on public.cash_sessions;
+create policy "cash_sessions_open_insert_only"
+  on public.cash_sessions
+  as restrictive
+  for insert
+  to authenticated
+  with check (
+    status = 'open'
+    and opened_by = (select auth.uid())
+    and closed_by is null
+    and expected_cash_amount is null
+    and actual_cash_amount is null
+    and closing_withdrawal_amount is null
+    and cash_left_amount is null
+    and difference is null
+    and expected_sales_amount is null
+    and actual_sales_amount is null
+    and sales_difference is null
+    and payment_closure is null
+    and notas_cierre is null
+    and closed_at is null
+  );
+
 drop function if exists public.close_cash_session_atomic(uuid, uuid, uuid, numeric, jsonb, text);
 
 create function public.close_cash_session_atomic(

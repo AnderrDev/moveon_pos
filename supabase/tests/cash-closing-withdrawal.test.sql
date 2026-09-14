@@ -6,7 +6,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(20);
+select plan(21);
 
 do $$
 declare
@@ -254,6 +254,43 @@ select is(
   false,
   'anon no puede modificar cash_sessions directamente'
 );
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'a7333333-3333-4333-8333-333333333333', true);
+
+select throws_ok(
+  $$
+    insert into public.cash_sessions (
+      id,
+      tienda_id,
+      opened_by,
+      closed_by,
+      status,
+      opening_amount,
+      actual_cash_amount,
+      closing_withdrawal_amount,
+      cash_left_amount,
+      closed_at
+    ) values (
+      'a7644444-4444-4644-8644-444444444444',
+      'a7111111-1111-4111-8111-111111111111',
+      'a7333333-3333-4333-8333-333333333333',
+      'a7333333-3333-4333-8333-333333333333',
+      'closed',
+      100000,
+      100000,
+      0,
+      100000,
+      now()
+    )
+  $$,
+  '42501',
+  'new row violates row-level security policy "cash_sessions_open_insert_only" for table "cash_sessions"',
+  'authenticated no puede fabricar una sesión cerrada sin RPC'
+);
+
+reset role;
+select set_config('request.jwt.claim.sub', 'a7333333-3333-4333-8333-333333333333', true);
 
 select is(
   (select concat_ws('|', status::text, closing_withdrawal_amount::text, cash_left_amount::text)
