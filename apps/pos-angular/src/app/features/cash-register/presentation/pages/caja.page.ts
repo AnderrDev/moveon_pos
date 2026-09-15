@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
+import { RouterLink } from '@angular/router'
 import { PageHeaderComponent } from '@angular-app/shared/molecules/page-header.component'
 import { CardComponent } from '@angular-app/shared/atoms/card.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
@@ -21,7 +22,6 @@ import {
 } from '@angular-app/features/cash-register/presentation/dialogs/close-session.dialog'
 import { CorrectOpeningDialog } from '@angular-app/features/cash-register/presentation/dialogs/correct-opening.dialog'
 import { CorrectMovementDialog } from '@angular-app/features/cash-register/presentation/dialogs/correct-movement.dialog'
-import { ClosedSessionsListComponent } from '@angular-app/features/cash-register/presentation/components/closed-sessions-list.component'
 import { SaleDetailListComponent } from '@angular-app/shared/organisms/sale-detail-list.component'
 import { formatCurrency, formatTime, formatShortDate } from '@/shared/lib/format'
 import { PAYMENT_METHOD_CLOSURE_OPTIONS, getPaymentMethodLabel } from '@/shared/lib/payment-methods'
@@ -38,7 +38,6 @@ import { ReceiptPrintService } from '@angular-app/core/printing/receipt-print.se
 import {
   canVoidCashMovement,
   canCorrectCashSessionOpening,
-  canViewClosedSessions,
 } from '@angular-app/core/auth/role-policy'
 import { computeCashTurnSummary } from '@angular-app/features/cash-register/domain/services/cash-closure'
 import type { CashMovementType } from '@/shared/types'
@@ -49,6 +48,7 @@ import type { CashMovementType } from '@/shared/types'
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     ReactiveFormsModule,
+    RouterLink,
     PageHeaderComponent,
     CardComponent,
     ButtonComponent,
@@ -61,12 +61,14 @@ import type { CashMovementType } from '@/shared/types'
     CorrectOpeningDialog,
     CorrectMovementDialog,
     SaleDetailListComponent,
-    ClosedSessionsListComponent,
     VoidReasonDialog,
   ],
   template: `
     <section class="flex flex-col gap-4">
       <mo-page-header title="Caja" subtitle="Apertura, movimientos y cierre">
+        @if (isAdmin()) {
+          <a routerLink="/caja/historial" class="focus:ring-ring rounded-lg px-3 py-2 text-sm font-semibold underline underline-offset-4 focus:ring-2">Historial de cajas</a>
+        }
         <mo-button
           variant="outline"
           [loading]="openingDrawer()"
@@ -360,9 +362,6 @@ import type { CashMovementType } from '@/shared/types'
 
       }
 
-      @if (!loading() && !loadError() && canViewHistory()) {
-        <mo-closed-sessions-list />
-      }
     </section>
 
     <mo-add-movement-dialog
@@ -459,7 +458,7 @@ export class CajaPage {
   readonly canCorrectOpening = computed(() => canCorrectCashSessionOpening(this.session.role()))
 
   /** Solo admin ve el historial de turnos cerrados (supervisión, no operación del cajero). */
-  readonly canViewHistory = computed(() => canViewClosedSessions(this.session.role()))
+  readonly isAdmin = computed(() => this.session.isAdmin())
 
   /** Venta expandida en "Ventas del turno" (mo-sale-detail-list). */
   readonly expandedSaleId = signal<string | null>(null)

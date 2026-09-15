@@ -16,6 +16,7 @@ const session: CashSession = {
   tiendaId,
   openedBy: 'user-1',
   closedBy: null,
+  closedByEmail: null,
   status: 'open',
   openingAmount: 50_000,
   expectedCashAmount: null,

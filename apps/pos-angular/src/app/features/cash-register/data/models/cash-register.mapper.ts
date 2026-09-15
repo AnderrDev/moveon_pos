@@ -6,6 +6,7 @@ export interface CashSessionRow {
   tienda_id: string
   opened_by: string
   closed_by: string | null
+  closed_by_email: string | null
   status: string
   opening_amount: number
   expected_cash_amount: number | null
@@ -42,6 +43,7 @@ export function rowToCashSession(row: CashSessionRow): CashSession {
     tiendaId: row.tienda_id,
     openedBy: row.opened_by,
     closedBy: row.closed_by,
+    closedByEmail: row.closed_by_email,
     status: row.status as CashSessionStatus,
     openingAmount: Number(row.opening_amount),
     expectedCashAmount:

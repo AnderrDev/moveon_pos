@@ -52,6 +52,12 @@ export const routes: Routes = [
           import('@angular-app/features/cash-register/presentation/pages/caja.page').then((m) => m.CajaPage),
       },
       {
+        path: 'caja/historial',
+        canActivate: [roleGuard('admin')],
+        loadComponent: () =>
+          import('@angular-app/features/cash-register/presentation/pages/cash-history.page').then((m) => m.CashHistoryPageComponent),
+      },
+      {
         path: 'clientes',
         loadComponent: () =>
           import('@angular-app/features/customers/presentation/pages/clientes.page').then((m) => m.ClientesPage),

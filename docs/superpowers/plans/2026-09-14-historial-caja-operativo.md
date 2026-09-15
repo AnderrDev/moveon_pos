@@ -12,6 +12,21 @@
 
 ## Global Constraints
 
+## Registro de ejecución inline
+
+- Entregas 1–8 implementadas y verificadas el 14 de septiembre.
+- Migración real generada por CLI: `20260915035907_cash_history_responsibility.sql` (hora UTC).
+- CLI vigente usa `supabase test db <archivo>` en lugar de `--file`.
+- Las entregas UI y navegación se verificaron juntas por su dependencia de ruta.
+- E2E usa julio–septiembre para los 102 turnos, luego filtra días individuales,
+  responsable y cuadre; verifica ventas relacionadas, motivo de anulación, Excel y móvil.
+- Se corrigió la carga inicial para no sobrescribir filtros ingresados y la resolución
+  CommonJS/default de ExcelJS detectada por la prueba de descarga.
+- Revisión independiente: un P2 por motivo de anulación; corregido y cubierto en E2E.
+- Commits agrupados al finalizar la verificación; no se fusiona ni se toca producción.
+
+## Restricciones
+
 - Código en inglés; interfaz y documentación en español.
 - Toda consulta incluye `tienda_id` y conserva RLS como defensa de datos.
 - `closed_by_email` es evidencia visual, nunca una fuente de autorización.

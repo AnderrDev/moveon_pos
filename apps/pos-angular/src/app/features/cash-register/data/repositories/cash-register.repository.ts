@@ -1,6 +1,8 @@
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
 import { fetchAllPages } from '@angular-app/core/supabase/fetch-all-pages'
+import { applyCashHistoryFilters } from '../models/cash-history-query'
+import { getCashHistoryRange, type CashHistoryQuery, type CashHistoryPage, type CashCloser } from '../../domain/services/cash-history'
 import { AuditLogRepository } from '@angular-app/features/audit/domain/repositories/audit-log.repository'
 import {
   rowToCashMovement,
@@ -21,7 +23,7 @@ import {
 } from '@angular-app/features/cash-register/domain/repositories/cash-register.repository'
 
 const SESSION_COLS =
-  'id, tienda_id, opened_by, closed_by, status, opening_amount, expected_cash_amount, actual_cash_amount, closing_withdrawal_amount, cash_left_amount, difference, expected_sales_amount, actual_sales_amount, sales_difference, payment_closure, notas_cierre, opened_at, closed_at'
+  'id, tienda_id, opened_by, closed_by, closed_by_email, status, opening_amount, expected_cash_amount, actual_cash_amount, closing_withdrawal_amount, cash_left_amount, difference, expected_sales_amount, actual_sales_amount, sales_difference, payment_closure, notas_cierre, opened_at, closed_at'
 const MOV_COLS =
   'id, cash_session_id, tipo, amount, motivo, created_by, created_at, status, voided_by, voided_at, voided_reason'
 
@@ -46,6 +48,20 @@ interface RpcClient {
 export class CashRegisterRepository extends CashRegisterRepositoryContract {
   private readonly supabaseClient = inject(SupabaseClientService)
   private readonly audit = inject(AuditLogRepository)
+
+  async listClosedSessionsPage(input: CashHistoryQuery): Promise<CashHistoryPage> {
+    const query = applyCashHistoryFilters(this.supabaseClient.supabase.from('cash_sessions').select(SESSION_COLS, { count: 'exact' }), input)
+    const { from, to } = getCashHistoryRange(input.page, input.pageSize)
+    const { data, error, count } = await query.order('closed_at', { ascending: false }).order('id', { ascending: false }).range(from, to).returns<CashSessionRow[]>()
+    if (error) throw new Error(error.message)
+    return { items: (data ?? []).map(rowToCashSession), total: count ?? 0, page: input.page, pageSize: input.pageSize }
+  }
+
+  async listCashClosers(tiendaId: string): Promise<CashCloser[]> {
+    const { data, error } = await this.supabaseClient.supabase.rpc('list_cash_session_closers', { p_tienda_id: tiendaId })
+    if (error) throw new Error(error.message)
+    return (data ?? []).map((row) => ({ userId: row.user_id, email: row.email }))
+  }
 
   async getOpenSession(tiendaId: string): Promise<CashSession | null> {
     const { data, error } = await this.supabaseClient.supabase

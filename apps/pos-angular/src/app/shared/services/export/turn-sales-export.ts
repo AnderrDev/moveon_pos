@@ -63,6 +63,7 @@ export function buildTurnSalesWorkbook(
           ...(cashSession
             ? [
                 ['Caja', 'Base de apertura', null, cashSession.openingAmount],
+                ['Caja', 'Responsable del cierre', null, cashSession.closedByEmail ?? cashSession.closedBy?.slice(0, 8) ?? 'No disponible'],
                 [
                   'Caja',
                   'Efectivo esperado antes del retiro',

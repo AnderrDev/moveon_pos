@@ -8,6 +8,7 @@ function makeClosedSession(): CashSession {
     tiendaId: 'store-1',
     openedBy: 'user-1',
     closedBy: 'user-2',
+    closedByEmail: 'responsable@moveon.test',
     status: 'closed',
     openingAmount: 150_000,
     expectedCashAmount: 480_000,
@@ -33,6 +34,7 @@ describe('buildTurnSalesWorkbook', () => {
     expect(resumen?.rows).toEqual(
       expect.arrayContaining([
         ['Caja', 'Base de apertura', null, 150_000],
+        ['Caja', 'Responsable del cierre', null, 'responsable@moveon.test'],
         ['Caja', 'Efectivo esperado antes del retiro', null, 480_000],
         ['Caja', 'Efectivo contado', null, 475_000],
         ['Caja', 'Diferencia de caja', null, 5_000],

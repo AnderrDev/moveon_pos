@@ -21,7 +21,7 @@ export interface FormSelectOption<T extends string | number = string> {
       [error]="error()"
       [required]="required()"
     >
-      <select [formControlName]="controlName()" [class]="selectClasses()">
+      <select [attr.id]="inputId()" [formControlName]="controlName()" [class]="selectClasses()">
         @if (placeholder()) {
           <option [ngValue]="''">{{ placeholder() }}</option>
         }
@@ -34,6 +34,7 @@ export interface FormSelectOption<T extends string | number = string> {
 })
 export class FormSelectComponent {
   readonly controlName = input.required<string>()
+  readonly inputId = input<string | null>(null)
   readonly options = input.required<FormSelectOption<string | number>[]>()
   readonly label = input<string | null>(null)
   readonly placeholder = input<string | null>('Selecciona una opcion')

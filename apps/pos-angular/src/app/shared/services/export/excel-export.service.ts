@@ -51,7 +51,8 @@ export class ExcelExportService {
       throw new Error('El libro debe contener al menos una hoja')
     }
 
-    const { Workbook } = await import('exceljs')
+    const excelJs = await import('exceljs')
+    const Workbook = excelJs.Workbook ?? excelJs.default.Workbook
     const workbook = new Workbook()
 
     workbook.creator = 'MOVEONAPP POS'
@@ -134,7 +135,9 @@ export class ExcelExportService {
     const anchor = document.createElement('a')
     anchor.href = url
     anchor.download = this.sanitizeFilename(definition.filename)
-    document.body.appendChild(anchor)
+    // Un dialog modal hace inerte el body exterior, incluidos enlaces de descarga.
+    const downloadHost = document.querySelector('dialog:modal') ?? document.body
+    downloadHost.appendChild(anchor)
     anchor.click()
     anchor.remove()
     window.setTimeout(() => URL.revokeObjectURL(url), 0)
