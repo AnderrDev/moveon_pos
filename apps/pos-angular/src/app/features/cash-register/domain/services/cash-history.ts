@@ -13,6 +13,20 @@ export interface CashHistoryQuery {
 }
 export interface CashHistoryPage { items: CashSession[]; total: number; page: number; pageSize: number }
 export interface CashCloser { userId: string; email: string }
+export interface CashHistoryDay {
+  day: string
+  turnCount: number
+  salesTotal: number | null
+  cashTotal: number
+  transferTotal: number
+  expensesTotal: number
+  extraIncomeTotal: number
+  withdrawalsTotal: number
+  openingAmount: number | null
+  finalCashLeft: number | null
+  notes: string[]
+}
+export interface CashHistoryDaysPage { items: CashHistoryDay[]; total: number; page: number; pageSize: number }
 
 export function resolveCashHistoryPreset(today: string, preset: Exclude<CashHistoryPreset, 'custom'>): { from: string; to: string } {
   const shift = (days: number): string => {

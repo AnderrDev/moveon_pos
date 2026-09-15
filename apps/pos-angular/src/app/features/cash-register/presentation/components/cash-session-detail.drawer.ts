@@ -6,6 +6,7 @@ import { SaleDetailListComponent } from '@angular-app/shared/organisms/sale-deta
 import { formatCurrency } from '@/shared/lib/format'
 import type { CashSession, CashMovement } from '../../domain/entities/cash-session.entity'
 import type { Sale } from '@angular-app/features/sales/domain/entities/sale.entity'
+import { getCashMovementSummary } from '../../domain/services/cash-movement-summary'
 @Component({
  selector: 'mo-cash-session-detail', standalone: true, changeDetection: ChangeDetectionStrategy.OnPush,
  imports: [ButtonComponent, BadgeComponent, SpinnerComponent, SaleDetailListComponent],
@@ -37,6 +38,7 @@ import type { Sale } from '@angular-app/features/sales/domain/entities/sale.enti
           @if (loading()) { <div class="flex items-center gap-2 py-6" role="status"><mo-spinner />Cargando ventas y movimientos...</div> }
           @else if (error()) { <div role="alert" class="text-destructive"><p>{{ error() }}</p><mo-button variant="outline" size="sm" (click)="retried.emit()">Reintentar detalle</mo-button></div> }
           @else {
+            <section aria-label="Ingresos y gastos del turno"><h3 class="mb-3 font-semibold">Ingresos y gastos del turno</h3><dl class="grid grid-cols-2 gap-3 text-sm"><div><dt class="text-muted-foreground text-xs">Ingresos extra</dt><dd class="font-semibold tabular-nums">{{ money(flows().extraIncome) }}</dd></div><div><dt class="text-muted-foreground text-xs">Gastos</dt><dd class="font-semibold tabular-nums">{{ money(flows().expenses) }}</dd></div><div><dt class="text-muted-foreground text-xs">Retiros durante el turno</dt><dd class="font-semibold tabular-nums">{{ money(flows().withdrawals) }}</dd></div></dl><p class="text-muted-foreground mt-2 text-xs">Solo movimientos vigentes. El retiro al cierre se muestra en el resumen de cierre.</p></section>
             <mo-sale-detail-list [sales]="sales()" [expandedSaleId]="expandedSaleId()" emptyMessage="Sin ventas registradas en este turno" (toggleSale)="toggleSale($event)" />
             <section><h3 class="mb-3 font-semibold">Movimientos de efectivo</h3>
               @if (movements().length === 0) { <p class="text-muted-foreground text-sm">Sin movimientos registrados en este turno.</p> }
@@ -64,6 +66,7 @@ export class CashSessionDetailDrawer {
  readonly retried = output<void>()
  readonly exportRequested = output<void>()
  readonly expandedSaleId = signal<string | null>(null)
+ flows(): ReturnType<typeof getCashMovementSummary> { return getCashMovementSummary(this.movements()) }
  private readonly dialog = viewChild<ElementRef<HTMLDialogElement>>('dialog')
  constructor() {
    effect(() => {

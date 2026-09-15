@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal, OnDestroy } from '@angular/core'
+import { afterNextRender, ChangeDetectionStrategy, Component, ElementRef, Injector, inject, signal, OnDestroy, viewChild } from '@angular/core'
 import { RouterLink } from '@angular/router'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { TiendaInfoService } from '@angular-app/core/tienda/tienda-info.service'
@@ -12,7 +12,8 @@ import { CashRegisterRepository } from '../../domain/repositories/cash-register.
 import { SaleRepository } from '@angular-app/features/sales/domain/repositories/sale.repository'
 import type { Sale } from '@angular-app/features/sales/domain/entities/sale.entity'
 import type { CashSession, CashMovement } from '../../domain/entities/cash-session.entity'
-import type { CashCloser, CashHistoryPage } from '../../domain/services/cash-history'
+import type { CashCloser, CashHistoryPage, CashHistoryDaysPage } from '../../domain/services/cash-history'
+import { CashHistoryDaysComponent } from '../components/cash-history-days.component'
 import { CashHistoryFiltersComponent } from '../components/cash-history-filters.component'
 import { CashHistoryTableComponent } from '../components/cash-history-table.component'
 import { CashSessionDetailDrawer } from '../components/cash-session-detail.drawer'
@@ -22,15 +23,28 @@ import type { CashHistoryFormValue } from '../forms/cash-history-form.factory'
 import { LatestRequest } from '../services/cash-history-request-state'
 @Component({
  selector: 'mo-cash-history-page', standalone: true, changeDetection: ChangeDetectionStrategy.OnPush,
- imports: [RouterLink, PageHeaderComponent, ButtonComponent, SkeletonComponent, CashHistoryFiltersComponent, CashHistoryTableComponent, CashSessionDetailDrawer],
+ imports: [RouterLink, PageHeaderComponent, ButtonComponent, SkeletonComponent, CashHistoryFiltersComponent, CashHistoryDaysComponent, CashHistoryTableComponent, CashSessionDetailDrawer],
  providers: [CashHistoryFormPresenter],
  template: `
   <section class="flex min-w-0 flex-col gap-4">
     <mo-page-header title="Historial de caja" subtitle="Busca cierres y revisa ventas, retiros y responsables."><a routerLink="/caja" class="focus:ring-ring rounded-lg px-3 py-2 text-sm font-semibold underline underline-offset-4 focus:ring-2">Volver a Caja</a></mo-page-header>
+    @if (!selectedDay()) {
+    <h2 #summaryHeading tabindex="-1" class="sr-only">Resumen diario</h2>
     @if (initialized()) { <mo-cash-history-filters [presenter]="presenter" [closers]="closers()" (applied)="applyFilters()" (cleared)="clearFilters()" /> }
     @if (loading()) { <div role="status" aria-label="Cargando historial"><mo-skeleton heightClass="h-72" /></div> }
     @else if (loadError()) { <div role="alert" class="text-destructive"><p>{{ loadError() }}</p><mo-button variant="outline" (click)="retryHistory()">Reintentar</mo-button></div> }
-    @else { <mo-cash-history-table [page]="result()" [timezone]="timezone()" (selected)="selectSession($event)" (pageChanged)="load($event)" /> }
+    @else { <mo-cash-history-days [page]="result()" [selectedDay]="selectedDay()" (selected)="selectDay($event)" (pageChanged)="load($event)" /> }
+    }
+    @if (selectedDay(); as day) {
+      <section class="min-w-0" aria-label="Turnos del día">
+       <mo-button class="mb-4 block" variant="outline" size="sm" (click)="backToSummary()">Volver al resumen</mo-button>
+       <h2 #dayHeading tabindex="-1" class="mb-2 text-lg font-semibold">Turnos del {{ day.split('-').reverse().join('/') }}</h2>
+       <p class="text-muted-foreground mb-4 text-sm">Horarios de apertura y cierre en {{ timezone() }}. Se mantienen los filtros de responsable y cuadre aplicados.</p>
+       @if (turnsLoading()) { <mo-skeleton heightClass="h-48" /> }
+       @else if (turnsError()) { <p role="alert">{{ turnsError() }}</p><mo-button variant="outline" (click)="loadTurns(turns().page)">Reintentar turnos</mo-button> }
+       @else { <mo-cash-history-table [page]="turns()" [timezone]="timezone()" (selected)="selectSession($event)" (pageChanged)="loadTurns($event)" /> }
+      </section>
+    }
     <mo-cash-session-detail [session]="selectedSession()" [sales]="sales()" [movements]="movements()" [loading]="detailLoading()" [error]="detailError()" [exporting]="exporting()" [timezone]="timezone()" (closed)="closeDetail()" (retried)="retryDetail()" (exportRequested)="exportTurn()" />
   </section>
  `,
@@ -44,9 +58,17 @@ export class CashHistoryPageComponent implements OnDestroy {
  private readonly toast = inject(ToastService)
  private readonly requests = new LatestRequest()
  private readonly detailRequests = new LatestRequest()
+ private readonly turnRequests = new LatestRequest()
+ private readonly injector = inject(Injector)
+ private readonly dayHeading = viewChild<ElementRef<HTMLElement>>('dayHeading')
+ private readonly summaryHeading = viewChild<ElementRef<HTMLElement>>('summaryHeading')
  private applied: CashHistoryFormValue | null = null
  readonly presenter = inject(CashHistoryFormPresenter)
- readonly result = signal<CashHistoryPage>({ items: [], total: 0, page: 1, pageSize: 20 })
+ readonly result = signal<CashHistoryDaysPage>({ items: [], total: 0, page: 1, pageSize: 20 })
+ readonly turns = signal<CashHistoryPage>({ items: [], total: 0, page: 1, pageSize: 20 })
+ readonly selectedDay = signal<string | null>(null)
+ readonly turnsLoading = signal(false)
+ readonly turnsError = signal<string | null>(null)
  readonly closers = signal<CashCloser[]>([])
  readonly timezone = signal('America/Bogota')
  readonly loading = signal(true)
@@ -83,16 +105,42 @@ export class CashHistoryPageComponent implements OnDestroy {
  clearFilters(): void { this.presenter.reset(); this.applyFilters() }
  async load(page: number): Promise<void> {
    const token = this.requests.begin()
+   this.turnRequests.begin(); this.selectedDay.set(null); this.closeDetail()
    this.loading.set(true); this.loadError.set(null)
    try {
      const auth = await this.session.getAuthContext()
      if (!auth || auth.rol !== 'admin') throw new Error('Sin permisos')
      const value = this.applied ?? this.presenter.validate()
      if (!value) return
-     const result = await this.repo.listClosedSessionsPage(toCashHistoryQuery(value, { tiendaId: auth.tiendaId, timezone: this.timezone(), page }))
+     const result = await this.repo.listHistoryDays(toCashHistoryQuery(value, { tiendaId: auth.tiendaId, timezone: this.timezone(), page }))
      if (this.requests.isCurrent(token)) this.result.set(result)
    } catch { if (this.requests.isCurrent(token)) this.loadError.set('No se pudo cargar el historial. Reintenta la consulta.') }
    finally { if (this.requests.isCurrent(token)) this.loading.set(false) }
+ }
+ selectDay(day: string): void {
+   this.turnRequests.begin(); this.closeDetail()
+   if (this.selectedDay() === day) { this.selectedDay.set(null); return }
+   this.selectedDay.set(day); void this.loadTurns(1)
+   afterNextRender(() => this.dayHeading()?.nativeElement.focus(), { injector: this.injector })
+ }
+ backToSummary(): void {
+   this.turnRequests.begin(); this.closeDetail(); this.selectedDay.set(null)
+   afterNextRender(() => this.summaryHeading()?.nativeElement.focus(), { injector: this.injector })
+ }
+ async loadTurns(page: number): Promise<void> {
+   const day = this.selectedDay()
+   const value = this.applied
+   if (!day || !value) return
+   const token = this.turnRequests.begin()
+   this.turnsLoading.set(true); this.turnsError.set(null)
+   try {
+     const auth = await this.session.getAuthContext()
+     if (!auth || auth.rol !== 'admin') throw new Error('Sin permisos')
+     const query = toCashHistoryQuery({ ...value, from: day, to: day }, { tiendaId: auth.tiendaId, timezone: this.timezone(), page })
+     const result = await this.repo.listClosedSessionsPage(query)
+     if (this.turnRequests.isCurrent(token)) this.turns.set(result)
+   } catch { if (this.turnRequests.isCurrent(token)) this.turnsError.set('No se pudieron cargar los turnos del día.') }
+   finally { if (this.turnRequests.isCurrent(token)) this.turnsLoading.set(false) }
  }
  async selectSession(selected: CashSession): Promise<void> {
    const token = this.detailRequests.begin()
@@ -117,5 +165,5 @@ export class CashHistoryPageComponent implements OnDestroy {
    catch { this.toast.error('No se pudo generar el Excel del turno.') }
    finally { this.exporting.set(false) }
  }
- ngOnDestroy(): void { this.requests.begin(); this.detailRequests.begin() }
+ ngOnDestroy(): void { this.requests.begin(); this.detailRequests.begin(); this.turnRequests.begin() }
 }

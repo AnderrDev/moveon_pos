@@ -1871,6 +1871,31 @@ export type Database = {
         }[]
       }
       get_user_tiendas: { Args: never; Returns: string[] }
+      list_cash_history_days: {
+        Args: {
+          p_balance: string
+          p_closed_by: string
+          p_end: string
+          p_page: number
+          p_page_size: number
+          p_start: string
+          p_tienda_id: string
+        }
+        Returns: {
+          cash_total: number
+          day: string
+          expenses_total: number
+          extra_income_total: number
+          final_cash_left: number
+          notes: string[]
+          opening_amount: number
+          sales_total: number
+          total_days: number
+          transfer_total: number
+          turn_count: number
+          withdrawals_total: number
+        }[]
+      }
       list_cash_session_closers: {
         Args: { p_tienda_id: string }
         Returns: {

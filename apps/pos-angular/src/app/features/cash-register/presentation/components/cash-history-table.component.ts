@@ -20,7 +20,7 @@ import type { CashSession } from '../../domain/entities/cash-session.entity'
         <table moTable density="compact">
           <caption class="sr-only">Turnos cerrados y resumen de pagos</caption>
           <thead moThead><tr>
-            <th moTh scope="col">Cierre / responsable</th><th moTh scope="col" class="text-right">Ventas</th>
+            <th moTh scope="col">Horario / responsable</th><th moTh scope="col" class="text-right">Ventas</th>
             <th moTh scope="col" class="text-right">Efectivo</th><th moTh scope="col" class="text-right">Transferencia</th>
             <th moTh scope="col" class="text-right">Caja al cierre</th><th moTh scope="col" class="text-right">Retiro / quedó</th>
             <th moTh scope="col">Cuadre</th><th moTh scope="col"><span class="sr-only">Detalle</span></th>
@@ -28,7 +28,7 @@ import type { CashSession } from '../../domain/entities/cash-session.entity'
           <tbody>
             @for (s of page().items; track s.id) {
               <tr moTr [hover]="true">
-                <td moTd><p class="font-semibold">{{ date(s.closedAt) }}</p><p class="text-muted-foreground text-xs">{{ date(s.openedAt) }} – {{ time(s.closedAt) }}</p><p class="mt-1 max-w-56 break-all text-xs">{{ closer(s) }}</p></td>
+                <td moTd><dl class="space-y-1 text-xs"><div><dt class="text-muted-foreground">Apertura</dt><dd class="font-semibold">{{ date(s.openedAt) }}</dd></div><div><dt class="text-muted-foreground">Cierre</dt><dd class="font-semibold">{{ date(s.closedAt) }}</dd></div></dl><p class="mt-2 max-w-56 break-all text-xs">{{ closer(s) }}</p></td>
                 <td moTd class="text-right font-semibold tabular-nums">{{ money(s.expectedSalesAmount) }}</td>
                 <td moTd class="text-right tabular-nums">{{ money(payments(s.paymentClosure).cash.total) }}<p class="text-muted-foreground text-xs">{{ payments(s.paymentClosure).cash.count }} pagos</p></td>
                 <td moTd class="text-right tabular-nums">{{ money(payments(s.paymentClosure).transfer.total) }}<p class="text-muted-foreground text-xs">{{ payments(s.paymentClosure).transfer.count }} pagos</p></td>
@@ -45,7 +45,8 @@ import type { CashSession } from '../../domain/entities/cash-session.entity'
     <div class="space-y-3 lg:hidden">
       @for (s of page().items; track s.id) {
         <mo-card>
-          <div class="flex flex-wrap items-start justify-between gap-2"><div class="min-w-0"><p class="font-semibold">{{ date(s.closedAt) }}</p><p class="text-muted-foreground break-all text-xs">{{ closer(s) }}</p></div><mo-badge [variant]="hasDifference(s) ? 'warning' : 'success'">{{ hasDifference(s) ? 'Con diferencia' : 'Cuadrado' }}</mo-badge></div>
+          <div class="flex flex-wrap items-start justify-between gap-2"><p class="min-w-0 break-all text-xs">{{ closer(s) }}</p><mo-badge [variant]="hasDifference(s) ? 'warning' : 'success'">{{ hasDifference(s) ? 'Con diferencia' : 'Cuadrado' }}</mo-badge></div>
+          <dl class="border-border mt-3 grid grid-cols-2 gap-3 border-b pb-3 text-sm"><div><dt class="text-muted-foreground text-xs">Apertura</dt><dd class="mt-1 font-semibold">{{ date(s.openedAt) }}</dd></div><div><dt class="text-muted-foreground text-xs">Cierre</dt><dd class="mt-1 font-semibold">{{ date(s.closedAt) }}</dd></div></dl>
           <dl class="mt-3 grid grid-cols-2 gap-3 text-sm">
             <div><dt class="text-muted-foreground text-xs">Efectivo · {{ payments(s.paymentClosure).cash.count }} pagos</dt><dd class="font-semibold tabular-nums">{{ money(payments(s.paymentClosure).cash.total) }}</dd></div>
             <div><dt class="text-muted-foreground text-xs">Transferencia · {{ payments(s.paymentClosure).transfer.count }} pagos</dt><dd class="font-semibold tabular-nums">{{ money(payments(s.paymentClosure).transfer.total) }}</dd></div>
@@ -80,5 +81,4 @@ export class CashHistoryTableComponent {
  closer(s: CashSession): string { return s.closedByEmail ?? (s.closedBy ? `Usuario ${s.closedBy.slice(0, 8)}` : 'No disponible') }
  hasDifference(s: CashSession): boolean { return (s.difference ?? 0) !== 0 || (s.salesDifference ?? 0) !== 0 }
  date(value: Date | null): string { return value ? new Intl.DateTimeFormat('es-CO', { timeZone: this.timezone(), dateStyle: 'short', timeStyle: 'short' }).format(value) : '—' }
- time(value: Date | null): string { return value ? new Intl.DateTimeFormat('es-CO', { timeZone: this.timezone(), timeStyle: 'short' }).format(value) : '—' }
 }

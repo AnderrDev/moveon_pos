@@ -28,7 +28,7 @@ Gestión de sesiones de caja: apertura, cierre, ingresos/egresos manuales, cuadr
 - RN-C15: el historial administrativo vive en `/caja/historial`, accesible desde el menú y Caja. Filtra por fecha de cierre en la zona horaria de la tienda (hoy, ayer, últimos 7/30 días o rango inclusivo), responsable y estado del cuadre. Consulta paginada en servidor de 20 turnos con conteo total; orden `closed_at DESC, id DESC`. Resume ventas por efectivo/transferencia, esperado, contado, retirado, dejado y diferencias. Un detalle lateral carga bajo demanda ventas completas, movimientos (incluyendo motivo de anulación), notas y Excel; conserva la búsqueda al cerrar. `/caja` se concentra en el turno activo.
 - RN-C19: `closed_by_email` guarda un snapshot del correo autenticado dentro del RPC de cierre, con fallback a `auth.users`; los cierres anteriores se completan cuando existe el usuario. El correo es evidencia visual, nunca autorización. `list_cash_session_closers` usa SECURITY INVOKER y RLS por tienda; no tiene ejecución pública ni anónima.
 - RN-C17: al cerrar una caja, `actual_cash_amount` representa el efectivo contado **antes** de retirar dinero. El retiro de cierre es opcional y se guarda atómicamente como `closing_withdrawal_amount`; `cash_left_amount` registra lo que permanece físicamente en el cajón. Se exige `0 <= cash_left_amount <= actual_cash_amount` y se cumple `closing_withdrawal_amount = actual_cash_amount - cash_left_amount`. Este retiro no se duplica como `cash_movement` ni altera `difference`, que compara esperado contra contado.
-- RN-C18: el último `cash_left_amount` de una sesión cerrada se ofrece como monto sugerido en la próxima apertura de la tienda. La sugerencia nunca fuerza el valor: el operador puede editarlo antes de abrir. Los retiros hechos durante un turno abierto siguen registrándose como `cash_out`, accesibles desde el botón "Retirar efectivo".
+- RN-C18: el último `cash_left_amount` de una sesión cerrada se ofrece como monto sugerido en la próxima apertura de la tienda. La sugerencia nunca fuerza el valor: el operador puede editarlo antes de abrir. Los retiros hechos durante un turno abierto siguen registrándose como `cash_out`, desde "+ Movimiento" seleccionando "Salida de efectivo"; no hay un botón duplicado de retiro.
 
 ## Use cases
 
@@ -45,6 +45,17 @@ Gestión de sesiones de caja: apertura, cierre, ingresos/egresos manuales, cuadr
 - El historial (RN-C15) es admin-only: ruta protegida, menú oculto para cajeros y validación del rol antes de cada consulta de la página. RLS mantiene el aislamiento de tienda.
 
 ## Exportación Excel
+
+## Seguimiento diario del historial
+
+- `/caja/historial` presenta días paginados (20), con venta total, pagos efectivo/transferencia, gastos, ingresos extra, retiros, efectivo final y observaciones. Al abrir un día se consultan sus turnos paginados y luego el detalle de ventas y movimientos.
+- La fecha es la de cierre en la zona horaria de la tienda. No incluye sesiones todavía abiertas ni equivale a ventas por fecha de factura.
+- `list_cash_history_days` suma flujos de los turnos seleccionados; la base proviene de la primera apertura del día y el efectivo final del último cierre de todos los turnos de ese día. Los saldos físicos no se suman y no cambian por filtros de responsable/cuadre.
+- Gastos e ingresos extra excluyen movimientos anulados. Retiros diarios incluyen `cash_out` vigentes y retiros de cierre, sin duplicarlos.
+- El detalle muestra responsable autenticado, base, esperado/contado, retirado/dejado, ventas, gastos e ingresos extra con conceptos; no inventa nombres de turnos ni firmas.
+- Ver turnos abre una vista dedicada en lugar de añadir resultados al final de la tabla diaria. Volver al resumen conserva fechas, responsable, cuadre y página. Cada turno muestra apertura y cierre completos en horario de la tienda, también en móvil.
+
+## Libro del turno
 
 - Durante una sesión abierta se puede descargar un libro del turno con resumen, ventas, productos, pagos y movimientos manuales de caja.
 - El resumen incluye base de apertura, efectivo esperado, efectivo contado, diferencia, retiro de cierre y efectivo dejado cuando la sesión ya está cerrada.

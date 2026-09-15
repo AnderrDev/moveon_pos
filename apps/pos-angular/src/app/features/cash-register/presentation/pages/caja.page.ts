@@ -87,9 +87,6 @@ import type { CashMovementType } from '@/shared/types'
             Descargar Excel
           </mo-button>
           <mo-button variant="outline" (click)="openMovement()">+ Movimiento</mo-button>
-          <mo-button variant="outline" (click)="openMovement('cash_out')">
-            Retirar efectivo
-          </mo-button>
           @if (canCorrectOpening()) {
             <mo-button variant="outline" (click)="correctOpeningOpen.set(true)">
               Corregir apertura

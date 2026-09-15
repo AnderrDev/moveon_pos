@@ -2,6 +2,9 @@ import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
 import { fetchAllPages } from '@angular-app/core/supabase/fetch-all-pages'
 import { applyCashHistoryFilters } from '../models/cash-history-query'
+import { cashHistoryDayRowSchema, rowToCashHistoryDay } from '../models/cash-history-day.mapper'
+import { cashHistoryQuerySchema } from '../../domain/dtos/cash-history-query.dto'
+import type { CashHistoryDaysPage } from '../../domain/services/cash-history'
 import { getCashHistoryRange, type CashHistoryQuery, type CashHistoryPage, type CashCloser } from '../../domain/services/cash-history'
 import { AuditLogRepository } from '@angular-app/features/audit/domain/repositories/audit-log.repository'
 import {
@@ -48,6 +51,18 @@ interface RpcClient {
 export class CashRegisterRepository extends CashRegisterRepositoryContract {
   private readonly supabaseClient = inject(SupabaseClientService)
   private readonly audit = inject(AuditLogRepository)
+
+  async listHistoryDays(input: CashHistoryQuery): Promise<CashHistoryDaysPage> {
+    const query = cashHistoryQuerySchema.parse(input)
+    const rpc = this.supabaseClient.supabase as unknown as RpcClient
+    const { data, error } = await rpc.rpc<unknown[]>('list_cash_history_days', {
+      p_tienda_id: query.tiendaId, p_start: query.start.toISOString(), p_end: query.endExclusive.toISOString(),
+      p_closed_by: query.closedBy, p_balance: query.balanceStatus, p_page: query.page, p_page_size: query.pageSize,
+    })
+    if (error) throw new Error(error.message)
+    const rows = (data ?? []).map((row) => cashHistoryDayRowSchema.parse(row))
+    return { items: rows.map(rowToCashHistoryDay), total: rows[0]?.total_days ?? 0, page: query.page, pageSize: query.pageSize }
+  }
 
   async listClosedSessionsPage(input: CashHistoryQuery): Promise<CashHistoryPage> {
     const query = applyCashHistoryFilters(this.supabaseClient.supabase.from('cash_sessions').select(SESSION_COLS, { count: 'exact' }), input)
