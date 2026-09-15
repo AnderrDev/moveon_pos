@@ -8,7 +8,7 @@
 | Sprint | Mantenimiento post-MVP |
 | Agente | Codex |
 | HUs trabajadas | Mejora operativa de Caja |
-| Estado | Aprobado por el usuario; integración local a main en curso |
+| Estado | Integrado y verificado en main local |
 
 ## 1. Objetivo de la sesión
 
@@ -50,10 +50,12 @@ Typecheck/build y lint correctos. E2E: navegación diaria, turnos, filtros, vent
 
 Integración a main autorizada por el usuario. No se autoriza despliegue ni aplicación de migrations en producción.
 
+Integración realizada en commit 836db54, desde rama codex/caja-retiro-cierre (76e4960), sin conflictos. Resultado main verificado: 723 pruebas unitarias, lint, tsc y build Angular correctos. El hook de typecheck requirió configuración local; se ejecutaron sus mismos pasos tsc/build con runtime local, sin copiar secretos. Checkout dev con cambios ajenos intacto. main local no publicado al remoto. Worktrees conservados porque sirven la prueba local y las dependencias de verificación.
+
 ## 7. Próximos pasos
 
-1. Probar /caja/historial con el seed local y filtros del 14/09/2026.
-2. Integrar solo después de aceptación del usuario; no desplegado a producción.
+1. Publicar main al remoto cuando se solicite.
+2. Aplicar migrations y desplegar únicamente con autorización de producción.
 
 ## 8. Notas
 
