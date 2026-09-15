@@ -10,7 +10,7 @@
 | Sprint | Mantenimiento post-MVP |
 | Agente | Codex |
 | HUs trabajadas | Mejora operativa de Caja (sin HU asignada) |
-| Estado | Diseño aprobado; pendiente planificación |
+| Estado | Plan completo; pendiente ejecución |
 
 ---
 
@@ -29,6 +29,8 @@ del cierre.
 - Este spec de sesión.
 - `docs/superpowers/specs/2026-09-14-historial-caja-operativo-design.md` — diseño funcional,
   técnico y de seguridad aprobado.
+- `docs/superpowers/plans/2026-09-14-historial-caja-operativo.md` — ocho entregas TDD con
+  migración, dominio, consultas, UI, navegación, detalle y E2E.
 
 ### 2.2 Archivos modificados
 
@@ -65,15 +67,15 @@ del cierre.
 
 ## 6. Bloqueos y preguntas pendientes
 
-- Revisión del spec escrito por parte del usuario.
+- Ninguno; spec aprobado por el usuario.
 
 ---
 
 ## 7. Próximos pasos
 
-1. Recibir aprobación del spec escrito.
-2. Preparar el plan de implementación TDD.
-3. Ejecutar el plan y verificar con el seed de 100 cierres.
+1. Elegir modalidad de ejecución: subagentes o inline.
+2. Ejecutar el plan y verificar con el seed de 100 cierres.
+3. Realizar revisión visual en escritorio y móvil antes de integrar.
 
 ---
 
