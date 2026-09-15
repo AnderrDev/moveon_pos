@@ -12,7 +12,10 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 import { FormCurrencyInputComponent } from '@angular-app/shared/molecules/form-currency-input.component'
-import { FormSelectComponent, type FormSelectOption } from '@angular-app/shared/molecules/form-select.component'
+import {
+  FormSelectComponent,
+  type FormSelectOption,
+} from '@angular-app/shared/molecules/form-select.component'
 import { FormTextareaComponent } from '@angular-app/shared/molecules/form-textarea.component'
 import { FormErrorComponent } from '@angular-app/shared/molecules/form-error.component'
 import { DialogFooterComponent } from '@angular-app/shared/molecules/dialog-footer.component'
@@ -44,12 +47,7 @@ const TIPO_OPTIONS: FormSelectOption<string>[] = [
     DialogFooterComponent,
   ],
   template: `
-    <mo-dialog
-      [open]="open()"
-      title="Movimiento de caja"
-      [busy]="saving()"
-      (closed)="onClose()"
-    >
+    <mo-dialog [open]="open()" title="Movimiento de caja" [busy]="saving()" (closed)="onClose()">
       <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
         <mo-form-select
           controlName="tipo"
@@ -87,6 +85,7 @@ export class AddMovementDialog {
 
   readonly open = input<boolean>(false)
   readonly sessionId = input<string | null>(null)
+  readonly initialType = input<CashMovementType>('cash_in')
 
   readonly closed = output<void>()
   readonly saved = output<void>()
@@ -96,8 +95,14 @@ export class AddMovementDialog {
   readonly tipoOptions = TIPO_OPTIONS
 
   readonly form = new FormGroup({
-    tipo: new FormControl<string>('cash_in', { nonNullable: true, validators: [Validators.required] }),
-    amount: new FormControl<number>(0, { nonNullable: true, validators: [Validators.required, Validators.min(1)] }),
+    tipo: new FormControl<string>('cash_in', {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
+    amount: new FormControl<number>(0, {
+      nonNullable: true,
+      validators: [Validators.required, Validators.min(1)],
+    }),
     motivo: new FormControl<string>('', {
       nonNullable: true,
       validators: [Validators.required, Validators.minLength(3)],
@@ -107,7 +112,7 @@ export class AddMovementDialog {
   constructor() {
     effect(() => {
       if (this.open()) {
-        this.form.reset({ tipo: 'cash_in', amount: 0, motivo: '' })
+        this.form.reset({ tipo: this.initialType(), amount: 0, motivo: '' })
         this.rootError.set(null)
       }
     })
@@ -134,7 +139,7 @@ export class AddMovementDialog {
       const value = this.form.getRawValue()
       const result = await addCashMovement(
         { repo: this.repo, cashSessionId: sid, createdBy: auth.userId },
-        { tipo: value.tipo as CashMovementType, amount: value.amount, motivo: value.motivo.trim() },
+        { tipo: value.tipo as CashMovementType, amount: value.amount, motivo: value.motivo.trim() }
       )
       if (!result.ok) {
         this.rootError.set(result.error.message)

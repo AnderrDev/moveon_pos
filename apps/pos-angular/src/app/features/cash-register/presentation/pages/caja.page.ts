@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
+import { RouterLink } from '@angular/router'
 import { PageHeaderComponent } from '@angular-app/shared/molecules/page-header.component'
 import { CardComponent } from '@angular-app/shared/atoms/card.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
@@ -15,10 +16,12 @@ import { voidCashMovement } from '@angular-app/features/cash-register/domain/use
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import { AddMovementDialog } from '@angular-app/features/cash-register/presentation/dialogs/add-movement.dialog'
-import { CloseSessionDialog, type ExpectedByMethod } from '@angular-app/features/cash-register/presentation/dialogs/close-session.dialog'
+import {
+  CloseSessionDialog,
+  type ExpectedByMethod,
+} from '@angular-app/features/cash-register/presentation/dialogs/close-session.dialog'
 import { CorrectOpeningDialog } from '@angular-app/features/cash-register/presentation/dialogs/correct-opening.dialog'
 import { CorrectMovementDialog } from '@angular-app/features/cash-register/presentation/dialogs/correct-movement.dialog'
-import { ClosedSessionsListComponent } from '@angular-app/features/cash-register/presentation/components/closed-sessions-list.component'
 import { SaleDetailListComponent } from '@angular-app/shared/organisms/sale-detail-list.component'
 import { formatCurrency, formatTime, formatShortDate } from '@/shared/lib/format'
 import { PAYMENT_METHOD_CLOSURE_OPTIONS, getPaymentMethodLabel } from '@/shared/lib/payment-methods'
@@ -35,8 +38,9 @@ import { ReceiptPrintService } from '@angular-app/core/printing/receipt-print.se
 import {
   canVoidCashMovement,
   canCorrectCashSessionOpening,
-  canViewClosedSessions,
 } from '@angular-app/core/auth/role-policy'
+import { computeCashTurnSummary } from '@angular-app/features/cash-register/domain/services/cash-closure'
+import type { CashMovementType } from '@/shared/types'
 
 @Component({
   selector: 'mo-caja-page',
@@ -44,6 +48,7 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     ReactiveFormsModule,
+    RouterLink,
     PageHeaderComponent,
     CardComponent,
     ButtonComponent,
@@ -56,12 +61,14 @@ import {
     CorrectOpeningDialog,
     CorrectMovementDialog,
     SaleDetailListComponent,
-    ClosedSessionsListComponent,
     VoidReasonDialog,
   ],
   template: `
     <section class="flex flex-col gap-4">
       <mo-page-header title="Caja" subtitle="Apertura, movimientos y cierre">
+        @if (isAdmin()) {
+          <a routerLink="/caja/historial" class="focus:ring-ring rounded-lg px-3 py-2 text-sm font-semibold underline underline-offset-4 focus:ring-2">Historial de cajas</a>
+        }
         <mo-button
           variant="outline"
           [loading]="openingDrawer()"
@@ -79,7 +86,7 @@ import {
           >
             Descargar Excel
           </mo-button>
-          <mo-button variant="outline" (click)="movementOpen.set(true)">+ Movimiento</mo-button>
+          <mo-button variant="outline" (click)="openMovement()">+ Movimiento</mo-button>
           @if (canCorrectOpening()) {
             <mo-button variant="outline" (click)="correctOpeningOpen.set(true)">
               Corregir apertura
@@ -103,6 +110,13 @@ import {
           <p class="text-muted-foreground mt-1 text-sm">
             Captura el efectivo inicial con el que arrancas el turno.
           </p>
+          @if (suggestedOpeningAmount() !== null) {
+            <p
+              class="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
+            >
+              Sugerencia del último cierre: {{ money(suggestedOpeningAmount()!) }}.
+            </p>
+          }
 
           <form [formGroup]="openForm" (ngSubmit)="open()" class="mt-4 space-y-4">
             <mo-form-currency-input
@@ -149,26 +163,77 @@ import {
                 <p class="font-bold tabular-nums">{{ money(expectedCashInDrawer()) }}</p>
               </div>
             </div>
+
+            <div class="bg-muted/20 mt-5 rounded-xl border p-4">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <p class="text-xs font-bold tracking-wide uppercase">Cuadre del turno</p>
+                  <p class="text-muted-foreground text-xs">
+                    Así se calcula el efectivo físico esperado.
+                  </p>
+                </div>
+                <p class="font-display text-lg font-bold tabular-nums">
+                  {{ money(cashTurnSummary().expectedCashAmount) }}
+                </p>
+              </div>
+              <dl class="mt-3 grid grid-cols-1 gap-x-5 gap-y-1.5 text-sm sm:grid-cols-2">
+                <div class="flex justify-between gap-3">
+                  <dt>Base de apertura</dt>
+                  <dd class="font-mono tabular-nums">
+                    {{ money(cashTurnSummary().openingAmount) }}
+                  </dd>
+                </div>
+                <div class="flex justify-between gap-3">
+                  <dt>Ventas en efectivo</dt>
+                  <dd class="font-mono tabular-nums">
+                    +{{ money(cashTurnSummary().cashSalesAmount) }}
+                  </dd>
+                </div>
+                <div class="flex justify-between gap-3">
+                  <dt>Entradas</dt>
+                  <dd class="font-mono tabular-nums">
+                    +{{ money(cashTurnSummary().cashInAmount) }}
+                  </dd>
+                </div>
+                <div class="flex justify-between gap-3">
+                  <dt>Gastos</dt>
+                  <dd class="font-mono tabular-nums">
+                    −{{ money(cashTurnSummary().expenseAmount) }}
+                  </dd>
+                </div>
+                <div class="flex justify-between gap-3">
+                  <dt>Retiros</dt>
+                  <dd class="font-mono tabular-nums">
+                    −{{ money(cashTurnSummary().cashOutAmount) }}
+                  </dd>
+                </div>
+                <div class="flex justify-between gap-3">
+                  <dt>Correcciones</dt>
+                  <dd class="font-mono tabular-nums">
+                    −{{ money(cashTurnSummary().correctionAmount) }}
+                  </dd>
+                </div>
+              </dl>
+            </div>
           </div>
 
           <div class="bg-card rounded-xl border p-5">
             <p class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
               Por metodo de pago
             </p>
-            @if (breakdown().length === 0) {
-              <p class="text-muted-foreground mt-3 text-sm">Aun no hay ventas registradas.</p>
-            } @else {
-              <ul class="mt-3 space-y-2 text-sm">
-                @for (item of breakdown(); track item.metodo) {
-                  <li class="flex items-center justify-between">
-                    <span>{{ paymentLabel(item.metodo) }}</span>
-                    <span class="font-mono font-semibold tabular-nums">
-                      {{ money(item.total) }}
-                    </span>
-                  </li>
-                }
-              </ul>
-            }
+            <div class="mt-3 space-y-3">
+              @for (item of primaryPaymentSummary(); track item.metodo) {
+                <div class="rounded-xl border p-3">
+                  <div class="flex items-center justify-between gap-3">
+                    <span class="text-sm font-semibold">{{ paymentLabel(item.metodo) }}</span>
+                    <span class="font-mono font-bold tabular-nums">{{ money(item.total) }}</span>
+                  </div>
+                  <p class="text-muted-foreground mt-1 text-xs">
+                    {{ item.count }} {{ item.count === 1 ? 'venta' : 'ventas' }}
+                  </p>
+                </div>
+              }
+            </div>
           </div>
         </div>
 
@@ -229,11 +294,19 @@ import {
                       <td class="px-4 py-2 text-right">
                         @if (mov.status === 'active') {
                           <div class="flex justify-end gap-1.5">
-                            <mo-button size="sm" variant="outline" (click)="correctingMovement.set(mov)">
+                            <mo-button
+                              size="sm"
+                              variant="outline"
+                              (click)="correctingMovement.set(mov)"
+                            >
                               Corregir
                             </mo-button>
                             @if (canVoid()) {
-                              <mo-button size="sm" variant="outline" (click)="confirmVoidMovement(mov)">
+                              <mo-button
+                                size="sm"
+                                variant="outline"
+                                (click)="confirmVoidMovement(mov)"
+                              >
                                 Anular
                               </mo-button>
                             }
@@ -284,15 +357,14 @@ import {
           (toggleSale)="toggleSale($event)"
         />
 
-        @if (canViewHistory()) {
-          <mo-closed-sessions-list />
-        }
       }
+
     </section>
 
     <mo-add-movement-dialog
       [open]="movementOpen()"
       [sessionId]="openSession()?.id ?? null"
+      [initialType]="movementInitialType()"
       (closed)="movementOpen.set(false)"
       (saved)="reloadMovements()"
     />
@@ -347,6 +419,8 @@ export class CajaPage {
   readonly openError = signal<string | null>(null)
   readonly opening = signal(false)
   readonly movementOpen = signal(false)
+  readonly movementInitialType = signal<CashMovementType>('cash_in')
+  readonly suggestedOpeningAmount = signal<number | null>(null)
   readonly closeOpen = signal(false)
   readonly correctOpeningOpen = signal(false)
   /** Movimiento del turno al que se le está corrigiendo monto/concepto (RN-C16). */
@@ -381,7 +455,7 @@ export class CajaPage {
   readonly canCorrectOpening = computed(() => canCorrectCashSessionOpening(this.session.role()))
 
   /** Solo admin ve el historial de turnos cerrados (supervisión, no operación del cajero). */
-  readonly canViewHistory = computed(() => canViewClosedSessions(this.session.role()))
+  readonly isAdmin = computed(() => this.session.isAdmin())
 
   /** Venta expandida en "Ventas del turno" (mo-sale-detail-list). */
   readonly expandedSaleId = signal<string | null>(null)
@@ -393,19 +467,26 @@ export class CajaPage {
     }),
   })
 
-  readonly movementsTotal = computed(() =>
-    this.movements()
-      .filter((m) => m.status === 'active')
-      .reduce((sum, m) => sum + (m.tipo === 'cash_in' ? m.amount : -m.amount), 0)
+  readonly cashTurnSummary = computed(() =>
+    computeCashTurnSummary(
+      this.openSession()?.openingAmount ?? 0,
+      this.breakdown().find((payment) => payment.metodo === 'cash')?.total ?? 0,
+      this.movements()
+    )
   )
+  readonly movementsTotal = computed(() => this.cashTurnSummary().movementsTotal)
   readonly totalSales = computed(() => this.breakdown().reduce((sum, p) => sum + p.total, 0))
+  readonly primaryPaymentSummary = computed<PaymentBreakdown[]>(() =>
+    (['cash', 'transfer'] as const).map((metodo) => {
+      const payment = this.breakdown().find((item) => item.metodo === metodo)
+      return { metodo, count: payment?.count ?? 0, total: payment?.total ?? 0 }
+    })
+  )
   readonly expectedByMethod = computed<ExpectedByMethod[]>(() =>
     this.breakdown().map((p) => ({ metodo: p.metodo, total: p.total, count: p.count }))
   )
   readonly expectedCashInDrawer = computed(() => {
-    const opening = this.openSession()?.openingAmount ?? 0
-    const cashSales = this.breakdown().find((p) => p.metodo === 'cash')?.total ?? 0
-    return opening + cashSales + this.movementsTotal()
+    return this.cashTurnSummary().expectedCashAmount
   })
 
   constructor() {
@@ -438,12 +519,14 @@ export class CajaPage {
   }
 
   salesEmptyMessage(): string {
-    return this.paymentFilter() ? 'No hay ventas con ese método de pago.' : 'Sin ventas registradas.'
+    return this.paymentFilter()
+      ? 'No hay ventas con ese método de pago.'
+      : 'Sin ventas registradas.'
   }
 
   movLabel(tipo: string): string {
     if (tipo === 'cash_in') return 'Entrada'
-    if (tipo === 'cash_out') return 'Salida'
+    if (tipo === 'cash_out') return 'Retiro'
     if (tipo === 'expense') return 'Gasto'
     if (tipo === 'correction') return 'Correccion'
     return tipo
@@ -473,13 +556,20 @@ export class CajaPage {
   async exportTurn(): Promise<void> {
     this.exporting.set(true)
     try {
-      await this.excel.download(buildTurnSalesWorkbook(this.sales(), this.movements()))
+      await this.excel.download(
+        buildTurnSalesWorkbook(this.openSession(), this.sales(), this.movements())
+      )
       this.toast.success('Turno descargado en Excel')
     } catch (error) {
       this.toast.error(getErrorMessage(error, 'No se pudo generar el archivo'))
     } finally {
       this.exporting.set(false)
     }
+  }
+
+  openMovement(tipo: CashMovementType = 'cash_in'): void {
+    this.movementInitialType.set(tipo)
+    this.movementOpen.set(true)
   }
 
   async load(): Promise<void> {
@@ -493,10 +583,16 @@ export class CajaPage {
       const session = await this.repo.getOpenSession(auth.tiendaId)
       this.openSession.set(session)
       if (!session) {
+        const suggestedOpeningAmount = await this.repo.getSuggestedOpeningAmount(auth.tiendaId)
+        this.suggestedOpeningAmount.set(suggestedOpeningAmount)
+        if (suggestedOpeningAmount !== null) {
+          this.openForm.controls.openingAmount.setValue(suggestedOpeningAmount)
+        }
         this.movements.set([])
         this.breakdown.set([])
         this.sales.set([])
       } else {
+        this.suggestedOpeningAmount.set(null)
         const [movements, breakdown, sales] = await Promise.all([
           this.repo.listMovements(session.id),
           this.repo.getPaymentBreakdown(session.id, auth.tiendaId),
@@ -529,7 +625,7 @@ export class CajaPage {
     try {
       const result = await openCashSession(
         { repo: this.repo, tiendaId: auth.tiendaId, openedBy: auth.userId },
-        { openingAmount: this.openForm.value.openingAmount ?? 0 },
+        { openingAmount: this.openForm.value.openingAmount ?? 0 }
       )
       if (!result.ok) {
         this.openError.set(result.error.message)
@@ -592,7 +688,7 @@ export class CajaPage {
     try {
       const result = await voidCashMovement(
         { repo: this.repo, tiendaId: auth.tiendaId, voidedBy: auth.userId },
-        { movementId: mov.id, reason },
+        { movementId: mov.id, reason }
       )
       if (!result.ok) {
         this.toast.error(result.error.message)

@@ -7,10 +7,30 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -234,8 +254,11 @@ export type Database = {
         Row: {
           actual_cash_amount: number | null
           actual_sales_amount: number | null
+          cash_left_amount: number | null
           closed_at: string | null
           closed_by: string | null
+          closed_by_email: string | null
+          closing_withdrawal_amount: number | null
           difference: number | null
           expected_cash_amount: number | null
           expected_sales_amount: number | null
@@ -252,8 +275,11 @@ export type Database = {
         Insert: {
           actual_cash_amount?: number | null
           actual_sales_amount?: number | null
+          cash_left_amount?: number | null
           closed_at?: string | null
           closed_by?: string | null
+          closed_by_email?: string | null
+          closing_withdrawal_amount?: number | null
           difference?: number | null
           expected_cash_amount?: number | null
           expected_sales_amount?: number | null
@@ -270,8 +296,11 @@ export type Database = {
         Update: {
           actual_cash_amount?: number | null
           actual_sales_amount?: number | null
+          cash_left_amount?: number | null
           closed_at?: string | null
           closed_by?: string | null
+          closed_by_email?: string | null
+          closing_withdrawal_amount?: number | null
           difference?: number | null
           expected_cash_amount?: number | null
           expected_sales_amount?: number | null
@@ -1031,6 +1060,90 @@ export type Database = {
           },
         ]
       }
+      product_options: {
+        Row: {
+          componente_cantidad: number
+          componente_id: string | null
+          created_at: string
+          es_default: boolean
+          grupo: string
+          id: string
+          is_active: boolean
+          nombre: string
+          orden: number
+          precio_extra: number
+          producto_id: string
+          tienda_id: string
+          updated_at: string
+        }
+        Insert: {
+          componente_cantidad?: number
+          componente_id?: string | null
+          created_at?: string
+          es_default?: boolean
+          grupo?: string
+          id?: string
+          is_active?: boolean
+          nombre: string
+          orden?: number
+          precio_extra?: number
+          producto_id: string
+          tienda_id: string
+          updated_at?: string
+        }
+        Update: {
+          componente_cantidad?: number
+          componente_id?: string | null
+          created_at?: string
+          es_default?: boolean
+          grupo?: string
+          id?: string
+          is_active?: boolean
+          nombre?: string
+          orden?: number
+          precio_extra?: number
+          producto_id?: string
+          tienda_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_options_componente_id_fkey"
+            columns: ["componente_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_options_componente_id_fkey"
+            columns: ["componente_id"]
+            isOneToOne: false
+            referencedRelation: "storefront_productos_publicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_options_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_options_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "storefront_productos_publicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_options_tienda_id_fkey"
+            columns: ["tienda_id"]
+            isOneToOne: false
+            referencedRelation: "tiendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       productos: {
         Row: {
           categoria_id: string | null
@@ -1050,14 +1163,12 @@ export type Database = {
           precio_venta: number
           proveedor_id: string | null
           recomendado_para: string | null
-          recommended_audience: string | null
           sku: string | null
           stock_minimo: number
           tienda_id: string
           tipo: Database["public"]["Enums"]["product_type"]
           unidad: string
           updated_at: string
-          usage_guidance: string | null
         }
         Insert: {
           categoria_id?: string | null
@@ -1077,14 +1188,12 @@ export type Database = {
           precio_venta: number
           proveedor_id?: string | null
           recomendado_para?: string | null
-          recommended_audience?: string | null
           sku?: string | null
           stock_minimo?: number
           tienda_id: string
           tipo?: Database["public"]["Enums"]["product_type"]
           unidad?: string
           updated_at?: string
-          usage_guidance?: string | null
         }
         Update: {
           categoria_id?: string | null
@@ -1104,14 +1213,12 @@ export type Database = {
           precio_venta?: number
           proveedor_id?: string | null
           recomendado_para?: string | null
-          recommended_audience?: string | null
           sku?: string | null
           stock_minimo?: number
           tienda_id?: string
           tipo?: Database["public"]["Enums"]["product_type"]
           unidad?: string
           updated_at?: string
-          usage_guidance?: string | null
         }
         Relationships: [
           {
@@ -1234,6 +1341,9 @@ export type Database = {
           id: string
           loyalty_discount_amount: number
           loyalty_reward_id: string | null
+          option_extra: number
+          option_id: string | null
+          option_nombre: string | null
           producto_id: string
           producto_nombre: string
           producto_sku: string | null
@@ -1242,6 +1352,7 @@ export type Database = {
           tax_amount: number
           tax_rate: number
           total: number
+          unit_cost: number | null
           unit_price: number
         }
         Insert: {
@@ -1250,6 +1361,9 @@ export type Database = {
           id?: string
           loyalty_discount_amount?: number
           loyalty_reward_id?: string | null
+          option_extra?: number
+          option_id?: string | null
+          option_nombre?: string | null
           producto_id: string
           producto_nombre: string
           producto_sku?: string | null
@@ -1258,6 +1372,7 @@ export type Database = {
           tax_amount?: number
           tax_rate?: number
           total: number
+          unit_cost?: number | null
           unit_price: number
         }
         Update: {
@@ -1266,6 +1381,9 @@ export type Database = {
           id?: string
           loyalty_discount_amount?: number
           loyalty_reward_id?: string | null
+          option_extra?: number
+          option_id?: string | null
+          option_nombre?: string | null
           producto_id?: string
           producto_nombre?: string
           producto_sku?: string | null
@@ -1274,6 +1392,7 @@ export type Database = {
           tax_amount?: number
           tax_rate?: number
           total?: number
+          unit_cost?: number | null
           unit_price?: number
         }
         Relationships: [
@@ -1282,6 +1401,13 @@ export type Database = {
             columns: ["loyalty_reward_id"]
             isOneToOne: false
             referencedRelation: "loyalty_rewards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_items_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "product_options"
             referencedColumns: ["id"]
           },
           {
@@ -1449,6 +1575,47 @@ export type Database = {
           },
         ]
       }
+      storefront_contact_settings: {
+        Row: {
+          created_at: string
+          instagram_handle: string
+          instagram_url: string
+          is_active: boolean
+          tienda_id: string
+          updated_at: string
+          whatsapp_display: string
+          whatsapp_number: string
+        }
+        Insert: {
+          created_at?: string
+          instagram_handle: string
+          instagram_url: string
+          is_active?: boolean
+          tienda_id: string
+          updated_at?: string
+          whatsapp_display: string
+          whatsapp_number: string
+        }
+        Update: {
+          created_at?: string
+          instagram_handle?: string
+          instagram_url?: string
+          is_active?: boolean
+          tienda_id?: string
+          updated_at?: string
+          whatsapp_display?: string
+          whatsapp_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "storefront_contact_settings_tienda_id_fkey"
+            columns: ["tienda_id"]
+            isOneToOne: true
+            referencedRelation: "tiendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tiendas: {
         Row: {
           ciudad: string | null
@@ -1564,9 +1731,21 @@ export type Database = {
         Args: {
           p_actual_cash: number
           p_actual_payments: Json
+          p_cash_left: number
           p_closed_by: string
           p_notas_cierre?: string
           p_session_id: string
+          p_tienda_id: string
+        }
+        Returns: string
+      }
+      correct_cash_movement_atomic: {
+        Args: {
+          p_corrected_by: string
+          p_movement_id: string
+          p_new_amount: number
+          p_new_motivo: string
+          p_reason: string
           p_tienda_id: string
         }
         Returns: string
@@ -1587,6 +1766,16 @@ export type Database = {
           p_new_metodo: Database["public"]["Enums"]["payment_method"]
           p_payment_id: string
           p_reason: string
+          p_tienda_id: string
+        }
+        Returns: undefined
+      }
+      correct_sale_customer_atomic: {
+        Args: {
+          p_cliente_id: string
+          p_corrected_by: string
+          p_reason: string
+          p_sale_id: string
           p_tienda_id: string
         }
         Returns: undefined
@@ -1615,44 +1804,41 @@ export type Database = {
         }
         Returns: string
       }
-      create_sale_atomic:
-        | {
-            Args: {
-              p_cash_session_id: string
-              p_cashier_id: string
-              p_cliente_id: string
-              p_discount_total: number
-              p_idempotency_key: string
-              p_items: Json
-              p_payments: Json
-              p_sale_number: string
-              p_subtotal: number
-              p_tax_total: number
-              p_tienda_id: string
-              p_total: number
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_cash_session_id: string
-              p_cashier_id: string
-              p_cliente_id: string
-              p_discount_reason: string
-              p_discount_total: number
-              p_global_discount_total: number
-              p_idempotency_key: string
-              p_items: Json
-              p_loyalty_redemptions?: Json
-              p_payments: Json
-              p_sale_number: string
-              p_subtotal: number
-              p_tax_total: number
-              p_tienda_id: string
-              p_total: number
-            }
-            Returns: string
-          }
+      create_sale_atomic: {
+        Args: {
+          p_cash_session_id: string
+          p_cashier_id: string
+          p_cliente_id: string
+          p_discount_reason: string
+          p_discount_total: number
+          p_global_discount_total: number
+          p_idempotency_key: string
+          p_items: Json
+          p_loyalty_redemptions?: Json
+          p_payments: Json
+          p_sale_number: string
+          p_subtotal: number
+          p_tax_total: number
+          p_tienda_id: string
+          p_total: number
+        }
+        Returns: string
+      }
+      expire_loyalty_rewards: { Args: { p_tienda_id: string }; Returns: number }
+      get_monthly_expense_totals: {
+        Args: { p_from: string; p_tienda_id: string }
+        Returns: {
+          month: string
+          total: number
+        }[]
+      }
+      get_monthly_sales_totals: {
+        Args: { p_from: string; p_tienda_id: string; p_tz?: string }
+        Returns: {
+          month: string
+          total: number
+        }[]
+      }
       get_reinvestment_fund_totals: {
         Args: {
           p_desde: string
@@ -1676,7 +1862,47 @@ export type Database = {
         }
         Returns: number
       }
+      get_stock_levels: {
+        Args: { p_tienda_id: string }
+        Returns: {
+          bodega_stock: number
+          producto_id: string
+          punto_venta_stock: number
+        }[]
+      }
       get_user_tiendas: { Args: never; Returns: string[] }
+      list_cash_history_days: {
+        Args: {
+          p_balance: string
+          p_closed_by: string
+          p_end: string
+          p_page: number
+          p_page_size: number
+          p_start: string
+          p_tienda_id: string
+        }
+        Returns: {
+          cash_total: number
+          day: string
+          expenses_total: number
+          extra_income_total: number
+          final_cash_left: number
+          notes: string[]
+          opening_amount: number
+          sales_total: number
+          total_days: number
+          transfer_total: number
+          turn_count: number
+          withdrawals_total: number
+        }[]
+      }
+      list_cash_session_closers: {
+        Args: { p_tienda_id: string }
+        Returns: {
+          email: string
+          user_id: string
+        }[]
+      }
       loyalty_apply_delta: {
         Args: {
           p_cliente_id: string
@@ -1746,6 +1972,17 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      storefront_club_progress: {
+        Args: { p_celular: string }
+        Returns: {
+          primer_nombre: string
+          proxima_expiracion: string
+          recompensa_valor_cop: number
+          recompensas_disponibles: number
+          sellos_para_recompensa: number
+          stamps_balance: number
+        }[]
+      }
       transfer_stock_atomic: {
         Args: {
           p_cantidad: number
@@ -1812,7 +2049,7 @@ export type Database = {
         | "adjustment"
         | "expire"
       payment_method: "cash" | "card" | "transfer" | "other"
-      product_type: "simple" | "prepared" | "ingredient"
+      product_type: "simple" | "prepared" | "ingredient" | "combo"
       sale_status: "completed" | "voided"
       user_role: "admin" | "cajero"
     }
@@ -1940,6 +2177,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       billing_doc_status: [
@@ -1980,7 +2220,7 @@ export const Constants = {
         "expire",
       ],
       payment_method: ["cash", "card", "transfer", "other"],
-      product_type: ["simple", "prepared", "ingredient"],
+      product_type: ["simple", "prepared", "ingredient", "combo"],
       sale_status: ["completed", "voided"],
       user_role: ["admin", "cajero"],
     },

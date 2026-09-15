@@ -1,10 +1,45 @@
 import { describe, expect, it } from 'vitest'
 import {
   CASH_DIFFERENCE_THRESHOLD,
+  computeCashTurnSummary,
+  computeClosingWithdrawal,
   computeMethodDifference,
   exceedsThreshold,
   isBalanced,
 } from '@angular-app/features/cash-register/domain/services/cash-closure'
+
+describe('computeCashTurnSummary', () => {
+  it('separa los movimientos activos y calcula el efectivo esperado', () => {
+    const summary = computeCashTurnSummary(100_000, 250_000, [
+      { tipo: 'cash_in', amount: 30_000, status: 'active' },
+      { tipo: 'expense', amount: 10_000, status: 'active' },
+      { tipo: 'cash_out', amount: 40_000, status: 'active' },
+      { tipo: 'correction', amount: 5_000, status: 'active' },
+      { tipo: 'cash_in', amount: 999_000, status: 'voided' },
+    ])
+
+    expect(summary).toEqual({
+      openingAmount: 100_000,
+      cashSalesAmount: 250_000,
+      cashInAmount: 30_000,
+      expenseAmount: 10_000,
+      cashOutAmount: 40_000,
+      correctionAmount: 5_000,
+      movementsTotal: -25_000,
+      expectedCashAmount: 325_000,
+    })
+  })
+})
+
+describe('computeClosingWithdrawal', () => {
+  it('calcula el retiro como efectivo contado menos efectivo dejado', () => {
+    expect(computeClosingWithdrawal(480_000, 150_000)).toBe(330_000)
+  })
+
+  it('devuelve cero cuando todo el efectivo contado queda en caja', () => {
+    expect(computeClosingWithdrawal(150_000, 150_000)).toBe(0)
+  })
+})
 
 describe('computeMethodDifference', () => {
   it('devuelve 0 cuando el conteo coincide con lo esperado', () => {

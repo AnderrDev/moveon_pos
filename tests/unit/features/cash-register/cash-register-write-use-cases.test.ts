@@ -16,10 +16,13 @@ const session: CashSession = {
   tiendaId,
   openedBy: 'user-1',
   closedBy: null,
+  closedByEmail: null,
   status: 'open',
   openingAmount: 50_000,
   expectedCashAmount: null,
   actualCashAmount: null,
+  closingWithdrawalAmount: null,
+  cashLeftAmount: null,
   difference: null,
   expectedSalesAmount: null,
   actualSalesAmount: null,
@@ -132,7 +135,12 @@ describe('closeCashSession', () => {
     }
     const result = await closeCashSession(
       { repo, sessionId, tiendaId, closedBy: 'user-1' },
-      { actualCashAmount: 50_000, actualTransferAmount: 15_000, notasCierre: 'Todo cuadrado' },
+      {
+        actualCashAmount: 50_000,
+        cashLeftAmount: 20_000,
+        actualTransferAmount: 15_000,
+        notasCierre: 'Todo cuadrado',
+      },
     )
     expect(result).toEqual({ ok: true, value: session })
     expect(received).toEqual({
@@ -140,6 +148,7 @@ describe('closeCashSession', () => {
       tiendaId,
       closedBy: 'user-1',
       actualCashAmount: 50_000,
+      cashLeftAmount: 20_000,
       actualPayments: [
         { metodo: 'card', total: 0 },
         { metodo: 'transfer', total: 15_000 },
@@ -154,7 +163,18 @@ describe('closeCashSession', () => {
     const repo = { closeSession: async () => { called = true; return session } }
     const result = await closeCashSession(
       { repo, sessionId, tiendaId, closedBy: 'user-1' },
-      { actualCashAmount: -1 },
+      { actualCashAmount: -1, cashLeftAmount: 0 },
+    )
+    expect(result.ok).toBe(false)
+    expect(called).toBe(false)
+  })
+
+  it('rechaza efectivo dejado mayor al contado sin llamar al repositorio', async () => {
+    let called = false
+    const repo = { closeSession: async () => { called = true; return session } }
+    const result = await closeCashSession(
+      { repo, sessionId, tiendaId, closedBy: 'user-1' },
+      { actualCashAmount: 50_000, cashLeftAmount: 50_001 },
     )
     expect(result.ok).toBe(false)
     expect(called).toBe(false)

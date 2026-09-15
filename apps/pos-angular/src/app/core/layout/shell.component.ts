@@ -45,6 +45,7 @@ interface NavItem {
             <a
               [routerLink]="item.href"
               routerLinkActive="bg-primary text-white shadow-sm"
+              [routerLinkActiveOptions]="{ exact: item.href === '/caja' }"
               class="group text-sidebar-fg hover:bg-sidebar-hover flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 hover:text-white"
             >
               <span class="border-sidebar-muted/30 h-2.5 w-2.5 rounded-full border"></span>
@@ -92,6 +93,7 @@ interface NavItem {
             <a
               [routerLink]="item.href"
               routerLinkActive="bg-primary text-white"
+              [routerLinkActiveOptions]="{ exact: item.href === '/caja' }"
               class="text-sidebar-muted hover:bg-sidebar-hover flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-lg px-1 text-[10px] font-semibold transition-colors hover:text-white"
             >
               <span class="h-1.5 w-1.5 rounded-full border border-current"></span>
@@ -114,6 +116,7 @@ export class ShellComponent {
     { label: 'Productos', short: 'Prod', href: '/productos', adminOnly: true },
     { label: 'Inventario', short: 'Inv', href: '/inventario', adminOnly: true },
     { label: 'Caja', short: 'Caja', href: '/caja' },
+    { label: 'Historial de caja', short: 'Hist', href: '/caja/historial', adminOnly: true },
     { label: 'Clientes', short: 'Cli', href: '/clientes' },
     { label: 'Reportes', short: 'Rep', href: '/reportes', adminOnly: true },
     { label: 'Finanzas', short: 'Fin', href: '/finanzas', adminOnly: true },

@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test'
 
+const baseURL = process.env['E2E_BASE_URL'] ?? 'http://localhost:4200'
+const browserChannel = process.env['E2E_BROWSER_CHANNEL']
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
@@ -8,18 +11,18 @@ export default defineConfig({
   workers: process.env['CI'] ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:4200',
+    baseURL,
     trace: 'on-first-retry',
   },
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Chrome'], channel: browserChannel },
     },
   ],
   webServer: {
     command: 'pnpm dev',
-    url: 'http://localhost:4200',
+    url: baseURL,
     reuseExistingServer: !process.env['CI'],
   },
 })

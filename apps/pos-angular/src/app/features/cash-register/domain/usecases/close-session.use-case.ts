@@ -41,6 +41,7 @@ export async function closeCashSession(
     tiendaId: deps.tiendaId,
     closedBy: deps.closedBy,
     actualCashAmount: parsed.data.actualCashAmount,
+    cashLeftAmount: parsed.data.cashLeftAmount,
     actualPayments,
     notasCierre: parsed.data.notasCierre,
   })

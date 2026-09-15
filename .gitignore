@@ -45,6 +45,9 @@ yarn-error.log*
 # local development server
 .codex-dev-server.*
 
+# isolated agent worktrees
+/.worktrees/
+
 # typescript
 *.tsbuildinfo
 

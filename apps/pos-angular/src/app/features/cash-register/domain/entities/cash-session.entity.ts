@@ -11,10 +11,13 @@ export interface CashSession {
   tiendaId: TiendaId
   openedBy: UserId
   closedBy: UserId | null
+  closedByEmail: string | null
   status: CashSessionStatus
   openingAmount: number
   expectedCashAmount: number | null
   actualCashAmount: number | null
+  closingWithdrawalAmount: number | null
+  cashLeftAmount: number | null
   difference: number | null
   expectedSalesAmount: number | null
   actualSalesAmount: number | null

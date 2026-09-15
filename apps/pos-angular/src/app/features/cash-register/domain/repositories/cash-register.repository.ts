@@ -1,5 +1,6 @@
 import type { CashMovement, CashSession } from '@angular-app/features/cash-register/domain/entities/cash-session.entity'
 import type { CashMovementType, PaymentMethod } from '@/shared/types'
+import type { CashHistoryQuery, CashHistoryPage, CashHistoryDaysPage, CashCloser } from '../services/cash-history'
 
 export interface PaymentBreakdown {
   metodo: string
@@ -33,6 +34,7 @@ export interface CloseSessionInput {
   tiendaId: string
   closedBy: string
   actualCashAmount: number
+  cashLeftAmount: number
   actualPayments: { metodo: PaymentMethod; total: number }[]
   notasCierre?: string
 }
@@ -64,7 +66,11 @@ export interface CorrectOpeningInput {
  * la implementación en producción.
  */
 export abstract class CashRegisterRepository {
+  abstract listHistoryDays(input: CashHistoryQuery): Promise<CashHistoryDaysPage>
+  abstract listClosedSessionsPage(input: CashHistoryQuery): Promise<CashHistoryPage>
+  abstract listCashClosers(tiendaId: string): Promise<CashCloser[]>
   abstract getOpenSession(tiendaId: string): Promise<CashSession | null>
+  abstract getSuggestedOpeningAmount(tiendaId: string): Promise<number | null>
   abstract getSessionById(id: string, tiendaId: string): Promise<CashSession | null>
   abstract listSessions(tiendaId: string, limit?: number): Promise<CashSession[]>
   abstract listSessionsByDateRange(tiendaId: string, start: Date, end: Date): Promise<CashSession[]>

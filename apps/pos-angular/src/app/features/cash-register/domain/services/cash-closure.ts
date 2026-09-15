@@ -24,6 +24,58 @@
  */
 export const CASH_DIFFERENCE_THRESHOLD = 5000
 
+/** Efectivo separado después de contar el cajón y antes de finalizar el cierre. */
+export function computeClosingWithdrawal(actualCashAmount: number, cashLeftAmount: number): number {
+  return actualCashAmount - cashLeftAmount
+}
+
+export interface CashTurnMovement {
+  tipo: 'cash_in' | 'cash_out' | 'expense' | 'correction'
+  amount: number
+  status: 'active' | 'voided'
+}
+
+export interface CashTurnSummary {
+  openingAmount: number
+  cashSalesAmount: number
+  cashInAmount: number
+  expenseAmount: number
+  cashOutAmount: number
+  correctionAmount: number
+  movementsTotal: number
+  expectedCashAmount: number
+}
+
+/** Desglose auditable del efectivo que debería existir físicamente en el cajón. */
+export function computeCashTurnSummary(
+  openingAmount: number,
+  cashSalesAmount: number,
+  movements: CashTurnMovement[]
+): CashTurnSummary {
+  const active = movements.filter((movement) => movement.status === 'active')
+  const totalFor = (tipo: CashTurnMovement['tipo']): number =>
+    active
+      .filter((movement) => movement.tipo === tipo)
+      .reduce((total, movement) => total + movement.amount, 0)
+
+  const cashInAmount = totalFor('cash_in')
+  const expenseAmount = totalFor('expense')
+  const cashOutAmount = totalFor('cash_out')
+  const correctionAmount = totalFor('correction')
+  const movementsTotal = cashInAmount - expenseAmount - cashOutAmount - correctionAmount
+
+  return {
+    openingAmount,
+    cashSalesAmount,
+    cashInAmount,
+    expenseAmount,
+    cashOutAmount,
+    correctionAmount,
+    movementsTotal,
+    expectedCashAmount: openingAmount + cashSalesAmount + movementsTotal,
+  }
+}
+
 /**
  * Live, UI-facing difference for a single payment method.
  *
@@ -51,7 +103,7 @@ export function isBalanced(difference: number): boolean {
  */
 export function exceedsThreshold(
   difference: number,
-  threshold = CASH_DIFFERENCE_THRESHOLD,
+  threshold = CASH_DIFFERENCE_THRESHOLD
 ): boolean {
   return Math.abs(difference) > threshold
 }
