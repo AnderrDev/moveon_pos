@@ -257,6 +257,7 @@ export type Database = {
           cash_left_amount: number | null
           closed_at: string | null
           closed_by: string | null
+          closed_by_email: string | null
           closing_withdrawal_amount: number | null
           difference: number | null
           expected_cash_amount: number | null
@@ -277,6 +278,7 @@ export type Database = {
           cash_left_amount?: number | null
           closed_at?: string | null
           closed_by?: string | null
+          closed_by_email?: string | null
           closing_withdrawal_amount?: number | null
           difference?: number | null
           expected_cash_amount?: number | null
@@ -297,6 +299,7 @@ export type Database = {
           cash_left_amount?: number | null
           closed_at?: string | null
           closed_by?: string | null
+          closed_by_email?: string | null
           closing_withdrawal_amount?: number | null
           difference?: number | null
           expected_cash_amount?: number | null
@@ -1868,6 +1871,13 @@ export type Database = {
         }[]
       }
       get_user_tiendas: { Args: never; Returns: string[] }
+      list_cash_session_closers: {
+        Args: { p_tienda_id: string }
+        Returns: {
+          email: string
+          user_id: string
+        }[]
+      }
       loyalty_apply_delta: {
         Args: {
           p_cliente_id: string
