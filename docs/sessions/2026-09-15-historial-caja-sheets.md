@@ -8,7 +8,7 @@
 | Sprint | Mantenimiento post-MVP |
 | Agente | Codex |
 | HUs trabajadas | Mejora operativa de Caja |
-| Estado | Migraciones aplicadas a producción; frontend en publicación |
+| Estado | Desplegado y verificado en producción |
 
 ## 1. Objetivo de la sesión
 
@@ -56,10 +56,12 @@ Despliegue de producción autorizado el 2026-09-15. Debido al drift histórico d
 
 El primer CI del push falló en tres aserciones antiguas de `formatTime`: el runner UTC produjo 20:04 para un instante con offset colombiano y las pruebas exigían 15:04. La función está diseñada para zona local del navegador; se corrigieron solo los fixtures para construir 15:04 local y hacer la prueba independiente de la zona del runner.
 
+CI corregido `35052143380` completo: typecheck, lint, cobertura, tests y build. El sitio POS no estaba conectado al checkout Git usado por CLI (el vínculo local correspondía a `moveon-catalogo-web`), por lo que se publicó el build verificado directamente en el site ID de `moveon-client`, deploy `6aaa0e8bb4db7ac6660242f1`. Smoke público: `main-O47QWBBF.js`, `/caja/historial` resuelve por SPA, runtime `production` apunta al proyecto Supabase POS y el RPC diario devuelve `401 permission denied` para `anon`, como exige su grant.
+
 ## 7. Próximos pasos
 
-1. Confirmar el build de Netlify después del push a `origin/main`.
-2. Validar login, `/caja` y `/caja/historial` en producción.
+1. Validar con sesión admin real `/caja` y `/caja/historial` durante el uso operativo.
+2. Corregir posteriormente el vínculo Git/Netlify del sitio POS para recuperar despliegues automáticos desde `main`.
 
 ## 8. Notas
 
