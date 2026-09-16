@@ -54,6 +54,8 @@ Integración realizada en commit 836db54, desde rama codex/caja-retiro-cierre (7
 
 Despliegue de producción autorizado el 2026-09-15. Debido al drift histórico documentado, no se usó `db push` contra el árbol completo: una simulación en staging temporal confirmó únicamente tres migraciones posteriores al último remoto. Aplicadas y verificadas en el historial remoto: `20260913184519_cash_closing_withdrawal`, `20260915035907_cash_history_responsibility` y `20260915154437_cash_history_daily`. El staging reconoció versiones remotas equivalentes sin reparar ni alterar el historial antiguo.
 
+El primer CI del push falló en tres aserciones antiguas de `formatTime`: el runner UTC produjo 20:04 para un instante con offset colombiano y las pruebas exigían 15:04. La función está diseñada para zona local del navegador; se corrigieron solo los fixtures para construir 15:04 local y hacer la prueba independiente de la zona del runner.
+
 ## 7. Próximos pasos
 
 1. Confirmar el build de Netlify después del push a `origin/main`.
