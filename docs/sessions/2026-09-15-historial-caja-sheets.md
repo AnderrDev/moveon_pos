@@ -8,7 +8,7 @@
 | Sprint | Mantenimiento post-MVP |
 | Agente | Codex |
 | HUs trabajadas | Mejora operativa de Caja |
-| Estado | Integrado y verificado en main local |
+| Estado | Migraciones aplicadas a producción; frontend en publicación |
 
 ## 1. Objetivo de la sesión
 
@@ -52,10 +52,12 @@ Integración a main autorizada por el usuario. No se autoriza despliegue ni apli
 
 Integración realizada en commit 836db54, desde rama codex/caja-retiro-cierre (76e4960), sin conflictos. Resultado main verificado: 723 pruebas unitarias, lint, tsc y build Angular correctos. El hook de typecheck requirió configuración local; se ejecutaron sus mismos pasos tsc/build con runtime local, sin copiar secretos. Checkout dev con cambios ajenos intacto. main local no publicado al remoto. Worktrees conservados porque sirven la prueba local y las dependencias de verificación.
 
+Despliegue de producción autorizado el 2026-09-15. Debido al drift histórico documentado, no se usó `db push` contra el árbol completo: una simulación en staging temporal confirmó únicamente tres migraciones posteriores al último remoto. Aplicadas y verificadas en el historial remoto: `20260913184519_cash_closing_withdrawal`, `20260915035907_cash_history_responsibility` y `20260915154437_cash_history_daily`. El staging reconoció versiones remotas equivalentes sin reparar ni alterar el historial antiguo.
+
 ## 7. Próximos pasos
 
-1. Publicar main al remoto cuando se solicite.
-2. Aplicar migrations y desplegar únicamente con autorización de producción.
+1. Confirmar el build de Netlify después del push a `origin/main`.
+2. Validar login, `/caja` y `/caja/historial` en producción.
 
 ## 8. Notas
 
