@@ -1,3 +1,4 @@
+import { canAdjustLoyaltyStamps } from '@angular-app/core/auth/role-policy'
 import {
   ChangeDetectionStrategy,
   Component,
@@ -61,7 +62,7 @@ const TYPE_LABELS: Record<LoyaltyTransactionType, string> = {
 
 /**
  * Ficha MOVE ON Club del cliente (PLAN-57 + PLAN-58): progreso, recompensas
- * vigentes, historial cronológico del ledger y — solo admin — ajuste manual
+ * vigentes, historial cronológico del ledger y — admin y cajero — ajuste manual
  * de sellos (RN-LF16).
  */
 @Component({
@@ -198,8 +199,8 @@ const TYPE_LABELS: Record<LoyaltyTransactionType, string> = {
             </div>
           }
 
-          <!-- Ajuste manual (solo admin, PLAN-58) -->
-          @if (isAdmin()) {
+          <!-- Ajuste manual (admin y cajero, RN-LF16) -->
+          @if (canAdjust()) {
             <form
               [formGroup]="adjustForm"
               (ngSubmit)="submitAdjust()"
@@ -329,7 +330,7 @@ export class ClienteLoyaltyDialog {
   readonly config = signal<LoyaltyConfig>(DEFAULT_LOYALTY_CONFIG)
   readonly adjusting = signal(false)
   readonly adjustErrors = signal<Partial<Record<'delta' | 'reason' | 'root', string>>>({})
-  readonly isAdmin = this.session.isAdmin
+  readonly canAdjust = computed(() => canAdjustLoyaltyStamps(this.session.role()))
 
   readonly adjustForm = new FormGroup({
     delta: new FormControl<number | null>(null),
@@ -434,7 +435,7 @@ export class ClienteLoyaltyDialog {
   }
 
   async submitAdjust(): Promise<void> {
-    if (this.adjusting()) return
+    if (this.adjusting() || !this.canAdjust()) return
     this.adjustForm.markAllAsTouched()
 
     const raw = this.adjustForm.getRawValue()

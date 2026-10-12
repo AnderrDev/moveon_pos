@@ -8,10 +8,10 @@ export interface AdjustStampsDeps {
 }
 
 /**
- * Ajuste manual admin-only de sellos (RN-LF16). Sin validación de forma
+ * Ajuste manual para admin y cajero de sellos (RN-LF16). Sin validación de forma
  * propia — `adjustStampsFormSchema` (presentation/forms) ya es la fuente
  * única de validación del formulario y el RPC `adjust_loyalty_stamps`
- * re-valida en servidor (admin, motivo ≥ 3, delta ≠ 0). Seam delgado que
+ * re-valida en servidor (rol y tienda, motivo ≥ 3, delta ≠ 0). Seam delgado que
  * delega en el repositorio; los fallos se propagan como `throw`.
  */
 export function adjustStamps(deps: AdjustStampsDeps, input: AdjustStampsInput): Promise<number> {

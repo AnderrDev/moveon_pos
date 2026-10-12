@@ -172,7 +172,7 @@ Los RPC leen esta config al momento de otorgar/generar — no hay valores hardco
   cliente Angular. RLS de `loyalty_accounts` / `loyalty_transactions` / `loyalty_rewards` es
   **solo `SELECT`** para usuarios autenticados de su tienda; toda mutación pasa por RPC
   `SECURITY DEFINER`.
-- **RN-LF16:** Ajustes manuales (`adjust_loyalty_stamps`) son admin-only, exigen motivo ≥ 3
+- **RN-LF16:** Ajustes manuales (`adjust_loyalty_stamps`) están permitidos para admin y cajero activos de la misma tienda, exigen motivo ≥ 3
   caracteres, y quedan en el ledger como `type = 'adjustment'` con `created_by`.
 
 ## Use cases
@@ -180,7 +180,7 @@ Los RPC leen esta config al momento de otorgar/generar — no hay valores hardco
 - `GetLoyaltyProgressUseCase(clienteId)` → `{ stampsBalance, stampsToNextReward, availableRewards }`.
 - `ListLoyaltyHistoryUseCase(clienteId, filters)` → ledger + recompensas paginado (acumulaciones,
   redenciones, anulaciones, ajustes en una sola vista cronológica).
-- `AdjustLoyaltyStampsUseCase` (admin) → invoca `adjust_loyalty_stamps`.
+- `AdjustLoyaltyStampsUseCase` (admin y cajero) → invoca `adjust_loyalty_stamps`.
 - La acumulación y redención **no** tienen use-case propio de escritura del lado Angular más
   allá de invocar el RPC extendido de `sales` (`CreateSaleUseCase` ya existente, con payload
   ampliado) — se evita duplicar la orquestación transaccional fuera de la RPC.
@@ -267,7 +267,7 @@ create table loyalty_rewards (
 | `register_loyalty_stamps(sale_id)` | Dentro de `create_sale_atomic` | Suma líneas elegibles, inserta `earn`, actualiza `loyalty_accounts`, genera recompensas nuevas (RN-LF07) |
 | `redeem_loyalty_reward(reward_id, sale_item_id)` | Dentro de `create_sale_atomic`, si el payload trae `loyaltyRedemptions` | Valida y marca `redeemed`, aplica descuento dirigido a la línea |
 | `reverse_loyalty_stamps(sale_id)` | Dentro del flujo de anulación de venta | Inserta `void`, trunca en 0 si aplica (RN-LF14) |
-| `adjust_loyalty_stamps(cliente_id, delta, reason)` | UI admin | Ajuste manual auditado (RN-LF16) |
+| `adjust_loyalty_stamps(cliente_id, delta, reason)` | UI admin y cajero | Ajuste manual auditado (RN-LF16) |
 
 ## RLS
 
@@ -295,7 +295,7 @@ create policy "read_own_tienda_loyalty_accounts" on loyalty_accounts
   cajero, muestra la diferencia a cobrar si el batido supera `valorRecompensaCop`.
 - Diálogo "Club" en `/clientes` (`features/loyalty/presentation/dialogs/cliente-loyalty.dialog.ts`,
   PLAN-57/58): resumen (saldo, progreso X/N, recompensas vigentes), ledger cronológico
-  (acumulaciones, redenciones, anulaciones, ajustes, vencimientos) y — solo admin — ajuste manual
+  (acumulaciones, redenciones, anulaciones, ajustes, vencimientos) y — admin y cajero — ajuste manual
   de sellos con motivo obligatorio (schema Zod en
   `features/loyalty/presentation/forms/adjust-stamps-form.factory.ts`).
 - Directorio `/clientes`: proyección paginada de saldo y recompensas vigentes para mostrar el

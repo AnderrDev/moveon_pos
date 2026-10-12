@@ -44,6 +44,6 @@ export abstract class LoyaltyRepository {
   ): Promise<LoyaltyTransaction[]>
   /** Barrido de vencimiento (RN-LF09): marca `expired` las recompensas vencidas. Devuelve cuántas marcó. */
   abstract expireRewards(tiendaId: string): Promise<number>
-  /** Ajuste manual admin-only (RN-LF16). Devuelve el nuevo saldo. */
+  /** Ajuste manual para admin y cajero (RN-LF16). Devuelve el nuevo saldo. */
   abstract adjustStamps(input: AdjustStampsInput): Promise<number>
 }

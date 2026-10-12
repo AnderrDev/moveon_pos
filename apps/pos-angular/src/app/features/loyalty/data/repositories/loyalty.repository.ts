@@ -1,3 +1,5 @@
+import { SessionService } from '@angular-app/core/auth/session.service'
+import { canAdjustLoyaltyStamps } from '@angular-app/core/auth/role-policy'
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
 import { fetchAllPages } from '@angular-app/core/supabase/fetch-all-pages'
@@ -148,6 +150,7 @@ interface LoyaltyDbClient {
 
 @Injectable({ providedIn: 'root' })
 export class LoyaltyRepository extends LoyaltyRepositoryContract {
+  private readonly session = inject(SessionService)
   private readonly supabaseClient = inject(SupabaseClientService)
 
   private get db(): LoyaltyDbClient {
@@ -266,8 +269,12 @@ export class LoyaltyRepository extends LoyaltyRepositoryContract {
     return data ?? 0
   }
 
-  /** Ajuste manual admin-only (RN-LF16). Devuelve el nuevo saldo. */
+  /** Ajuste manual para admin y cajero (RN-LF16). Devuelve el nuevo saldo. */
   async adjustStamps(input: AdjustStampsInput): Promise<number> {
+    const auth = await this.session.getAuthContext()
+    if (!auth || !canAdjustLoyaltyStamps(auth.rol) || auth.tiendaId !== input.tiendaId || auth.userId !== input.createdBy) {
+      throw new Error('No autorizado para ajustar sellos en esta tienda')
+    }
     const rpcClient = this.supabaseClient.supabase as unknown as RpcClient
     const { data, error } = await rpcClient.rpc<number>('adjust_loyalty_stamps', {
       p_tienda_id: input.tiendaId,

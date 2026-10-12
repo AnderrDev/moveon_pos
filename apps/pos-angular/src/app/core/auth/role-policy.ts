@@ -70,3 +70,8 @@ export function canCorrectCashSessionOpening(rol: Role | null): boolean {
 export function canViewClosedSessions(rol: Role | null): boolean {
   return rol === 'admin'
 }
+
+/** Ajustes auditados de sellos dentro de la tienda del usuario (RN-LF16). */
+export function canAdjustLoyaltyStamps(rol: Role | null): boolean {
+  return rol === 'admin' || rol === 'cajero'
+}

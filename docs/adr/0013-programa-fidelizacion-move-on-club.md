@@ -49,7 +49,7 @@ lugar:
     redenciones como parte del payload de la venta (evita reservar una recompensa fuera de una
     transacción atómica).
   - `reverse_loyalty_stamps` — se invoca dentro del flujo de anulación de venta existente.
-  - `adjust_loyalty_stamps` — admin-only, motivo obligatorio, para correcciones manuales.
+  - `adjust_loyalty_stamps` — admin y cajero activos de la misma tienda (ampliado por el dueño el 2026-10-09), motivo obligatorio, para correcciones manuales.
 - Esto es una extensión directa del principio arquitectónico ya vigente: "las escrituras
   críticas no se hacen con múltiples inserts desde componentes Angular: deben ir a RPC
   transaccional" (`02-architecture.md` §4.1).
