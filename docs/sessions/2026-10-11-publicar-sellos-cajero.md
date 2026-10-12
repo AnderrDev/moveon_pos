@@ -8,7 +8,7 @@
 | Sprint | Mantenimiento |
 | Agente | Codex |
 | HUs trabajadas | RN-LF16 |
-| Estado | Publicación en progreso |
+| Estado | Publicado y verificado |
 
 ## Objetivo
 
@@ -26,4 +26,8 @@ Sobre el árbol exacto de producción: typecheck, lint, 724 pruebas (83 archivos
 
 ## Próximos pasos
 
-Enviar commit a main, publicar build y verificar archivos servidos por producción.
+Validar durante la operación con una sesión cajero real. Publicación terminada.
+
+## Resultado de publicación
+
+Commit 30bc661 enviado a origin/main. Netlify deploy 6acc61b521f9d0dc98a82520 publicado en https://moveon-client.netlify.app. Smoke HTTP: /clientes 200; main-ESSGCBLY.js y chunk-EGXQHFP5.js idénticos por SHA-256 al build local; runtime production apunta al Supabase POS. No se hicieron ajustes sobre clientes reales para probar el frontend. La prueba transaccional previa del RPC pasó sin persistir datos de prueba.
