@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(8);
+select plan(10);
 
 do $$
 declare
@@ -81,9 +81,12 @@ select results_eq(
   'guarda el desglose completo del descuento'
 );
 
+-- La base calcula el IVA con centavos (round(…, 2)); el frontend lo redondea a
+-- pesos (sale-calculator.ts). Pendiente de decisión del dueño: ver spec
+-- 2026-10-24 §23. Esta prueba fija el comportamiento actual de la base.
 select results_eq(
   $$ select total, tax_total from public.sales where idempotency_key = 'discount-admin-sale' $$,
-  $$ values (100000::numeric, 15966::numeric) $$,
+  $$ values (100000::numeric, 15966.39::numeric) $$,
   'recalcula total e IVA después del descuento global'
 );
 
@@ -117,6 +120,37 @@ select set_config(
   true
 );
 
+-- RN-S09 (rev. 2026-08-02, 20260802125014_allow_full_discount): sin tope por
+-- rol. El cajero puede dar más del 50% con motivo; no queda firmado como
+-- aprobación de admin. El límite es estructural (≤ precio / ≤ total).
+select isnt(
+  public.create_sale_atomic(
+    'd1111111-1111-1111-1111-111111111111',
+    'd3333333-3333-3333-3333-333333333333',
+    '',
+    'd2222222-2222-2222-2222-222222222223',
+    null,
+    119000, 65000, 0, 54000,
+    'discount-cashier-sale',
+    jsonb_build_array(jsonb_build_object(
+      'producto_id', 'd5555555-5555-5555-5555-555555555555',
+      'quantity', 1,
+      'discount_amount', 65000
+    )),
+    jsonb_build_array(jsonb_build_object('metodo', 'cash', 'amount', 54000)),
+    0,
+    'Descuento de cajero'
+  )::text,
+  '',
+  'el cajero puede dar un descuento mayor al 50% con motivo'
+);
+
+select is(
+  (select discount_approved_by from public.sales where idempotency_key = 'discount-cashier-sale'),
+  null,
+  'el descuento del cajero no queda firmado como aprobación de admin'
+);
+
 select throws_ok(
   $$
     select public.create_sale_atomic(
@@ -125,20 +159,20 @@ select throws_ok(
       '',
       'd2222222-2222-2222-2222-222222222223',
       null,
-      119000, 65000, 0, 54000,
-      'discount-cashier-sale',
+      119000, 120000, 0, 0,
+      'discount-cashier-over',
       jsonb_build_array(jsonb_build_object(
         'producto_id', 'd5555555-5555-5555-5555-555555555555',
         'quantity', 1,
-        'discount_amount', 65000
+        'discount_amount', 0
       )),
-      jsonb_build_array(jsonb_build_object('metodo', 'cash', 'amount', 119000)),
-      0,
-      'Descuento de cajero'
+      '[]'::jsonb,
+      120000,
+      'Descuento excesivo'
     )
   $$,
-  'Descuentos mayores al 50% requieren aprobación de admin',
-  'el cajero no puede superar el umbral del 50%'
+  'El descuento global no puede superar el total disponible',
+  'nadie puede descontar más que el total de la venta'
 );
 
 select * from finish();

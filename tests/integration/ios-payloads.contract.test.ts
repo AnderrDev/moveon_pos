@@ -17,6 +17,7 @@ const PRODUCTO = randomUUID()
 /** Producto con 20 en bodega para el ajuste y el traslado. */
 const CON_STOCK = randomUUID()
 const CATEGORIA = randomUUID()
+const VENTA = randomUUID()
 
 /** Fixtures con caso en este archivo. Uno nuevo sin caso hace fallar el primer test. */
 const COVERED = [
@@ -25,21 +26,34 @@ const COVERED = [
   'audit_log_product_create',
   'audit_log_product_update',
   'audit_log_transfer',
+  'audit_log_void_sale',
   'create_product',
   'register_inventory_entry',
   'transfer_stock',
   'update_product',
+  'void_sale',
 ]
 
 const SEED_SQL = `
+  begin;
   insert into public.tiendas (id, nombre, timezone) values (:'tienda', 'Paridad payloads iOS', 'America/Bogota');
   insert into public.user_tiendas (user_id, tienda_id, rol, is_active) values (:'admin', :'tienda', 'admin', true);
   insert into public.productos (id, tienda_id, nombre, tipo, precio_venta, costo, iva_tasa, stock_minimo, is_active)
     values (:'producto', :'tienda', 'Proteína contrato', 'simple', 100000, 60000, 0, 0, true),
            (:'con_stock', :'tienda', 'Creatina contrato', 'simple', 80000, 40000, 0, 0, true);
+  insert into public.cash_sessions (tienda_id, opened_by, opening_amount, status) values (:'tienda', :'admin', 0, 'open');
+  -- El trigger sales_enforce_cashier_identity exige que el cajero sea el usuario de la sesión.
+  select set_config('request.jwt.claim.sub', :'admin', true);
+  insert into public.sales (id, tienda_id, cash_session_id, sale_number, cashier_id, subtotal, total, idempotency_key)
+    select :'venta', :'tienda', id, 'IOS-ANULAR-1', :'admin', 160000, 160000, 'ios-anular-' || :'tienda'
+    from public.cash_sessions where tienda_id = :'tienda';
+  insert into public.sale_items (sale_id, producto_id, producto_nombre, quantity, unit_price, unit_cost, total)
+    values (:'venta', :'con_stock', 'Creatina contrato', 2, 80000, 40000, 160000);
+  insert into public.payments (sale_id, metodo, amount) values (:'venta', 'cash', 160000);
   insert into public.categorias (id, tienda_id, nombre, orden, is_active) values (:'categoria', :'tienda', 'Creatinas', 0, true);
   insert into public.inventory_movements (tienda_id, producto_id, tipo, cantidad, ubicacion, motivo, created_by)
     values (:'tienda', :'con_stock', 'entry', 20, 'bodega', 'Inventario inicial', :'admin');
+  commit;
 `
 
 async function levelOf(client: SupabaseClient, productId: string): Promise<{ punto_venta_stock: number; bodega_stock: number }> {
@@ -48,7 +62,7 @@ async function levelOf(client: SupabaseClient, productId: string): Promise<{ pun
   return { punto_venta_stock: Number(level?.punto_venta_stock ?? 0), bodega_stock: Number(level?.bodega_stock ?? 0) }
 }
 
-async function send(client: SupabaseClient, fixture: IosPayload): Promise<{ data: unknown; error: unknown }> {
+async function send(client: SupabaseClient, fixture: IosPayload): Promise<{ data: unknown; error: { code?: string; message?: string } | null }> {
   if (fixture.kind === 'rpc') return client.rpc(fixture.target, fixture.payload)
   if (fixture.kind === 'update') {
     return client.from(fixture.target).update(fixture.payload).match(fixture.match ?? {}).select().single()
@@ -66,7 +80,7 @@ describe('payloads de escritura de la app iOS contra el Supabase local', () => {
     stack = localStack()
     ;[adminId] = await createUsers(stack, [adminEmail])
     psql(stack, CLEANUP_SQL)
-    psql(stack, SEED_SQL, { tienda: TIENDA, admin: adminId, producto: PRODUCTO, con_stock: CON_STOCK, categoria: CATEGORIA })
+    psql(stack, SEED_SQL, { tienda: TIENDA, admin: adminId, producto: PRODUCTO, con_stock: CON_STOCK, categoria: CATEGORIA, venta: VENTA })
     admin = await signIn(stack, adminEmail)
   })
 
@@ -199,7 +213,21 @@ describe('payloads de escritura de la app iOS contra el Supabase local', () => {
     expect((await priceAudits()).length).toBe(before + 1)
   })
 
-  it.each(['audit_log_product_create', 'audit_log_product_update'])('%s: la auditoría del producto se guarda tal cual', async (name) => {
+  it('void_sale: anula la venta con su motivo y devuelve el stock al punto de venta', async () => {
+    const before = await levelOf(admin, CON_STOCK)
+    const fixture = loadPayload('void_sale', { tienda_id: TIENDA, sale_id: VENTA, user_id: adminId })
+    const { error } = await send(admin, fixture)
+    expect(error).toBeNull()
+    const { data: sale } = await admin.from('sales').select('status, voided_by, voided_reason').eq('id', VENTA).single()
+    expect(sale).toEqual({ status: 'voided', voided_by: adminId, voided_reason: 'Cliente devolvió el producto sin abrir' })
+    expect(await levelOf(admin, CON_STOCK)).toEqual({ ...before, punto_venta_stock: before.punto_venta_stock + 2 })
+
+    // Anular dos veces se rechaza con el mensaje que la app traduce.
+    const again = await send(admin, fixture)
+    expect(again.error?.message).toContain('Venta no encontrada o ya anulada')
+  })
+
+  it.each(['audit_log_product_create', 'audit_log_product_update', 'audit_log_void_sale'])('%s: la auditoría del producto se guarda tal cual', async (name) => {
     const entityId = randomUUID()
     const fixture = loadPayload(name, { tienda_id: TIENDA, user_id: adminId, user_email: adminEmail, entity_id: entityId })
     const { data, error } = await send(admin, fixture)

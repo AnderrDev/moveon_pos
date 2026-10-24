@@ -1,0 +1,11 @@
+{
+  "description": "Anular una venta con motivo (PLAN-90)",
+  "kind": "rpc",
+  "target": "void_sale_atomic",
+  "payload": {
+    "p_sale_id": "{{sale_id}}",
+    "p_tienda_id": "{{tienda_id}}",
+    "p_voided_by": "{{user_id}}",
+    "p_voided_reason": "Cliente devolvió el producto sin abrir"
+  }
+}

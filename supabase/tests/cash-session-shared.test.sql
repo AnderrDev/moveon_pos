@@ -76,12 +76,15 @@ begin
   values (v_user_b, v_tienda_b, 'admin', true);
 end $$;
 
+-- El cliente llama las RPC con su JWT: auth.uid() = cajero y rol authenticated.
+select set_config('request.jwt.claim.sub', 'c2222222-2222-2222-2222-222222222223', true);
+set local role authenticated;
+
 -- ----------------- Tests -----------------
 
 -- 1. Un cajero distinto al que abrió la caja puede vender contra la sesión de
 --    la tienda (antes fallaba con 'No hay caja abierta para esta venta').
-prepare venta_cajero as
-  select public.create_sale_atomic(
+select isnt((public.create_sale_atomic(
     'c1111111-1111-1111-1111-111111111111'::uuid,  -- tienda
     'c3333333-3333-3333-3333-333333333333'::uuid,  -- sesión abierta por el ADMIN
     '',
@@ -101,9 +104,7 @@ prepare venta_cajero as
       'total', 5000
     )),
     jsonb_build_array(jsonb_build_object('metodo', 'cash', 'amount', 5000))
-  );
-
-select isnt(execute('venta_cajero')::text, '',
+  , 0, null))::text, '',
   'caja compartida: el cajero vende contra la sesión que abrió el admin (retorna UUID)');
 
 -- 2. La venta persiste con cashier_id = cajero (auditoría por venta).
@@ -112,6 +113,10 @@ select is(
   'c2222222-2222-2222-2222-222222222223'::uuid,
   'la venta guarda cashier_id = cajero (no opened_by)'
 );
+
+-- 3-5 prueban el índice, no un flujo del cliente: authenticated ya no
+--     inserta sesiones directo (P0), así que corren como postgres.
+reset role;
 
 -- 3. Una 2ª sesión open en la MISMA tienda viola el índice único por tienda.
 select throws_ok(
@@ -123,6 +128,7 @@ select throws_ok(
       50000, 'open')
   $$,
   '23505',  -- unique_violation: ux_one_open_session_per_tienda
+  null,
   'una 2ª sesión open en la misma tienda viola ux_one_open_session_per_tienda'
 );
 
@@ -155,16 +161,21 @@ select is(
 
 -- 6. close_cash_session_atomic con p_closed_by = cajero (sesión del admin):
 --    cualquier usuario activo de la tienda puede cerrar la caja compartida.
---    NOTA: el RPC valida auth.uid() = p_closed_by y is_active en la tienda.
---    Simular auth.uid() vía `set local request.jwt.claims` dentro de pgTAP es
---    frágil (depende del rol/JWT del runner). Para no introducir flakiness se
---    deja como pass() documentado; el gate de permisos relajado se valida por
---    inspección del DDL (la migración elimina v_is_owner/v_is_admin y exige
---    solo user_tiendas.is_active). Verificación manual en la app cubre el flujo.
--- TODO: cuando el runner pgTAP soporte fijar auth.uid() de forma estable,
--- ejecutar close_cash_session_atomic con p_closed_by = cajero y assert que NO
--- lanza 'Solo un usuario activo de la tienda puede cerrar esta caja'.
-select pass('close_cash_session_atomic: cierre por miembro activo cubierto por DDL + verificación manual (ver TODO)');
+--    Esperado: 100.000 de apertura + 5.000 de la venta en efectivo.
+set local role authenticated;
+select lives_ok(
+  $$
+    select public.close_cash_session_atomic(
+      'c3333333-3333-3333-3333-333333333333',
+      'c1111111-1111-1111-1111-111111111111',
+      'c2222222-2222-2222-2222-222222222223',
+      105000,
+      105000,
+      '[]'::jsonb,
+      null)
+  $$,
+  'caja compartida: el cajero cierra la sesión que abrió el admin'
+);
 
 select * from finish();
 

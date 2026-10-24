@@ -85,7 +85,8 @@ begin
   values (v_tienda_b, v_prod_b, 'entry', 100, v_user_b);
 
   -- ----------------- Ejecución -----------------
-  -- 3 ventas en tienda A (idempotency keys distintas).
+  -- 3 ventas en tienda A (idempotency keys distintas). Las RPC usan auth.uid().
+  perform set_config('request.jwt.claim.sub', v_user_a::text, true);
   perform public.create_sale_atomic(
     v_tienda_a, v_session_a, '', v_user_a, null,
     5000, 0, 0, 5000, 'a-idem-1',
@@ -93,7 +94,7 @@ begin
       'producto_id', v_prod_a, 'producto_nombre', 'Producto A', 'producto_sku', null,
       'quantity', 1, 'unit_price', 5000, 'discount_amount', 0,
       'tax_rate', 0, 'tax_amount', 0, 'total', 5000)),
-    jsonb_build_array(jsonb_build_object('metodo', 'cash', 'amount', 5000)));
+    jsonb_build_array(jsonb_build_object('metodo', 'cash', 'amount', 5000)), 0, null);
 
   perform public.create_sale_atomic(
     v_tienda_a, v_session_a, '', v_user_a, null,
@@ -102,7 +103,7 @@ begin
       'producto_id', v_prod_a, 'producto_nombre', 'Producto A', 'producto_sku', null,
       'quantity', 1, 'unit_price', 5000, 'discount_amount', 0,
       'tax_rate', 0, 'tax_amount', 0, 'total', 5000)),
-    jsonb_build_array(jsonb_build_object('metodo', 'cash', 'amount', 5000)));
+    jsonb_build_array(jsonb_build_object('metodo', 'cash', 'amount', 5000)), 0, null);
 
   perform public.create_sale_atomic(
     v_tienda_a, v_session_a, '', v_user_a, null,
@@ -111,9 +112,10 @@ begin
       'producto_id', v_prod_a, 'producto_nombre', 'Producto A', 'producto_sku', null,
       'quantity', 1, 'unit_price', 5000, 'discount_amount', 0,
       'tax_rate', 0, 'tax_amount', 0, 'total', 5000)),
-    jsonb_build_array(jsonb_build_object('metodo', 'cash', 'amount', 5000)));
+    jsonb_build_array(jsonb_build_object('metodo', 'cash', 'amount', 5000)), 0, null);
 
   -- 1 venta en tienda B (aislamiento).
+  perform set_config('request.jwt.claim.sub', v_user_b::text, true);
   perform public.create_sale_atomic(
     v_tienda_b, v_session_b, '', v_user_b, null,
     5000, 0, 0, 5000, 'b-idem-1',
@@ -121,8 +123,11 @@ begin
       'producto_id', v_prod_b, 'producto_nombre', 'Producto B', 'producto_sku', null,
       'quantity', 1, 'unit_price', 5000, 'discount_amount', 0,
       'tax_rate', 0, 'tax_amount', 0, 'total', 5000)),
-    jsonb_build_array(jsonb_build_object('metodo', 'cash', 'amount', 5000)));
+    jsonb_build_array(jsonb_build_object('metodo', 'cash', 'amount', 5000)), 0, null);
 end $$;
+
+-- El reintento de la prueba 6 lo hace el usuario de tienda A.
+select set_config('request.jwt.claim.sub', 'a2222222-2222-2222-2222-222222222222', true);
 
 -- ----------------- Tests -----------------
 
@@ -198,7 +203,7 @@ select is(
       'producto_id', 'a5555555-5555-5555-5555-555555555555', 'producto_nombre', 'Producto A',
       'producto_sku', null, 'quantity', 1, 'unit_price', 5000, 'discount_amount', 0,
       'tax_rate', 0, 'tax_amount', 0, 'total', 5000)),
-    jsonb_build_array(jsonb_build_object('metodo', 'cash', 'amount', 5000))),
+    jsonb_build_array(jsonb_build_object('metodo', 'cash', 'amount', 5000)), 0, null),
   (select id from public.sales where idempotency_key = 'a-idem-1'
      and tienda_id = 'a1111111-1111-1111-1111-111111111111'::uuid),
   'reintento idempotente devuelve la venta original'

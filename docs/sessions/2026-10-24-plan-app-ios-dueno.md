@@ -225,6 +225,30 @@ Hecho en `moveon-owner-ios` (commit `e125945`, sin push). Detalle en `docs/modul
   - **Ajuste −1 en bodega:** "QA iOS: corrige entrada duplicada" compensa la entrada accidental de PLAN-87. La confirmación aparece antes de guardar (0 ajustes en la base hasta confirmar) y luego queda `adjustment` −1, con 11 / 5.
   - **Auditoría:** `audit_logs` tiene las dos filas del cliente (`transfer` y `adjust`) con `admin@moveon.local`, la etiqueta "QA Creatina 300g" y los `changes` del web, más la fila `inventory.adjusted` del trigger del servidor.
 
+## 23. Continuación — PLAN-89 (crear y editar productos)
+
+- `moveon-owner-ios`: `main` con PLAN-88 subido (`e91d772`).
+- **Regresión encontrada en el POS, también en producción:**
+  - La migración `20261024000500` (de la sesión de auditoría, aplicada hoy en producción) quitó a `authenticated` el INSERT sobre `inventory_movements` porque daba por hecho que el stock inicial pasaba por una RPC `SECURITY DEFINER`.
+  - Pero `create_product_with_initial_stock` era `SECURITY INVOKER`: crear un producto con stock inicial > 0 falla con "permission denied for table inventory_movements", **también en el POS web**. Es la única función afectada; las demás que insertan movimientos son DEFINER.
+  - Lo detectó el contrato `create_product.json`.
+  - Corrección: `20261024150000_create_product_initial_stock_definer.sql`, que la pasa a DEFINER (la función ya valida sesión, admin de la tienda, categoría y proveedor) y quita EXECUTE a `public` y `anon`. Commit `6fb3e7c`. **Aplicada solo en local**; en producción, pendiente de confirmación del dueño.
+- **POS** (`b1e6035`): fixtures `create_product.json`, `update_product.json` (nuevo tipo `update` con `match`), `audit_log_product_create.json` y `audit_log_product_update.json`, con sus casos. Se verifican el SKU único (`23505` con el índice en el mensaje) y que el trigger de precio audite el cambio. `pnpm test:parity` → 31 en verde.
+- **iOS:**
+  - Feature `Products`: `ProductValues`, `NewProduct`, `ProductRecord`, `ProductPatch`, `ProductCatalog`, casos de uso, DTOs, `SupabaseProductCatalog`, `ProductFormViewModel` y `ProductFormSheet`.
+  - Stock la abre con un `ProductFormPresenter` que arma el Shell. `ProductFormRequest` va en `Domain/Products`; `AuditValue.bool`, `RejectionReason.duplicateSku`/`duplicateBarcode`, `keyboardDoneButton()` y `LabeledSegments` van en Core.
+  - Se corrige un aviso de concurrencia preexistente en `PeriodPicker`.
+  - Pasan 186 tests unitarios y 19 de interfaz.
+  - El test de interfaz mostró que el teclado numérico (sin tecla de cierre) tapaba "Crear producto"; de ahí el botón "Listo".
+- **QA contra el Supabase local** (categoría de prueba "QA iOS Barras" creada):
+  - **Crear:** "QA iOS Barra proteica" con SKU escrito "qa-barra" (se guarda "QA-BARRA"), código de barras, categoría, precio 8.000, costo 4.500, mínimo 3 y 12 en bodega → "Producto creado con 12 unidades en inventario". En el kardex aparece "Inventario inicial al crear producto"; el producto sale "Agotado" porque el punto de venta está en 0, que es la regla del web.
+  - **Editar:** vaciar el código de barras, precio 8.500 y mínimo 4 → la base queda con `codigo_barras` null, 8500 y 4; la auditoría `update` lleva solo `{precioVenta, stockMinimo, codigoBarras: null}`, más la fila `product.price_changed` del trigger.
+  - **SKU repetido:** "QA-CREA" → "Ya existe un producto con ese SKU." y no se crea nada.
+- El test de interfaz de Caja falló una vez por tiempos y pasa al repetirlo; queda anotado como intermitente.
+- **Producción (`20261024150000`):** el dueño pidió aplicarla y verificarla. Ya estaba aplicada y registrada por la sesión de auditoría (con autorización del dueño, ver su spec §22), así que no se volvió a ejecutar. Estado leído en remoto: `prosecdef = true`, EXECUTE solo para `authenticated`/`postgres`/`service_role` y `authenticated` sin INSERT directo en `inventory_movements` (el bloqueo de 000500 intacto).
+- **Verificación funcional en producción sin dejar datos:** un bloque `DO` actúa como un admin real (`set local role authenticated` + `request.jwt.claims`), llama a `create_product_with_initial_stock` con 3 unidades en bodega y termina siempre con una excepción, que revierte todo. Resultado: "VERIFICACION_OK … movimientos_entry=1 bodega=3.000". Comprobado después: 0 productos y 0 movimientos con ese id o nombre.
+- **Typecheck:** `tests/integration/ios-payloads.contract.test.ts` tipa el error de `send` (`code`/`message`); `tsc --noEmit` vuelve a 0 errores (lo había señalado la sesión de auditoría). No se corrió `pnpm typecheck` completo porque su hook reapunta `runtime-config.json` a producción.
+
 ## 8. Notas adicionales
 
 - Fuentes de datos ya existentes para la app: `get_stock_levels`, `get_monthly_sales_totals`, `get_monthly_expense_totals`, `get_reinvestment_fund_totals`, `list_cash_history_days`.
