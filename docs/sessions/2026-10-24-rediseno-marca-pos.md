@@ -59,8 +59,24 @@ Pedida por el dueño antes del commit.
 - **Pasada global:** se quitaron `uppercase`/`tracking-*` de etiquetas en toda la app (salvo iniciales de avatar y códigos) y `text-[10px]` → `text-xs` en esas líneas, incluidos encabezados de tabla (`moThead`).
 - Verificación: typecheck OK, lint OK, 865/865 tests; Playwright 1440px en Caja (menú abre y cierra al elegir), Reportes, Productos (menú de fila no recortado) y Finanzas.
 
-## 6. Próximos pasos
+## 6. Fase 3 — Productos (UX) y espaciados
 
-- Inventario, Clientes, Auditoría y Configuración: aplicar `mo-menu` donde haya muchas acciones por fila/cabecera.
+Tras el commit `89f5656` (Productos e Inventario unificados en /productos) el dueño pidió mejorar la experiencia de Productos y corregir espaciados.
+
+- **Productos:**
+  - Vistas rápidas con conteo (`Activos · Por reponer · Inactivos · Todos`) en vez del select de estado + checkbox "Solo faltantes". Lógica pura en `product-stock.ts` (`matchesProductView`, `countProductViews`, `marginPercent`) con tests.
+  - Subtítulo con productos activos y **valor del inventario a costo**.
+  - Tabla de 4 columnas: producto (miniatura o inicial, tipo · categoría · SKU · proveedor, badge Inactivo), precio con costo y **margen %**, stock en punto de venta con estado y "Bodega n · mínimo n", acciones. Preparados/combos explican por qué no tienen stock.
+  - Acciones: "Entrada" (ícono) + Editar + menú (ajustar, trasladar, kardex con nombres claros, desactivar, eliminar). Excel al menú.
+  - Móvil: tarjetas en vez de tabla; filtros sin desbordarse.
+  - Estados vacíos distintos para "nada por reponer" y "ningún producto coincide" (con Limpiar filtros).
+- **Espaciados:** `mo-page-header` sin margen; todas las páginas usan `section flex flex-col gap-4` (antes 20 px en unas y 36 px en otras). Configuración ya no queda centrada/indentada respecto al resto. Buscador de Clientes a ancho completo en móvil. `mo-segmented` en una fila desplazable (Reportes y Productos ya no se parten en móvil). Encabezado de tablas con fondo sólido (`bg-muted`, antes translúcido sobre el contenido al hacer scroll).
+- **Textos:** tildes en Configuración (Título, identificación, Teléfono, Dirección…); Categorías con la misma cabecera que Productos.
+- No se tocó `features/audit/**` a pedido de la sesión "Revisión de cambios en dev", que está reescribiendo Auditoría (ella conserva el `gap-4` de la section).
+- Verificación: build OK, lint OK, 877 tests; Playwright 1440 px y 390 px (sin desborde horizontal).
+
+## 7. Próximos pasos
+
+- Clientes en móvil: la tabla se corta; pasarla a tarjetas como Productos.
 - En Caja, unir el filtro por método con el listado "Ventas del turno" (hoy son dos bloques).
 - Revisar el diálogo de cobro y el historial de ventas con la nueva paleta.

@@ -49,9 +49,9 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
   ],
   providers: [CustomerLoyaltyOverviewStore],
   template: `
-    <section class="flex h-full min-h-0 flex-col">
+    <section class="flex h-full min-h-0 flex-col gap-4">
       <mo-page-header title="Clientes" [subtitle]="subtitle()">
-        <div class="relative">
+        <div class="relative w-full sm:w-auto">
           <span class="text-muted-foreground pointer-events-none absolute inset-y-0 left-3 flex items-center" aria-hidden="true">
             <lucide-angular [img]="icons.search" class="h-4 w-4" />
           </span>
@@ -63,7 +63,7 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
             aria-label="Buscar clientes"
             name="customer-search"
             autocomplete="off"
-            class="border-input bg-card focus:ring-ring h-10 w-72 rounded-lg border pr-3 pl-9 text-sm focus:ring-2 focus:outline-none"
+            class="border-input bg-card focus:ring-ring h-10 w-full rounded-lg sm:w-72 border pr-3 pl-9 text-sm focus:ring-2 focus:outline-none"
           />
         </div>
         @if (canExport()) {
@@ -90,7 +90,7 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
         }
       } @else if (!loading() && loyaltyState() === 'error') {
         <div
-          class="border-border bg-muted/40 text-muted-foreground mb-3 rounded-lg border px-3 py-2 text-xs"
+          class="border-border bg-muted/40 text-muted-foreground rounded-lg border px-3 py-2 text-xs"
           role="status"
           aria-live="polite"
         >

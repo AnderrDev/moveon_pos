@@ -44,3 +44,46 @@ export function productStockStatus(stock: ProductStock): ProductStockStatus {
 export function isMissingStock(stock: ProductStock): boolean {
   return stock.isOut || stock.isLow
 }
+
+/**
+ * Vistas rápidas de la pantalla de Productos. "Por reponer" son los activos
+ * agotados o en el mínimo en punto de venta (lo que antes era "Solo faltantes").
+ */
+export type ProductView = 'active' | 'restock' | 'inactive' | 'all'
+
+export function matchesProductView(
+  product: Pick<Product, 'isActive'>,
+  stock: ProductStock,
+  view: ProductView,
+): boolean {
+  switch (view) {
+    case 'active':
+      return product.isActive
+    case 'restock':
+      return product.isActive && isMissingStock(stock)
+    case 'inactive':
+      return !product.isActive
+    case 'all':
+      return true
+  }
+}
+
+export function countProductViews(
+  products: readonly Product[],
+  stockById: ReadonlyMap<string, ProductStock>,
+): Record<ProductView, number> {
+  const counts: Record<ProductView, number> = { active: 0, restock: 0, inactive: 0, all: 0 }
+  for (const product of products) {
+    const stock = stockById.get(product.id) ?? buildProductStock(product, undefined)
+    for (const view of Object.keys(counts) as ProductView[]) {
+      if (matchesProductView(product, stock, view)) counts[view]++
+    }
+  }
+  return counts
+}
+
+/** Margen sobre el precio de venta, redondeado; `null` sin costo o sin precio. */
+export function marginPercent(precioVenta: number, costo: number | null): number | null {
+  if (costo === null || precioVenta <= 0) return null
+  return Math.round(((precioVenta - costo) / precioVenta) * 100)
+}

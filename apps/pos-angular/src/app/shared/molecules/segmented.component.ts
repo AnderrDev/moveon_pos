@@ -14,7 +14,8 @@ export interface SegmentedOption {
   selector: 'mo-segmented',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { class: 'flex flex-wrap gap-1', role: 'group' },
+  // Una sola fila; en pantallas angostas se desplaza horizontalmente en vez de partirse.
+  host: { class: 'flex max-w-full gap-1 overflow-x-auto [scrollbar-width:none]', role: 'group' },
   template: `
     @for (option of options(); track option.value) {
       <button
@@ -34,7 +35,7 @@ export class SegmentedComponent {
 
   buttonClass(optionValue: string): string {
     return [
-      'rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors',
+      'shrink-0 rounded-lg px-3 py-1.5 text-sm font-semibold whitespace-nowrap transition-colors',
       this.value() === optionValue
         ? 'bg-foreground text-background'
         : 'hover:bg-muted text-muted-foreground',

@@ -307,6 +307,23 @@ Hecho en `moveon-owner-ios` (commit `e125945`, sin push). Detalle en `docs/modul
   - **Pendiente de decisión del dueño:** instalar una versión que apunte a producción en su iPhone. Es irreversible en el sentido de que la app escribe datos reales; los pasos están en el módulo.
 - **Datos de QA creados en local en esta sesión** (solo local): productos y categoría "QA iOS…", ventas V-000005, entradas, ajustes y traslados de QA Creatina y la anulación de V-000002.
 
+## 27. Punto de venta completo — enmienda del ADR 0022 y PLAN-92
+
+- **Pedido del dueño:** "debemos poner la parte de punto de venta donde están todos los productos podemos agregarlos y finiquitar venta incluido descuento asociar cliente y esas cosas, creo que anteriormente lo entendiste mal y agregaste un carrito simple".
+  - **Respuestas del dueño:** todo lo del web (descuentos, asociar y crear cliente, MOVE ON Club), búsqueda por texto sin cámara, pestaña propia y Finanzas dentro de Resumen.
+  - **Decisión:** enmienda §6 del ADR 0022, **aceptada**, con PLAN-92..96 (`bb1e47d`).
+- **PLAN-92 (iOS):**
+  - Dominio (`Features/Checkout/Domain`): `SellableProduct` (código de barras, categoría, incluidos, `preferredOption`), `SaleCategory`, `IncludedProduct`, `ComboStock`, `CatalogFilter` y `Cart.add(_:)` / `changeOption`.
+  - Datos: `SupabaseCheckoutRepository` lee `product_components` con el nombre del incluido y `categorias` activas, y calcula el stock como `resolveStock` del web.
+  - Presentación: `SellView` es la pestaña Vender; `CheckoutView` pasa a "Carrito" con el menú de opción; el monto prellenado sigue al faltante mientras no haya pagos. Finanzas va con `embedded` y se abre desde un botón en Resumen; Resumen y Ventas se refrescan al volver.
+  - Pasan 220 tests unitarios y 23 de interfaz. Los tests de interfaz cambian porque la app abre en Vender: nuevo test de categorías y agotados, y Finanzas se abre desde Resumen.
+- **QA contra el Supabase local:**
+  - La cuadrícula coincide con la base: combo con 5 disponibles (mínimo entre 5,97 Whey y 12 Creatina), batido "Bajo pedido" y categoría "QA iOS Barras".
+  - El carrito sigue tras ir a Resumen y volver.
+  - Cambiar la opción del batido a "Sin proteína" baja el total de $208.000 a $205.000. Visto en QA y corregido: el monto prellenado quedaba en 208.000.
+  - Finanzas abre desde Resumen con entradas $1.283.000, igual que el resumen.
+  - No se registró ninguna venta en este PLAN.
+
 ## 8. Notas adicionales
 
 - Fuentes de datos ya existentes para la app: `get_stock_levels`, `get_monthly_sales_totals`, `get_monthly_expense_totals`, `get_reinvestment_fund_totals`, `list_cash_history_days`.

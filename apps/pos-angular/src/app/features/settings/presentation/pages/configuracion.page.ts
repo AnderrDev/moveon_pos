@@ -38,10 +38,10 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
     FormCurrencyInputComponent,
   ],
   template: `
-    <section class="mx-auto flex w-full max-w-5xl flex-col gap-6 pb-12 md:pb-16">
+    <section class="flex w-full max-w-5xl flex-col gap-4 pb-12 md:pb-16">
       <mo-page-header
-        title="Configuracion"
-        subtitle="Personaliza el comprobante y la informacion visible en el punto de venta"
+        title="Configuración"
+        subtitle="Personaliza el comprobante y la información visible en el punto de venta"
       />
 
       @if (loading()) {
@@ -67,7 +67,7 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
               <div class="grid gap-y-6">
                 <mo-form-input
                   controlName="titulo"
-                  label="Titulo de la tirilla"
+                  label="Título de la tirilla"
                   placeholder="COMPROBANTE DE VENTA"
                   [required]="true"
                   [maxLength]="32"
@@ -77,14 +77,14 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
                 <div class="grid gap-x-5 gap-y-6 sm:grid-cols-2">
                   <mo-form-input
                     controlName="nit"
-                    label="NIT o identificacion"
+                    label="NIT o identificación"
                     placeholder="900123456-1"
                     [maxLength]="30"
                     [error]="presenter.errors().nit ?? null"
                   />
                   <mo-form-input
                     controlName="telefono"
-                    label="Telefono"
+                    label="Teléfono"
                     type="tel"
                     placeholder="300 123 4567"
                     [maxLength]="30"
@@ -95,7 +95,7 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
                 <div class="grid gap-x-5 gap-y-6 sm:grid-cols-[minmax(0,1fr)_12rem]">
                   <mo-form-input
                     controlName="direccion"
-                    label="Direccion"
+                    label="Dirección"
                     placeholder="Calle 10 # 20-30"
                     [maxLength]="100"
                     [error]="presenter.errors().direccion ?? null"
@@ -115,7 +115,7 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
               <div class="mb-6">
                 <h2 class="font-display text-lg font-bold">Contenido y salida</h2>
                 <p class="text-muted-foreground mt-1 text-sm">
-                  Elige que informacion imprimir y el nombre de la cola de Windows.
+                  Elige qué información imprimir y el nombre de la cola de Windows.
                 </p>
               </div>
 
@@ -125,7 +125,7 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
                     <mo-form-checkbox
                       controlName="imprimirAlFinalizarVenta"
                       label="Imprimir tirilla al completar una venta"
-                      description="Define la opcion inicial del cobro. La venta puede cambiarla antes de confirmar."
+                      description="Define la opción inicial del cobro. La venta puede cambiarla antes de confirmar."
                     />
                   </div>
                   <div class="border-primary/25 bg-primary/5 rounded-lg border p-4">
@@ -148,14 +148,14 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
                   <div class="bg-muted/30 rounded-lg border p-4">
                     <mo-form-checkbox
                       controlName="mostrarDireccion"
-                      label="Mostrar direccion"
+                      label="Mostrar dirección"
                       description="Incluye direccion y ciudad en el encabezado."
                     />
                   </div>
                   <div class="bg-muted/30 rounded-lg border p-4">
                     <mo-form-checkbox
                       controlName="mostrarTelefono"
-                      label="Mostrar telefono"
+                      label="Mostrar teléfono"
                       description="Incluye el telefono comercial."
                     />
                   </div>
@@ -185,7 +185,7 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
               <div class="mb-6">
                 <h2 class="font-display text-lg font-bold">Visualizacion del punto de venta</h2>
                 <p class="text-muted-foreground mt-1 text-sm">
-                  Ajusta la informacion auxiliar visible para el cajero sin cambiar los calculos.
+                  Ajusta la información auxiliar visible para el cajero sin cambiar los cálculos.
                 </p>
               </div>
             </article>
@@ -389,7 +389,7 @@ export class ConfiguracionPage {
         this.presenter.setRootError(result.error.message)
         return
       }
-      this.toast.success('Configuracion del comprobante guardada')
+      this.toast.success('Configuración del comprobante guardada')
     } catch (error) {
       this.presenter.setRootError(getErrorMessage(error, 'No se pudo guardar la configuracion'))
     } finally {

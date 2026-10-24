@@ -6,7 +6,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core'
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header
-      class="mb-4 flex shrink-0 flex-col gap-2 sm:mb-5 sm:flex-row sm:items-start sm:justify-between"
+      class="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
     >
       <div>
         <h1 class="font-display text-2xl font-bold">{{ title() }}</h1>

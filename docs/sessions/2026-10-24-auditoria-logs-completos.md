@@ -8,7 +8,7 @@
 | Sprint | Post-MVP (mejoras) |
 | Agente | Claude Code |
 | HUs trabajadas | Mejora de auditoría pedida por el dueño |
-| Estado | Completada en local (prod pendiente de OK) |
+| Estado | Completada y en producción |
 
 ## 1. Objetivo de la sesión
 
@@ -38,6 +38,6 @@ Regla: pruebas solo en local; producción solo con OK del dueño.
 
 ## 4. Pendientes
 
-- Producción: aplicar `20261024190000` y, aparte, el backfill `20261024200000` (requiere OK).
+- ~~Producción~~ **Hecho 2026-10-24 con OK del dueño:** `20261024190000` y `20261024200000` aplicadas con `db query --linked` y versión registrada. De 4.349 registros: 0 sin nombre; 15 sin correo (cambios sin usuario, p. ej. importaciones: se ven como "Sistema"). Frontend publicado en `main` 168f5c1 (hasta b8e3dd2; el commit de diseño f1bc788 quedó en dev sin publicar), Netlify ready en POS y catálogo.
 - App iOS: deja de escribir `void`/`adjust` propios (la base ya los audita) — en su repo.
 - No auditados aún: empleados, plantillas y configuración del fondo de Finanzas; usuarios/roles en Configuración.

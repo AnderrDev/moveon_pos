@@ -99,7 +99,7 @@ function monthRange(month: string): { from: string; to: string } {
     FundSettingsDialog,
   ],
   template: `
-    <section class="flex h-full min-h-0 flex-col">
+    <section class="flex h-full min-h-0 flex-col gap-4">
       <mo-page-header
         title="Finanzas"
         subtitle="Gastos del negocio en relación a las entradas totales"

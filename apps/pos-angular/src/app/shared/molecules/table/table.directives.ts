@@ -29,7 +29,7 @@ export class TableDirective {
 }
 
 const THEAD_DENSITY_CLASSES: Record<TableDensity, string> = {
-  default: 'sticky top-0 text-left tracking-wide',
+  default: 'sticky top-0 z-10 text-left',
   compact: '',
 }
 
@@ -43,7 +43,7 @@ export class TheadDirective {
 
   readonly classes = computed(() =>
     [
-      'bg-muted/50 text-muted-foreground text-xs',
+      'bg-muted text-muted-foreground text-xs',
       THEAD_DENSITY_CLASSES[this.table?.density() ?? 'default'],
     ].join(' '),
   )
