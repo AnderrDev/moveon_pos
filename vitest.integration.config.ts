@@ -8,6 +8,8 @@ export default defineConfig({
     environment: 'node',
     globals: true,
     include: ['tests/integration/**/*.test.ts'],
+    // Todas comparten el Supabase local y limpian las tiendas "Paridad …": una a la vez.
+    fileParallelism: false,
     testTimeout: 30_000,
     hookTimeout: 120_000,
   },
