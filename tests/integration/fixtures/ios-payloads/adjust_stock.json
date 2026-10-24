@@ -1,0 +1,13 @@
+{
+  "description": "Ajuste negativo en bodega por conteo físico (PLAN-88)",
+  "kind": "rpc",
+  "target": "adjust_stock_atomic",
+  "payload": {
+    "p_tienda_id": "{{tienda_id}}",
+    "p_producto_id": "{{producto_id}}",
+    "p_ubicacion": "bodega",
+    "p_cantidad_delta": -2,
+    "p_motivo": "Conteo físico",
+    "p_created_by": "{{user_id}}"
+  }
+}

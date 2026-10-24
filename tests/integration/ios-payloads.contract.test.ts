@@ -14,16 +14,27 @@ import { loadPayload, payloadNames, type IosPayload } from './support/ios-payloa
 
 const TIENDA = randomUUID()
 const PRODUCTO = randomUUID()
+/** Producto con 20 en bodega para el ajuste y el traslado. */
+const CON_STOCK = randomUUID()
 
 /** Fixtures con caso en este archivo. Uno nuevo sin caso hace fallar el primer test. */
-const COVERED = ['audit_log_adjust', 'register_inventory_entry']
+const COVERED = ['adjust_stock', 'audit_log_adjust', 'audit_log_transfer', 'register_inventory_entry', 'transfer_stock']
 
 const SEED_SQL = `
   insert into public.tiendas (id, nombre, timezone) values (:'tienda', 'Paridad payloads iOS', 'America/Bogota');
   insert into public.user_tiendas (user_id, tienda_id, rol, is_active) values (:'admin', :'tienda', 'admin', true);
   insert into public.productos (id, tienda_id, nombre, tipo, precio_venta, costo, iva_tasa, stock_minimo, is_active)
-    values (:'producto', :'tienda', 'Proteína contrato', 'simple', 100000, 60000, 0, 0, true);
+    values (:'producto', :'tienda', 'Proteína contrato', 'simple', 100000, 60000, 0, 0, true),
+           (:'con_stock', :'tienda', 'Creatina contrato', 'simple', 80000, 40000, 0, 0, true);
+  insert into public.inventory_movements (tienda_id, producto_id, tipo, cantidad, ubicacion, motivo, created_by)
+    values (:'tienda', :'con_stock', 'entry', 20, 'bodega', 'Inventario inicial', :'admin');
 `
+
+async function levelOf(client: SupabaseClient, productId: string): Promise<{ punto_venta_stock: number; bodega_stock: number }> {
+  const { data } = await client.rpc('get_stock_levels', { p_tienda_id: TIENDA })
+  const level = (data as { producto_id: string; bodega_stock: number; punto_venta_stock: number }[]).find((l) => l.producto_id === productId)
+  return { punto_venta_stock: Number(level?.punto_venta_stock ?? 0), bodega_stock: Number(level?.bodega_stock ?? 0) }
+}
 
 async function send(client: SupabaseClient, fixture: IosPayload): Promise<{ data: unknown; error: unknown }> {
   if (fixture.kind === 'rpc') return client.rpc(fixture.target, fixture.payload)
@@ -40,7 +51,7 @@ describe('payloads de escritura de la app iOS contra el Supabase local', () => {
     stack = localStack()
     ;[adminId] = await createUsers(stack, [adminEmail])
     psql(stack, CLEANUP_SQL)
-    psql(stack, SEED_SQL, { tienda: TIENDA, admin: adminId, producto: PRODUCTO })
+    psql(stack, SEED_SQL, { tienda: TIENDA, admin: adminId, producto: PRODUCTO, con_stock: CON_STOCK })
     admin = await signIn(stack, adminEmail)
   })
 
@@ -81,6 +92,40 @@ describe('payloads de escritura de la app iOS contra el Supabase local', () => {
   it('audit_log_adjust: la política deja al admin registrar su propia auditoría', async () => {
     const entityId = randomUUID()
     const fixture = loadPayload('audit_log_adjust', {
+      tienda_id: TIENDA,
+      user_id: adminId,
+      user_email: adminEmail,
+      entity_id: entityId,
+    })
+    const { data, error } = await send(admin, fixture)
+    expect(error).toBeNull()
+    expect(data).toMatchObject({ ...fixture.payload, entity_id: entityId })
+  })
+
+  it('adjust_stock: resta en la ubicación indicada con su motivo', async () => {
+    const before = await levelOf(admin, CON_STOCK)
+    const fixture = loadPayload('adjust_stock', { tienda_id: TIENDA, producto_id: CON_STOCK, user_id: adminId })
+    const { data, error } = await send(admin, fixture)
+    expect(error).toBeNull()
+    expect(data).toMatchObject({ tipo: 'adjustment', ubicacion: 'bodega', cantidad: -2, motivo: 'Conteo físico' })
+    expect(await levelOf(admin, CON_STOCK)).toEqual({ ...before, bodega_stock: before.bodega_stock - 2 })
+  })
+
+  it('transfer_stock: mueve de bodega al punto de venta y devuelve el id del traslado', async () => {
+    const before = await levelOf(admin, CON_STOCK)
+    const fixture = loadPayload('transfer_stock', { tienda_id: TIENDA, producto_id: CON_STOCK, user_id: adminId })
+    const { data: transferId, error } = await send(admin, fixture)
+    expect(error).toBeNull()
+    expect(typeof transferId).toBe('string')
+    expect(await levelOf(admin, CON_STOCK)).toEqual({
+      punto_venta_stock: before.punto_venta_stock + 4,
+      bodega_stock: before.bodega_stock - 4,
+    })
+  })
+
+  it('audit_log_transfer: la auditoría del traslado se guarda tal cual', async () => {
+    const entityId = randomUUID()
+    const fixture = loadPayload('audit_log_transfer', {
       tienda_id: TIENDA,
       user_id: adminId,
       user_email: adminEmail,

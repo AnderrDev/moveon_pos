@@ -1,0 +1,20 @@
+{
+  "description": "Auditoría de un traslado, con las claves de `changes` que registra el web (PLAN-88)",
+  "kind": "insert",
+  "target": "audit_logs",
+  "payload": {
+    "tienda_id": "{{tienda_id}}",
+    "user_id": "{{user_id}}",
+    "user_email": "{{user_email}}",
+    "entity_type": "movimiento_inventario",
+    "entity_id": "{{entity_id}}",
+    "entity_label": "Proteína contrato",
+    "action": "transfer",
+    "changes": {
+      "from": "bodega",
+      "to": "punto_venta",
+      "cantidad": 4,
+      "motivo": "Reposición al punto de venta"
+    }
+  }
+}

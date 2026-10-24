@@ -1,0 +1,14 @@
+{
+  "description": "Traslado de bodega al punto de venta (PLAN-88)",
+  "kind": "rpc",
+  "target": "transfer_stock_atomic",
+  "payload": {
+    "p_tienda_id": "{{tienda_id}}",
+    "p_producto_id": "{{producto_id}}",
+    "p_from_ubicacion": "bodega",
+    "p_to_ubicacion": "punto_venta",
+    "p_cantidad": 4,
+    "p_motivo": "Reposición al punto de venta",
+    "p_created_by": "{{user_id}}"
+  }
+}
