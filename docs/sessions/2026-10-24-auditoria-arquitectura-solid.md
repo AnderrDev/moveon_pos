@@ -141,3 +141,19 @@ Sin cambios de código en esta sesión. Consultas remotas solo de lectura (`pg_p
 - Tests: `pos-data-service.test.ts` (agrupación/orden de componentes y opciones, stock real/preparado/combo, costo oculto a cajero, caja abierta) y `tienda-wide-reads.test.ts` (paginación 1200 filas y mapeo).
 - Prueba local en el navegador (runtime-config verificado en local): catálogo con batido "Bajo pedido", combo "8 disponibles" derivado (Creatina 8 / Whey 9) con sus componentes, batido agregado con su opción por defecto "Whey QA · +$3.000" (total $18.000), "Caja abierta".
 - `pnpm lint`, `pnpm test` (792), typecheck OK. Sin publicar.
+
+## 13. Publicación de P1 #7 (autorizado por el dueño)
+
+- Merge `dev→main` `f876689`. Incluyó `829624f` de la sesión iOS (PLAN-78): refactor web de `reports.repository.ts` hacia la función pura `buildSalesSummary` (no llama a la RPC nueva), script `test:parity` y la migración `20261024120000_owner_sales_summary.sql`, **que NO está aplicada en el remoto** (`owner_sales_summary` no existe; versión no registrada) — queda pendiente de esa sesión/dueño.
+- Verificado antes del push sobre el árbol exacto de `dev`: lint, 792 tests, build de producción; diff sin secretos.
+- Netlify `moveon-client` `6adce6c2cd11ef8c0a82c1e0` y `moveon-catalogo-web` `6adce6c2da6e5fd93e7d5718` ready. Bundle sin la consulta directa vieja del POS y sin llamadas web a `owner_sales_summary`; `/`, `/pos`, `/reportes`, `/inventario`, `/catalogo` → 200; runtime → Supabase POS.
+
+## 14. P1 #8 — recetas y opciones atómicas (misma fecha)
+
+- `20261024000600_atomic_product_components_options_rpcs.sql` (aditiva): `save_product_components_atomic` y `save_product_options_atomic` (DEFINER, solo admin, validaciones de tienda/tipo/cantidades/repetidos/autorreferencia, auditoría).
+- `20261024000700_lock_direct_product_components_options_writes.sql`: elimina las policies `pc_admin_*`/`po_admin_*` de escritura y revoca INSERT/UPDATE/DELETE.
+- **Bug encontrado y reproducido** con el upsert actual del cliente: marcar como predeterminada una opción que va antes en la lista que la predeterminada vigente falla con `ux_product_options_default` (el índice parcial se valida fila a fila). La RPC libera los defaults antes del upsert.
+- `ProductsRepository.saveComponents/saveOptions` → una RPC cada uno; se recortaron las fachadas de escritura sin uso.
+- pgTAP 28/28 (control negativo: con solo 000600 fallan únicamente las 2 de escritura directa). Test unitario del contrato de argumentos (3). `pnpm lint`, `pnpm test` (795), typecheck OK.
+- UI local como admin: batido → default "Sin proteína" y de vuelta a "Whey QA" (caso del bug), ambos "Producto actualizado" vía RPC; combo intacto.
+- Sin publicar. Despliegue sin corte: 000600 → frontend → 000700.
