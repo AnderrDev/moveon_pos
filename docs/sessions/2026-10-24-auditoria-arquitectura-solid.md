@@ -225,3 +225,12 @@ Comparación del registro remoto (`schema_migrations`) con `supabase/migrations/
 - Efecto: el catálogo vuelve al estado de esta mañana (contacto por defecto, "Mi Club" sin RPC).
 - Pendientes en remoto: `20260710000100`, `20260723020000` (landing, a propósito) y `20261024120000/130000/140000` (iOS). Un `db push` aplicaría las cinco: no usarlo sin revisar `migration list --linked`.
 - No se revirtió código de la landing (`daf2638` solo tocó tipos en `catalogo.service.ts` y `club-progress.service.ts`; `0322fde` venía del trabajo pendiente de `dev`).
+
+## 19. P2 #14 — división de pos.page.ts
+
+- Paso 1 (`ecf895d`): reglas puras `canConfirmSale`/`discretionaryDiscount` (sales/domain) y `filterCatalog`/`productStockLabel`/`preferredOption`; `mo-pos-catalog`.
+- Paso 2 (`e182c98`): `mo-pos-cart-panel` (host `contents`, usa el `PosCartStore` de la página).
+- Paso 3 (`53a8d99`): `PosCheckoutStore` + `mo-pos-checkout-dialog`; limpieza de miembros/imports sin uso. `pos.page.ts`: 1.699 → 655 líneas.
+- Tests nuevos: `pos-catalog` (4), `checkout-rules` (5), `pos-checkout-store` (6, con `PosCartStore` real). Total 836.
+- Verificado en el POS local tras cada paso (runtime-config confirmado en local; el typecheck lo vuelve a apuntar a producción y hay que regenerarlo): catálogo (render, búsqueda, escaneo, ficha), carrito (cantidades, eliminar, cliente/club, descuento de línea, opción), cobro (descuento $/% y motivo, pagos mixtos con referencia, quitar pago, monto exacto, venta `V-000003` correcta, reinicio tras vender y al cancelar).
+- Sin publicar.

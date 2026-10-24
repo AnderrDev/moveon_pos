@@ -301,3 +301,18 @@ Estado real desde `20261024000200`–`20261024000300` (antes solo existía `tena
 - La clave se genera al iniciar el flujo (`PosCartStore`, helper compartido `src/shared/lib/idempotency-key.ts`) y se reutiliza en cada reintento del mismo carrito; se regenera solo al confirmar.
 - `create_sale_atomic` busca la clave DESPUÉS de validar identidad y tienda (antes un usuario ajeno podía obtener el id) y ANTES de exigir caja abierta (un reintento tras cerrar caja devuelve la venta ya registrada). Una carrera con la misma clave devuelve la venta existente en vez de `unique_violation`.
 - **Recarga a mitad de cobro:** el carrito no sobrevive a una recarga, así que la clave NO se reutiliza con otro carrito. Antes de cobrar se guarda la "venta en curso" en `sessionStorage` (`pending-sale.ts`) y solo se descarta al confirmar. Al cargar el POS, si quedó una, se consulta `SaleRepository.findByIdempotencyKey` y se avisa al cajero si quedó registrada (no cobrar de nuevo) o no.
+
+## Estructura de la pantalla del POS (2026-10-24)
+
+`pos.page.ts` pasó de 1.699 a 655 líneas y queda como orquestador (carga, confirmar venta, tirilla/cajón, venta en curso, diálogos):
+
+| Pieza | Responsabilidad |
+|---|---|
+| `components/pos-catalog.component.ts` (`mo-pos-catalog`) | Búsqueda (nombre/SKU/código de barras; el escaneo agrega), categorías y grilla. Emite `add` / `info` |
+| `components/pos-cart-panel.component.ts` (`mo-pos-cart-panel`) | Cliente y tarjeta del club, líneas y total. Usa `PosCartStore`; emite las acciones que abren diálogos o cobran |
+| `components/pos-checkout-dialog.component.ts` (`mo-pos-checkout-dialog`) | Diálogo de cobro (presentacional). Emite `confirm` |
+| `services/pos-checkout.store.ts` (`PosCheckoutStore`) | Estado del cobro: pago en captura, descuento global $/%, motivo, tirilla, `canConfirm` |
+| `services/pos-catalog.ts` | Reglas puras del catálogo: `filterCatalog`, `productStockLabel`, `preferredOption` |
+| `sales/domain/services/checkout-rules.ts` | Reglas puras del cobro: `canConfirmSale`, `discretionaryDiscount` |
+
+`PosCartStore` y `PosCheckoutStore` los provee `PosPage` (misma instancia para la página y sus componentes). Tests: `pos-catalog.test.ts`, `checkout-rules.test.ts`, `pos-checkout-store.test.ts`.
