@@ -14,6 +14,12 @@ export interface FinancialSummaryInput {
   /** Líneas/unidades vendidas con producto sin costo capturado. No entran en COGS. */
   ventasSinCosto?: number
   unidadesSinCosto?: number
+  /**
+   * Compras de mercancía del período (entradas de inventario con costo). No
+   * restan de la utilidad —su costo entra cuando se vende— pero sí son dinero
+   * que salió. Sin dato, el balance de dinero se calcula sin ellas.
+   */
+  comprasMercancia?: number
   /** Gastos del período; los anulados se ignoran. */
   gastos: readonly Expense[]
   categorias: readonly ExpenseCategory[]
@@ -52,6 +58,9 @@ export interface FinancialSummary {
   utilidadNeta: number
   /** Margen neto (%) sobre entradas. `null` si no hay entradas. */
   margenNeto: number | null
+  comprasMercancia: number
+  /** Dinero del período: entradas − gastos − compras de mercancía. */
+  balanceDinero: number
 }
 
 function pctOf(part: number, total: number): number | null {
@@ -63,7 +72,8 @@ function pctOf(part: number, total: number): number | null {
  * Núcleo del módulo de finanzas: relaciona los gastos del negocio con las
  * entradas totales del período. Función pura — la página solo la alimenta.
  *
- *   Utilidad neta = entradas − costo de productos vendidos − gastos activos
+ *   Utilidad neta    = entradas − costo de productos vendidos − gastos activos
+ *   Balance de dinero = entradas − gastos activos − compras de mercancía
  */
 export function buildFinancialSummary(input: FinancialSummaryInput): FinancialSummary {
   const activos = input.gastos.filter((g) => g.status === 'active')
@@ -113,5 +123,7 @@ export function buildFinancialSummary(input: FinancialSummaryInput): FinancialSu
     pctGastosSobreEntradas: pctOf(gastosTotal, input.entradasTotales),
     utilidadNeta,
     margenNeto: pctOf(utilidadNeta, input.entradasTotales),
+    comprasMercancia: input.comprasMercancia ?? 0,
+    balanceDinero: input.entradasTotales - gastosTotal - (input.comprasMercancia ?? 0),
   }
 }

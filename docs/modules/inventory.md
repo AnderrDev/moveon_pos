@@ -39,6 +39,10 @@ Una entrada puede registrar `costo_unitario`. Cuando lo hace, `register_inventor
 
 El alta de producto puede crear opcionalmente un movimiento `entry` inicial mediante `create_product_with_initial_stock`. La creación del producto y el movimiento son atómicos y quedan asociados por `referencia_tipo = 'product_initial_stock'`.
 
+### RN-I12: Cómo se pagó una entrada (Ola 1, 2026-10-24, `20261024180000`)
+
+La entrada puede registrar `metodo_pago` (`efectivo_caja|efectivo_externo|transferencia|tarjeta`; `null` = no registrado). Con `efectivo_caja` exige costo > 0 y caja abierta, y `register_inventory_entry_atomic` crea en la misma transacción una salida de caja `cash_out` "Compra mercancía: <producto> x<cantidad>" por cantidad × costo, enlazada en `inventory_movements.cash_movement_id`. La compra **no** es gasto. `p_metodo_pago` es opcional, así que el payload de la app iOS sigue igual. Corregir el costo de la entrada ajusta la salida si su caja sigue abierta; con la caja cerrada no se toca (queda `cash_movement_synced=false` en la auditoría).
+
 ### RN-I08: Traslados
 
 Los traslados entre `bodega` y `punto_venta` son atómicos vía `transfer_stock_atomic`: insertan `transfer_out` y `transfer_in` con el mismo `referencia_id`, no permiten dejar negativo el origen y en MVP solo los ejecuta `admin`.

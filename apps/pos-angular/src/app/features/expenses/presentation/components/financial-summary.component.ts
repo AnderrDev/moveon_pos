@@ -67,6 +67,7 @@ import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
 
     <div class="bg-card mt-4 rounded-xl border p-4">
       <h3 class="text-sm font-semibold">Estado del período</h3>
+      <h4 class="text-muted-foreground mt-3 text-xs">Utilidad</h4>
       <dl class="mt-3 space-y-2 text-sm">
         <div class="flex items-center justify-between">
           <dt class="text-muted-foreground">Entradas totales</dt>
@@ -111,6 +112,33 @@ import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
           </dd>
         </div>
       </dl>
+
+      <h4 class="text-muted-foreground mt-5 text-xs">Dinero del período</h4>
+      <dl class="mt-2 space-y-2 text-sm">
+        <div class="flex items-center justify-between">
+          <dt class="text-muted-foreground">Entradas totales</dt>
+          <dd class="font-semibold">{{ (s().entradasTotales | money) }}</dd>
+        </div>
+        <div class="flex items-center justify-between">
+          <dt class="text-muted-foreground">− Gastos del negocio</dt>
+          <dd class="font-semibold">{{ (s().gastosTotal | money) }}</dd>
+        </div>
+        <div class="flex items-center justify-between">
+          <dt class="text-muted-foreground" title="Entradas de inventario con costo. No restan de la utilidad: su costo entra cuando se venden.">
+            − Compras de mercancía
+          </dt>
+          <dd class="font-semibold">{{ (s().comprasMercancia | money) }}</dd>
+        </div>
+        <div class="flex items-center justify-between border-t pt-2">
+          <dt class="font-semibold">= Balance de dinero</dt>
+          <dd class="font-bold" [class.text-destructive]="s().balanceDinero < 0">
+            {{ (s().balanceDinero | money) }}
+          </dd>
+        </div>
+      </dl>
+      <p class="text-muted-foreground mt-2 text-xs">
+        Las compras de mercancía no son gasto: se descuentan de la utilidad cuando se vende el producto.
+      </p>
 
       @if (s().porCategoria.length > 0) {
         <h4 class="text-muted-foreground mt-5 text-xs">

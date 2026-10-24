@@ -61,6 +61,14 @@ function shiftMonth(month: string, delta: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
+/** Inicio del mes y del siguiente como instantes ISO (fin exclusivo). */
+function monthIsoBounds(month: string): { fromIso: string; toIso: string } {
+  return {
+    fromIso: new Date(`${month}-01T00:00:00`).toISOString(),
+    toIso: new Date(`${shiftMonth(month, 1)}-01T00:00:00`).toISOString(),
+  }
+}
+
 function monthRange(month: string): { from: string; to: string } {
   const [y, m] = month.split('-').map(Number)
   const lastDay = new Date(y, m, 0).getDate()
@@ -253,6 +261,7 @@ export class FinanzasPage {
   readonly entradasTotales = signal(0)
   readonly entradasPorMetodo = signal<PaymentBreakdownInput[]>([])
   readonly costoProductos = signal<number | null>(null)
+  readonly comprasMercancia = signal(0)
   readonly ventasSinCosto = signal(0)
   readonly unidadesSinCosto = signal(0)
   readonly dialogOpen = signal(false)
@@ -292,6 +301,7 @@ export class FinanzasPage {
       costoProductosVendidos: this.costoProductos(),
       ventasSinCosto: this.ventasSinCosto(),
       unidadesSinCosto: this.unidadesSinCosto(),
+      comprasMercancia: this.comprasMercancia(),
       gastos: this.expenses(),
       categorias: this.categorias(),
     }),
@@ -331,7 +341,8 @@ export class FinanzasPage {
       const auth = await this.session.getAuthContext()
       if (!auth) throw new Error('No autenticado')
       const { from, to } = monthRange(this.month())
-      const [categorias, expenses, empleados, templates, report, fundSettings] =
+      const { fromIso, toIso } = monthIsoBounds(this.month())
+      const [categorias, expenses, empleados, templates, report, fundSettings, compras] =
         await Promise.all([
           this.repo.listCategories(auth.tiendaId),
           this.repo.listExpenses(auth.tiendaId, from, to),
@@ -339,6 +350,7 @@ export class FinanzasPage {
           this.repo.listTemplates(auth.tiendaId),
           this.reportsService.getDailyReport(auth.tiendaId, from, to),
           this.repo.getFundSettings(auth.tiendaId),
+          this.repo.getMerchandisePurchases(auth.tiendaId, fromIso, toIso),
         ])
       this.categorias.set(categorias)
       this.expenses.set(expenses)
@@ -347,6 +359,7 @@ export class FinanzasPage {
       this.entradasTotales.set(report.totalVentas)
       this.entradasPorMetodo.set(report.paymentBreakdown.map((p) => ({ metodo: p.metodo, total: p.total })))
       this.fundSettings.set(fundSettings)
+      this.comprasMercancia.set(compras)
       await this.loadFundTotals(auth.tiendaId)
 
       const costos = report.productSales
@@ -374,8 +387,7 @@ export class FinanzasPage {
     }
     const month = this.month()
     const desdeIso = new Date(`${settings.fechaInicio}T00:00:00`).toISOString()
-    const mesDesdeIso = new Date(`${month}-01T00:00:00`).toISOString()
-    const mesHastaIso = new Date(`${shiftMonth(month, 1)}-01T00:00:00`).toISOString()
+    const { fromIso: mesDesdeIso, toIso: mesHastaIso } = monthIsoBounds(month)
     this.fundTotals.set(await this.repo.getFundTotals(tiendaId, desdeIso, mesDesdeIso, mesHastaIso))
   }
 

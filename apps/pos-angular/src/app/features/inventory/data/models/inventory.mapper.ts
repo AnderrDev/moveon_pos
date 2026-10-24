@@ -1,4 +1,4 @@
-import type { InventoryMovement } from '@angular-app/features/inventory/domain/entities/inventory.entity'
+import type { EntryPaymentMethod, InventoryMovement } from '@angular-app/features/inventory/domain/entities/inventory.entity'
 import type { InventoryLocation, InventoryMovementType } from '@/shared/types'
 
 export interface InventoryMovementRow {
@@ -10,6 +10,7 @@ export interface InventoryMovementRow {
   cantidad: number
   costo_unitario: number | null
   motivo: string | null
+  metodo_pago: string | null
   referencia_tipo: string | null
   referencia_id: string | null
   created_by: string
@@ -26,6 +27,7 @@ export function rowToInventoryMovement(row: InventoryMovementRow): InventoryMove
     cantidad: Number(row.cantidad),
     costoUnitario: row.costo_unitario !== null ? Number(row.costo_unitario) : null,
     motivo: row.motivo,
+    metodoPago: row.metodo_pago as EntryPaymentMethod | null,
     referenciaTipo: row.referencia_tipo,
     referenciaId: row.referencia_id,
     createdBy: row.created_by,

@@ -50,6 +50,32 @@ describe('buildFinancialSummary', () => {
     expect(summary.pctGastosSobreEntradas).toBe(20)
   })
 
+  it('las compras de mercancía restan del balance de dinero, no de la utilidad', () => {
+    const summary = buildFinancialSummary({
+      entradasTotales: 10_000_000,
+      costoProductosVendidos: 4_000_000,
+      comprasMercancia: 5_000_000,
+      gastos: [gasto({ monto: 2_000_000 })],
+      categorias: CATEGORIAS,
+    })
+
+    expect(summary.utilidadNeta).toBe(4_000_000)
+    expect(summary.comprasMercancia).toBe(5_000_000)
+    expect(summary.balanceDinero).toBe(3_000_000)
+  })
+
+  it('sin dato de compras el balance es entradas − gastos', () => {
+    const summary = buildFinancialSummary({
+      entradasTotales: 1_000_000,
+      costoProductosVendidos: null,
+      gastos: [gasto({ monto: 300_000 }), gasto({ id: 'g-2', monto: 50_000, status: 'voided' })],
+      categorias: CATEGORIAS,
+    })
+
+    expect(summary.comprasMercancia).toBe(0)
+    expect(summary.balanceDinero).toBe(700_000)
+  })
+
   it('separa las entradas por método de pago', () => {
     const summary = buildFinancialSummary({
       entradasTotales: 1_000_000,

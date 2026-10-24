@@ -37,6 +37,7 @@ export async function registerEntry(
     ubicacion: parsed.data.ubicacion,
     costoUnitario: parsed.data.costoUnitario,
     motivo: parsed.data.motivo,
+    metodoPago: parsed.data.metodoPago,
     createdBy: deps.createdBy,
   })
   return ok(movement)

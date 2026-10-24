@@ -15,6 +15,7 @@ const movement: InventoryMovement = {
   cantidad: 10,
   costoUnitario: 20_000,
   motivo: 'Compra proveedor',
+  metodoPago: null,
   referenciaTipo: null,
   referenciaId: null,
   createdBy: '44444444-4444-4444-8444-444444444444',

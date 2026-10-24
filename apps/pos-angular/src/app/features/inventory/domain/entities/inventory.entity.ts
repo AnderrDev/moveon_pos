@@ -10,6 +10,8 @@ export interface StockLevel {
   isLow: boolean
 }
 
+export type EntryPaymentMethod = 'efectivo_caja' | 'efectivo_externo' | 'transferencia' | 'tarjeta'
+
 export interface InventoryMovement {
   id: string
   tiendaId: TiendaId
@@ -19,6 +21,8 @@ export interface InventoryMovement {
   cantidad: number
   costoUnitario: number | null
   motivo: string | null
+  /** Solo entradas: cómo se pagó la compra (`null` = no registrado). */
+  metodoPago: EntryPaymentMethod | null
   referenciaTipo: string | null
   referenciaId: string | null
   createdBy: UserId

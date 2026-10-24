@@ -45,6 +45,9 @@ Gestión de sesiones de caja: apertura, cierre, ingresos/egresos manuales, cuadr
 - El historial (RN-C15) es admin-only: ruta protegida, menú oculto para cajeros y validación del rol antes de cada consulta de la página. RLS mantiene el aislamiento de tienda.
 - **Sin escritura directa (2026-10-24, `20261024000200`–`000300`):** `cash_movements` solo se escribe vía RPC — `add_cash_movement_atomic` (cualquier usuario activo de la tienda; exige sesión `open` y `created_by = auth.uid()`), `register_expense_atomic` (admin; ahora `SECURITY DEFINER`), `correct_cash_movement_atomic` y `void_cash_movement_atomic`. `cash_sessions` admite `INSERT` directo solo de una sesión abierta propia (policy RESTRICTIVE `cash_sessions_open_insert_only`); sin `UPDATE`/`DELETE`. `audit_logs` es append-only: `INSERT` solo con `user_id = auth.uid()` en una tienda propia.
 
+- **Gasto de caja = gasto de Finanzas (2026-10-24, `20261024160000`):** un movimiento `expense` crea su fila en `expenses` (categoría "Gastos de caja"); anularlo o corregirlo actualiza el gasto, y anular el gasto en Finanzas anula el movimiento. Ver `docs/modules/expenses.md`.
+- **Compras pagadas con caja:** una entrada de inventario con método `efectivo_caja` crea un `cash_out` "Compra mercancía: …" (ver `docs/modules/inventory.md` RN-I12).
+
 ## Exportación Excel
 
 ## Seguimiento diario del historial

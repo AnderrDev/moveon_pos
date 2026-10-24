@@ -21,7 +21,7 @@ import {
 import type { InventoryLocation, ProductType } from '@/shared/types'
 
 const MOV_COLS =
-  'id, tienda_id, producto_id, tipo, ubicacion, cantidad, costo_unitario, motivo, referencia_tipo, referencia_id, created_by, created_at'
+  'id, tienda_id, producto_id, tipo, ubicacion, cantidad, costo_unitario, motivo, metodo_pago, referencia_tipo, referencia_id, created_by, created_at'
 
 @Injectable({ providedIn: 'root' })
 export class InventoryRepository extends InventoryRepositoryContract {
@@ -112,6 +112,7 @@ export class InventoryRepository extends InventoryRepositoryContract {
         p_costo_unitario: input.costoUnitario ?? null,
         p_motivo: input.motivo ?? null,
         p_created_by: input.createdBy,
+        p_metodo_pago: input.metodoPago ?? null,
       })
     )
     if (error) throw new Error(error.message)

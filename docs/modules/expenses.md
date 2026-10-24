@@ -84,3 +84,12 @@ apps/pos-angular/src/app/features/expenses/          (estructura ADR 0015)
 ## Gastos idempotentes (2026-10-24, `20261024000800`)
 
 `register_expense_atomic` acepta `p_idempotency_key` (opcional; `expenses.idempotency_key` con índice único por tienda). Los diálogos de gasto y de pago de nómina generan una clave **cada vez que se abren** (los diálogos se reutilizan entre aperturas) y la reenvían en los reintentos: un reintento devuelve el gasto ya registrado sin duplicar el egreso de caja. Sin clave, el comportamiento es el de antes.
+
+## Gastos de caja y anulación sincronizada (Ola 1, 2026-10-24, `20261024160000`–`170000`)
+
+- **Un "Gasto" registrado desde Caja es un gasto de Finanzas.** `add_cash_movement_atomic` con `tipo = 'expense'` crea en la misma transacción la fila de `expenses` (categoría `Gastos de caja`, slug `caja`, creada por tienda la primera vez con `ensure_cash_expense_category`; método `efectivo_caja`; fecha local de la tienda; concepto = motivo del movimiento). Antes solo existía en caja y la utilidad neta no lo restaba (146 movimientos / $2.338.646 en producción al 2026-10-24).
+- **Recuperación de históricos:** `20261024170000_backfill_cash_expenses.sql` crea el gasto de cada movimiento `expense` activo sin gasto. Es un cambio de datos: en producción solo con OK del dueño. Idempotente.
+- **Anular es simétrico.** `void_expense_atomic` (admin) anula el gasto y su salida de caja; `void_cash_movement_atomic` anula también el gasto enlazado. `correct_cash_movement_atomic` copia el monto (y el concepto, sin el prefijo `Gasto: `) al gasto enlazado.
+- **`expenses` sin escritura directa:** se revocaron `INSERT/UPDATE/DELETE` a `anon` y `authenticated`. Todo pasa por `register_expense_atomic`, `void_expense_atomic` o las RPC de caja.
+- **Compras de mercancía en el resumen:** Finanzas muestra "Dinero del período" = entradas − gastos − compras de mercancía (entradas de inventario con costo del mes). Las compras **no** restan de la utilidad (su costo entra cuando se vende). `ExpenseRepository.getMerchandisePurchases` reutiliza `get_reinvestment_fund_totals`.
+- Prueba: `supabase/tests/cash-expenses-sync.test.sql`.
