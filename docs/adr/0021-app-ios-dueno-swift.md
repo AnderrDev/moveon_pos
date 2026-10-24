@@ -94,6 +94,15 @@ El dueño decidió el mismo día que la app viva en **un repositorio aparte**, `
 - **Las RPC `owner_*` y sus tests de paridad viven en este repo** (`supabase/migrations/`), porque la paridad se prueba contra los servicios TS del POS.
 - Consecuencia: un cambio que toque RPC y pantalla requiere dos commits coordinados (primero la migración aquí, luego la app). Se acepta por mantener separados el toolchain de Xcode y el de pnpm/Netlify.
 
+### 8. Reglas de ingeniería de `gym_ios` (enmienda del 2026-10-24)
+
+El dueño decidió que la app siga **las mismas reglas de ingeniería que `gym_ios`** (`docs/ENGINEERING_RULES.md` del repo iOS, copia adaptada). Esto reemplaza lo dicho en §3 sobre la estructura:
+
+- **Un solo target de app** con `App/`, `Core/`, `Data/` y `Features/<Feature>/{Domain,Data,Presentation}`; se retira el Swift Package local `MoveOnKit`. Las fronteras de capa las vigilan las reglas y la revisión, no el compilador (hasta el disparador de modularización de esas reglas).
+- Composition root `AppDependencies`; errores de dominio `AppError` con textos en `UserMessages`; `SupabaseErrorMapper` como único traductor de errores del SDK; logs con `AppLogger`.
+- Secretos en `Config/Secrets.xcconfig` (fuera de git) generados con `scripts/make_secrets.sh`, que por defecto apunta al Supabase local.
+- Casos de uso como `struct` con `callAsFunction` solo cuando hay lógica o se combinan repositorios.
+
 ## Alternativas consideradas
 
 | Alternativa | Por qué no |
