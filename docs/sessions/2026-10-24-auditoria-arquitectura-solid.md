@@ -234,3 +234,19 @@ Comparación del registro remoto (`schema_migrations`) con `supabase/migrations/
 - Tests nuevos: `pos-catalog` (4), `checkout-rules` (5), `pos-checkout-store` (6, con `PosCartStore` real). Total 836.
 - Verificado en el POS local tras cada paso (runtime-config confirmado en local; el typecheck lo vuelve a apuntar a producción y hay que regenerarlo): catálogo (render, búsqueda, escaneo, ficha), carrito (cantidades, eliminar, cliente/club, descuento de línea, opción), cobro (descuento $/% y motivo, pagos mixtos con referencia, quitar pago, monto exacto, venta `V-000003` correcta, reinicio tras vender y al cancelar).
 - Sin publicar.
+
+## 20. P2 — resto de la componentización y design system
+
+Commits en `dev`, en orden:
+- `e18bd97` (antes de esta sección): pipes `| money` y `| paymentLabel` (ADR 0023).
+- **Historial y filtros:** `mo-sale-detail-body` (detalle de UNA venta, compartido por `mo-sale-detail-list` y el historial del POS; `canCorrectPayment` + `(correctPayment)`) y `mo-segmented` (filas de filtros de selección única) con `PAYMENT_FILTER_OPTIONS`. Reemplaza los `paymentFilterClass`/`salesFilterClass`/`presetClass` copiados en caja, historial y reportes. `sales-history.dialog.ts`: 840 → 655 líneas.
+- **caja.page:** `mo-cash-open-session-form`, `mo-cash-turn-summary`, `mo-cash-movements-table` (con `MO_TABLE`) y `cash-movement-labels.ts`. 683 → 461 líneas.
+- **product-form.dialog:** `mo-product-initial-stock-section` (se enlaza al FormGroup padre), `mo-product-components-editor` (emite `added`/`removed`; el diálogo recalcula el costo del combo), `mo-product-options-editor` (`[(options)]`, `[(grupo)]`, `[(error)]`) y funciones puras `product-option-list.ts` con 5 tests. 913 → 561 líneas.
+- **Design system:** 11 skeletons inline → `mo-skeleton`; 7 tablas de reportes → `MO_TABLE`; 20 SVG inline → `lucide-angular`; el cobro del POS usa `mo-dialog`; botones primarios crudos (cobro, ficha de producto, login/recuperar/restablecer) → `mo-button`.
+- **Bug corregido en `mo-dialog`:** Escape cerraba todos los diálogos abiertos (selector de cliente sobre el cobro descartaba los pagos; "Corregir pago" sobre el historial). Ahora hay una pila de diálogos abiertos: Escape cierra solo el de arriba y marca el evento con `preventDefault` (zone.js corre detección de cambios entre listeners, así que el de abajo ya no veía la pila original).
+
+Se dejó a propósito: el esqueleto con layout del POS, el tono del carrito durante la carga del club, la barra de "ocupado" de `mo-dialog`, y los botones que no son botones de acción (chips de método de pago/descuento/tirilla, tarjetas del catálogo, botones de ícono). `mo-segmented` no se usa para las pestañas principales de reportes (otro estilo).
+
+Verificado en local (runtime-config en local): historial (detalle, filtro por transferencia 3/7, "Corregir" abre su diálogo), reportes (periodos, estado y método 7 → 1 → 3, tablas con alineación y padding del sistema), caja (resumen con los mismos valores, Corregir/Anular movimiento), productos (editar batido: agregar/quitar componente, opción repetida rechazada, cambiar predeterminada; combo con ahorro; nuevo producto con inventario inicial y combo sin stock), POS (íconos 16/20/12 px, cobro en `mo-dialog`, Escape con selector encima, venta completada con toast), login con `mo-button`. `pnpm lint`, typecheck y 843 tests en verde.
+
+Sin publicar hasta que el dueño lo confirme (merge `dev` → `main`).

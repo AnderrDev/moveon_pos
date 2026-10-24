@@ -70,7 +70,7 @@ Criterio de nivel: **atom** = un elemento estilizado; **molecule** = composició
 | `mo-stat-card` | `label`*, `value`* (string YA formateado), `hint`, `tone: default\|warning\|success\|muted` · ng-content para pie |
 | `mo-dialog-footer` | `align: end\|between` · ng-content (mo-buttons) |
 | `mo-table-shell` + `MO_TABLE` | `<table moTable [density]>` (`default` px-4 py-3 + header sticky; `compact` px-3 py-2 sin sticky) · `thead moThead`, `th moTh`, `td moTd`, `tr moTr [hover]`. Alineación (`text-right`, `tabular-nums`, `min-w-*`) va como clase del elemento |
-| `mo-dialog` | `open`, `title`*, `description`, `busy`, `width: sm\|md\|lg\|xl` · `(closed)` |
+| `mo-dialog` | `open`, `title`*, `description`, `busy`, `width: sm\|md\|lg\|xl` · `(closed)`. Escape cierra solo el diálogo de arriba (pila de abiertos) |
 | `mo-field-wrapper` y `mo-form-*` | `controlName`* + `label`/`error`/`required` — enlazan al FormGroup padre vía `viewProviders` (ver forms.md) |
 | `mo-segmented` | `options`* (`{ value, label }[]`), `[(value)]`* (string) — filas de filtros (método de pago, estado, periodo). No usar para pestañas principales |
 | `mo-sale-detail-body` | `sale`*, `canCorrectPayment` · `(correctPayment)` → `{ paymentId, metodo }` |
