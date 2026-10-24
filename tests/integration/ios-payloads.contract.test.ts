@@ -35,6 +35,7 @@ const COVERED = [
   'audit_log_void_sale',
   'create_product',
   'register_inventory_entry',
+  'sale_totals_cases',
   'transfer_stock',
   'update_product',
   'void_sale',
@@ -284,6 +285,74 @@ describe('payloads de escritura de la app iOS contra el Supabase local', () => {
     expect(retry.data).toBe(saleId)
     const { count } = await admin.from('sales').select('id', { count: 'exact', head: true }).eq('idempotency_key', key)
     expect(count).toBe(1)
+  })
+
+  it('sale_totals_cases: los totales del servidor con descuentos son los esperados (y los de Swift)', async () => {
+    const { payload } = loadPayload('sale_totals_cases', {}) as unknown as {
+      payload: {
+        products: { key: string; price: number; iva: number }[]
+        cases: {
+          name: string
+          lines: { product: string; quantity: number; discount: number }[]
+          global?: number
+          global_percent?: number
+          expected: { subtotal: number; discount_total: number; tax_total: number; total: number }
+        }[]
+      }
+    }
+    const ids: Record<string, string> = {}
+    for (const product of payload.products) {
+      ids[product.key] = randomUUID()
+      psql(
+        stack,
+        `insert into public.productos (id, tienda_id, nombre, tipo, precio_venta, iva_tasa, stock_minimo, is_active)
+           values ('${ids[product.key]}', '${TIENDA}', 'Totales ${product.key}', 'simple', ${product.price}, ${product.iva}, 0, true);
+         insert into public.inventory_movements (tienda_id, producto_id, tipo, cantidad, ubicacion, motivo, created_by)
+           values ('${TIENDA}', '${ids[product.key]}', 'entry', 100, 'punto_venta', 'Totales', '${adminId}');`,
+      )
+    }
+    const { data: session } = await admin.from('cash_sessions').select('id').eq('tienda_id', TIENDA).eq('status', 'open').single()
+    const prices = Object.fromEntries(payload.products.map((p) => [p.key, p.price]))
+
+    for (const sale of payload.cases) {
+      const subtotal = sale.lines.reduce((sum, l) => sum + prices[l.product] * l.quantity, 0)
+      const global = sale.global ?? Math.round((subtotal * (sale.global_percent ?? 0)) / 100)
+      const { data: saleId, error } = await admin.rpc('create_sale_atomic', {
+        p_tienda_id: TIENDA,
+        p_cash_session_id: (session as { id: string }).id,
+        p_sale_number: '',
+        p_cashier_id: adminId,
+        p_cliente_id: null,
+        p_subtotal: 0,
+        p_discount_total: 0,
+        p_tax_total: 0,
+        p_total: 0,
+        p_idempotency_key: randomUUID(),
+        p_items: sale.lines.map((l) => ({
+          producto_id: ids[l.product],
+          producto_nombre: `Totales ${l.product}`,
+          producto_sku: null,
+          quantity: l.quantity,
+          unit_price: prices[l.product],
+          option_id: null,
+          discount_amount: l.discount,
+          tax_rate: 0,
+          tax_amount: 0,
+          total: 0,
+        })),
+        p_payments: [{ metodo: 'cash', amount: sale.expected.total, referencia: null }],
+        p_global_discount_total: global,
+        p_discount_reason: 'Paridad de totales',
+        p_loyalty_redemptions: null,
+      })
+      expect(error, `${sale.name}: ${JSON.stringify(error)}`).toBeNull()
+      const { data: row } = await admin
+        .from('sales')
+        .select('subtotal, discount_total, tax_total, total')
+        .eq('id', saleId as string)
+        .single()
+      expect(row, sale.name).toEqual(sale.expected)
+    }
   })
 
   it.each(['audit_log_product_create', 'audit_log_product_update', 'audit_log_void_sale', 'audit_log_create_sale'])('%s: la auditoría del producto se guarda tal cual', async (name) => {
