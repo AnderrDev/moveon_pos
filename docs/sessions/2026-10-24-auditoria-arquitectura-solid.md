@@ -265,3 +265,9 @@ Sin publicar hasta que el dueño lo confirme (merge `dev` → `main`).
 - `tsc --noEmit` falla solo en `tests/integration/ios-payloads.contract.test.ts`, trabajo sin commitear de la sesión iOS; el build de Angular y lint pasan.
 - Commits: ed9b811 6fd3dad (+ docs). Sin publicar.
 - **Queda del #16:** 5 diálogos con Zod en línea pero sin presenter (gastos: nómina, plantilla, fondo, empleado; fidelización: ajuste de sellos del cliente).
+
+## 22. Publicación de §21 y regresión del stock inicial (pendiente de aplicar)
+
+- **Publicado (autorizado por el dueño):** merge `dev→main` `9e5c6ee` tras lint POS+landing, 861 tests, build de producción y diff sin secretos. Netlify `moveon-client` y `moveon-catalogo-web` ready en `9e5c6ee`; `/login` y `/catalogo` → 200. Incluyó de la sesión iOS `6fb3e7c` (archivo de migración `20261024150000`, no aplicada) y `b1e6035` (tests de contrato).
+- **Regresión en producción causada por el P0 (`20261024000500`):** crear un producto con stock inicial > 0 falla con "permission denied for table inventory_movements" porque `create_product_with_initial_stock` es SECURITY INVOKER y `authenticated` ya no tiene INSERT directo. Verificado en remoto (solo lectura): `prosecdef = false`, INSERT de `authenticated` = false. La corrige `20261024150000_create_product_initial_stock_definer.sql` (DEFINER + revoke a public/anon), aplicada solo en local. **Pendiente: OK del dueño para aplicarla en remoto.**
+- `pnpm typecheck` (y por tanto el job de CI) falla en `tests/integration/ios-payloads.contract.test.ts:180-181` (`code`/`message` sobre `{}`), de la sesión iOS. No afecta a Netlify.
