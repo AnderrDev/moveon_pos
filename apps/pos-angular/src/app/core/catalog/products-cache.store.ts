@@ -4,6 +4,13 @@ import { ProductRepository } from '@angular-app/features/products/domain/reposit
 import { TtlCache } from '@/shared/cache/ttl-cache'
 import type { Categoria, Product, Proveedor } from '@angular-app/features/products/domain/entities/product.entity'
 
+/**
+ * Producto del catálogo tal como lo sirve esta caché. Las features que solo
+ * leen el catálogo (inventario, POS) lo importan desde aquí en vez de desde
+ * `products/`, para no crear dependencias circulares con esa feature.
+ */
+export type CatalogProduct = Product
+
 const DEFAULT_TTL_MS = 5 * 60 * 1000
 
 interface EnsureOptions {

@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
+import { rpcArgs } from '@angular-app/core/supabase/rpc-args'
 import { AuditLogRepository } from '@angular-app/features/audit/domain/repositories/audit-log.repository'
 import {
   rowToInventoryMovement,
@@ -22,13 +23,6 @@ import type { InventoryLocation, ProductType } from '@/shared/types'
 const MOV_COLS =
   'id, tienda_id, producto_id, tipo, ubicacion, cantidad, costo_unitario, motivo, referencia_tipo, referencia_id, created_by, created_at'
 
-interface RpcClient {
-  rpc<T>(
-    fn: string,
-    args: Record<string, unknown>
-  ): Promise<{ data: T | null; error: { message: string } | null }>
-}
-
 @Injectable({ providedIn: 'root' })
 export class InventoryRepository extends InventoryRepositoryContract {
   private readonly supabaseClient = inject(SupabaseClientService)
@@ -39,8 +33,7 @@ export class InventoryRepository extends InventoryRepositoryContract {
     tiendaId: string,
     ubicacion: InventoryLocation = 'punto_venta'
   ): Promise<number> {
-    const client = this.supabaseClient.supabase as unknown as RpcClient
-    const { data, error } = await client.rpc<number>('get_stock', {
+    const { data, error } = await this.supabaseClient.supabase.rpc('get_stock', {
       p_producto_id: productId,
       p_tienda_id: tiendaId,
       p_ubicacion: ubicacion,
@@ -64,10 +57,7 @@ export class InventoryRepository extends InventoryRepositoryContract {
 
     // Suma agregada en el servidor: sumar movimientos en el cliente rompía
     // al superar el límite de 1000 filas por consulta de PostgREST.
-    const client = this.supabaseClient.supabase as unknown as RpcClient
-    const { data: levels, error: mErr } = await client.rpc<
-      { producto_id: string; punto_venta_stock: number; bodega_stock: number }[]
-    >('get_stock_levels', { p_tienda_id: tiendaId })
+    const { data: levels, error: mErr } = await this.supabaseClient.supabase.rpc('get_stock_levels', { p_tienda_id: tiendaId })
 
     if (mErr) throw new Error(mErr.message)
 
@@ -112,10 +102,9 @@ export class InventoryRepository extends InventoryRepositoryContract {
   }
 
   async registerEntry(input: RegisterEntryInput): Promise<InventoryMovement> {
-    const client = this.supabaseClient.supabase as unknown as RpcClient
-    const { data: movementId, error } = await client.rpc<string>(
+    const { data: movementId, error } = await this.supabaseClient.supabase.rpc(
       'register_inventory_entry_atomic',
-      {
+      rpcArgs('register_inventory_entry_atomic', {
         p_tienda_id: input.tiendaId,
         p_producto_id: input.productId,
         p_ubicacion: input.ubicacion,
@@ -123,7 +112,7 @@ export class InventoryRepository extends InventoryRepositoryContract {
         p_costo_unitario: input.costoUnitario ?? null,
         p_motivo: input.motivo ?? null,
         p_created_by: input.createdBy,
-      }
+      })
     )
     if (error) throw new Error(error.message)
     if (!movementId) throw new Error('Movimiento creado sin respuesta')
@@ -131,8 +120,7 @@ export class InventoryRepository extends InventoryRepositoryContract {
   }
 
   async correctEntryCost(input: CorrectEntryCostInput): Promise<InventoryMovement> {
-    const client = this.supabaseClient.supabase as unknown as RpcClient
-    const { data: movementId, error } = await client.rpc<string>(
+    const { data: movementId, error } = await this.supabaseClient.supabase.rpc(
       'correct_inventory_entry_cost_atomic',
       {
         p_movement_id: input.movementId,
@@ -150,8 +138,7 @@ export class InventoryRepository extends InventoryRepositoryContract {
 
   async adjustStock(input: AdjustStockInput): Promise<InventoryMovement> {
     // inventory_movements no admite INSERT directo: la RPC fija tipo y autor.
-    const client = this.supabaseClient.supabase as unknown as RpcClient
-    const { data, error } = await client.rpc<InventoryMovementRow>('adjust_stock_atomic', {
+    const { data, error } = await this.supabaseClient.supabase.rpc('adjust_stock_atomic', {
       p_tienda_id: input.tiendaId,
       p_producto_id: input.productId,
       p_ubicacion: input.ubicacion,
@@ -179,8 +166,7 @@ export class InventoryRepository extends InventoryRepositoryContract {
   }
 
   async transferStock(input: TransferStockInput): Promise<string> {
-    const client = this.supabaseClient.supabase as unknown as RpcClient
-    const { data, error } = await client.rpc<string>('transfer_stock_atomic', {
+    const { data, error } = await this.supabaseClient.supabase.rpc('transfer_stock_atomic', {
       p_tienda_id: input.tiendaId,
       p_producto_id: input.productId,
       p_from_ubicacion: input.fromUbicacion,

@@ -8,95 +8,28 @@
  * lee las ventas como lo hace `SalesRepository.listByDate`, y compara el TS con
  * la RPC. Al terminar borra todo lo que creó.
  */
-import { execFileSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildSalesSummary, type SalesSummary } from '@angular-app/features/reports/domain/services/sales-summary'
-import { getStoreRangeUtc } from '@angular-app/features/reports/domain/services/day-range'
+import { getStoreRangeUtc } from '@/shared/lib/day-range'
 import { rowToSale, type SaleRow } from '@angular-app/features/sales/data/models/sale.mapper'
+import {
+  CLEANUP_SQL,
+  createUsers,
+  deleteUsers,
+  localStack,
+  normalize,
+  psql,
+  signIn,
+  type LocalStack,
+} from './support/local-stack'
 
-const ROOT = path.resolve(__dirname, '../..')
 const TZ = 'America/Bogota'
-const PASSWORD = 'Paridad1234!'
 const TIENDA = randomUUID()
 const OTRA = randomUUID()
-
-interface LocalStack {
-  url: string
-  anonKey: string
-  serviceRoleKey: string
-  dbContainer: string
-}
-
-/**
- * `supabase status` del CLI instalado en el sistema: bajo pnpm/npx el PATH
- * empieza por `node_modules/.bin`, que trae un CLI viejo que no entiende el
- * config.toml. Puede salir con código ≠ 0 si hay servicios opcionales
- * detenidos (Studio, Storage…), pero igual imprime los datos.
- */
-function supabaseStatus(): string {
-  const PATH = (process.env['PATH'] ?? '')
-    .split(path.delimiter)
-    .filter((dir) => !dir.includes(`node_modules${path.sep}.bin`))
-    .join(path.delimiter)
-  try {
-    return execFileSync('supabase', ['status', '-o', 'env'], {
-      cwd: ROOT,
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-      env: { ...process.env, PATH },
-    })
-  } catch (error) {
-    const stdout = (error as { stdout?: string }).stdout
-    if (stdout) return stdout
-    throw error
-  }
-}
-
-function localStack(): LocalStack {
-  const env = supabaseStatus()
-  const get = (key: string): string => {
-    const match = env.match(new RegExp(`^${key}="?([^"\\n]+)"?$`, 'm'))
-    if (!match) throw new Error(`Falta ${key} en "supabase status": ¿está corriendo el Supabase local?`)
-    return match[1]
-  }
-  const url = get('API_URL')
-  if (!/^http:\/\/(127\.0\.0\.1|localhost)[:/]/.test(url)) {
-    throw new Error(`La paridad solo corre contra el Supabase local, no contra ${url}`)
-  }
-  const projectId = readFileSync(path.join(ROOT, 'supabase/config.toml'), 'utf8').match(/^project_id\s*=\s*"([^"]+)"/m)?.[1]
-  return { url, anonKey: get('ANON_KEY'), serviceRoleKey: get('SERVICE_ROLE_KEY'), dbContainer: `supabase_db_${projectId}` }
-}
-
-function psql(stack: LocalStack, sql: string, vars: Record<string, string> = {}): void {
-  const args = ['exec', '-i', stack.dbContainer, 'psql', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-q']
-  for (const [key, value] of Object.entries(vars)) args.push('-v', `${key}=${value}`)
-  execFileSync('docker', args, { input: sql, stdio: ['pipe', 'ignore', 'pipe'] })
-}
-
-/** Borra las tiendas de paridad (también las que dejó una corrida que falló). */
-const CLEANUP_SQL = `
-  create temp table paridad_tiendas as select id from public.tiendas where nombre like 'Paridad %';
-  delete from public.payments where sale_id in (select id from public.sales where tienda_id in (select id from paridad_tiendas));
-  delete from public.sale_items where sale_id in (select id from public.sales where tienda_id in (select id from paridad_tiendas));
-  delete from public.audit_logs where tienda_id in (select id from paridad_tiendas);
-  delete from public.sales where tienda_id in (select id from paridad_tiendas);
-  delete from public.inventory_movements where tienda_id in (select id from paridad_tiendas);
-  delete from public.cash_sessions where tienda_id in (select id from paridad_tiendas);
-  delete from public.productos where tienda_id in (select id from paridad_tiendas);
-  delete from public.user_tiendas where tienda_id in (select id from paridad_tiendas);
-  delete from public.tiendas where id in (select id from paridad_tiendas);
-`
-
-async function signIn(stack: LocalStack, email: string): Promise<SupabaseClient> {
-  const client = createClient(stack.url, stack.anonKey, { auth: { persistSession: false, autoRefreshToken: false } })
-  const { error } = await client.auth.signInWithPassword({ email, password: PASSWORD })
-  if (error) throw error
-  return client
-}
 
 /** Mismas ventas que `SalesRepository.listByDate` (mismo rango y orden), mapeadas con `rowToSale`. */
 async function webSummary(client: SupabaseClient, fromIso: string, toIso: string): Promise<SalesSummary> {
@@ -155,19 +88,8 @@ function toRpcShape(s: SalesSummary): Record<string, unknown> {
   }
 }
 
-/** Números a 6 decimales (porcentajes en float vs numeric) y sin los campos que el web no tiene. */
-function normalize(value: unknown): unknown {
-  if (typeof value === 'number') return Math.round(value * 1e6) / 1e6
-  if (Array.isArray(value)) return value.map(normalize)
-  if (value && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value)
-        .filter(([key]) => !['from', 'to', 'timezone', 'cashier_email'].includes(key))
-        .map(([key, v]) => [key, normalize(v)])
-    )
-  }
-  return value
-}
+/** Sin los campos que el web no tiene. */
+const DROP_KEYS = ['from', 'to', 'timezone', 'cashier_email']
 
 describe('owner_sales_summary: paridad con el reporte del POS web', () => {
   let stack: LocalStack
@@ -179,20 +101,14 @@ describe('owner_sales_summary: paridad con el reporte del POS web', () => {
 
   beforeAll(async () => {
     stack = localStack()
-    const service = createClient(stack.url, stack.serviceRoleKey, { auth: { persistSession: false } })
-    const ids: { admin?: string; cajero?: string } = {}
-    for (const [key, email] of [['admin', adminEmail], ['cajero', cashierEmail]] as const) {
-      const { data, error } = await service.auth.admin.createUser({ email, password: PASSWORD, email_confirm: true })
-      if (error) throw error
-      ids[key] = data.user.id
-      userIds.push(data.user.id)
-    }
+    const [adminId, cashierId] = await createUsers(stack, [adminEmail, cashierEmail])
+    userIds.push(adminId, cashierId)
     psql(stack, CLEANUP_SQL)
     psql(stack, readFileSync(path.join(__dirname, 'fixtures/owner-sales-summary.sql'), 'utf8'), {
       tienda: TIENDA,
       otra: OTRA,
-      admin: ids.admin ?? '',
-      cajero: ids.cajero ?? '',
+      admin: adminId,
+      cajero: cashierId,
     })
     admin = await signIn(stack, adminEmail)
     cashier = await signIn(stack, cashierEmail)
@@ -201,8 +117,7 @@ describe('owner_sales_summary: paridad con el reporte del POS web', () => {
   afterAll(async () => {
     if (!stack) return
     psql(stack, CLEANUP_SQL)
-    const service = createClient(stack.url, stack.serviceRoleKey, { auth: { persistSession: false } })
-    for (const id of userIds) await service.auth.admin.deleteUser(id)
+    await deleteUsers(stack, userIds)
   })
 
   async function rpc(client: SupabaseClient, from: string, to: string) {
@@ -216,7 +131,7 @@ describe('owner_sales_summary: paridad con el reporte del POS web', () => {
   ])('mismas cifras que el web: %s', async (_name, from, to) => {
     const { data, error } = await rpc(admin, from, to)
     expect(error).toBeNull()
-    expect(normalize(data)).toEqual(normalize(toRpcShape(await webSummary(admin, from, to))))
+    expect(normalize(data, DROP_KEYS)).toEqual(normalize(toRpcShape(await webSummary(admin, from, to)), DROP_KEYS))
   })
 
   it('cifras esperadas del período de dos días (protege a ambos lados del mismo error)', async () => {

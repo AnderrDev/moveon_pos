@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
+import { rpcArgs } from '@angular-app/core/supabase/rpc-args'
 import { fetchAllPages } from '@angular-app/core/supabase/fetch-all-pages'
 import { AuditLogRepository } from '@angular-app/features/audit/domain/repositories/audit-log.repository'
 import { rowToSale, type SaleRow } from '@angular-app/features/sales/data/models/sale.mapper'
@@ -8,6 +9,7 @@ import {
   SaleRepository as SaleRepositoryContract,
   type CreateSaleRequest,
 } from '@angular-app/features/sales/domain/repositories/sale.repository'
+import type { PaymentMethod } from '@/shared/types'
 
 const SALE_COLS =
   'id, tienda_id, cash_session_id, sale_number, cliente_id, cashier_id, cashier_email, subtotal, item_discount_total, global_discount_total, discount_total, discount_reason, discount_approved_by, tax_total, total, status, billing_status, billing_document_id, voided_by, voided_at, voided_reason, idempotency_key, created_at, updated_at'
@@ -15,21 +17,13 @@ const ITEM_COLS =
   'id, sale_id, producto_id, producto_nombre, producto_sku, quantity, unit_price, unit_cost, discount_amount, global_discount_amount, option_nombre, option_extra, tax_rate, tax_amount, total'
 const PAY_COLS = 'id, sale_id, metodo, amount, referencia, created_at'
 
-interface RpcClient {
-  rpc<T>(
-    fn: string,
-    args: Record<string, unknown>
-  ): Promise<{ data: T | null; error: { message: string } | null }>
-}
-
 @Injectable({ providedIn: 'root' })
 export class SalesRepository extends SaleRepositoryContract {
   private readonly supabaseClient = inject(SupabaseClientService)
   private readonly audit = inject(AuditLogRepository)
 
   async create(request: CreateSaleRequest): Promise<string> {
-    const client = this.supabaseClient.supabase as unknown as RpcClient
-    const { data, error } = await client.rpc<string>('create_sale_atomic', {
+    const { data, error } = await this.supabaseClient.supabase.rpc('create_sale_atomic', rpcArgs('create_sale_atomic', {
       p_tienda_id: request.tiendaId,
       p_cash_session_id: request.cashSessionId,
       // El sale_number lo genera create_sale_atomic (correlativo por tienda).
@@ -65,7 +59,7 @@ export class SalesRepository extends SaleRepositoryContract {
         request.loyaltyRedemptions.length > 0
           ? request.loyaltyRedemptions.map((r) => ({ reward_id: r.rewardId, item_index: r.itemIndex }))
           : null,
-    })
+    }))
 
     // postgrest-js (sin `.throwOnError()`) devuelve `error` como objeto plano
     // `{ message, ... }`, NO una instancia de Error: se relanza con el texto
@@ -159,8 +153,7 @@ export class SalesRepository extends SaleRepositoryContract {
     const userId = userData.user?.id
     if (!userId) throw new Error('No autenticado')
 
-    const client = this.supabaseClient.supabase as unknown as RpcClient
-    const { error } = await client.rpc<void>('void_sale_atomic', {
+    const { error } = await this.supabaseClient.supabase.rpc('void_sale_atomic', {
       p_sale_id: saleId,
       p_tienda_id: tiendaId,
       p_voided_by: userId,
@@ -186,11 +179,11 @@ export class SalesRepository extends SaleRepositoryContract {
     const userId = userData.user?.id
     if (!userId) throw new Error('No autenticado')
 
-    const client = this.supabaseClient.supabase as unknown as RpcClient
-    const { error } = await client.rpc<void>('correct_payment_atomic', {
+    const { error } = await this.supabaseClient.supabase.rpc('correct_payment_atomic', {
       p_payment_id:   paymentId,
       p_tienda_id:    tiendaId,
-      p_new_metodo:   newMetodo,
+      // El contrato del dominio recibe string; PostgreSQL rechaza valores fuera del enum.
+      p_new_metodo:   newMetodo as PaymentMethod,
       p_corrected_by: userId,
       p_reason:       reason,
     })
@@ -207,8 +200,7 @@ export class SalesRepository extends SaleRepositoryContract {
     const userId = userData.user?.id
     if (!userId) throw new Error('No autenticado')
 
-    const client = this.supabaseClient.supabase as unknown as RpcClient
-    const { error } = await client.rpc<void>('correct_sale_customer_atomic', {
+    const { error } = await this.supabaseClient.supabase.rpc('correct_sale_customer_atomic', {
       p_sale_id:      saleId,
       p_tienda_id:    tiendaId,
       p_cliente_id:   clienteId,

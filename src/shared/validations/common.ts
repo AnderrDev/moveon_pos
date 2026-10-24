@@ -58,3 +58,11 @@ export const entityNameSchema = z
   .min(2, 'El nombre debe tener al menos 2 caracteres')
   .max(100, 'El nombre no puede tener más de 100 caracteres')
   .trim()
+
+// ─── Referencias ───────────────────────────────────────────────────────────────
+
+/** Registro de una tienda sobre el que actúa un use-case de borrar/desactivar. */
+export const entityRefSchema = z.object({
+  id: z.string().uuid('Registro inválido'),
+  tiendaId: z.string().uuid('Tienda inválida'),
+})

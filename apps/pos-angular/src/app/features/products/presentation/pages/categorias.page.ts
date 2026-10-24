@@ -196,7 +196,11 @@ export class CategoriasPage {
     const auth = await this.session.getAuthContext()
     if (!auth) return
     try {
-      await deactivateCategoria({ repo: this.repo }, cat.id, auth.tiendaId)
+      const result = await deactivateCategoria({ repo: this.repo }, cat.id, auth.tiendaId)
+      if (!result.ok) {
+        this.toast.error(result.error.message)
+        return
+      }
       this.toast.success('Categoria desactivada')
       this.store.patchCategoria(cat.id, { isActive: false })
     } catch (error) {

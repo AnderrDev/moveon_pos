@@ -1,11 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core'
 import { Gift, LucideAngularModule, Medal } from 'lucide-angular'
-import type { Cliente } from '@angular-app/features/customers/domain/entities/cliente.entity'
+import type { LoyaltyCustomerRef } from '@angular-app/features/loyalty/domain/entities/loyalty.entity'
 import type { LoyaltyCustomerProgress } from '@angular-app/features/loyalty/domain/repositories/loyalty.repository'
 import { getStampsRemaining } from '@angular-app/features/loyalty/domain/services/customer-progress'
 
 interface FeaturedLoyaltyCustomer {
-  cliente: Cliente
+  cliente: LoyaltyCustomerRef
   progress: LoyaltyCustomerProgress
 }
 

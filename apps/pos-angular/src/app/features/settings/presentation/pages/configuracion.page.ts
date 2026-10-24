@@ -380,7 +380,14 @@ export class ConfiguracionPage {
     this.saving.set(true)
     this.presenter.form.disable({ emitEvent: false })
     try {
-      await saveReceiptSettings({ repo: this.settings }, receiptSettingsFormMapper.toPayload(value))
+      const result = await saveReceiptSettings(
+        { repo: this.settings },
+        receiptSettingsFormMapper.toPayload(value),
+      )
+      if (!result.ok) {
+        this.presenter.setRootError(result.error.message)
+        return
+      }
       this.toast.success('Configuracion del comprobante guardada')
     } catch (error) {
       this.presenter.setRootError(getErrorMessage(error, 'No se pudo guardar la configuracion'))
@@ -448,7 +455,14 @@ export class ConfiguracionPage {
     this.loyaltySaving.set(true)
     this.loyaltyPresenter.form.disable({ emitEvent: false })
     try {
-      await saveLoyaltySettings({ repo: this.loyaltySettings }, loyaltySettingsFormMapper.toPayload(value))
+      const result = await saveLoyaltySettings(
+        { repo: this.loyaltySettings },
+        loyaltySettingsFormMapper.toPayload(value),
+      )
+      if (!result.ok) {
+        this.loyaltyPresenter.setRootError(result.error.message)
+        return
+      }
       this.toast.success('Programa MOVE ON Club guardado')
     } catch (error) {
       this.loyaltyPresenter.setRootError(

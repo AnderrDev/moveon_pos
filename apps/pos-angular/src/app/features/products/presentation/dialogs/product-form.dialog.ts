@@ -861,12 +861,16 @@ export class ProductFormDialog {
       // Los productos incluidos de un combo se guardan igual que los
       // componentes de un preparado; las opciones de venta no aplican al combo.
       if (saved.tipo === 'prepared' || saved.tipo === 'combo') {
-        await saveProductComponents(
+        const componentsResult = await saveProductComponents(
           { repo: this.repo },
           saved.id,
           auth.tiendaId,
           this.components().map((c) => ({ componenteId: c.componenteId, cantidad: c.cantidad })),
         )
+        if (!componentsResult.ok) {
+          this.presenter.setRootError(componentsResult.error.message)
+          return
+        }
       }
 
       if (saved.tipo === 'prepared') {

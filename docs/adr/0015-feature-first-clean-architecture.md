@@ -121,8 +121,14 @@ presentation ──→ domain ←── data
 - **`presentation/` invoca use-cases del dominio** (que reciben el repositorio-interfaz
   inyectado); no llama a `data/` directo para escrituras. `presentation/forms/` es TS puro
   (schemas Zod) aunque viva en presentación: es el contrato del formulario.
-- Una feature **no importa de otra feature** salvo la excepción `pos → sales/domain`
-  (documentada arriba). Lo compartido de verdad se promueve a `src/shared` o al design system.
+- **Dependencias entre features (revisado 2026-10-24, decisión del dueño):** una feature
+  puede usar el `domain/` y los `presentation/dialogs|components` de otra, nunca sus
+  `pages`, `presenters`, `services` ni `data/`; y **el grafo de features debe ser acíclico**.
+  La regla original ("ninguna feature importa de otra salvo `pos → sales/domain`") nunca
+  la hizo cumplir el linter y había 24 pares de dependencias y 3 ciclos
+  (`customers ↔ loyalty`, `inventory ↔ products`, `cash-register ↔ reports`); se adoptó
+  la regla real y se rompieron los ciclos. Lo compartido se promueve a `src/shared`,
+  a `core/` (p. ej. `core/catalog`) o al design system.
 
 ## 4. Qué queda FUERA de las features (sin cambios)
 
@@ -260,7 +266,7 @@ Reglas de ESLint (`no-restricted-imports` por zona) que rompen el build si se vi
 
 1. `features/**/domain/**` no importa `@angular/*`, `@supabase/*`, `rxjs`, ni `../data`, `../presentation`.
 2. `features/**/data/**` no importa `../presentation`.
-3. `features/<a>/**` no importa `features/<b>/**` (excepción única declarada: `pos` → `sales/domain`).
+3. `features/<a>/**` solo importa de `features/<b>/` su `domain/` y `presentation/dialogs|components` (ESLint); la ausencia de ciclos entre features la verifica `tests/unit/architecture/feature-cycles.test.ts`.
 4. `presentation/**` no importa `data/**` (solo abstracciones de dominio) — la excepción temporal por feature se retira al cablear cada una (checklist PLAN-64..67).
 5. Nada fuera de `shared/{atoms,molecules,organisms}` define componentes UI genéricos.
 

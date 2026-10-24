@@ -7,6 +7,7 @@ import {
   type LogEventInput,
 } from '@angular-app/features/audit/domain/repositories/audit-log.repository'
 import { rowToAuditLog, type AuditLogRow } from '@angular-app/features/audit/data/models/audit-log.mapper'
+import type { Json } from '@/infrastructure/supabase/database.types'
 
 @Injectable({ providedIn: 'root' })
 export class AuditLogRepository extends AuditLogRepositoryContract {
@@ -18,10 +19,7 @@ export class AuditLogRepository extends AuditLogRepositoryContract {
     try {
       const auth = await this.session.getAuthContext()
       if (!auth) return
-      const db = this.supabase.supabase as unknown as {
-        from(t: string): { insert(v: Record<string, unknown>): Promise<{ error: unknown }> }
-      }
-      await db.from('audit_logs').insert({
+      await this.supabase.supabase.from('audit_logs').insert({
         tienda_id: event.tiendaId,
         user_id: auth.userId,
         user_email: auth.email ?? '',
@@ -29,7 +27,8 @@ export class AuditLogRepository extends AuditLogRepositoryContract {
         entity_id: event.entityId,
         entity_label: event.entityLabel ?? null,
         action: event.action,
-        changes: event.changes ?? null,
+        // `changes` es Record<string, unknown> en el dominio; se guarda como jsonb.
+        changes: (event.changes ?? null) as Json,
       })
     } catch {
       // La auditoría nunca debe romper el flujo principal

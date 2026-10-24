@@ -80,7 +80,7 @@ presentation ──→ domain ←── data
 - **`domain/` no importa NADA de Angular, Supabase, RxJS, `core/` ni de `data/` o `presentation/`.** Es TypeScript puro y testeable con vitest sin mocks de framework.
 - **`data/` implementa los contratos de `domain/repositories/`** y es el único lugar que conoce Supabase. Sus `models/` (rows + mappers) tampoco importan Angular.
 - **`presentation/` depende solo de abstracciones de dominio** — nunca importa `data/` (eso lo hace el composition root). `presentation/forms/` es TS puro (schemas Zod) aunque viva en presentación: es el contrato del formulario.
-- **Una feature no importa de otra feature**, salvo la excepción `pos → sales/domain`. Lo compartido de verdad se promueve a `src/shared/` o al design system.
+- **Dependencias entre features (revisado 2026-10-24):** una feature solo puede usar el `domain/` y los `presentation/dialogs|components` de otra (lo hace cumplir ESLint), y **el grafo de features debe ser acíclico** (lo hace cumplir `tests/unit/architecture/feature-cycles.test.ts`). Lo compartido de verdad se promueve a `src/shared/`, a `core/` o al design system.
 
 **Las 4 zonas por feature** (así las vigila el linter, §2.5):
 
@@ -174,7 +174,7 @@ Todos los `<feature>.providers.ts` se registran en **`app.config.ts` (root)**, n
 
 1. `features/**/domain/**` no importa `@angular/*`, `@supabase/*`, `rxjs`, `@angular-app/core/*`, ni `../data` / `../presentation`.
 2. `features/**/data/**` no importa `presentation/`.
-3. Cross-feature: de otra feature solo se puede importar su `domain/` o sus `presentation/dialogs|components`; quedan bloqueados `presentation/pages|presenters|services`, `data/datasources|models` y — en features cableadas — `data/repositories`. La única dependencia entre-features aceptada como diseño es `pos → sales/domain`; si necesitas más, esa lógica probablemente debe vivir en `domain/` compartible o en `src/shared/`.
+3. Cross-feature: de otra feature solo se puede importar su `domain/` o sus `presentation/dialogs|components`; quedan bloqueados `presentation/pages|presenters|services`, `data/datasources|models` y — en features cableadas — `data/repositories`. Además, el grafo de features debe ser acíclico (`tests/unit/architecture/feature-cycles.test.ts`, en `pnpm test`); si un import cerraría un ciclo, lo compartido va a `src/shared/` o `core/`, o la feature que solo necesita un tipo define el suyo mínimo.
 4. En features **cableadas** (lista `CABLED_FEATURES` en `eslint.config.js` — hoy las 12, todas), nadie puede inyectar la implementación concreta de `data/` — solo la abstracción de `domain/repositories/`.
 5. Nada fuera de `shared/{atoms,molecules,organisms}` define componentes UI genéricos.
 

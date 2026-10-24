@@ -34,7 +34,7 @@ import type {
   LoyaltyTransaction,
   LoyaltyTransactionType,
 } from '@angular-app/features/loyalty/domain/entities/loyalty.entity'
-import type { Cliente } from '@angular-app/features/customers/domain/entities/cliente.entity'
+import type { LoyaltyCustomerRef } from '@angular-app/features/loyalty/domain/entities/loyalty.entity'
 import { DEFAULT_LOYALTY_CONFIG, type LoyaltyConfig } from '@angular-app/features/loyalty/domain/loyalty-config'
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
@@ -319,7 +319,7 @@ export class ClienteLoyaltyDialog {
   private readonly toast = inject(ToastService)
 
   readonly open = input<boolean>(false)
-  readonly cliente = input<Cliente | null>(null)
+  readonly cliente = input<LoyaltyCustomerRef | null>(null)
 
   readonly closed = output<void>()
 
@@ -463,7 +463,7 @@ export class ClienteLoyaltyDialog {
     this.adjusting.set(true)
     this.adjustErrors.set({})
     try {
-      const newBalance = await adjustStamps(
+      const result = await adjustStamps(
         { repo: this.loyaltyRepo },
         adjustStampsFormMapper.toPayload(parsed.data, {
           tiendaId: auth.tiendaId,
@@ -471,7 +471,11 @@ export class ClienteLoyaltyDialog {
           createdBy: auth.userId,
         }),
       )
-      this.toast.success(`Sellos ajustados. Nuevo saldo: ${newBalance}`)
+      if (!result.ok) {
+        this.adjustErrors.set({ root: result.error.message })
+        return
+      }
+      this.toast.success(`Sellos ajustados. Nuevo saldo: ${result.value}`)
       this.adjustForm.reset(createAdjustStampsFormDefaults())
       await this.load()
     } catch (error) {

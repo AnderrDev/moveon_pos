@@ -21,7 +21,7 @@ import { LoyaltyReportRepository } from '@angular-app/features/reports/domain/re
 import type { LoyaltyProgramReport } from '@angular-app/features/loyalty/domain/services/program-report'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { TiendaInfoService } from '@angular-app/core/tienda/tienda-info.service'
-import { DEFAULT_TIMEZONE } from '@angular-app/features/reports/domain/services/day-range'
+import { DEFAULT_TIMEZONE } from '@/shared/lib/day-range'
 import type { Sale } from '@angular-app/features/sales/domain/entities/sale.entity'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import { ExcelExportService } from '@angular-app/shared/services/export/excel-export.service'

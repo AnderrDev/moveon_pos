@@ -1,8 +1,8 @@
 import { inject, Injectable, signal } from '@angular/core'
 import { SessionService } from '@angular-app/core/auth/session.service'
-import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
 import { TiendaInfoService } from '@angular-app/core/tienda/tienda-info.service'
 import { SaleRepository } from '@angular-app/features/sales/domain/repositories/sale.repository'
+import { CustomerRepository } from '@angular-app/features/customers/domain/repositories/customer.repository'
 import type { EscPosReceiptCustomer } from '@angular-app/core/printing/esc-pos-receipt.builder'
 import { QzReceiptPrinterService } from '@angular-app/core/printing/qz-receipt-printer.service'
 
@@ -11,18 +11,12 @@ interface PrintOptions {
   openCashDrawer?: boolean
 }
 
-interface ClienteRow {
-  nombre: string
-  tipo_documento: string | null
-  numero_documento: string | null
-}
-
 @Injectable({ providedIn: 'root' })
 export class ReceiptPrintService {
   private readonly salesRepo = inject(SaleRepository)
   private readonly tiendaInfo = inject(TiendaInfoService)
   private readonly session = inject(SessionService)
-  private readonly supabase = inject(SupabaseClientService)
+  private readonly customers = inject(CustomerRepository)
   private readonly qzPrinter = inject(QzReceiptPrinterService)
 
   readonly busy = signal(false)
@@ -40,7 +34,7 @@ export class ReceiptPrintService {
       ])
       if (!sale) throw new Error('Venta no encontrada')
 
-      const customer = await this.loadCliente(sale.clienteId)
+      const customer = await this.loadCliente(sale.clienteId, sale.tiendaId)
       await this.qzPrinter.print(
         {
           sale,
@@ -81,18 +75,20 @@ export class ReceiptPrintService {
     }
   }
 
-  private async loadCliente(clienteId: string | null): Promise<EscPosReceiptCustomer | null> {
+  /** Cliente de la venta (aunque luego se haya eliminado: es una venta pasada). */
+  private async loadCliente(
+    clienteId: string | null,
+    tiendaId: string,
+  ): Promise<EscPosReceiptCustomer | null> {
     if (!clienteId) return null
-    const { data } = await this.supabase.supabase
-      .from('clientes')
-      .select('nombre, tipo_documento, numero_documento')
-      .eq('id', clienteId)
-      .maybeSingle<ClienteRow>()
-    if (!data) return null
+    // Como antes: si no se puede leer el cliente, la tirilla sale sin él en
+    // vez de bloquear la impresión.
+    const cliente = await this.customers.findById(clienteId, tiendaId).catch(() => null)
+    if (!cliente) return null
     return {
-      nombre: data.nombre,
-      tipoDocumento: data.tipo_documento,
-      numeroDocumento: data.numero_documento,
+      nombre: cliente.nombre,
+      tipoDocumento: cliente.tipoDocumento,
+      numeroDocumento: cliente.numeroDocumento,
     }
   }
 }

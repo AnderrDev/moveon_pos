@@ -28,13 +28,6 @@ export interface CatalogoContactSettings {
   instagramHandle: string
 }
 
-interface StorefrontContactSettingsRow {
-  whatsapp_number: string
-  whatsapp_display: string
-  instagram_url: string
-  instagram_handle: string
-}
-
 @Injectable({ providedIn: 'root' })
 export class CatalogoService {
   private readonly db = inject(SupabaseClientService)
@@ -109,42 +102,15 @@ export class CatalogoService {
   }
 
   async getContactSettings(): Promise<CatalogoContactSettings | null> {
-    // `storefront_contact_settings` no está en database.types.ts porque su
-    // migración (20260710000100) nunca se aplicó al proyecto remoto: el
-    // generador de tipos lee del remoto y no puede verla. Mientras siga así,
-    // este cast estructural es la única forma de tipar la consulta — y en
-    // producción esta llamada devuelve PGRST205 y cae al fallback.
-    // Al aplicar la migración: `pnpm db:types` y borrar este cast.
-    interface ContactClient {
-      from(table: 'storefront_contact_settings'): {
-        select(cols: string): {
-          eq(
-            col: 'is_active',
-            value: boolean,
-          ): {
-            order(
-              col: string,
-              opts: { ascending: boolean },
-            ): {
-              limit(n: number): {
-                maybeSingle<T>(): Promise<{
-                  data: T | null
-                  error: { message: string } | null
-                }>
-              }
-            }
-          }
-        }
-      }
-    }
-    const client = this.db.supabase as unknown as ContactClient
-    const { data, error } = await client
+    // La migración 20260710000100 no está aplicada en el remoto: allí esta
+    // consulta devuelve PGRST205 y la vitrina cae al contacto por defecto.
+    const { data, error } = await this.db.supabase
       .from('storefront_contact_settings')
       .select('whatsapp_number, whatsapp_display, instagram_url, instagram_handle')
       .eq('is_active', true)
       .order('updated_at', { ascending: false })
       .limit(1)
-      .maybeSingle<StorefrontContactSettingsRow>()
+      .maybeSingle()
 
     if (error) throw new Error(error.message)
     if (!data) return null

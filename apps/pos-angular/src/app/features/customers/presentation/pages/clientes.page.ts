@@ -421,7 +421,11 @@ export class ClientesPage {
     const auth = await this.session.getAuthContext()
     if (!auth) return
     try {
-      await deleteCustomer({ repo: this.repo }, c.id, auth.tiendaId)
+      const result = await deleteCustomer({ repo: this.repo }, c.id, auth.tiendaId)
+      if (!result.ok) {
+        this.toast.error(result.error.message)
+        return
+      }
       this.toast.success('Cliente eliminado')
       this.clientes.set(this.clientes().filter((x) => x.id !== c.id))
     } catch (error) {

@@ -4,7 +4,7 @@ import { CashRegisterRepository } from '@angular-app/features/cash-register/doma
 import { InventoryRepository } from '@angular-app/features/inventory/domain/repositories/inventory.repository'
 import { ProductRepository } from '@angular-app/features/products/domain/repositories/product.repository'
 import { TiendaInfoService } from '@angular-app/core/tienda/tienda-info.service'
-import { DEFAULT_TIMEZONE, getStoreRangeUtc } from '@angular-app/features/reports/domain/services/day-range'
+import { DEFAULT_TIMEZONE, getStoreRangeUtc } from '@/shared/lib/day-range'
 import { isLowStock, isOutOfStock } from '@angular-app/features/inventory/domain/services/low-stock'
 import { buildSalesSummary } from '@angular-app/features/reports/domain/services/sales-summary'
 import { ReportRepository } from '@angular-app/features/reports/domain/repositories/report.repository'

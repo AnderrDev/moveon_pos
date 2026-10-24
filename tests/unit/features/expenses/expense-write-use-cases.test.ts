@@ -92,15 +92,26 @@ describe('saveTemplate', () => {
 })
 
 describe('deleteTemplate', () => {
+  const id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1'
+
   it('delega en el repositorio con los ids correctos', async () => {
     let received: [string, string] | null = null
     const repo = {
-      deleteTemplate: async (id: string, tid: string) => {
-        received = [id, tid]
+      deleteTemplate: async (templateId: string, tid: string) => {
+        received = [templateId, tid]
       },
     }
-    await deleteTemplate({ repo }, template.id, tiendaId)
-    expect(received).toEqual([template.id, tiendaId])
+    const result = await deleteTemplate({ repo }, id, tiendaId)
+    expect(result).toEqual({ ok: true, value: undefined })
+    expect(received).toEqual([id, tiendaId])
+  })
+
+  it('rechaza ids inválidos sin llamar al repositorio', async () => {
+    let called = false
+    const repo = { deleteTemplate: async () => { called = true } }
+    const result = await deleteTemplate({ repo }, template.id, tiendaId)
+    expect(result.ok).toBe(false)
+    expect(called).toBe(false)
   })
 })
 

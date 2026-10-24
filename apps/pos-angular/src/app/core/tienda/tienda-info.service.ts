@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '../supabase/supabase-client.service'
-import { DEFAULT_TIMEZONE } from '@angular-app/features/reports/domain/services/day-range'
+import { DEFAULT_TIMEZONE } from '@/shared/lib/day-range'
 import {
   DEFAULT_LOYALTY_CONFIG,
   type LoyaltyConfig,

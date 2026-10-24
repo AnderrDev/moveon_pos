@@ -367,7 +367,11 @@ export class ProductosPage {
     if (!auth) return
     this.deleting.set(true)
     try {
-      await deleteProduct({ repo: this.repo }, product.id, auth.tiendaId)
+      const result = await deleteProduct({ repo: this.repo }, product.id, auth.tiendaId)
+      if (!result.ok) {
+        this.toast.error(result.error.message)
+        return
+      }
       this.store.removeProduct(product.id)
       this.toast.success(`"${product.nombre}" eliminado`)
       this.closeDeleteConfirm()
@@ -443,7 +447,11 @@ export class ProductosPage {
     const auth = await this.session.getAuthContext()
     if (!auth) return
     try {
-      await deactivateProduct({ repo: this.repo }, product.id, auth.tiendaId)
+      const result = await deactivateProduct({ repo: this.repo }, product.id, auth.tiendaId)
+      if (!result.ok) {
+        this.toast.error(result.error.message)
+        return
+      }
       this.toast.success('Producto desactivado')
       this.store.patchProduct(product.id, { isActive: false })
     } catch (error) {

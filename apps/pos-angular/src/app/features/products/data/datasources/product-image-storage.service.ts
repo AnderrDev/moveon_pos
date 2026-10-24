@@ -3,8 +3,6 @@ import { SupabaseClientService } from '@angular-app/core/supabase/supabase-clien
 import { ProductImageStorage } from '@angular-app/features/products/domain/repositories/product-image-storage.repository'
 
 const BUCKET = 'product-images'
-const MAX_BYTES = 5 * 1024 * 1024 // 5 MiB
-const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/avif']
 
 const EXT_BY_MIME: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -16,21 +14,11 @@ const EXT_BY_MIME: Record<string, string> = {
 /**
  * Sube y elimina imágenes de producto en el bucket público `product-images`.
  * La UI recibe la URL pública resultante y la guarda en `productos.image_url`.
+ * Las reglas de formato y tamaño las valida el use-case `uploadProductImage`.
  */
 @Injectable({ providedIn: 'root' })
 export class ProductImageStorageService extends ProductImageStorage {
   private readonly supabaseClient = inject(SupabaseClientService)
-
-  /** Valida el archivo antes de subir. Devuelve un mensaje de error o null si es válido. */
-  validate(file: File): string | null {
-    if (!ALLOWED_MIME.includes(file.type)) {
-      return 'Formato no permitido. Usa JPG, PNG, WebP o AVIF.'
-    }
-    if (file.size > MAX_BYTES) {
-      return 'La imagen supera el tamaño máximo de 5 MB.'
-    }
-    return null
-  }
 
   /**
    * Sube el archivo a `product-images/<tiendaId>/<uuid>.<ext>` y devuelve la URL pública.

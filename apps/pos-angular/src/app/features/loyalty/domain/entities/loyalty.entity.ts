@@ -30,3 +30,13 @@ export interface LoyaltyReward {
   voidedAt: Date | null
   voidedReason: string | null
 }
+
+/**
+ * Lo mínimo que fidelización necesita de un cliente. `Cliente` (customers) lo
+ * cumple estructuralmente; definirlo aquí evita que loyalty dependa de
+ * customers (customers ya depende de loyalty → sería un ciclo).
+ */
+export interface LoyaltyCustomerRef {
+  id: string
+  nombre: string
+}

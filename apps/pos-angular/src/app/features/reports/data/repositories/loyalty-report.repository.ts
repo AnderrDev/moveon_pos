@@ -3,7 +3,7 @@ import { SupabaseClientService } from '@angular-app/core/supabase/supabase-clien
 import { TiendaInfoService } from '@angular-app/core/tienda/tienda-info.service'
 import { LoyaltyRepository } from '@angular-app/features/loyalty/domain/repositories/loyalty.repository'
 import { expireRewards } from '@angular-app/features/loyalty/domain/usecases/expire-rewards.use-case'
-import { getStoreRangeUtc } from '@angular-app/features/reports/domain/services/day-range'
+import { getStoreRangeUtc } from '@/shared/lib/day-range'
 import { LoyaltyReportRepository } from '@angular-app/features/reports/domain/repositories/loyalty-report.repository'
 import {
   buildLoyaltyProgramReport,
@@ -16,43 +16,6 @@ import type {
   LoyaltyTransactionType,
 } from '@angular-app/features/loyalty/domain/entities/loyalty.entity'
 
-interface TxReportRow {
-  cliente_id: string
-  type: string
-  stamps_delta: number
-  cliente: { nombre: string } | null
-}
-
-interface RewardReportRow {
-  status: string
-  generated_at: string
-  redeemed_at: string | null
-  expires_at: string
-}
-
-type QueryResult<T> = Promise<{ data: T | null; error: { message: string } | null }>
-
-/**
- * Las tablas de fidelización aún no existen en database.types.ts generado;
- * cliente estructural, mismo patrón que LoyaltyRepository.
- */
-interface LoyaltyReportDbClient {
-  from(table: 'loyalty_transactions'): {
-    select(cols: string): {
-      eq(col: string, value: unknown): {
-        gte(col: string, value: unknown): {
-          lt(col: string, value: unknown): QueryResult<TxReportRow[]>
-        }
-      }
-    }
-  }
-  from(table: 'loyalty_rewards'): {
-    select(cols: string): {
-      eq(col: string, value: unknown): QueryResult<RewardReportRow[]>
-    }
-  }
-}
-
 /**
  * Reporte del programa MOVE ON Club para /reportes (PLAN-60). Relocalizada
  * desde `presentation/services/loyalty-report.service.ts` (PLAN-66,
@@ -63,10 +26,6 @@ export class LoyaltyReportsRepository extends LoyaltyReportRepository {
   private readonly supabaseClient = inject(SupabaseClientService)
   private readonly tiendaInfo = inject(TiendaInfoService)
   private readonly loyaltyRepo = inject(LoyaltyRepository)
-
-  private get db(): LoyaltyReportDbClient {
-    return this.supabaseClient.supabase as unknown as LoyaltyReportDbClient
-  }
 
   /**
    * KPIs del período `[fromIso, toIso]` (días locales inclusivos) en la zona
@@ -84,13 +43,13 @@ export class LoyaltyReportsRepository extends LoyaltyReportRepository {
     await expireRewards({ repo: this.loyaltyRepo }, tiendaId).catch(() => 0)
 
     const [txResult, rewardsResult] = await Promise.all([
-      this.db
+      this.supabaseClient.supabase
         .from('loyalty_transactions')
         .select('cliente_id, type, stamps_delta, cliente:clientes(nombre)')
         .eq('tienda_id', tiendaId)
         .gte('created_at', start.toISOString())
         .lt('created_at', end.toISOString()),
-      this.db
+      this.supabaseClient.supabase
         .from('loyalty_rewards')
         .select('status, generated_at, redeemed_at, expires_at')
         .eq('tienda_id', tiendaId),
