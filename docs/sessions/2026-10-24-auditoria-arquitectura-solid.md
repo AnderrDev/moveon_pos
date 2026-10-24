@@ -94,3 +94,13 @@ Sin cambios de código en esta sesión. Consultas remotas solo de lectura (`pg_p
 - `pnpm lint`, `pnpm test` (768) y typecheck OK.
 - **Desplegado en producción (autorizado por el dueño):** 000200 aplicada y registrada → merge `dev→main` `42534ed` (commit-tree, sin tocar el árbol de trabajo compartido con la sesión iOS) → Netlify `moveon-client` `6adcde8af5ab53ff6233ce4e` y `moveon-catalogo-web` `6adcde8a1d03bbad975e419c` ready, bundle con `add_cash_movement_atomic` → 000300 aplicada y registrada. Verificado en remoto: las 5 tablas de ventas/caja sin INSERT/UPDATE/DELETE para `authenticated`; `cash_sessions` y `audit_logs` solo INSERT; anon REST: `GET sales` → `[]`, `DELETE` → 401. Riesgo residual: una pestaña del POS abierta con el bundle viejo falla al registrar un movimiento manual hasta recargar.
 - Pendiente P0: #2 ajustes de stock (`adjust_stock_atomic`) y #4 soft delete de clientes.
+
+## 8. Implementación P0 #2 y #4 (misma fecha)
+
+- `20261024000400_stock_adjustment_and_customer_soft_delete_rpcs.sql` (aditiva): `adjust_stock_atomic` (admin, motivo 3–200, delta ≠ 0, no `prepared`/`combo`, `FOR UPDATE` del producto; audita el trigger existente); `clientes.deleted_at/deleted_by` + `delete_customer_atomic` (cualquier usuario activo, como antes; `activo = false`; audita `customer.deleted`); índices únicos de celular/documento parciales (`deleted_at is null`, mismos nombres); trigger `sales_enforce_customer_not_deleted`.
+- `20261024000500_lock_inventory_adjustments_and_customer_delete.sql`: sin escritura directa en `inventory_movements` (se elimina `inventory_movements_admin_insert`); `clientes` sin `DELETE` y con `INSERT`/`UPDATE` solo en columnas del formulario.
+- Frontend: `InventoryRepository.adjustStock` y `CustomersRepository.delete` usan las RPC; `list`/`findOne` de clientes filtran eliminados.
+- pgTAP `stock-adjustment-customer-soft-delete.test.sql` (23). Control negativo: con solo el paso 1 falla 12/23; con ambos pasa 23/23. Resto de suites sin regresión (mismas 5 preexistentes fallando).
+- `pnpm lint`, `pnpm test` (768), typecheck OK.
+- Decisión: no se añadió bloqueo de stock negativo en ajustes (sería una regla de negocio nueva); `adjust_loyalty_stamps` no rechaza clientes eliminados, pero la UI ya no los lista.
+- **Pendiente:** desplegar en producción (000400 → frontend → 000500). Bloqueado por el clasificador de permisos; requiere OK explícito del dueño.
