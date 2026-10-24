@@ -19,6 +19,7 @@ import { ExcelExportService } from '@angular-app/shared/services/export/excel-ex
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import { buildInventoryWorkbook } from '@angular-app/features/inventory/presentation/services/inventory-export'
 import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
+import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
 
 interface StockRow {
   id: string
@@ -40,7 +41,7 @@ interface StockRow {
   selector: 'mo-inventario-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MoneyPipe, 
+  imports: [SkeletonComponent, MoneyPipe, 
     PageHeaderComponent,
     ButtonComponent,
     BadgeComponent,
@@ -97,9 +98,7 @@ interface StockRow {
       </mo-page-header>
 
       @if (loading()) {
-        <div class="bg-card flex-1 animate-pulse rounded-xl border p-8">
-          <div class="bg-muted/50 h-72 rounded-xl"></div>
-        </div>
+        <mo-skeleton heightClass="h-72" />
       } @else if (loadError()) {
         <mo-empty-state title="No se pudo cargar inventario" [description]="loadError()">
           <mo-button (click)="load()">Reintentar</mo-button>

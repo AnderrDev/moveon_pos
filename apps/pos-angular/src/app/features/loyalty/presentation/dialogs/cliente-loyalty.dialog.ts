@@ -51,6 +51,7 @@ import { adjustStamps } from '@angular-app/features/loyalty/domain/usecases/adju
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { TiendaInfoService } from '@angular-app/core/tienda/tienda-info.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
+import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
 
 const TYPE_LABELS: Record<LoyaltyTransactionType, string> = {
   earn: 'Sellos ganados',
@@ -69,7 +70,7 @@ const TYPE_LABELS: Record<LoyaltyTransactionType, string> = {
   selector: 'mo-cliente-loyalty-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
+  imports: [SkeletonComponent, 
     ReactiveFormsModule,
     LucideAngularModule,
     DialogComponent,
@@ -88,9 +89,9 @@ const TYPE_LABELS: Record<LoyaltyTransactionType, string> = {
       (closed)="onClose()"
     >
       @if (loading()) {
-        <div class="animate-pulse space-y-3">
-          <div class="bg-muted/50 h-20 rounded-xl"></div>
-          <div class="bg-muted/50 h-40 rounded-xl"></div>
+        <div class="space-y-3">
+          <mo-skeleton heightClass="h-20" />
+          <mo-skeleton heightClass="h-40" />
         </div>
       } @else if (loadError()) {
         <div class="space-y-3">

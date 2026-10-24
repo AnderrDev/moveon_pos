@@ -5,6 +5,7 @@ import { formatTime, formatShortDate } from '@/shared/lib/format'
 import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
 import type { Sale } from '@angular-app/features/sales/domain/entities/sale.entity'
 import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
+import { ChevronDown, LucideAngularModule } from 'lucide-angular'
 
 /**
  * Bloque "Detalle de ventas" expandible: lista de ventas con resumen
@@ -19,7 +20,7 @@ import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
   selector: 'mo-sale-detail-list',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MoneyPipe, BadgeComponent, SaleDetailBodyComponent],
+  imports: [LucideAngularModule, MoneyPipe, BadgeComponent, SaleDetailBodyComponent],
   template: `
     <div>
       <h3 class="font-display mb-3 text-sm font-bold tracking-wide uppercase">
@@ -65,17 +66,7 @@ import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
                         [class.line-through]="sale.status === 'voided'"
                       >{{ (sale.total | money) }}</p>
                     </div>
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      class="text-muted-foreground h-5 w-5 transition-transform duration-200"
-                      [class.rotate-180]="isExpanded(sale)"
-                      aria-hidden="true"
-                    >
-                      <path d="m6 9 6 6 6-6" />
-                    </svg>
+                    <span class="inline-flex shrink-0 transition-transform duration-200" [class.rotate-180]="isExpanded(sale)"><lucide-angular [img]="icons.chevronDown" class="text-muted-foreground h-5 w-5" aria-hidden="true" /></span>
                   </div>
                 </div>
 
@@ -110,6 +101,8 @@ import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
   `,
 })
 export class SaleDetailListComponent {
+  readonly icons = { chevronDown: ChevronDown }
+
   readonly sales = input.required<Sale[]>()
   readonly expandedSaleId = input.required<string | null>()
   readonly title = input<string>('Detalle de ventas')

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core'
-import { Gift, LucideAngularModule } from 'lucide-angular'
+import { ChevronDown, Gift, Layers, LucideAngularModule } from 'lucide-angular'
 import { PosCartStore, type PosCartItem } from '@angular-app/features/pos/presentation/services/pos-cart.store'
 import type { LoyaltySummary } from '@angular-app/features/loyalty/domain/repositories/loyalty.repository'
 import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
@@ -154,7 +154,7 @@ import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
                           @if (option.precioExtra > 0) {
                             · +{{ (option.precioExtra | money) }}
                           }
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="h-3 w-3 shrink-0"><path d="m6 9 6 6 6-6"/></svg>
+                          <lucide-angular [img]="icons.chevronDown" class="h-3 w-3 shrink-0" [strokeWidth]="2.5" aria-hidden="true" />
                         </button>
                       }
                       @if (item.sku) {
@@ -164,7 +164,7 @@ import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
                       }
                       @if (item.components.length > 0) {
                         <p class="text-amber-600 mt-0.5 flex items-center gap-1 text-[11px] font-medium">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-3 w-3 shrink-0"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                          <lucide-angular [img]="icons.layers" class="h-3 w-3 shrink-0" aria-hidden="true" />
                           Descuenta {{ componentLabel(item.components) }} por unidad
                         </p>
                       }
@@ -283,7 +283,7 @@ export class PosCartPanelComponent {
   readonly editDiscount = output<PosCartItem>()
   readonly checkout = output<void>()
 
-  readonly icons = { gift: Gift }
+  readonly icons = { chevronDown: ChevronDown, layers: Layers, gift: Gift }
 
 
   componentLabel(components: { nombre: string; cantidad: number }[]): string {

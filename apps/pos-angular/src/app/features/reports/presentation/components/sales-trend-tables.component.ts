@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core'
 import { CardComponent } from '@angular-app/shared/atoms/card.component'
 import type { DailySalesSummary, HourlySalesSummary } from '@angular-app/features/reports/domain/services/sales-trend'
 import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
+import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
 
 /**
  * Sección "Tendencia" del tab Ventas: dos tablas, "Ventas por hora" (suma
@@ -14,7 +15,7 @@ import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
   selector: 'mo-sales-trend-tables',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MoneyPipe, CardComponent],
+  imports: [...MO_TABLE, MoneyPipe, CardComponent],
   template: `
     <div class="grid gap-4 md:grid-cols-2">
       <mo-card>
@@ -23,22 +24,22 @@ import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
         </h3>
         @if (hourlySales().length > 0) {
           <div class="overflow-auto">
-            <table class="w-full text-sm">
-              <thead class="text-muted-foreground text-xs uppercase">
-                <tr class="text-left">
-                  <th class="px-2 py-2">Hora</th>
-                  <th class="px-2 py-2 text-right">Ventas</th>
-                  <th class="px-2 py-2 text-right">Total</th>
-                  <th class="px-2 py-2 text-right">Ticket prom.</th>
+            <table moTable density="compact">
+              <thead moThead>
+                <tr>
+                  <th moTh class="text-left">Hora</th>
+                  <th moTh class="text-right">Ventas</th>
+                  <th moTh class="text-right">Total</th>
+                  <th moTh class="text-right">Ticket prom.</th>
                 </tr>
               </thead>
               <tbody class="divide-y">
                 @for (row of hourlySales(); track row.hour) {
                   <tr>
-                    <td class="px-2 py-2">{{ hourLabel(row.hour) }}</td>
-                    <td class="px-2 py-2 text-right tabular-nums">{{ row.count }}</td>
-                    <td class="px-2 py-2 text-right tabular-nums">{{ (row.total | money) }}</td>
-                    <td class="px-2 py-2 text-right tabular-nums">{{ (row.avgTicket | money) }}</td>
+                    <td moTd>{{ hourLabel(row.hour) }}</td>
+                    <td moTd class="text-right tabular-nums">{{ row.count }}</td>
+                    <td moTd class="text-right tabular-nums">{{ (row.total | money) }}</td>
+                    <td moTd class="text-right tabular-nums">{{ (row.avgTicket | money) }}</td>
                   </tr>
                 }
               </tbody>
@@ -55,22 +56,22 @@ import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
         </h3>
         @if (dailySales().length > 0) {
           <div class="overflow-auto">
-            <table class="w-full text-sm">
-              <thead class="text-muted-foreground text-xs uppercase">
-                <tr class="text-left">
-                  <th class="px-2 py-2">Día</th>
-                  <th class="px-2 py-2 text-right">Ventas</th>
-                  <th class="px-2 py-2 text-right">Total</th>
-                  <th class="px-2 py-2 text-right">Ticket prom.</th>
+            <table moTable density="compact">
+              <thead moThead>
+                <tr>
+                  <th moTh class="text-left">Día</th>
+                  <th moTh class="text-right">Ventas</th>
+                  <th moTh class="text-right">Total</th>
+                  <th moTh class="text-right">Ticket prom.</th>
                 </tr>
               </thead>
               <tbody class="divide-y">
                 @for (row of dailySales(); track row.date) {
                   <tr>
-                    <td class="px-2 py-2">{{ row.date }}</td>
-                    <td class="px-2 py-2 text-right tabular-nums">{{ row.count }}</td>
-                    <td class="px-2 py-2 text-right tabular-nums">{{ (row.total | money) }}</td>
-                    <td class="px-2 py-2 text-right tabular-nums">{{ (row.avgTicket | money) }}</td>
+                    <td moTd>{{ row.date }}</td>
+                    <td moTd class="text-right tabular-nums">{{ row.count }}</td>
+                    <td moTd class="text-right tabular-nums">{{ (row.total | money) }}</td>
+                    <td moTd class="text-right tabular-nums">{{ (row.avgTicket | money) }}</td>
                   </tr>
                 }
               </tbody>

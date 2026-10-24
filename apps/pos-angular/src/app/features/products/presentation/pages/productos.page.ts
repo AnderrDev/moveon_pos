@@ -22,12 +22,13 @@ import { isOutOfStock } from '@angular-app/features/inventory/domain/services/lo
 import { ExcelExportService } from '@angular-app/shared/services/export/excel-export.service'
 import { buildProductsWorkbook } from '@angular-app/features/products/presentation/services/product-export'
 import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
+import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
 
 @Component({
   selector: 'mo-productos-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MoneyPipe, 
+  imports: [SkeletonComponent, MoneyPipe, 
     RouterLink,
     RouterLinkActive,
     PageHeaderComponent,
@@ -112,10 +113,7 @@ import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
       </div>
 
       @if (loading()) {
-        <div class="bg-card flex-1 animate-pulse rounded-xl border p-8">
-          <div class="bg-muted mb-3 h-6 w-40 rounded"></div>
-          <div class="bg-muted/50 h-72 rounded-xl"></div>
-        </div>
+        <mo-skeleton heightClass="h-72" />
       } @else if (loadError()) {
         <mo-empty-state title="No se pudo cargar el catalogo" [description]="loadError()">
           <mo-button (click)="load()">Reintentar</mo-button>

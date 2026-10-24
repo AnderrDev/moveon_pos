@@ -41,12 +41,14 @@ import { buildTurnSalesWorkbook } from '@angular-app/shared/services/export/turn
 import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 import { SaleDetailBodyComponent } from '@angular-app/shared/organisms/sale-detail-body.component'
 import { SegmentedComponent } from '@angular-app/shared/molecules/segmented.component'
+import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
+import { ChevronDown, FileText, LucideAngularModule } from 'lucide-angular'
 
 @Component({
   selector: 'mo-sales-history-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SegmentedComponent, SaleDetailBodyComponent, MoneyPipe, 
+  imports: [LucideAngularModule, SkeletonComponent, SegmentedComponent, SaleDetailBodyComponent, MoneyPipe, 
     DialogComponent,
     ButtonComponent,
     BadgeComponent,
@@ -65,9 +67,9 @@ import { SegmentedComponent } from '@angular-app/shared/molecules/segmented.comp
     >
       @if (loading()) {
         <div class="space-y-3" aria-label="Cargando ventas">
-          <div class="bg-muted h-20 animate-pulse rounded-2xl"></div>
-          <div class="bg-muted h-28 animate-pulse rounded-2xl"></div>
-          <div class="bg-muted h-28 animate-pulse rounded-2xl"></div>
+          <mo-skeleton heightClass="h-20" />
+          <mo-skeleton heightClass="h-28" />
+          <mo-skeleton heightClass="h-28" />
         </div>
       } @else if (loadError()) {
         <div
@@ -86,10 +88,7 @@ import { SegmentedComponent } from '@angular-app/shared/molecules/segmented.comp
           <div
             class="bg-primary/10 text-primary mx-auto flex h-12 w-12 items-center justify-center rounded-2xl"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="h-6 w-6">
-              <path d="M6 2h9l3 3v17H6z" stroke-width="1.8" />
-              <path d="M9 9h6M9 13h6M9 17h4" stroke-width="1.8" />
-            </svg>
+            <lucide-angular [img]="icons.fileText" class="h-6 w-6" [strokeWidth]="1.8" aria-hidden="true" />
           </div>
           <p class="mt-4 font-bold">Aún no hay ventas en este turno</p>
           <p class="text-muted-foreground mt-1 text-sm">
@@ -205,17 +204,7 @@ import { SegmentedComponent } from '@angular-app/shared/molecules/segmented.comp
                         {{ (sale.total | money) }}
                       </p>
                     </div>
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      class="text-muted-foreground h-5 w-5 transition-transform duration-200"
-                      [class.rotate-180]="isExpanded(sale)"
-                      aria-hidden="true"
-                    >
-                      <path d="m6 9 6 6 6-6" />
-                    </svg>
+                    <span class="inline-flex shrink-0 transition-transform duration-200" [class.rotate-180]="isExpanded(sale)"><lucide-angular [img]="icons.chevronDown" class="text-muted-foreground h-5 w-5" aria-hidden="true" /></span>
                   </div>
                 </div>
 
@@ -317,6 +306,8 @@ import { SegmentedComponent } from '@angular-app/shared/molecules/segmented.comp
   `,
 })
 export class SalesHistoryDialog {
+  readonly icons = { chevronDown: ChevronDown, fileText: FileText }
+
   private readonly salesRepo = inject(SaleRepository)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)

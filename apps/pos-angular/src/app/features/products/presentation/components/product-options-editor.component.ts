@@ -7,6 +7,7 @@ import {
   setDefaultProductOption,
 } from '@angular-app/features/products/presentation/services/product-option-list'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
+import { X, LucideAngularModule } from 'lucide-angular'
 
 const INPUT_CLASS =
   'border-input bg-background focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2'
@@ -22,7 +23,7 @@ const LABEL_CLASS = 'text-muted-foreground mb-1 block text-[11px] font-semibold 
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
-  imports: [ButtonComponent],
+  imports: [LucideAngularModule, ButtonComponent],
   template: `
     <section class="space-y-3 rounded-xl border p-4">
       <div>
@@ -62,9 +63,7 @@ const LABEL_CLASS = 'text-muted-foreground mb-1 block text-[11px] font-semibold 
               class="text-muted-foreground hover:text-destructive shrink-0 transition-colors"
               aria-label="Quitar opción"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
-                <path d="M18 6 6 18M6 6l12 12"/>
-              </svg>
+              <lucide-angular [img]="icons.x" class="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
           <div class="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
@@ -152,6 +151,8 @@ const LABEL_CLASS = 'text-muted-foreground mb-1 block text-[11px] font-semibold 
   `,
 })
 export class ProductOptionsEditorComponent {
+  readonly icons = { x: X }
+
   readonly options = model.required<ProductOption[]>()
   readonly grupo = model.required<string>()
   readonly error = model<string | null>(null)

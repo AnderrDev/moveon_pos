@@ -2,11 +2,12 @@ import { ChangeDetectionStrategy, Component, inject, input, output } from '@angu
 import { Gift, LucideAngularModule, UserRound } from 'lucide-angular'
 import { PAYMENT_METHOD_OPTIONS } from '@/shared/lib/payment-methods'
 import type { PaymentMethod } from '@/shared/types'
-import { SpinnerComponent } from '@angular-app/shared/atoms/spinner.component'
+import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
 import { PosCartStore } from '@angular-app/features/pos/presentation/services/pos-cart.store'
 import { PosCheckoutStore } from '@angular-app/features/pos/presentation/services/pos-checkout.store'
 import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
+import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 
 /**
  * Diálogo de cobro del POS: resumen, cliente, descuento global, pagos,
@@ -17,27 +18,12 @@ import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
 @Component({
   selector: 'mo-pos-checkout-dialog',
   standalone: true,
-  imports: [PaymentLabelPipe, MoneyPipe, LucideAngularModule, SpinnerComponent],
+  imports: [ButtonComponent, PaymentLabelPipe, MoneyPipe, LucideAngularModule, DialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'contents' },
   template: `
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
-      <button
-        type="button"
-        aria-label="Cerrar cobro"
-        class="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
-        [disabled]="checkout.isSaving()"
-        (click)="closed.emit()"
-      ></button>
-      <section
-        class="bg-card ring-border/60 relative z-10 flex max-h-[calc(100dvh-1.5rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl shadow-2xl ring-1"
-      >
-        <div class="bg-primary h-1"></div>
-        <header class="shrink-0 border-b px-4 pt-4 pb-3 sm:px-6">
-          <h2 class="font-display text-lg leading-none font-bold">Cobrar venta</h2>
-        </header>
-
-        <div class="min-h-0 space-y-4 overflow-y-auto p-4 sm:p-6">
+    <mo-dialog [open]="true" title="Cobrar venta" width="sm" [busy]="checkout.isSaving()" (closed)="closed.emit()">
+        <div class="space-y-4">
           <div class="bg-muted/50 rounded-xl px-4 py-3">
             <p class="text-muted-foreground mb-2 text-[10px] font-semibold tracking-wide uppercase">
               Resumen de compra
@@ -360,31 +346,18 @@ import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
           }
 
           <div class="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end">
-            <button
-              type="button"
-              (click)="closed.emit()"
-              [disabled]="checkout.isSaving()"
-              class="h-10 rounded-lg border px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
+            <mo-button variant="outline" [disabled]="checkout.isSaving()" (click)="closed.emit()">Cancelar</mo-button>
+            <mo-button
+              [disabled]="!checkout.canConfirm()"
+              [loading]="checkout.isSaving()"
+              loadingText="Guardando venta..."
               (click)="confirm.emit()"
-              [disabled]="!checkout.canConfirm() || checkout.isSaving()"
-              class="bg-primary text-primary-foreground h-10 rounded-lg px-4 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-50"
             >
-              @if (checkout.isSaving()) {
-                <mo-spinner size="sm" class="mr-2 inline-block align-[-2px]" />
-                Guardando venta...
-              } @else {
-                Confirmar · {{ (cart.totals().total | money) }}
-              }
-            </button>
+              Confirmar · {{ (cart.totals().total | money) }}
+            </mo-button>
           </div>
         </div>
-      </section>
-    </div>
+    </mo-dialog>
   `,
 })
 export class PosCheckoutDialogComponent {
@@ -401,8 +374,6 @@ export class PosCheckoutDialogComponent {
   readonly icons = { gift: Gift, user: UserRound }
   readonly paymentMethods = PAYMENT_METHOD_OPTIONS
   readonly String = String
-
-
 
   discountModeClass(mode: 'amount' | 'percent'): string {
     const active = this.checkout.discountMode() === mode

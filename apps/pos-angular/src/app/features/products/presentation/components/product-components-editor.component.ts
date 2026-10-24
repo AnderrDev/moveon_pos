@@ -4,6 +4,7 @@ import type { ProductComponent } from '@angular-app/features/products/domain/rep
 import type { comboSavings } from '@angular-app/features/products/domain/services/combo-pricing'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
+import { X, LucideAngularModule } from 'lucide-angular'
 
 type ComboSavings = ReturnType<typeof comboSavings>
 
@@ -17,7 +18,7 @@ type ComboSavings = ReturnType<typeof comboSavings>
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
-  imports: [ButtonComponent, MoneyPipe],
+  imports: [LucideAngularModule, ButtonComponent, MoneyPipe],
   template: `
     <section class="space-y-3 rounded-xl border p-4">
       <div>
@@ -44,9 +45,7 @@ type ComboSavings = ReturnType<typeof comboSavings>
             class="text-muted-foreground hover:text-destructive shrink-0 transition-colors"
             aria-label="Quitar componente"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
-              <path d="M18 6 6 18M6 6l12 12"/>
-            </svg>
+            <lucide-angular [img]="icons.x" class="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
       } @empty {
@@ -119,6 +118,8 @@ type ComboSavings = ReturnType<typeof comboSavings>
   `,
 })
 export class ProductComponentsEditorComponent {
+  readonly icons = { x: X }
+
   readonly isCombo = input(false)
   readonly components = input.required<ProductComponent[]>()
   readonly candidates = input.required<Product[]>()

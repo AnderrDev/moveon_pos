@@ -1,10 +1,20 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
+  effect,
   HostListener,
+  inject,
   input,
   output,
 } from '@angular/core'
+
+/**
+ * Diálogos abiertos, del más antiguo al más reciente. Escape cierra solo el de
+ * arriba: con un diálogo encima de otro (selector de cliente sobre el cobro,
+ * corregir pago sobre el historial) no debe cerrarse también el de abajo.
+ */
+const openDialogs: DialogComponent[] = []
 
 @Component({
   selector: 'mo-dialog',
@@ -70,9 +80,29 @@ export class DialogComponent {
 
   readonly closed = output<void>()
 
-  @HostListener('document:keydown.escape')
-  onEscape(): void {
-    if (this.open() && !this.busy()) this.onClose()
+  constructor() {
+    effect(() => {
+      if (this.open()) {
+        if (!openDialogs.includes(this)) openDialogs.push(this)
+      } else {
+        this.removeFromStack()
+      }
+    })
+    inject(DestroyRef).onDestroy(() => this.removeFromStack())
+  }
+
+  @HostListener('document:keydown.escape', ['$event'])
+  onEscape(event: Event): void {
+    // Entre un listener y otro corre la detección de cambios y el de arriba ya
+    // pudo salir de la pila: preventDefault marca el Escape como atendido.
+    if (event.defaultPrevented || !this.open() || this.busy() || openDialogs.at(-1) !== this) return
+    event.preventDefault()
+    this.onClose()
+  }
+
+  private removeFromStack(): void {
+    const index = openDialogs.indexOf(this)
+    if (index !== -1) openDialogs.splice(index, 1)
   }
 
   onClose(): void {

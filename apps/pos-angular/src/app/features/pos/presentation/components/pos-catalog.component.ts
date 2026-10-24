@@ -6,6 +6,7 @@ import {
 } from '@angular-app/features/pos/presentation/services/pos-catalog'
 import type { PosCategory, PosProduct } from '@angular-app/features/pos/presentation/services/pos.types'
 import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
+import { ChevronRight, Info, Layers, Plus, LucideAngularModule } from 'lucide-angular'
 
 /**
  * Catálogo del POS: búsqueda (nombre, SKU o código de barras), chips de
@@ -15,7 +16,7 @@ import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 @Component({
   selector: 'mo-pos-catalog',
   standalone: true,
-  imports: [MoneyPipe],
+  imports: [LucideAngularModule, MoneyPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex min-h-0 flex-1 flex-col overflow-hidden' },
   template: `
@@ -110,7 +111,7 @@ import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
                       </span>
                       @if (product.components.length > 0) {
                         <span class="text-amber-600 mt-1.5 flex items-center gap-1 text-[10px] font-semibold">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-3 w-3 shrink-0"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                          <lucide-angular [img]="icons.layers" class="h-3 w-3 shrink-0" aria-hidden="true" />
                           Descuenta: {{ componentLabel(product.components) }}
                         </span>
                       }
@@ -127,15 +128,7 @@ import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
                         aria-hidden="true"
                         class="bg-primary text-primary-foreground shadow-primary/20 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-md transition-transform group-active:scale-90"
                       >
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2.5"
-                          class="h-5 w-5"
-                        >
-                          <path d="M12 5v14M5 12h14" />
-                        </svg>
+                        <lucide-angular [img]="icons.plus" class="h-5 w-5" [strokeWidth]="2.5" aria-hidden="true" />
                       </span>
                     }
                   </div>
@@ -148,30 +141,10 @@ import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
                     class="text-muted-foreground hover:bg-background hover:text-foreground focus:ring-ring flex min-h-11 w-full items-center justify-between rounded-lg px-2.5 text-xs font-semibold transition-colors focus:ring-2 focus:outline-none"
                   >
                     <span class="flex items-center gap-2">
-                      <svg
-                        aria-hidden="true"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        class="h-4 w-4"
-                      >
-                        <circle cx="12" cy="12" r="9" />
-                        <path d="M12 11v5" />
-                        <path d="M12 8h.01" />
-                      </svg>
+                      <lucide-angular [img]="icons.info" class="h-4 w-4" aria-hidden="true" />
                       Ficha del producto
                     </span>
-                    <svg
-                      aria-hidden="true"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      class="h-4 w-4"
-                    >
-                      <path d="m9 18 6-6-6-6" />
-                    </svg>
+                    <lucide-angular [img]="icons.chevronRight" class="h-4 w-4" aria-hidden="true" />
                   </button>
                 </div>
               </article>
@@ -183,6 +156,8 @@ import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
   `,
 })
 export class PosCatalogComponent {
+  readonly icons = { chevronRight: ChevronRight, info: Info, layers: Layers, plus: Plus }
+
   readonly products = input.required<PosProduct[]>()
   readonly categories = input.required<PosCategory[]>()
   readonly cartItemCount = input(0)

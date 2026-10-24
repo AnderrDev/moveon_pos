@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
+import { Check, Printer, LucideAngularModule } from 'lucide-angular'
 
 export type ReceiptOutputKind = 'receipt' | 'drawer'
 export type ReceiptOutputStatus = 'printing' | 'error'
@@ -9,7 +10,7 @@ export type ReceiptOutputStatus = 'printing' | 'error'
   selector: 'mo-receipt-output-status-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ButtonComponent, DialogComponent],
+  imports: [LucideAngularModule, ButtonComponent, DialogComponent],
   template: `
     <mo-dialog
       [open]="open()"
@@ -47,9 +48,7 @@ export type ReceiptOutputStatus = 'printing' | 'error'
                 class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700"
                 aria-hidden="true"
               >
-                <svg viewBox="0 0 24 24" class="h-4 w-4">
-                  <path d="m5 12.5 4 4L19 7" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.25" />
-                </svg>
+                <lucide-angular [img]="icons.check" class="h-4 w-4" [strokeWidth]="2.25" aria-hidden="true" />
               </span>
               <div>
                 <p class="text-sm font-bold text-emerald-950">La venta está segura</p>
@@ -65,10 +64,7 @@ export type ReceiptOutputStatus = 'printing' | 'error'
                   class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700"
                   aria-hidden="true"
                 >
-                  <svg viewBox="0 0 24 24" class="h-5 w-5">
-                    <path d="M7 8V4h10v4M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M7 14h10v6H7z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" />
-                    <path d="M17.5 11h.01" stroke="currentColor" stroke-linecap="round" stroke-width="2.4" />
-                  </svg>
+                  <lucide-angular [img]="icons.printer" class="h-5 w-5" [strokeWidth]="1.8" aria-hidden="true" />
                 </span>
                 <div class="min-w-0">
                   <p class="text-sm font-bold text-amber-950">{{ deviceErrorTitle() }}</p>
@@ -108,6 +104,8 @@ export type ReceiptOutputStatus = 'printing' | 'error'
   `,
 })
 export class ReceiptOutputStatusDialog {
+  readonly icons = { check: Check, printer: Printer }
+
   readonly open = input(false)
   readonly kind = input<ReceiptOutputKind>('receipt')
   readonly status = input<ReceiptOutputStatus>('printing')

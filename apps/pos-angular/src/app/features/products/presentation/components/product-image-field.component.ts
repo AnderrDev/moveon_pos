@@ -10,6 +10,7 @@ import { NG_VALUE_ACCESSOR, type ControlValueAccessor } from '@angular/forms'
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { ProductImageStorage } from '@angular-app/features/products/domain/repositories/product-image-storage.repository'
 import { uploadProductImage } from '@angular-app/features/products/domain/usecases/upload-product-image.use-case'
+import { Image, LoaderCircle, LucideAngularModule } from 'lucide-angular'
 
 /**
  * Campo de imagen de producto para el formulario del admin.
@@ -23,6 +24,7 @@ import { uploadProductImage } from '@angular-app/features/products/domain/usecas
   selector: 'mo-product-image-field',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [LucideAngularModule],
   host: { class: 'block' },
   providers: [
     {
@@ -43,19 +45,12 @@ import { uploadProductImage } from '@angular-app/features/products/domain/usecas
           @if (value()) {
             <img [src]="value()" alt="Imagen del producto" class="h-full w-full object-contain" />
           } @else {
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-muted-foreground/50 h-8 w-8">
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <circle cx="9" cy="9" r="2" />
-              <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-            </svg>
+            <lucide-angular [img]="icons.image" class="text-muted-foreground/50 h-8 w-8" [strokeWidth]="1.5" aria-hidden="true" />
           }
 
           @if (uploading()) {
             <div class="bg-background/70 absolute inset-0 flex items-center justify-center">
-              <svg viewBox="0 0 24 24" fill="none" class="text-primary h-6 w-6 animate-spin">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" class="opacity-25" />
-                <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
-              </svg>
+              <lucide-angular [img]="icons.loader" class="text-primary h-6 w-6 animate-spin" [strokeWidth]="3" aria-hidden="true" />
             </div>
           }
         </div>
@@ -110,6 +105,8 @@ import { uploadProductImage } from '@angular-app/features/products/domain/usecas
   `,
 })
 export class ProductImageFieldComponent implements ControlValueAccessor {
+  readonly icons = { image: Image, loader: LoaderCircle }
+
   private readonly storage = inject(ProductImageStorage)
 
   /** Tienda dueña del producto; define la carpeta destino en Storage. */

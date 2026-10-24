@@ -6,6 +6,7 @@ import { FormInputComponent } from '@angular-app/shared/molecules/form-input.com
 import { FormErrorComponent } from '@angular-app/shared/molecules/form-error.component'
 import { ForgotPasswordFormPresenter } from '@angular-app/features/auth/presentation/presenters/forgot-password-form.presenter'
 import { forgotPasswordFormMapper } from '@angular-app/features/auth/presentation/forms/forgot-password-form.mapper'
+import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 
 // Mensaje genérico: NO revela si el correo existe o no (regla de seguridad).
 const GENERIC_SUCCESS_MESSAGE =
@@ -18,7 +19,7 @@ const CONNECTION_MESSAGE = 'No se pudo conectar. Revisa tu conexión a internet'
   selector: 'mo-forgot-password-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, FormInputComponent, FormErrorComponent],
+  imports: [ButtonComponent, ReactiveFormsModule, RouterLink, FormInputComponent, FormErrorComponent],
   providers: [ForgotPasswordFormPresenter],
   template: `
     <main class="bg-background flex min-h-dvh items-center justify-center px-4 py-10">
@@ -61,13 +62,9 @@ const CONNECTION_MESSAGE = 'No se pudo conectar. Revisa tu conexión a internet'
 
             <mo-form-error [message]="presenter.errors().root ?? null" />
 
-            <button
-              type="submit"
-              [disabled]="isSubmitting()"
-              class="bg-primary text-primary-foreground h-11 w-full rounded-lg text-sm font-bold transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {{ isSubmitting() ? 'Enviando...' : 'Enviar enlace' }}
-            </button>
+            <mo-button type="submit" size="lg" [fullWidth]="true" [loading]="isSubmitting()" loadingText="Enviando...">
+              Enviar enlace
+            </mo-button>
           </form>
 
           <a

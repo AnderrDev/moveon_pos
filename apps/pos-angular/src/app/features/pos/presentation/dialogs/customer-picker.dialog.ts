@@ -14,12 +14,13 @@ import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
 import { CustomerRepository } from '@angular-app/features/customers/domain/repositories/customer.repository'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import type { Cliente } from '@angular-app/features/customers/domain/entities/cliente.entity'
+import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
 
 @Component({
   selector: 'mo-customer-picker-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DialogComponent],
+  imports: [SkeletonComponent, DialogComponent],
   template: `
     <mo-dialog [open]="open()" title="Asociar cliente" width="md" (closed)="onClose()">
       <div class="space-y-3">
@@ -43,7 +44,7 @@ import type { Cliente } from '@angular-app/features/customers/domain/entities/cl
         @if (loading()) {
           <div class="space-y-2">
             @for (i of [0, 1, 2, 3]; track i) {
-              <div class="bg-muted/50 h-12 animate-pulse rounded-lg"></div>
+              <mo-skeleton heightClass="h-12" />
             }
           </div>
         } @else if (loadError()) {

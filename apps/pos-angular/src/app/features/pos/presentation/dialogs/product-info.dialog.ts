@@ -2,12 +2,13 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
 import type { PosProduct } from '@angular-app/features/pos/presentation/services/pos.types'
 import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
+import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 
 @Component({
   selector: 'mo-product-info-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MoneyPipe, DialogComponent],
+  imports: [ButtonComponent, MoneyPipe, DialogComponent],
   template: `
     <mo-dialog
       [open]="open()"
@@ -88,13 +89,7 @@ import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
           </p>
 
           <div class="flex justify-end">
-            <button
-              type="button"
-              class="bg-primary text-primary-foreground focus:ring-ring min-h-11 rounded-lg px-5 text-sm font-bold transition-colors focus:ring-2 focus:outline-none"
-              (click)="closed.emit()"
-            >
-              Entendido
-            </button>
+            <mo-button size="lg" (click)="closed.emit()">Entendido</mo-button>
           </div>
         </div>
       }
