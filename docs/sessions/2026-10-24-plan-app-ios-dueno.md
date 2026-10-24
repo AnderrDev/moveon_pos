@@ -160,6 +160,14 @@ Hecho en `moveon-owner-ios` (commit `e125945`, sin push). Detalle en `docs/modul
 - QA real: niveles y kardex de Creatina idénticos a la base. Nota: las ventas `IOS-QA-*` se cargaron directo con psql y no generaron salidas de inventario (no pasaron por `create_sale_atomic`); las `V-00000x` de la otra sesión sí aparecen en el kardex.
 - Sin cambios en el POS para este PLAN (solo lectura de tablas y RPC existentes).
 
+## 18. Continuación — PLAN-83 (finanzas)
+
+- `moveon-owner-ios`: `main` con PLAN-82 subido (`18443d6`); PLAN-83 en commit local `0bfb29a`, sin push.
+- POS (commit `f69d073`): migración `20261024140000_owner_finance_summary.sql` (solo local) y paridad (4 tests); `pnpm test:parity` → 21 en verde.
+- iOS: pestaña Finanzas (mes navegable, resultado, entradas por método, gastos por categoría, fondo, tendencia de 6 meses). 130 unitarios + 13 de UI en verde.
+- QA real (octubre, Supabase local): cifras de la app idénticas a la RPC. Datos de QA creados: categorías `ios-qa-arriendo` / `ios-qa-servicios`, gastos "IOS-QA" de $ 150.000 y $ 45.000 y fondo con saldo inicial $ 300.000 desde 2026-09-01 en la tienda local.
+- Pendiente para PLAN-84: aplicar en remoto `owner_sales_summary`, `owner_cash_session_summary` y `owner_finance_summary` con confirmación del dueño.
+
 ## 8. Notas adicionales
 
 - Fuentes de datos ya existentes para la app: `get_stock_levels`, `get_monthly_sales_totals`, `get_monthly_expense_totals`, `get_reinvestment_fund_totals`, `list_cash_history_days`.

@@ -42,7 +42,7 @@ Un solo target de app, como `gym_ios` (sin paquetes SPM locales hasta el dispara
 | Ventas: lista y detalle (hecho) | `sales`, `sale_items`, `payments`, `clientes(nombre)` (lectura directa, RLS) | 80 |
 | Caja: turno actual e historial (hecho) | RPC `owner_cash_session_summary`, `cash_movements`, `cash_sessions` cerradas | 81 |
 | Stock (hecho) | `productos` activos + `get_stock_levels`, `inventory_movements` | 82 |
-| Finanzas | RPC `owner_finance_summary` (nueva), `get_monthly_sales_totals`, `get_monthly_expense_totals`, `get_reinvestment_fund_totals` | 83 |
+| Finanzas (hecho) | RPC `owner_finance_summary`, `get_monthly_sales_totals`, `get_monthly_expense_totals`, `get_reinvestment_fund_totals` | 83 |
 
 ## Autenticación (PLAN-77)
 
@@ -61,6 +61,13 @@ Un solo target de app, como `gym_ios` (sin paquetes SPM locales hasta el dispara
 - Estados: carga, error con reintento, sin ventas en el período, y refresco al tirar (conserva los datos y avisa si falla).
 - Modo demo `-demo` (solo DEBUG) y 6 tests de UI sobre él; 81 tests unitarios.
 - Verificado en el simulador contra el Supabase local: las cifras de la app coinciden con la RPC consultada directamente (total $ 645.000, 5 ventas, utilidad $ 270.000).
+
+## Finanzas (PLAN-83)
+
+- **RPC** `owner_finance_summary(p_tienda_id uuid, p_month date) → jsonb` (migración `20261024140000`; solo admin, `security invoker`, `stable`). Replica `buildFinancialSummary` del web sobre el mes en `tiendas.timezone`: `month`, `timezone`, `entradas_totales`, `entradas_por_metodo` (cash, transfer, card, other, con `pct`), `costo_productos_vendidos` (`null` si ningún producto vendido tiene costo), `ventas_sin_costo`, `unidades_sin_costo`, `gastos_total`, `por_categoria` (con `pct` sobre entradas), `pct_gastos_sobre_entradas`, `utilidad_neta`, `margen_neto`, `fondo` (`get_reinvestment_fund_totals`; `null` si no está configurado) y `tendencia` (6 meses que terminan en `p_month`, de `get_monthly_sales_totals` + `get_monthly_expense_totals`). Porcentajes con un decimal como el web.
+- **Paridad:** `tests/integration/owner-finance-summary.parity.test.ts` (4 tests: mismas cifras que el web para mes, fondo y tendencia; cifras esperadas fijas; sin fondo → `null`; otra tienda o sin sesión rechazados). `pnpm test:parity` → 21 en verde.
+- **Pestaña Finanzas:** un mes a la vez con flechas (sin meses futuros); resultado del mes (utilidad neta, margen, entradas − costo − gastos), entradas por método, gastos por categoría, fondo de reinversión y gráfica de 6 meses (Swift Charts) con el balance entradas − gastos de cada mes.
+- Verificado contra el Supabase local (octubre): utilidad $ 115.000, margen 16,4 %, entradas $ 700.000, costo $ 390.000, gastos $ 195.000, fondo disponible −$ 460.000; tendencia sept $ 385.000 / oct $ 505.000. Idéntico a la RPC.
 
 ## Stock (PLAN-82)
 
