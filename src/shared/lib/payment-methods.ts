@@ -25,3 +25,9 @@ export const PAYMENT_METHOD_CLOSURE_OPTIONS: { value: PaymentMethod; label: stri
 export function getPaymentMethodLabel(metodo: string): string {
   return PAYMENT_METHOD_LABELS[metodo as PaymentMethod] ?? metodo
 }
+
+/** Opciones del filtro por método de pago en listados de ventas ('' = todos). */
+export const PAYMENT_FILTER_OPTIONS: { value: PaymentMethod | ''; label: string }[] = [
+  { value: '', label: 'Todos los métodos' },
+  ...PAYMENT_METHOD_CLOSURE_OPTIONS,
+]

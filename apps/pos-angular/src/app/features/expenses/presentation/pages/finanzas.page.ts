@@ -46,6 +46,7 @@ import type {
   ExpenseTemplate,
   ReinvestmentFundSettings,
 } from '@angular-app/features/expenses/domain/entities/expense.entity'
+import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
 
 function currentMonthLocal(): string {
   const now = new Date()
@@ -68,7 +69,7 @@ function monthRange(month: string): { from: string; to: string } {
   selector: 'mo-finanzas-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
+  imports: [SkeletonComponent, 
     PageHeaderComponent,
     ButtonComponent,
     EmptyStateComponent,
@@ -127,9 +128,7 @@ function monthRange(month: string): { from: string; to: string } {
       </mo-page-header>
 
       @if (loading()) {
-        <div class="bg-card flex-1 animate-pulse rounded-xl border p-8">
-          <div class="bg-muted/50 h-72 rounded-xl"></div>
-        </div>
+        <mo-skeleton heightClass="h-72" />
       } @else if (loadError()) {
         <mo-empty-state title="Error al cargar finanzas" [description]="loadError()">
           <mo-button (click)="load()">Reintentar</mo-button>

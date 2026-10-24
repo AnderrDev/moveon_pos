@@ -1,7 +1,8 @@
 import { DecimalPipe } from '@angular/common'
 import { ChangeDetectionStrategy, Component, input } from '@angular/core'
-import { formatCurrency } from '@/shared/lib/format'
 import type { DailyProductSale } from '@angular-app/features/reports/domain/entities/report.entity'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
+import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
 
 /**
  * Tabla completa de productos vendidos en el período, con costo/utilidad/margen.
@@ -12,51 +13,51 @@ import type { DailyProductSale } from '@angular-app/features/reports/domain/enti
   selector: 'mo-product-margin-table',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DecimalPipe],
+  imports: [...MO_TABLE, MoneyPipe, DecimalPipe],
   template: `
     @if (productSales().length === 0) {
       <p class="text-muted-foreground text-sm">Sin ventas en el período.</p>
     } @else {
       <div class="overflow-auto">
-        <table class="w-full text-sm">
-          <thead class="text-muted-foreground text-left text-xs uppercase">
+        <table moTable density="compact">
+          <thead moThead>
             <tr>
-              <th class="py-2 pr-4">Producto</th>
-              <th class="py-2 pr-4 text-right">Cantidad</th>
-              <th class="py-2 pr-4 text-right">Total vendido</th>
-              <th class="py-2 pr-4 text-right">Costo</th>
-              <th class="py-2 pr-4 text-right">Utilidad</th>
-              <th class="py-2 text-right">Margen</th>
+              <th moTh class="text-left">Producto</th>
+              <th moTh class="text-right">Cantidad</th>
+              <th moTh class="text-right">Total vendido</th>
+              <th moTh class="text-right">Costo</th>
+              <th moTh class="text-right">Utilidad</th>
+              <th moTh class="text-right">Margen</th>
             </tr>
           </thead>
           <tbody class="divide-y">
             @for (p of productSales(); track p.productId) {
               <tr>
-                <td class="py-2.5 pr-4">
+                <td moTd>
                   <p class="max-w-xs truncate font-semibold">{{ p.nombre }}</p>
                   @if (p.sku) {
                     <p class="text-muted-foreground text-xs">{{ p.sku }}</p>
                   }
                 </td>
-                <td class="py-2.5 pr-4 text-right tabular-nums">{{ p.qty }}</td>
-                <td class="py-2.5 pr-4 text-right font-semibold tabular-nums">
-                  {{ money(p.total) }}
+                <td moTd class="text-right tabular-nums">{{ p.qty }}</td>
+                <td moTd class="text-right font-semibold tabular-nums">
+                  {{ (p.total | money) }}
                 </td>
-                <td class="py-2.5 pr-4 text-right tabular-nums">
+                <td moTd class="text-right tabular-nums">
                   @if (p.costoTotal !== null) {
-                    {{ money(p.costoTotal) }}
+                    {{ (p.costoTotal | money) }}
                   } @else {
                     <span class="text-muted-foreground">—</span>
                   }
                 </td>
-                <td class="py-2.5 pr-4 text-right font-semibold tabular-nums">
+                <td moTd class="text-right font-semibold tabular-nums">
                   @if (p.utilidad !== null) {
-                    {{ money(p.utilidad) }}
+                    {{ (p.utilidad | money) }}
                   } @else {
                     <span class="text-muted-foreground">—</span>
                   }
                 </td>
-                <td class="py-2.5 text-right tabular-nums">
+                <td moTd class="text-right tabular-nums">
                   @if (p.margenPct !== null) {
                     {{ p.margenPct | number: '1.0-1' }}%
                   } @else {
@@ -68,9 +69,9 @@ import type { DailyProductSale } from '@angular-app/features/reports/domain/enti
           </tbody>
           <tfoot class="border-border border-t">
             <tr>
-              <td class="pt-2.5 pr-4 font-black text-xs uppercase" colspan="4">Utilidad total</td>
-              <td class="pt-2.5 pr-4 text-right font-bold tabular-nums" colspan="2">
-                {{ money(utilidadTotal()) }}
+              <td moTd class="font-black text-xs uppercase" colspan="4">Utilidad total</td>
+              <td moTd class="text-right font-bold tabular-nums" colspan="2">
+                {{ (utilidadTotal() | money) }}
               </td>
             </tr>
           </tfoot>
@@ -87,7 +88,4 @@ export class ProductMarginTableComponent {
   readonly productSales = input.required<DailyProductSale[]>()
   readonly utilidadTotal = input.required<number>()
 
-  money(v: number): string {
-    return formatCurrency(v)
-  }
 }

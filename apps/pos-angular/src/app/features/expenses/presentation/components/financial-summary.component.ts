@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core'
-import { formatCurrency } from '@/shared/lib/format'
-import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
 import type { FinancialSummary } from '@angular-app/features/expenses/domain/services/financial-summary'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
+import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
 
 /**
  * Resumen financiero del período: entradas totales, gastos por categoría con
@@ -10,19 +10,20 @@ import type { FinancialSummary } from '@angular-app/features/expenses/domain/ser
 @Component({
   selector: 'mo-financial-summary',
   standalone: true,
+  imports: [PaymentLabelPipe, MoneyPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="grid gap-4 sm:grid-cols-3">
       <div class="bg-card rounded-xl border p-4">
         <p class="text-muted-foreground text-xs tracking-wide uppercase">Entradas totales</p>
-        <p class="mt-1 text-2xl font-bold">{{ money(s().entradasTotales) }}</p>
+        <p class="mt-1 text-2xl font-bold">{{ (s().entradasTotales | money) }}</p>
         @if (s().entradasPorMetodo.length > 0) {
           <dl class="mt-3 space-y-1.5 border-t pt-2 text-xs">
             @for (payment of s().entradasPorMetodo; track payment.metodo) {
               <div class="flex items-center justify-between gap-3">
-                <dt class="text-muted-foreground">{{ paymentLabel(payment.metodo) }}</dt>
+                <dt class="text-muted-foreground">{{ (payment.metodo | paymentLabel) }}</dt>
                 <dd class="font-semibold tabular-nums">
-                  {{ money(payment.total) }}
+                  {{ (payment.total | money) }}
                   @if (payment.pctSobreEntradas !== null) {
                     <span class="text-muted-foreground ml-1">({{ payment.pctSobreEntradas }}%)</span>
                   }
@@ -36,7 +37,7 @@ import type { FinancialSummary } from '@angular-app/features/expenses/domain/ser
       </div>
       <div class="bg-card rounded-xl border p-4">
         <p class="text-muted-foreground text-xs tracking-wide uppercase">Gastos del negocio</p>
-        <p class="mt-1 text-2xl font-bold">{{ money(s().gastosTotal) }}</p>
+        <p class="mt-1 text-2xl font-bold">{{ (s().gastosTotal | money) }}</p>
         <p class="text-muted-foreground mt-1 text-xs">
           @if (s().pctGastosSobreEntradas !== null) {
             {{ s().pctGastosSobreEntradas }}% de las entradas
@@ -52,7 +53,7 @@ import type { FinancialSummary } from '@angular-app/features/expenses/domain/ser
           [class.text-emerald-600]="s().utilidadNeta > 0"
           [class.text-destructive]="s().utilidadNeta < 0"
         >
-          {{ money(s().utilidadNeta) }}
+          {{ (s().utilidadNeta | money) }}
         </p>
         <p class="text-muted-foreground mt-1 text-xs">
           @if (s().margenNeto !== null) {
@@ -69,19 +70,19 @@ import type { FinancialSummary } from '@angular-app/features/expenses/domain/ser
       <dl class="mt-3 space-y-2 text-sm">
         <div class="flex items-center justify-between">
           <dt class="text-muted-foreground">Entradas totales</dt>
-          <dd class="font-semibold">{{ money(s().entradasTotales) }}</dd>
+          <dd class="font-semibold">{{ (s().entradasTotales | money) }}</dd>
         </div>
         @for (payment of s().entradasPorMetodo; track payment.metodo) {
           <div class="flex items-center justify-between pl-3 text-xs">
-            <dt class="text-muted-foreground">• {{ paymentLabel(payment.metodo) }}</dt>
-            <dd class="font-semibold">{{ money(payment.total) }}</dd>
+            <dt class="text-muted-foreground">• {{ (payment.metodo | paymentLabel) }}</dt>
+            <dd class="font-semibold">{{ (payment.total | money) }}</dd>
           </div>
         }
         <div class="flex items-center justify-between">
           <dt class="text-muted-foreground">− Costo de productos vendidos</dt>
           <dd class="font-semibold">
             @if (s().costoProductosVendidos !== null) {
-              {{ money(s().costoProductosVendidos!) }}
+              {{ (s().costoProductosVendidos! | money) }}
             } @else {
               <span class="text-muted-foreground" title="Ningún producto vendido tiene costo capturado">—</span>
             }
@@ -97,7 +98,7 @@ import type { FinancialSummary } from '@angular-app/features/expenses/domain/ser
         }
         <div class="flex items-center justify-between">
           <dt class="text-muted-foreground">− Gastos del negocio</dt>
-          <dd class="font-semibold">{{ money(s().gastosTotal) }}</dd>
+          <dd class="font-semibold">{{ (s().gastosTotal | money) }}</dd>
         </div>
         <div class="flex items-center justify-between border-t pt-2">
           <dt class="font-semibold">= Utilidad neta</dt>
@@ -106,7 +107,7 @@ import type { FinancialSummary } from '@angular-app/features/expenses/domain/ser
             [class.text-emerald-600]="s().utilidadNeta > 0"
             [class.text-destructive]="s().utilidadNeta < 0"
           >
-            {{ money(s().utilidadNeta) }}
+            {{ (s().utilidadNeta | money) }}
           </dd>
         </div>
       </dl>
@@ -121,7 +122,7 @@ import type { FinancialSummary } from '@angular-app/features/expenses/domain/ser
               <div class="flex items-center justify-between text-sm">
                 <span>{{ cat.nombre }}</span>
                 <span class="font-semibold">
-                  {{ money(cat.total) }}
+                  {{ (cat.total | money) }}
                   @if (cat.pctSobreEntradas !== null) {
                     <span class="text-muted-foreground ml-1 text-xs">({{ cat.pctSobreEntradas }}%)</span>
                   }
@@ -144,13 +145,7 @@ export class FinancialSummaryComponent {
     Math.max(...this.s().porCategoria.map((c) => c.total), 1),
   )
 
-  money(v: number): string {
-    return formatCurrency(v)
-  }
 
-  paymentLabel(metodo: string): string {
-    return getPaymentMethodLabel(metodo)
-  }
 
   barWidth(total: number): number {
     return Math.round((total / this.maxCategoria()) * 100)

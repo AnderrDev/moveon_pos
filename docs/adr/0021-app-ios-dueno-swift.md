@@ -4,6 +4,7 @@
 **Estado:** Aceptado (aprobado por el dueño el 2026-10-24)
 **Decisor:** Dueño del producto
 **Modifica:** ADR 0004 (PWA responsive, sin apps nativas) y la fila "App móvil nativa — No planeado" de `docs/01-mvp-scope.md`
+**Modificado por:** ADR 0022 (2026-10-24): la app pasa a "MOVE ON Admin" y suma escrituras (ventas, inventario, productos); §1 "v1 de solo lectura" queda reemplazado
 
 ## Contexto
 

@@ -19,13 +19,14 @@ import { loyaltySettingsFormMapper } from '@angular-app/features/settings/presen
 import { FormNumberInputComponent } from '@angular-app/shared/molecules/form-number-input.component'
 import { FormCurrencyInputComponent } from '@angular-app/shared/molecules/form-currency-input.component'
 import { QzReceiptPrinterService } from '@angular-app/core/printing/qz-receipt-printer.service'
+import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
 
 @Component({
   selector: 'mo-configuracion-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [ReceiptSettingsFormPresenter, LoyaltySettingsFormPresenter],
-  imports: [
+  imports: [SkeletonComponent, 
     ReactiveFormsModule,
     PageHeaderComponent,
     ButtonComponent,
@@ -44,9 +45,9 @@ import { QzReceiptPrinterService } from '@angular-app/core/printing/qz-receipt-p
       />
 
       @if (loading()) {
-        <div class="grid animate-pulse gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-          <div class="bg-card h-[34rem] rounded-xl border"></div>
-          <div class="bg-card h-96 rounded-xl border"></div>
+        <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+          <mo-skeleton heightClass="h-[34rem]" />
+          <mo-skeleton heightClass="h-96" />
         </div>
       } @else {
         <form

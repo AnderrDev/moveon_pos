@@ -5,12 +5,13 @@ import { SessionService } from '@angular-app/core/auth/session.service'
 import { LoginFormPresenter } from '@angular-app/features/auth/presentation/presenters/login-form.presenter'
 import { mapLoginError } from '@angular-app/features/auth/presentation/services/login-error-mapper'
 import { loginFormMapper } from '@angular-app/features/auth/presentation/forms/login-form.mapper'
+import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 
 @Component({
   selector: 'mo-login-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ButtonComponent, ReactiveFormsModule, RouterLink],
   providers: [LoginFormPresenter],
   template: `
     <main class="bg-background flex min-h-dvh items-center justify-center px-4 py-10">
@@ -62,13 +63,9 @@ import { loginFormMapper } from '@angular-app/features/auth/presentation/forms/l
             </p>
           }
 
-          <button
-            type="submit"
-            [disabled]="isSubmitting()"
-            class="bg-primary text-primary-foreground h-11 w-full rounded-lg text-sm font-bold transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {{ isSubmitting() ? 'Ingresando...' : 'Ingresar' }}
-          </button>
+          <mo-button type="submit" size="lg" [fullWidth]="true" [loading]="isSubmitting()" loadingText="Ingresando...">
+            Ingresar
+          </mo-button>
 
           <a
             routerLink="/recuperar-contrasena"

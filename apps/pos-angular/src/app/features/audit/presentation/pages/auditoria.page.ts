@@ -9,6 +9,7 @@ import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { AuditLogRepository } from '@angular-app/features/audit/domain/repositories/audit-log.repository'
 import type { AuditLog, AuditEntityType } from '@angular-app/features/audit/domain/entities/audit-log.entity'
+import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
 
 type DateRange = 'today' | 'week' | 'month' | 'all'
 
@@ -64,7 +65,7 @@ const ACTION_VARIANT: Record<string, 'default' | 'warning' | 'destructive'> = {
   selector: 'mo-auditoria-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
+  imports: [SkeletonComponent, 
     PageHeaderComponent,
     ButtonComponent,
     BadgeComponent,
@@ -106,9 +107,7 @@ const ACTION_VARIANT: Record<string, 'default' | 'warning' | 'destructive'> = {
       </div>
 
       @if (loading()) {
-        <div class="bg-card flex-1 animate-pulse rounded-xl border p-8">
-          <div class="bg-muted/50 h-72 rounded-xl"></div>
-        </div>
+        <mo-skeleton heightClass="h-72" />
       } @else if (loadError()) {
         <mo-empty-state title="No se pudo cargar el registro" [description]="loadError()">
           <mo-button (click)="load()">Reintentar</mo-button>

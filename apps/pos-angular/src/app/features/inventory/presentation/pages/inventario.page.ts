@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { getErrorMessage } from '@/shared/lib/error-message'
-import { formatCurrency } from '@/shared/lib/format'
 import { PageHeaderComponent } from '@angular-app/shared/molecules/page-header.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 import { BadgeComponent } from '@angular-app/shared/atoms/badge.component'
@@ -19,6 +18,8 @@ import { isLowStock, isOutOfStock } from '@angular-app/features/inventory/domain
 import { ExcelExportService } from '@angular-app/shared/services/export/excel-export.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import { buildInventoryWorkbook } from '@angular-app/features/inventory/presentation/services/inventory-export'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
+import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
 
 interface StockRow {
   id: string
@@ -40,7 +41,7 @@ interface StockRow {
   selector: 'mo-inventario-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
+  imports: [SkeletonComponent, MoneyPipe, 
     PageHeaderComponent,
     ButtonComponent,
     BadgeComponent,
@@ -97,9 +98,7 @@ interface StockRow {
       </mo-page-header>
 
       @if (loading()) {
-        <div class="bg-card flex-1 animate-pulse rounded-xl border p-8">
-          <div class="bg-muted/50 h-72 rounded-xl"></div>
-        </div>
+        <mo-skeleton heightClass="h-72" />
       } @else if (loadError()) {
         <mo-empty-state title="No se pudo cargar inventario" [description]="loadError()">
           <mo-button (click)="load()">Reintentar</mo-button>
@@ -146,10 +145,10 @@ interface StockRow {
                     {{ row.proveedor ?? '—' }}
                   </td>
                   <td moTd class="text-muted-foreground text-right tabular-nums">
-                    {{ row.costo !== null ? money(row.costo) : '—' }}
+                    {{ row.costo !== null ? (row.costo | money) : '—' }}
                   </td>
                   <td moTd class="text-right font-semibold tabular-nums">
-                    {{ money(row.precioVenta) }}
+                    {{ (row.precioVenta | money) }}
                   </td>
                   <td
                     moTd
@@ -317,9 +316,6 @@ export class InventarioPage {
     void this.load()
   }
 
-  money(amount: number): string {
-    return formatCurrency(amount)
-  }
 
   tipoLabel(tipo: string): string {
     const labels: Record<string, string> = {

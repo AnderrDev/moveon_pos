@@ -153,6 +153,78 @@ Hecho en `moveon-owner-ios` (commit `e125945`, sin push). Detalle en `docs/modul
 - **Desviación del plan:** el historial no usa `list_cash_history_days` sino los cierres guardados en `cash_sessions`, porque esa RPC agrupa por día y no trae esperado vs. contado.
 - **Hallazgo con datos reales:** la diferencia guardada es esperado − contado (positivo = faltan). La primera versión decía "Faltan" donde sobraba; corregido y cubierto con un test con el caso real (esperado 380.000, contado 382.000, `difference` −2.000).
 
+## 17. Continuación — PLAN-82 (stock)
+
+- `moveon-owner-ios`: `main` con PLAN-81 subido (`41eaf71`); PLAN-82 en commit local, sin push.
+- Pestaña Stock con filtros, búsqueda y kardex; la regla y la lectura de stock pasan a `Domain/Inventory` y `Data/Inventory`, compartidas con el dashboard. 121 unitarios + 12 de UI en verde.
+- QA real: niveles y kardex de Creatina idénticos a la base. Nota: las ventas `IOS-QA-*` se cargaron directo con psql y no generaron salidas de inventario (no pasaron por `create_sale_atomic`); las `V-00000x` de la otra sesión sí aparecen en el kardex.
+- Sin cambios en el POS para este PLAN (solo lectura de tablas y RPC existentes).
+
+## 18. Continuación — PLAN-83 (finanzas)
+
+- `moveon-owner-ios`: `main` con PLAN-82 subido (`18443d6`); PLAN-83 en commit local `0bfb29a`, sin push.
+- POS (commit `f69d073`): migración `20261024140000_owner_finance_summary.sql` (solo local) y paridad (4 tests); `pnpm test:parity` → 21 en verde.
+- iOS: pestaña Finanzas (mes navegable, resultado, entradas por método, gastos por categoría, fondo, tendencia de 6 meses). 130 unitarios + 13 de UI en verde.
+- QA real (octubre, Supabase local): cifras de la app idénticas a la RPC. Datos de QA creados: categorías `ios-qa-arriendo` / `ios-qa-servicios`, gastos "IOS-QA" de $ 150.000 y $ 45.000 y fondo con saldo inicial $ 300.000 desde 2026-09-01 en la tienda local.
+- Pendiente para PLAN-84: aplicar en remoto `owner_sales_summary`, `owner_cash_session_summary` y `owner_finance_summary` con confirmación del dueño.
+
+## 19. Continuación — PLAN-84 (marca) y giro a escrituras (ADR 0022)
+
+- `moveon-owner-ios`: `main` con PLAN-83 subido (`0bfb29a`).
+- **Marca:** asset catalog con `AppIcon` (logo oficial `moveon-logo-brand.png` sobre negro, 1024 px, misma composición que `moveon-icon.png` del catálogo), `BrandLogo` y `LaunchBackground`; pantalla de arranque con el logo sobre negro; el login y el desbloqueo con Face ID muestran el logo oficial en vez del texto. Nombre bajo el ícono: "MOVE ON" ("MOVE ON Dueño" se cortaba).
+- **Pedido del dueño a mitad de PLAN-84:** "Que diga Admin no dueño y también debe ser funcional para gestión de inventario y ventas".
+  - Todos los textos visibles pasan de "Dueño" a "Admin" (los identificadores de código no cambian).
+  - Respuestas del dueño: registrar y anular ventas; entradas, ajustes, traslados y crear/editar productos; las escrituras van antes de publicar.
+- **Hallazgo:** todas esas escrituras ya existen como RPC `*_atomic`, y `create_sale_atomic` recalcula precios, descuentos, IVA y número de venta en el servidor (ignora los totales del cliente). Editar un producto es un `update` directo sobre `productos`, como en el web.
+- **ADR 0022 propuesto** (`docs/adr/0022-app-ios-admin-escrituras.md`) y **PLAN-85..91** agregados. PLAN-84 (QA final, migraciones remotas y TestFlight) queda para después de PLAN-91.
+- **Pendiente:** aprobación del ADR 0022 por el dueño antes de escribir código de escrituras. Montserrat no está en el repo (el web la carga de Google Fonts); incluirla en la app requiere descargar los TTF (licencia OFL), así que se pregunta al dueño.
+
+## 20. Continuación — ADR 0022 aprobado, PLAN-85 y PLAN-86
+
+- El dueño aprobó el ADR 0022 ("Apruebo el ADR 0022…"). Estado → Aceptado; ADR 0021 anota "Modificado por ADR 0022". `moveon-owner-ios` `main` con la marca subido (`895998a`).
+- **PLAN-85 (POS):**
+  - `tests/integration/fixtures/ios-payloads/` con `README.md` (formato `kind`/`target`/`payload` y marcadores `{{id}}`), `register_inventory_entry.json` (lo usará PLAN-87) y `audit_log_adjust.json`.
+  - `tests/integration/support/ios-payloads.ts` y `tests/integration/ios-payloads.contract.test.ts`: envía cada fixture al Supabase local y verifica el efecto (movimiento `entry` en bodega y stock 12; la fila de auditoría pasa la política `audit_logs_insert_own`). Falla si hay un fixture sin caso. `pnpm test:parity` → 24 en verde.
+  - `docs/modules/ios-owner.md` pasa a "MOVE ON Admin" con la sección Escrituras.
+- **PLAN-86 (iOS):**
+  - Piezas nuevas: `AppError.offline` y `.rejected(RejectionReason)`, `ServerRejectionMapper` (mensajes reales de las RPC sacados de la base local), textos en `UserMessages`, `Domain/Audit` (`AuditEvent`, `AuditActor`, `AuditValue`, `AuditLogging`), `Data/Audit` (`AuditLogRowDTO`, `SupabaseAuditLogger`), `Core/Connectivity` (`NWPathMonitor`), `Core/Forms/Submission` y `Core/Components/ConfirmationSheet` (con vistas previas).
+  - `AppDependencies` incluye `audit`, `connectivity` y `makeSubmission()`. El modo demo agrega el escenario `offline`.
+  - Contrato del lado Swift: `scripts/sync_payload_fixtures.sh` copia los fixtures a `MoveOnOwnerTests/Fixtures/Payloads`, y `AuditLogRowDTOTests` compara el JSON (con el encoder de PostgREST) contra `audit_log_adjust.json`.
+  - 142 tests unitarios en verde.
+- **Verificación contra el Supabase local:** `adjust_stock_atomic` con delta 0 y `transfer_stock_atomic` con el mismo origen y destino devuelven `P0001` con "El ajuste no puede ser cero" y "El origen y destino del traslado deben ser diferentes", que el mapeo reconoce; no se escribió nada. La app real arranca y carga con normalidad.
+- **Hallazgo:** el web solo audita desde el cliente algunos cambios. Por ejemplo, la entrada de mercancía no se audita y el ajuste y el traslado sí. La app replica exactamente esos eventos, ni más ni menos.
+- Aún no hay pantalla que escriba: `ConfirmationSheet` y `Submission` se verán en uso con PLAN-87 (entrada de mercancía).
+
+## 21. Continuación — PLAN-87 (entrada de mercancía)
+
+- `moveon-owner-ios`: `main` con PLAN-86 subido (`01fd762`).
+- **iOS:**
+  - `Features/Stock/Domain`: `InventoryEntry`, `InventoryWriting` y `RegisterInventoryEntryUseCase`. El caso de uso revalida: producto con stock propio, cantidad > 0, costo > 0 o nulo, motivo de 1 a 200 caracteres o nulo.
+  - `Features/Stock/Data`: `RegisterInventoryEntryParams`, con `null` explícitos y comparado contra el fixture `register_inventory_entry.json`, y `SupabaseInventoryWriter`.
+  - `Features/Stock/Presentation`: `InventoryEntryFormViewModel`, `InventoryEntrySheet` y el `NoticeBox` (Core) que hace las veces del toast del web.
+  - `InventoryLocation` pasa a `Domain/Inventory`; `ProductStock` lleva `cost`; `Core/Forms/NumberInput` y validadores nuevos.
+  - Pasan los tests unitarios (incluidos los de la entrada, el contrato y `NumberInput`) y los 15 de interfaz (2 nuevos: entrada con costo y sin conexión).
+- **QA contra el Supabase local** (QA Creatina 300g; antes: costo 45.000, punto de venta 6, bodega 0, invertido en octubre 1.150.000):
+  - Desde la lista, deslizando, se guardó por accidente una entrada de 1 unidad a 45.000 (los valores precargados). Las capturas del simulador iban un paso atrasadas y un toque cayó en el botón. Es una entrada real en los datos locales de prueba, coherente con lo enviado.
+  - Desde el detalle se registraron 10 unidades a bodega a 47.000 con motivo "QA iOS entrada". La base muestra `entry` / `bodega` / 10 / 47000 / "QA iOS entrada", el costo del producto pasa a 47.000 y la bodega a 11.
+  - `owner_finance_summary` da invertido del mes 1.665.000 (1.150.000 + 45.000 + 470.000), igual que la pestaña Finanzas.
+  - La app mostró "Entrada registrada y costo de QA Creatina 300g actualizado" y recargó el stock y el kardex.
+- Sin cambios en el POS para este PLAN, aparte de los docs: el fixture y el test de contrato son de PLAN-85.
+
+## 22. Continuación — PLAN-88 (ajustes y traslados)
+
+- `moveon-owner-ios`: `main` con PLAN-87 subido (`e6c5e49`).
+- **POS** (`cca4637`): fixtures `adjust_stock.json`, `transfer_stock.json` y `audit_log_transfer.json`, con sus casos de contrato (un producto con 20 en bodega queda en 18 tras ajustar −2; el traslado de 4 mueve el stock y devuelve el id). `pnpm test:parity` → 27 en verde.
+- **iOS:**
+  - Dominio: `InventoryAdjustment`, `InventoryTransfer`, `AdjustStockUseCase` y `TransferStockUseCase` (validan, llaman a la RPC y auditan; si la RPC falla no se audita).
+  - Datos: `AdjustStockParams`, `TransferStockParams` y `SupabaseInventoryWriter` (el ajuste devuelve la fila y se toma su id).
+  - Presentación: `StockAdjustmentFormViewModel`/`Sheet`, `StockTransferFormViewModel`/`Sheet`, `StockWrite` + `StockWriteSheet` (enrutado común de las tres escrituras) y el marco `StockFormChrome`. `SecondaryButton` y `Validators.requiredText` van en Core.
+  - Pasan 173 tests unitarios (con la auditoría comparada contra los contratos) y 17 de interfaz (2 nuevos: ajuste negativo con confirmación y traslado).
+- **QA contra el Supabase local** (QA Creatina 300g, antes: punto de venta 6, bodega 11):
+  - **Traslado:** pedir 20 muestra "Stock insuficiente en origen. Disponible: 11" y "Describe el motivo del traslado". Con 5 y "QA iOS traslado" quedan `transfer_out` −5 en bodega y `transfer_in` +5 en punto de venta, con 11 / 6.
+  - **Ajuste −1 en bodega:** "QA iOS: corrige entrada duplicada" compensa la entrada accidental de PLAN-87. La confirmación aparece antes de guardar (0 ajustes en la base hasta confirmar) y luego queda `adjustment` −1, con 11 / 5.
+  - **Auditoría:** `audit_logs` tiene las dos filas del cliente (`transfer` y `adjust`) con `admin@moveon.local`, la etiqueta "QA Creatina 300g" y los `changes` del web, más la fila `inventory.adjusted` del trigger del servidor.
+
 ## 8. Notas adicionales
 
 - Fuentes de datos ya existentes para la app: `get_stock_levels`, `get_monthly_sales_totals`, `get_monthly_expense_totals`, `get_reinvestment_fund_totals`, `list_cash_history_days`.

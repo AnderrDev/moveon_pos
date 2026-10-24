@@ -10,7 +10,6 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { getErrorMessage } from '@/shared/lib/error-message'
-import { formatCurrency } from '@/shared/lib/format'
 import { ReactiveFormsModule } from '@angular/forms'
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
@@ -45,18 +44,15 @@ import {
 } from '@angular-app/features/products/domain/services/combo-pricing'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
-import type { InventoryLocation } from '@/shared/types'
+import { ProductInitialStockSectionComponent } from '@angular-app/features/products/presentation/components/product-initial-stock-section.component'
+import { ProductComponentsEditorComponent } from '@angular-app/features/products/presentation/components/product-components-editor.component'
+import { ProductOptionsEditorComponent } from '@angular-app/features/products/presentation/components/product-options-editor.component'
 
 const TIPO_OPTIONS: FormSelectOption<string>[] = [
   { value: 'simple', label: 'Simple' },
   { value: 'prepared', label: 'Preparado' },
   { value: 'ingredient', label: 'Ingrediente' },
   { value: 'combo', label: 'Combo' },
-]
-
-const INITIAL_STOCK_LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
-  { value: 'bodega', label: 'Bodega' },
-  { value: 'punto_venta', label: 'Punto de venta' },
 ]
 
 @Component({
@@ -77,6 +73,9 @@ const INITIAL_STOCK_LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
     FormErrorComponent,
     DialogFooterComponent,
     ProductImageFieldComponent,
+    ProductInitialStockSectionComponent,
+    ProductComponentsEditorComponent,
+    ProductOptionsEditorComponent,
   ],
   template: `
     <mo-dialog
@@ -148,322 +147,36 @@ const INITIAL_STOCK_LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
         <mo-form-error [message]="presenter.errors().imageUrl ?? null" />
 
         @if (!product()) {
-          <section class="border-primary/20 bg-primary/[0.035] rounded-xl border p-4">
-            <div>
-              <h3 class="text-sm font-semibold">Inventario inicial</h3>
-              <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
-                Opcional. Se registrará como una entrada de inventario auditada junto con el producto.
-              </p>
-            </div>
-
-            @if (showComponents()) {
-              <div class="border-border bg-card text-muted-foreground mt-4 rounded-lg border px-3.5 py-3 text-xs">
-                @if (isCombo()) {
-                  Los combos no controlan stock propio. Agrega abajo los productos incluidos.
-                } @else {
-                  Los productos preparados no controlan stock propio. Asigna componentes consumibles abajo.
-                }
-              </div>
-            } @else {
-              <div class="mt-4 grid gap-x-4 gap-y-5 sm:grid-cols-2">
-                <mo-form-number-input
-                  controlName="stockInicial"
-                  label="Cantidad inicial"
-                  [min]="0"
-                  [step]="1"
-                  description="Déjalo en 0 si registrarás la entrada después."
-                  [error]="presenter.errors().stockInicial ?? null"
-                />
-                <mo-form-select
-                  controlName="stockInicialUbicacion"
-                  label="Ubicación inicial"
-                  [placeholder]="null"
-                  [options]="initialStockLocationOptions"
-                  [error]="presenter.errors().stockInicialUbicacion ?? null"
-                />
-              </div>
-              @if (presenter.form.controls.stockInicial.value > 0) {
-                <p class="text-muted-foreground mt-3 text-[11px] leading-relaxed">
-                  El costo unitario de la entrada será el costo registrado para el producto.
-                </p>
-              }
-            }
-          </section>
+          <mo-product-initial-stock-section
+            [withoutOwnStock]="showComponents()"
+            [isCombo]="isCombo()"
+            [quantity]="presenter.form.controls.stockInicial.value"
+            [quantityError]="presenter.errors().stockInicial ?? null"
+            [locationError]="presenter.errors().stockInicialUbicacion ?? null"
+          />
         }
 
         @if (showComponents()) {
-          <section class="rounded-xl border p-4 space-y-3">
-            <div>
-              <h3 class="text-sm font-semibold">
-                {{ isCombo() ? 'Productos incluidos' : 'Componentes consumibles' }}
-              </h3>
-              <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
-                @if (isCombo()) {
-                  Al vender el combo se descuenta el stock de cada producto incluido. El combo no
-                  lleva inventario propio: cuántos puedes vender lo decide el producto más escaso.
-                } @else {
-                  Al vender este batido se descuenta el stock de cada componente (ej. vaso, ingredientes).
-                }
-              </p>
-            </div>
-
-            @for (comp of components(); track comp.componenteId) {
-              <div class="border-border flex items-center gap-3 rounded-lg border px-3 py-2">
-                <span class="min-w-0 flex-1 truncate text-sm font-medium">{{ comp.componenteNombre }}</span>
-                <span class="text-muted-foreground shrink-0 text-xs tabular-nums">× {{ comp.cantidad }}</span>
-                <button
-                  type="button"
-                  (click)="removeComponent(comp.componenteId)"
-                  class="text-muted-foreground hover:text-destructive shrink-0 transition-colors"
-                  aria-label="Quitar componente"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
-                    <path d="M18 6 6 18M6 6l12 12"/>
-                  </svg>
-                </button>
-              </div>
-            }
-
-            @if (components().length === 0) {
-              <p class="text-muted-foreground text-xs">
-                {{ isCombo() ? 'Sin productos incluidos todavía.' : 'Sin componentes asignados.' }}
-              </p>
-            }
-
-            @if (isCombo() && components().length > 0) {
-              <div class="border-primary/20 bg-primary/[0.035] rounded-lg border px-3.5 py-3">
-                <dl class="flex flex-wrap items-baseline gap-x-5 gap-y-1 text-xs">
-                  <div class="flex items-baseline gap-1.5">
-                    <dt class="text-muted-foreground">Suma normal</dt>
-                    <dd class="font-semibold tabular-nums">{{ money(savings().sumaNormal) }}</dd>
-                  </div>
-                  <div class="flex items-baseline gap-1.5">
-                    <dt class="text-muted-foreground">Precio del combo</dt>
-                    <dd class="font-semibold tabular-nums">{{ money(precioVenta()) }}</dd>
-                  </div>
-                  @if (savings().ahorro > 0) {
-                    <div class="flex items-baseline gap-1.5">
-                      <dt class="text-muted-foreground">Ahorro</dt>
-                      <dd class="text-primary font-semibold tabular-nums">
-                        {{ money(savings().ahorro) }} ({{ savings().porcentaje }}%)
-                      </dd>
-                    </div>
-                  } @else {
-                    <div class="text-muted-foreground">
-                      Sin ahorro: el combo no cuesta menos que comprarlos por separado.
-                    </div>
-                  }
-                </dl>
-              </div>
-            }
-
-            <div class="flex gap-2 items-end pt-1">
-              <div class="flex-1 min-w-0">
-                <label for="product-component-id" class="text-muted-foreground mb-1 block text-[11px] font-semibold uppercase tracking-wide">
-                  Producto
-                </label>
-                <select
-                  id="product-component-id"
-                  [value]="pendingComponentId()"
-                  (change)="pendingComponentId.set($any($event.target).value)"
-                  class="border-input bg-background focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2"
-                >
-                  <option value="">Seleccionar...</option>
-                  @for (p of componentCandidates(); track p.id) {
-                    <option [value]="p.id">{{ p.nombre }}</option>
-                  }
-                </select>
-              </div>
-              <div class="w-24 shrink-0">
-                <label for="product-component-qty" class="text-muted-foreground mb-1 block text-[11px] font-semibold uppercase tracking-wide">
-                  Cantidad
-                </label>
-                <input
-                  id="product-component-qty"
-                  type="number"
-                  min="0.001"
-                  step="1"
-                  [value]="pendingComponentQty()"
-                  (input)="pendingComponentQty.set(+$any($event.target).value)"
-                  class="border-input bg-background focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2"
-                />
-              </div>
-              <button
-                type="button"
-                (click)="addComponent()"
-                [disabled]="!pendingComponentId()"
-                class="bg-primary text-primary-foreground disabled:opacity-40 h-10 shrink-0 rounded-lg px-3 text-sm font-semibold transition-opacity"
-              >
-                Agregar
-              </button>
-            </div>
-          </section>
+          <mo-product-components-editor
+            [isCombo]="isCombo()"
+            [components]="components()"
+            [candidates]="componentCandidates()"
+            [savings]="savings()"
+            [precioVenta]="precioVenta()"
+            (added)="addComponent($event.componenteId, $event.cantidad)"
+            (removed)="removeComponent($event)"
+          />
         }
 
         <!-- Las opciones de venta (ADR 0017) son exclusivas de los preparados:
              un combo se vende tal cual, sin preguntar nada al cajero. -->
         @if (selectedType() === 'prepared') {
-          <section class="rounded-xl border p-4 space-y-3">
-            <div>
-              <h3 class="text-sm font-semibold">Opciones de venta</h3>
-              <p class="text-muted-foreground mt-1 text-xs leading-relaxed">
-                El cajero elige una al vender (ej. el tipo de proteína del batido). El recargo se
-                suma al precio y el producto asignado se descuenta del inventario.
-              </p>
-            </div>
-
-            <div>
-              <label
-                for="product-option-grupo"
-                class="text-muted-foreground mb-1 block text-[11px] font-semibold tracking-wide uppercase"
-              >
-                Nombre del grupo
-              </label>
-              <input
-                id="product-option-grupo"
-                type="text"
-                [value]="optionGrupo()"
-                (input)="optionGrupo.set($any($event.target).value)"
-                placeholder="Proteína"
-                class="border-input bg-background focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2"
-              />
-            </div>
-
-            @for (option of options(); track option.nombre) {
-              <div class="border-border space-y-2 rounded-lg border px-3 py-2.5">
-                <div class="flex items-center gap-3">
-                  <span class="min-w-0 flex-1 truncate text-sm font-medium">{{ option.nombre }}</span>
-                  <span class="text-muted-foreground shrink-0 text-xs tabular-nums">
-                    @if (option.precioExtra > 0) {
-                      +{{ option.precioExtra }}
-                    } @else {
-                      sin recargo
-                    }
-                  </span>
-                  <button
-                    type="button"
-                    (click)="removeOption(option.nombre)"
-                    class="text-muted-foreground hover:text-destructive shrink-0 transition-colors"
-                    aria-label="Quitar opción"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
-                      <path d="M18 6 6 18M6 6l12 12"/>
-                    </svg>
-                  </button>
-                </div>
-                <div class="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
-                  <label class="flex items-center gap-1.5">
-                    <input
-                      type="radio"
-                      name="product-option-default"
-                      [checked]="option.esDefault"
-                      (change)="setDefaultOption(option.nombre)"
-                    />
-                    Predeterminada
-                  </label>
-                  @if (option.componenteId) {
-                    <span>
-                      Descuenta {{ option.componenteNombre }} × {{ option.componenteCantidad }}
-                    </span>
-                  } @else {
-                    <span>Sin descuento de inventario</span>
-                  }
-                </div>
-              </div>
-            }
-
-            @if (options().length === 0) {
-              <p class="text-muted-foreground text-xs">
-                Sin opciones. El producto se vende directo, sin preguntar nada.
-              </p>
-            }
-
-            <div class="grid gap-2 pt-1 sm:grid-cols-2">
-              <div>
-                <label
-                  for="product-option-nombre"
-                  class="text-muted-foreground mb-1 block text-[11px] font-semibold tracking-wide uppercase"
-                >
-                  Opción
-                </label>
-                <input
-                  id="product-option-nombre"
-                  type="text"
-                  [value]="pendingOptionNombre()"
-                  (input)="pendingOptionNombre.set($any($event.target).value)"
-                  placeholder="Ej. Bipro"
-                  class="border-input bg-background focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2"
-                />
-              </div>
-              <div>
-                <label
-                  for="product-option-extra"
-                  class="text-muted-foreground mb-1 block text-[11px] font-semibold tracking-wide uppercase"
-                >
-                  Recargo (COP)
-                </label>
-                <input
-                  id="product-option-extra"
-                  type="number"
-                  min="0"
-                  step="500"
-                  [value]="pendingOptionExtra()"
-                  (input)="pendingOptionExtra.set(+$any($event.target).value)"
-                  class="border-input bg-background focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2"
-                />
-              </div>
-              <div>
-                <label
-                  for="product-option-componente"
-                  class="text-muted-foreground mb-1 block text-[11px] font-semibold tracking-wide uppercase"
-                >
-                  Descuenta del inventario
-                </label>
-                <select
-                  id="product-option-componente"
-                  [value]="pendingOptionComponentId()"
-                  (change)="pendingOptionComponentId.set($any($event.target).value)"
-                  class="border-input bg-background focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2"
-                >
-                  <option value="">Nada</option>
-                  @for (p of optionComponentCandidates(); track p.id) {
-                    <option [value]="p.id">{{ p.nombre }}</option>
-                  }
-                </select>
-              </div>
-              <div class="flex items-end gap-2">
-                <div class="w-24 shrink-0">
-                  <label
-                    for="product-option-cantidad"
-                    class="text-muted-foreground mb-1 block text-[11px] font-semibold tracking-wide uppercase"
-                  >
-                    Cantidad
-                  </label>
-                  <input
-                    id="product-option-cantidad"
-                    type="number"
-                    min="0"
-                    step="1"
-                    [value]="pendingOptionQty()"
-                    (input)="pendingOptionQty.set(+$any($event.target).value)"
-                    class="border-input bg-background focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2"
-                  />
-                </div>
-                <button
-                  type="button"
-                  (click)="addOption()"
-                  [disabled]="!pendingOptionNombre().trim()"
-                  class="bg-primary text-primary-foreground disabled:opacity-40 h-10 flex-1 rounded-lg px-3 text-sm font-semibold transition-opacity"
-                >
-                  Agregar opción
-                </button>
-              </div>
-            </div>
-
-            @if (optionsError()) {
-              <p class="text-destructive text-xs font-semibold">{{ optionsError() }}</p>
-            }
-          </section>
+          <mo-product-options-editor
+            [(options)]="options"
+            [(grupo)]="optionGrupo"
+            [(error)]="optionsError"
+            [candidates]="optionComponentCandidates()"
+          />
         }
 
         <div class="space-y-4 rounded-xl border p-4">
@@ -550,7 +263,6 @@ export class ProductFormDialog {
 
   readonly presenter = inject(ProductFormPresenter)
   readonly tipoOptions = TIPO_OPTIONS
-  readonly initialStockLocationOptions = INITIAL_STOCK_LOCATION_OPTIONS
   readonly selectedType = toSignal(this.presenter.form.controls.tipo.valueChanges, {
     initialValue: this.presenter.form.controls.tipo.value,
   })
@@ -574,8 +286,6 @@ export class ProductFormDialog {
   // --- Componentes consumibles ---
   readonly components = signal<ProductComponent[]>([])
   readonly allProducts = signal<Product[]>([])
-  readonly pendingComponentId = signal('')
-  readonly pendingComponentQty = signal(1)
 
   /**
    * Un combo incluye productos vendibles (proteína, shaker); un preparado
@@ -646,10 +356,6 @@ export class ProductFormDialog {
   readonly options = signal<ProductOption[]>([])
   readonly optionGrupo = signal('Proteína')
   readonly optionsError = signal<string | null>(null)
-  readonly pendingOptionNombre = signal('')
-  readonly pendingOptionExtra = signal(0)
-  readonly pendingOptionComponentId = signal('')
-  readonly pendingOptionQty = signal(1)
 
   readonly optionComponentCandidates = computed(() =>
     filterOptionComponentCandidates(this.allProducts(), this.product()?.id),
@@ -672,12 +378,9 @@ export class ProductFormDialog {
       if (this.open()) {
         this.presenter.reset(productFormMapper.toFormValue(this.product()))
         this.components.set([])
-        this.pendingComponentId.set('')
-        this.pendingComponentQty.set(1)
         this.options.set([])
         this.optionGrupo.set('Proteína')
         this.optionsError.set(null)
-        this.resetPendingOption()
         void this.initComponents()
       }
     })
@@ -724,68 +427,14 @@ export class ProductFormDialog {
     }
   }
 
-  addOption(): void {
-    const nombre = this.pendingOptionNombre().trim()
-    if (!nombre) return
-    if (this.options().some((o) => o.nombre.toLowerCase() === nombre.toLowerCase())) {
-      this.optionsError.set('Ya existe una opción con ese nombre')
-      return
-    }
-
-    const componenteId = this.pendingOptionComponentId() || null
-    const componente = this.allProducts().find((p) => p.id === componenteId)
-
-    this.options.update((prev) => [
-      ...prev,
-      {
-        grupo: this.optionGrupo().trim() || 'Proteína',
-        nombre,
-        precioExtra: Math.max(0, Math.round(this.pendingOptionExtra())),
-        componenteId,
-        componenteNombre: componente?.nombre ?? '',
-        componenteCantidad: componenteId ? Math.max(0, this.pendingOptionQty()) : 0,
-        // La primera opción que se crea queda como predeterminada.
-        esDefault: prev.length === 0,
-      },
-    ])
-    this.optionsError.set(null)
-    this.resetPendingOption()
-  }
-
-  removeOption(nombre: string): void {
-    this.options.update((prev) => {
-      const next = prev.filter((o) => o.nombre !== nombre)
-      // Si se quitó la predeterminada, la primera que quede toma el relevo.
-      if (next.length > 0 && !next.some((o) => o.esDefault)) {
-        return next.map((o, index) => ({ ...o, esDefault: index === 0 }))
-      }
-      return next
-    })
-  }
-
-  setDefaultOption(nombre: string): void {
-    this.options.update((prev) => prev.map((o) => ({ ...o, esDefault: o.nombre === nombre })))
-  }
-
-  private resetPendingOption(): void {
-    this.pendingOptionNombre.set('')
-    this.pendingOptionExtra.set(0)
-    this.pendingOptionComponentId.set('')
-    this.pendingOptionQty.set(1)
-  }
-
-  addComponent(): void {
-    const id = this.pendingComponentId()
-    const qty = this.pendingComponentQty()
-    if (!id || qty <= 0) return
-    const product = this.allProducts().find((p) => p.id === id)
+  addComponent(componenteId: string, cantidad: number): void {
+    if (!componenteId || cantidad <= 0) return
+    const product = this.allProducts().find((p) => p.id === componenteId)
     if (!product) return
     this.components.update((prev) => [
       ...prev,
-      { componenteId: id, componenteNombre: product.nombre, cantidad: qty },
+      { componenteId, componenteNombre: product.nombre, cantidad },
     ])
-    this.pendingComponentId.set('')
-    this.pendingComponentQty.set(1)
     this.syncComboCost()
   }
 
@@ -903,10 +552,6 @@ export class ProductFormDialog {
       this.saving.set(false)
       this.presenter.form.enable({ emitEvent: false })
     }
-  }
-
-  money(amount: number): string {
-    return formatCurrency(amount)
   }
 
   onClose(): void {

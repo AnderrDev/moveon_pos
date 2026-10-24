@@ -8,13 +8,13 @@ import {
   signal,
 } from '@angular/core'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
-import { formatCurrency } from '@/shared/lib/format'
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 import { FormCurrencyInputComponent } from '@angular-app/shared/molecules/form-currency-input.component'
 import { FormNumberInputComponent } from '@angular-app/shared/molecules/form-number-input.component'
 import { FormErrorComponent } from '@angular-app/shared/molecules/form-error.component'
 import type { PosCartItem } from '@angular-app/features/pos/presentation/services/pos-cart.store'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 
 export interface ItemDiscountResult {
   key: string
@@ -26,7 +26,7 @@ export interface ItemDiscountResult {
   selector: 'mo-item-discount-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
+  imports: [MoneyPipe, 
     ReactiveFormsModule,
     DialogComponent,
     ButtonComponent,
@@ -41,7 +41,7 @@ export interface ItemDiscountResult {
           <div class="bg-muted/50 rounded-lg px-3.5 py-2.5">
             <p class="truncate text-sm font-semibold">{{ i.nombre }}</p>
             <p class="text-muted-foreground text-xs tabular-nums">
-              Precio unitario {{ money(i.unitPrice) }} · {{ i.quantity }} und.
+              Precio unitario {{ (i.unitPrice | money) }} · {{ i.quantity }} und.
             </p>
           </div>
 
@@ -133,9 +133,6 @@ export class ItemDiscountDialog {
     })
   }
 
-  money(value: number): string {
-    return formatCurrency(value)
-  }
 
   setDiscountMode(mode: 'amount' | 'percent'): void {
     if (this.discountMode() === mode) return

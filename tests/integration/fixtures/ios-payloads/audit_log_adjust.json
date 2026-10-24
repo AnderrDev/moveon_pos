@@ -1,0 +1,19 @@
+{
+  "description": "Auditoría de un ajuste de stock, con los mismos campos que registra el web (PLAN-86/88)",
+  "kind": "insert",
+  "target": "audit_logs",
+  "payload": {
+    "tienda_id": "{{tienda_id}}",
+    "user_id": "{{user_id}}",
+    "user_email": "{{user_email}}",
+    "entity_type": "movimiento_inventario",
+    "entity_id": "{{entity_id}}",
+    "entity_label": "Proteína contrato",
+    "action": "adjust",
+    "changes": {
+      "cantidadDelta": -2,
+      "ubicacion": "punto_venta",
+      "motivo": "Conteo físico"
+    }
+  }
+}

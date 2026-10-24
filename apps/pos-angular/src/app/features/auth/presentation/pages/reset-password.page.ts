@@ -8,12 +8,13 @@ import { FormErrorComponent } from '@angular-app/shared/molecules/form-error.com
 import { ResetPasswordFormPresenter } from '@angular-app/features/auth/presentation/presenters/reset-password-form.presenter'
 import { mapResetPasswordError } from '@angular-app/features/auth/presentation/services/reset-password-error-mapper'
 import { resetPasswordFormMapper } from '@angular-app/features/auth/presentation/forms/reset-password-form.mapper'
+import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 
 @Component({
   selector: 'mo-reset-password-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, FormInputComponent, FormErrorComponent],
+  imports: [ButtonComponent, ReactiveFormsModule, RouterLink, FormInputComponent, FormErrorComponent],
   providers: [ResetPasswordFormPresenter],
   template: `
     <main class="bg-background flex min-h-dvh items-center justify-center px-4 py-10">
@@ -51,13 +52,9 @@ import { resetPasswordFormMapper } from '@angular-app/features/auth/presentation
 
           <mo-form-error [message]="presenter.errors().root ?? null" />
 
-          <button
-            type="submit"
-            [disabled]="isSubmitting()"
-            class="bg-primary text-primary-foreground h-11 w-full rounded-lg text-sm font-bold transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {{ isSubmitting() ? 'Guardando...' : 'Guardar contraseña' }}
-          </button>
+          <mo-button type="submit" size="lg" [fullWidth]="true" [loading]="isSubmitting()" loadingText="Guardando...">
+            Guardar contraseña
+          </mo-button>
         </form>
 
         <a

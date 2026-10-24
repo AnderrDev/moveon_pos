@@ -37,6 +37,7 @@ apps/pos-angular/src/app/shared/
 │   ├── page-header.component.ts   (mo-page-header)
 │   ├── stat-card.component.ts     (mo-stat-card)
 │   ├── dialog-footer.component.ts (mo-dialog-footer)
+│   ├── segmented.component.ts     (mo-segmented: filtro de selección única)
 │   └── table/
 │       ├── table-shell.component.ts  (mo-table-shell)
 │       └── table.directives.ts       (moTable, moThead, moTh, moTr, moTd — export MO_TABLE)
@@ -44,7 +45,11 @@ apps/pos-angular/src/app/shared/
 │   ├── dialog.component.ts        (mo-dialog)
 │   ├── toast/                     (mo-toast-host + ToastService)
 │   ├── void-reason/               (mo-void-reason-dialog + constantes)
-│   └── sale-detail-list.component.ts (mo-sale-detail-list)
+│   ├── sale-detail-list.component.ts (mo-sale-detail-list)
+│   └── sale-detail-body.component.ts (mo-sale-detail-body: detalle de UNA venta)
+├── pipes/          # Transformaciones de presentación puras (ADR 0023)
+│   ├── money.pipe.ts              (| money → formatCurrency)
+│   └── payment-label.pipe.ts      (| paymentLabel → getPaymentMethodLabel)
 └── services/       # Utilidades no visuales compartidas
     └── export/                    (ExcelExportService, export-filename)
 ```
@@ -65,11 +70,14 @@ Criterio de nivel: **atom** = un elemento estilizado; **molecule** = composició
 | `mo-stat-card` | `label`*, `value`* (string YA formateado), `hint`, `tone: default\|warning\|success\|muted` · ng-content para pie |
 | `mo-dialog-footer` | `align: end\|between` · ng-content (mo-buttons) |
 | `mo-table-shell` + `MO_TABLE` | `<table moTable [density]>` (`default` px-4 py-3 + header sticky; `compact` px-3 py-2 sin sticky) · `thead moThead`, `th moTh`, `td moTd`, `tr moTr [hover]`. Alineación (`text-right`, `tabular-nums`, `min-w-*`) va como clase del elemento |
-| `mo-dialog` | `open`, `title`*, `description`, `busy`, `width: sm\|md\|lg\|xl` · `(closed)` |
+| `mo-dialog` | `open`, `title`*, `description`, `busy`, `width: sm\|md\|lg\|xl` · `(closed)`. Escape cierra solo el diálogo de arriba (pila de abiertos) |
 | `mo-field-wrapper` y `mo-form-*` | `controlName`* + `label`/`error`/`required` — enlazan al FormGroup padre vía `viewProviders` (ver forms.md) |
+| `mo-segmented` | `options`* (`{ value, label }[]`), `[(value)]`* (string) — filas de filtros (método de pago, estado, periodo). No usar para pestañas principales |
+| `mo-sale-detail-body` | `sale`*, `canCorrectPayment` · `(correctPayment)` → `{ paymentId, metodo }` |
 | `mo-empty-state` | `title`*, `description` + slot de acción |
 | `mo-page-header` | `title`*, `subtitle` + slot de acciones |
 | `mo-stat-card`, `mo-sale-detail-list`, `mo-toast-host` | ver archivo fuente |
+| `| money`, `| paymentLabel` | Pipes puros (ADR 0023). En plantillas usar el pipe, no un método `money()` local |
 
 ---
 

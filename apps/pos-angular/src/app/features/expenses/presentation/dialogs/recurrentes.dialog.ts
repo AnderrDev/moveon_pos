@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core'
 import { getErrorMessage } from '@/shared/lib/error-message'
-import { formatCurrency } from '@/shared/lib/format'
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 import { BadgeComponent } from '@angular-app/shared/atoms/badge.component'
@@ -14,6 +13,7 @@ import type {
   ExpenseCategory,
   ExpenseTemplate,
 } from '@angular-app/features/expenses/domain/entities/expense.entity'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 
 /**
  * "Gastos del mes": cruza las plantillas recurrentes con los gastos ya
@@ -24,7 +24,7 @@ import type {
   selector: 'mo-recurrentes-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DialogComponent, ButtonComponent, BadgeComponent],
+  imports: [MoneyPipe, DialogComponent, ButtonComponent, BadgeComponent],
   template: `
     <mo-dialog
       [open]="open()"
@@ -46,7 +46,7 @@ import type {
                 <p class="text-muted-foreground text-xs">
                   {{ categoryName(item.template.categoryId) }} ·
                   {{ item.template.frecuencia === 'mensual' ? 'Mensual' : 'Quincenal' }} ·
-                  Sugerido: {{ money(item.template.montoSugerido) }}
+                  Sugerido: {{ (item.template.montoSugerido | money) }}
                 </p>
               </div>
               <div class="flex items-center gap-2">
@@ -103,9 +103,6 @@ export class RecurrentesDialog {
     return this.nombreById().get(id) ?? 'Sin categoría'
   }
 
-  money(v: number): string {
-    return formatCurrency(v)
-  }
 
   async confirmDelete(template: ExpenseTemplate): Promise<void> {
     if (!window.confirm(`¿Eliminar la plantilla "${template.concepto}"?`)) return

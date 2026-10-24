@@ -187,3 +187,66 @@ Sin cambios de código en esta sesión. Consultas remotas solo de lectura (`pg_p
 - **Bloque 4 (regla de dependencias):** grafo real de features → 3 ciclos, no 1: `customers ↔ loyalty` (loyalty usa su `LoyaltyCustomerRef`), `cash-register ↔ reports` (`day-range` → `src/shared/lib/day-range.ts`), `inventory ↔ products` (inventario lee productos de `core/catalog` `ProductsCacheStore` con `force`, tipo `CatalogProduct`). Nuevo `tests/unit/architecture/feature-cycles.test.ts` (en `pnpm test`) con control propio. CLAUDE.md, ADR 0015 (§3 y §6.6) y `docs/02-architecture.md` actualizados a la regla decidida.
 - Verificación: `pnpm lint`, `pnpm lint:landing`, `pnpm test` (821), typecheck de POS y landing OK. UI local: inventario con stock correcto, diálogo del club y ajuste +1 ("Nuevo saldo: 3").
 - **Hallazgo — desfase de producción (no tocado):** el remoto no tiene `correct_sale_customer_atomic`, `storefront_club_progress` ni `storefront_contact_settings`; las migraciones `20260624000100`, `20260624000200`, `20260710000100`, `20260710000200`, `20260723010000`, `20260723020000` no están registradas. En producción fallan "asociar cliente a una venta ya cobrada" (POS) y "Mi Club" (catálogo); el contacto del catálogo usa el fallback. Pendiente desde 2026-08-12; requiere decisión del dueño.
+- **Publicado (autorizado por el dueño):** merge `dev→main` `a4b79c7` tras lint POS+landing, 821 tests y build de producción de ambas apps; diff sin secretos. Incluyó de la sesión iOS `5da148e` (migración `20261024130000_owner_cash_session_summary.sql` + tests de integración, sin código web; la migración NO se aplica sola en remoto) y dos commits de docs. Netlify `moveon-client` `6adcf31c4f2ed8cfc22ca819` y `moveon-catalogo-web` `6adcf31cfd7cc1d6ad68def2` ready; bundle con las reglas nuevas; `/`, `/pos`, `/inventario`, `/productos`, `/clientes`, `/configuracion`, `/catalogo` y el catálogo → 200. Sin migraciones aplicadas en este paso.
+
+## 18. Desfase de migraciones en producción — diagnóstico y propuesta (sin aplicar)
+
+Comparación del registro remoto (`schema_migrations`) con `supabase/migrations/` y de cada objeto contra el remoto (solo lectura):
+
+| Migración | Estado real en remoto | Acción propuesta |
+|---|---|---|
+| `20260624000100_catalogo_publico` | Hecha a mano: policies anon de categorías/productos y `update_updated_at_column` existen; `combos_semana` se creó y luego se eliminó a propósito (`20260904000100`) | **Solo registrar.** Ejecutarla resucitaría `combos_semana` y su semilla |
+| `20260624000200_product_image_url` | Columna existe; 78 productos con imagen | **Solo registrar.** Su `UPDATE` pisaría las imágenes actuales con URLs viejas |
+| `20260710000100_storefront_contact_settings` | **Falta la tabla** | **Aplicar** (semilla = WhatsApp/Instagram oficiales, tienda de producción `a1b2c3d4-…0001`) |
+| `20260710000200_storefront_productos_publicos_sin_precios` | Vista existe sin `precio_venta`; anon sin SELECT en `productos` | **Solo registrar.** Su `DROP VIEW` desharía `security_invoker` y grants de 2026-08-29 |
+| `20260716000100_loyalty_expire_sweep` | Aplicada como `20260717224803` | **Solo registrar** la versión del repo |
+| `20260716000200_table_grants_parity` | Aplicada como `20260717224819` | **Solo registrar.** ⚠️ Ejecutarla de nuevo re-otorgaría INSERT/UPDATE/DELETE en todas las tablas y desharía en silencio todo el P0 |
+| `20260723010000_correct_sale_customer_atomic` | **Falta la función** → falla "asociar cliente a venta ya cobrada" | **Aplicar** |
+| `20260723020000_storefront_club_progress` | **Falta la función** → "Mi Club" caído | **Aplicar** (RPC anon decidida en ADR 0016: devuelve primer nombre y sellos por celular) |
+| `20261010004041_allow_cashier_loyalty_adjustments` | Aplicada como `20261010005039` | **Solo registrar** |
+| `20261024120000/130000/140000_owner_*` | No aplicadas | Fuera de alcance: sesión iOS |
+
+**Riesgo actual:** un `supabase db push` hoy ejecutaría las 6 "solo registrar" y sería destructivo (permisos del P0, imágenes, vista, `combos_semana`).
+
+**Prueba en local (dentro de una transacción con ROLLBACK, estado local intacto):** sobre un estado que imita producción (sin los 3 objetos), las 3 migraciones a aplicar corren limpias; anon lee el contacto; `storefront_club_progress('310 555 6677')` devuelve el progreso y un celular inexistente 0 filas; admin asocia cliente a una venta sin cliente (cajero recibe "Solo el admin…", diseño de la migración).
+
+**Propuesta (dos pasos, cada uno en una transacción con su verificación):**
+1. **Registrar sin ejecutar** las 6 versiones ya satisfechas (`20260624000100`, `20260624000200`, `20260710000200`, `20260716000100`, `20260716000200`, `20261010004041`). Solo inserta filas en `supabase_migrations.schema_migrations`; las filas remotas con otro timestamp se conservan. Efecto: `migration list` alineado y `db push` deja de ser destructivo.
+2. **Aplicar y registrar** `20260710000100`, `20260723010000`, `20260723020000` (aditivas; el frontend publicado ya las espera). Verificar: objetos y grants, REST anon de contacto y de `storefront_club_progress` con un celular inexistente (`[]`), y "Mi Club"/contacto en el catálogo publicado.
+
+**Ejecutado (autorizado por el dueño):**
+- **Paso 1:** registradas sin ejecutar `20260624000100`, `20260624000200`, `20260710000200`, `20260716000100`, `20260716000200`, `20261010004041`. Verificado: 6/6 registradas; `combos_semana` sigue sin existir; 78 productos con imagen; `authenticated` sigue sin DELETE en `sales` ni INSERT en `inventory_movements` (P0 intacto).
+- **Paso 2:** aplicadas y registradas en una transacción `20260710000100`, `20260723010000`, `20260723020000`. Verificado: `storefront_contact_settings` con RLS, 4 policies y 1 fila (contacto oficial); `correct_sale_customer_atomic` DEFINER, authenticated sí / anon no; `storefront_club_progress` DEFINER, anon sí, PUBLIC revocado. REST anon: contacto devuelve WhatsApp/Instagram oficiales; club con celular inexistente → `[]`; `correct_sale_customer_atomic` como anon → 404. Catálogo publicado: `storefront_contact_settings` → 200 (antes PGRST205 y fallback).
+- Estado final del registro: solo quedan pendientes en remoto `20261024120000/130000/140000_owner_*` (sesión iOS). Sin `db push`; el registro ya refleja el estado real, pero `db push` aplicaría esas tres.
+
+**Reversión de la parte de landing (decisión del dueño: el alcance es solo el POS):**
+- En producción, en una transacción: `drop function storefront_club_progress(text)`, `drop table storefront_contact_settings` (sin CASCADE; solo dependían sus constraints/policies; la única fila era la semilla de contacto), y se eliminaron del registro `20260710000100` y `20260723020000`.
+- Verificado: ambos objetos ya no existen y sus versiones no están registradas; `correct_sale_customer_atomic` (POS) sigue existiendo y registrada; bloqueos P0 intactos; `storefront_productos_publicos` sin cambios.
+- Efecto: el catálogo vuelve al estado de esta mañana (contacto por defecto, "Mi Club" sin RPC).
+- Pendientes en remoto: `20260710000100`, `20260723020000` (landing, a propósito) y `20261024120000/130000/140000` (iOS). Un `db push` aplicaría las cinco: no usarlo sin revisar `migration list --linked`.
+- No se revirtió código de la landing (`daf2638` solo tocó tipos en `catalogo.service.ts` y `club-progress.service.ts`; `0322fde` venía del trabajo pendiente de `dev`).
+
+## 19. P2 #14 — división de pos.page.ts
+
+- Paso 1 (`ecf895d`): reglas puras `canConfirmSale`/`discretionaryDiscount` (sales/domain) y `filterCatalog`/`productStockLabel`/`preferredOption`; `mo-pos-catalog`.
+- Paso 2 (`e182c98`): `mo-pos-cart-panel` (host `contents`, usa el `PosCartStore` de la página).
+- Paso 3 (`53a8d99`): `PosCheckoutStore` + `mo-pos-checkout-dialog`; limpieza de miembros/imports sin uso. `pos.page.ts`: 1.699 → 655 líneas.
+- Tests nuevos: `pos-catalog` (4), `checkout-rules` (5), `pos-checkout-store` (6, con `PosCartStore` real). Total 836.
+- Verificado en el POS local tras cada paso (runtime-config confirmado en local; el typecheck lo vuelve a apuntar a producción y hay que regenerarlo): catálogo (render, búsqueda, escaneo, ficha), carrito (cantidades, eliminar, cliente/club, descuento de línea, opción), cobro (descuento $/% y motivo, pagos mixtos con referencia, quitar pago, monto exacto, venta `V-000003` correcta, reinicio tras vender y al cancelar).
+- Sin publicar.
+
+## 20. P2 — resto de la componentización y design system
+
+Commits en `dev`, en orden:
+- `e18bd97` (antes de esta sección): pipes `| money` y `| paymentLabel` (ADR 0023).
+- **Historial y filtros:** `mo-sale-detail-body` (detalle de UNA venta, compartido por `mo-sale-detail-list` y el historial del POS; `canCorrectPayment` + `(correctPayment)`) y `mo-segmented` (filas de filtros de selección única) con `PAYMENT_FILTER_OPTIONS`. Reemplaza los `paymentFilterClass`/`salesFilterClass`/`presetClass` copiados en caja, historial y reportes. `sales-history.dialog.ts`: 840 → 655 líneas.
+- **caja.page:** `mo-cash-open-session-form`, `mo-cash-turn-summary`, `mo-cash-movements-table` (con `MO_TABLE`) y `cash-movement-labels.ts`. 683 → 461 líneas.
+- **product-form.dialog:** `mo-product-initial-stock-section` (se enlaza al FormGroup padre), `mo-product-components-editor` (emite `added`/`removed`; el diálogo recalcula el costo del combo), `mo-product-options-editor` (`[(options)]`, `[(grupo)]`, `[(error)]`) y funciones puras `product-option-list.ts` con 5 tests. 913 → 561 líneas.
+- **Design system:** 11 skeletons inline → `mo-skeleton`; 7 tablas de reportes → `MO_TABLE`; 20 SVG inline → `lucide-angular`; el cobro del POS usa `mo-dialog`; botones primarios crudos (cobro, ficha de producto, login/recuperar/restablecer) → `mo-button`.
+- **Bug corregido en `mo-dialog`:** Escape cerraba todos los diálogos abiertos (selector de cliente sobre el cobro descartaba los pagos; "Corregir pago" sobre el historial). Ahora hay una pila de diálogos abiertos: Escape cierra solo el de arriba y marca el evento con `preventDefault` (zone.js corre detección de cambios entre listeners, así que el de abajo ya no veía la pila original).
+
+Se dejó a propósito: el esqueleto con layout del POS, el tono del carrito durante la carga del club, la barra de "ocupado" de `mo-dialog`, y los botones que no son botones de acción (chips de método de pago/descuento/tirilla, tarjetas del catálogo, botones de ícono). `mo-segmented` no se usa para las pestañas principales de reportes (otro estilo).
+
+Verificado en local (runtime-config en local): historial (detalle, filtro por transferencia 3/7, "Corregir" abre su diálogo), reportes (periodos, estado y método 7 → 1 → 3, tablas con alineación y padding del sistema), caja (resumen con los mismos valores, Corregir/Anular movimiento), productos (editar batido: agregar/quitar componente, opción repetida rechazada, cambiar predeterminada; combo con ahorro; nuevo producto con inventario inicial y combo sin stock), POS (íconos 16/20/12 px, cobro en `mo-dialog`, Escape con selector encima, venta completada con toast), login con `mo-button`. `pnpm lint`, typecheck y 843 tests en verde.
+
+Sin publicar hasta que el dueño lo confirme (merge `dev` → `main`).

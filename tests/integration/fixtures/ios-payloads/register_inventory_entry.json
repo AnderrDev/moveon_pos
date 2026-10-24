@@ -1,0 +1,14 @@
+{
+  "description": "Entrada de mercancía a bodega con costo y motivo (PLAN-87)",
+  "kind": "rpc",
+  "target": "register_inventory_entry_atomic",
+  "payload": {
+    "p_tienda_id": "{{tienda_id}}",
+    "p_producto_id": "{{producto_id}}",
+    "p_ubicacion": "bodega",
+    "p_cantidad": 12,
+    "p_costo_unitario": 61500,
+    "p_motivo": "Compra a proveedor",
+    "p_created_by": "{{user_id}}"
+  }
+}

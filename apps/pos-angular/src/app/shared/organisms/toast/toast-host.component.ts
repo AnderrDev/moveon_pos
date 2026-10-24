@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { ToastService, type ToastVariant } from './toast.service'
+import { Check, Info, TriangleAlert, X, LucideAngularModule } from 'lucide-angular'
 
 interface ToastAppearance {
   accent: string
@@ -39,6 +40,7 @@ const APPEARANCE: Record<ToastVariant, ToastAppearance> = {
   selector: 'mo-toast-host',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [LucideAngularModule],
   template: `
     <div
       class="pointer-events-none fixed top-3 right-3 left-3 z-[70] flex flex-col items-end gap-2 sm:top-5 sm:right-5 sm:left-auto"
@@ -63,25 +65,16 @@ const APPEARANCE: Record<ToastVariant, ToastAppearance> = {
           >
             @switch (item.variant) {
               @case ('success') {
-                <svg viewBox="0 0 24 24" class="h-4 w-4" [class]="appearance(item.variant).icon">
-                  <path d="m5 12.5 4 4L19 7" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.25" />
-                </svg>
+                <span class="inline-flex shrink-0" [class]="appearance(item.variant).icon"><lucide-angular [img]="icons.check" class="h-4 w-4" [strokeWidth]="2.25" aria-hidden="true" /></span>
               }
               @case ('error') {
-                <svg viewBox="0 0 24 24" class="h-4 w-4" [class]="appearance(item.variant).icon">
-                  <path d="m8 8 8 8m0-8-8 8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2.25" />
-                </svg>
+                <span class="inline-flex shrink-0" [class]="appearance(item.variant).icon"><lucide-angular [img]="icons.x" class="h-4 w-4" [strokeWidth]="2.25" aria-hidden="true" /></span>
               }
               @case ('warning') {
-                <svg viewBox="0 0 24 24" class="h-4 w-4" [class]="appearance(item.variant).icon">
-                  <path d="M12 8v5m0 3.5v.01M10.3 4.9 3.5 17a2 2 0 0 0 1.74 3h13.52a2 2 0 0 0 1.74-3L13.7 4.9a2 2 0 0 0-3.4 0Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" />
-                </svg>
+                <span class="inline-flex shrink-0" [class]="appearance(item.variant).icon"><lucide-angular [img]="icons.alert" class="h-4 w-4" [strokeWidth]="1.9" aria-hidden="true" /></span>
               }
               @default {
-                <svg viewBox="0 0 24 24" class="h-4 w-4" [class]="appearance(item.variant).icon">
-                  <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.9" />
-                  <path d="M12 11v5m0-8v.01" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2.1" />
-                </svg>
+                <span class="inline-flex shrink-0" [class]="appearance(item.variant).icon"><lucide-angular [img]="icons.info" class="h-4 w-4" [strokeWidth]="1.9" aria-hidden="true" /></span>
               }
             }
           </span>
@@ -99,9 +92,7 @@ const APPEARANCE: Record<ToastVariant, ToastAppearance> = {
             class="text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-ring flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors focus-visible:ring-2 focus-visible:outline-none"
             aria-label="Cerrar notificación"
           >
-            <svg viewBox="0 0 24 24" class="h-4 w-4" aria-hidden="true">
-              <path d="m8 8 8 8m0-8-8 8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" />
-            </svg>
+            <lucide-angular [img]="icons.x" class="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
       }
@@ -109,6 +100,8 @@ const APPEARANCE: Record<ToastVariant, ToastAppearance> = {
   `,
 })
 export class ToastHostComponent {
+  readonly icons = { alert: TriangleAlert, check: Check, info: Info, x: X }
+
   private readonly service = inject(ToastService)
   readonly items = computed(() => this.service.items())
 

@@ -1,11 +1,13 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core'
-import { formatCurrency } from '@/shared/lib/format'
 import type { DailyReport } from '@angular-app/features/reports/domain/entities/report.entity'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
+import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
 
 /** Tabla "Control de descuentos": ventas completadas con descuento > 0, por venta/usuario/motivo. */
 @Component({
   selector: 'mo-discount-control-table',
   standalone: true,
+  imports: [...MO_TABLE, MoneyPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="bg-card rounded-xl border border-amber-500/25 p-5">
@@ -21,11 +23,11 @@ import type { DailyReport } from '@angular-app/features/reports/domain/entities/
         <div class="flex gap-4 text-right text-xs">
           <div>
             <p class="text-muted-foreground">Por productos</p>
-            <p class="font-mono font-bold tabular-nums">{{ money(report().itemDiscountTotal) }}</p>
+            <p class="font-mono font-bold tabular-nums">{{ (report().itemDiscountTotal | money) }}</p>
           </div>
           <div>
             <p class="text-muted-foreground">Globales</p>
-            <p class="font-mono font-bold tabular-nums">{{ money(report().globalDiscountTotal) }}</p>
+            <p class="font-mono font-bold tabular-nums">{{ (report().globalDiscountTotal | money) }}</p>
           </div>
         </div>
       </div>
@@ -33,38 +35,38 @@ import type { DailyReport } from '@angular-app/features/reports/domain/entities/
         <p class="text-muted-foreground text-sm">No se aplicaron descuentos en este período.</p>
       } @else {
         <div class="overflow-auto">
-          <table class="w-full min-w-[760px] text-sm">
-            <thead class="text-muted-foreground text-left text-xs uppercase">
+          <table moTable density="compact" class="min-w-[760px]">
+            <thead moThead>
               <tr>
-                <th class="px-2 py-2">Venta</th>
-                <th class="px-2 py-2">Usuario</th>
-                <th class="px-2 py-2 text-right">Productos</th>
-                <th class="px-2 py-2 text-right">Global</th>
-                <th class="px-2 py-2 text-right">Total</th>
-                <th class="px-2 py-2 text-right">%</th>
-                <th class="px-2 py-2">Motivo</th>
+                <th moTh class="text-left">Venta</th>
+                <th moTh class="text-left">Usuario</th>
+                <th moTh class="text-right">Productos</th>
+                <th moTh class="text-right">Global</th>
+                <th moTh class="text-right">Total</th>
+                <th moTh class="text-right">%</th>
+                <th moTh class="text-left">Motivo</th>
               </tr>
             </thead>
             <tbody class="divide-y">
               @for (sale of discountedSales(); track sale.id) {
                 <tr>
-                  <td class="px-2 py-2 font-mono text-xs">{{ sale.saleNumber }}</td>
-                  <td class="px-2 py-2 text-xs">
+                  <td moTd class="font-mono text-xs">{{ sale.saleNumber }}</td>
+                  <td moTd class="text-xs">
                     {{ sale.cashierEmail ?? cashierLabel(sale.cashierId) }}
                   </td>
-                  <td class="px-2 py-2 text-right tabular-nums">
-                    {{ money(sale.itemDiscountTotal) }}
+                  <td moTd class="text-right tabular-nums">
+                    {{ (sale.itemDiscountTotal | money) }}
                   </td>
-                  <td class="px-2 py-2 text-right tabular-nums">
-                    {{ money(sale.globalDiscountTotal) }}
+                  <td moTd class="text-right tabular-nums">
+                    {{ (sale.globalDiscountTotal | money) }}
                   </td>
-                  <td class="px-2 py-2 text-right font-bold tabular-nums">
-                    {{ money(sale.discountTotal) }}
+                  <td moTd class="text-right font-bold tabular-nums">
+                    {{ (sale.discountTotal | money) }}
                   </td>
-                  <td class="px-2 py-2 text-right tabular-nums">
+                  <td moTd class="text-right tabular-nums">
                     {{ percent(sale.discountPercentage) }}
                   </td>
-                  <td class="max-w-64 px-2 py-2 text-xs">
+                  <td moTd class="max-w-64 text-xs">
                     {{ sale.discountReason ?? 'Histórico sin motivo' }}
                   </td>
                 </tr>
@@ -85,9 +87,6 @@ export class DiscountControlTableComponent {
     ),
   )
 
-  money(v: number): string {
-    return formatCurrency(v)
-  }
 
   percent(value: number): string {
     return `${value.toFixed(2)}%`

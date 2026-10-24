@@ -1,8 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core'
 import { BadgeComponent } from '@angular-app/shared/atoms/badge.component'
 import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
-import { formatCurrency, formatShortDate, formatTime } from '@/shared/lib/format'
+import { formatShortDate, formatTime } from '@/shared/lib/format'
 import type { DailySaleItemDetail } from '@angular-app/features/reports/domain/entities/report.entity'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 
 /**
  * Buscador de producto dentro del período seleccionado: filtra `saleItems`
@@ -14,7 +15,7 @@ import type { DailySaleItemDetail } from '@angular-app/features/reports/domain/e
   selector: 'mo-product-sales-search',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BadgeComponent, MO_TABLE],
+  imports: [MoneyPipe, BadgeComponent, MO_TABLE],
   template: `
     <div>
       <h3 class="font-display mb-3 text-sm font-bold tracking-wide uppercase">
@@ -66,7 +67,7 @@ import type { DailySaleItemDetail } from '@angular-app/features/reports/domain/e
                   </td>
                   <td moTd class="text-right tabular-nums">{{ row.quantity }}</td>
                   <td moTd class="text-right font-semibold tabular-nums">
-                    {{ money(row.total) }}
+                    {{ (row.total | money) }}
                   </td>
                   <td moTd class="text-muted-foreground">
                     {{ row.cashierEmail || 'Sin registrar' }}
@@ -85,7 +86,7 @@ import type { DailySaleItemDetail } from '@angular-app/features/reports/domain/e
         </div>
         <p class="text-muted-foreground mt-2 text-xs">
           {{ rows().length }} {{ rows().length === 1 ? 'movimiento' : 'movimientos' }} ·
-          {{ totalQty() }} unidades · {{ money(totalAmount()) }}
+          {{ totalQty() }} unidades · {{ (totalAmount() | money) }}
         </p>
       }
     </div>
@@ -120,9 +121,6 @@ export class ProductSalesSearchComponent {
     this.query.set((event.target as HTMLInputElement).value)
   }
 
-  money(v: number): string {
-    return formatCurrency(v)
-  }
 
   date(d: Date): string {
     return formatShortDate(d)

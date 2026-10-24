@@ -16,12 +16,13 @@ import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import type { Categoria } from '@angular-app/features/products/domain/entities/product.entity'
 import { ExcelExportService } from '@angular-app/shared/services/export/excel-export.service'
 import { buildCategoriesWorkbook } from '@angular-app/features/products/presentation/services/product-export'
+import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
 
 @Component({
   selector: 'mo-categorias-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
+  imports: [SkeletonComponent, 
     RouterLink,
     RouterLinkActive,
     PageHeaderComponent,
@@ -64,10 +65,7 @@ import { buildCategoriesWorkbook } from '@angular-app/features/products/presenta
       </nav>
 
       @if (loading()) {
-        <div class="bg-card flex-1 animate-pulse rounded-xl border p-8">
-          <div class="bg-muted mb-3 h-6 w-40 rounded"></div>
-          <div class="bg-muted/50 h-72 rounded-xl"></div>
-        </div>
+        <mo-skeleton heightClass="h-72" />
       } @else if (loadError()) {
         <mo-empty-state title="No se pudieron cargar las categorias" [description]="loadError()">
           <mo-button (click)="load()">Reintentar</mo-button>

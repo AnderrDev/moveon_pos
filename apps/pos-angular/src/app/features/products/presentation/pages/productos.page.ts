@@ -16,18 +16,19 @@ import { ProductsCacheStore } from '@angular-app/core/catalog/products-cache.sto
 import { InventoryRepository } from '@angular-app/features/inventory/domain/repositories/inventory.repository'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
-import { formatCurrency } from '@/shared/lib/format'
 import type { Product } from '@angular-app/features/products/domain/entities/product.entity'
 import type { StockLevel } from '@angular-app/features/inventory/domain/entities/inventory.entity'
 import { isOutOfStock } from '@angular-app/features/inventory/domain/services/low-stock'
 import { ExcelExportService } from '@angular-app/shared/services/export/excel-export.service'
 import { buildProductsWorkbook } from '@angular-app/features/products/presentation/services/product-export'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
+import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
 
 @Component({
   selector: 'mo-productos-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
+  imports: [SkeletonComponent, MoneyPipe, 
     RouterLink,
     RouterLinkActive,
     PageHeaderComponent,
@@ -112,10 +113,7 @@ import { buildProductsWorkbook } from '@angular-app/features/products/presentati
       </div>
 
       @if (loading()) {
-        <div class="bg-card flex-1 animate-pulse rounded-xl border p-8">
-          <div class="bg-muted mb-3 h-6 w-40 rounded"></div>
-          <div class="bg-muted/50 h-72 rounded-xl"></div>
-        </div>
+        <mo-skeleton heightClass="h-72" />
       } @else if (loadError()) {
         <mo-empty-state title="No se pudo cargar el catalogo" [description]="loadError()">
           <mo-button (click)="load()">Reintentar</mo-button>
@@ -162,10 +160,10 @@ import { buildProductsWorkbook } from '@angular-app/features/products/presentati
                     {{ product.sku ?? '—' }}
                   </td>
                   <td moTd class="text-muted-foreground text-right tabular-nums">
-                    {{ product.costo !== null ? money(product.costo) : '—' }}
+                    {{ product.costo !== null ? (product.costo | money) : '—' }}
                   </td>
                   <td moTd class="text-right font-semibold tabular-nums">
-                    {{ money(product.precioVenta) }}
+                    {{ (product.precioVenta | money) }}
                   </td>
                   <td moTd class="text-muted-foreground text-right tabular-nums">
                     {{ product.stockMinimo }}
@@ -312,9 +310,6 @@ export class ProductosPage {
     void this.load()
   }
 
-  money(amount: number): string {
-    return formatCurrency(amount)
-  }
 
   tipoLabel(tipo: string): string {
     const labels: Record<string, string> = {

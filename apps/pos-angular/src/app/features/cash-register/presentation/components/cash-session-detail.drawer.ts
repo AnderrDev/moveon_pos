@@ -7,9 +7,10 @@ import { formatCurrency } from '@/shared/lib/format'
 import type { CashSession, CashMovement } from '../../domain/entities/cash-session.entity'
 import type { Sale } from '@angular-app/features/sales/domain/entities/sale.entity'
 import { getCashMovementSummary } from '../../domain/services/cash-movement-summary'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 @Component({
  selector: 'mo-cash-session-detail', standalone: true, changeDetection: ChangeDetectionStrategy.OnPush,
- imports: [ButtonComponent, BadgeComponent, SpinnerComponent, SaleDetailListComponent],
+ imports: [MoneyPipe, ButtonComponent, BadgeComponent, SpinnerComponent, SaleDetailListComponent],
  template: `
   <dialog #dialog aria-labelledby="cash-session-detail-title" tabindex="-1" (keydown.escape)="$event.preventDefault(); closed.emit()"
     class="bg-card fixed inset-y-0 right-0 left-auto m-0 h-dvh max-h-none w-full max-w-[44rem] border-l p-0 text-foreground shadow-2xl backdrop:bg-black/50"
@@ -30,7 +31,7 @@ import { getCashMovementSummary } from '../../domain/services/cash-movement-summ
             <div class="mb-3 flex items-center justify-between"><h3 class="font-semibold">Resumen de cierre</h3><mo-badge [variant]="hasDifference(s) ? 'warning' : 'success'">{{ hasDifference(s) ? 'Con diferencia' : 'Cuadrado' }}</mo-badge></div>
             <dl class="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
               @for (item of summary(s); track item.label) {
-                <div><dt class="text-muted-foreground text-xs">{{ item.label }}</dt><dd class="mt-1 font-semibold tabular-nums">{{ money(item.value) }}</dd></div>
+                <div><dt class="text-muted-foreground text-xs">{{ item.label }}</dt><dd class="mt-1 font-semibold tabular-nums">{{ (item.value | money) }}</dd></div>
               }
             </dl>
           </section>
@@ -38,12 +39,12 @@ import { getCashMovementSummary } from '../../domain/services/cash-movement-summ
           @if (loading()) { <div class="flex items-center gap-2 py-6" role="status"><mo-spinner />Cargando ventas y movimientos...</div> }
           @else if (error()) { <div role="alert" class="text-destructive"><p>{{ error() }}</p><mo-button variant="outline" size="sm" (click)="retried.emit()">Reintentar detalle</mo-button></div> }
           @else {
-            <section aria-label="Ingresos y gastos del turno"><h3 class="mb-3 font-semibold">Ingresos y gastos del turno</h3><dl class="grid grid-cols-2 gap-3 text-sm"><div><dt class="text-muted-foreground text-xs">Ingresos extra</dt><dd class="font-semibold tabular-nums">{{ money(flows().extraIncome) }}</dd></div><div><dt class="text-muted-foreground text-xs">Gastos</dt><dd class="font-semibold tabular-nums">{{ money(flows().expenses) }}</dd></div><div><dt class="text-muted-foreground text-xs">Retiros durante el turno</dt><dd class="font-semibold tabular-nums">{{ money(flows().withdrawals) }}</dd></div></dl><p class="text-muted-foreground mt-2 text-xs">Solo movimientos vigentes. El retiro al cierre se muestra en el resumen de cierre.</p></section>
+            <section aria-label="Ingresos y gastos del turno"><h3 class="mb-3 font-semibold">Ingresos y gastos del turno</h3><dl class="grid grid-cols-2 gap-3 text-sm"><div><dt class="text-muted-foreground text-xs">Ingresos extra</dt><dd class="font-semibold tabular-nums">{{ (flows().extraIncome | money) }}</dd></div><div><dt class="text-muted-foreground text-xs">Gastos</dt><dd class="font-semibold tabular-nums">{{ (flows().expenses | money) }}</dd></div><div><dt class="text-muted-foreground text-xs">Retiros durante el turno</dt><dd class="font-semibold tabular-nums">{{ (flows().withdrawals | money) }}</dd></div></dl><p class="text-muted-foreground mt-2 text-xs">Solo movimientos vigentes. El retiro al cierre se muestra en el resumen de cierre.</p></section>
             <mo-sale-detail-list [sales]="sales()" [expandedSaleId]="expandedSaleId()" emptyMessage="Sin ventas registradas en este turno" (toggleSale)="toggleSale($event)" />
             <section><h3 class="mb-3 font-semibold">Movimientos de efectivo</h3>
               @if (movements().length === 0) { <p class="text-muted-foreground text-sm">Sin movimientos registrados en este turno.</p> }
               @for (movement of movements(); track movement.id) {
-                <div class="flex items-start justify-between gap-3 border-b py-3 text-sm"><div><p class="font-semibold">{{ movement.tipo === 'cash_in' ? 'Ingreso' : movement.tipo === 'cash_out' ? 'Retiro' : 'Gasto' }} @if (movement.status === 'voided') { <mo-badge variant="outline">Anulado</mo-badge> }</p><p class="text-muted-foreground mt-1">{{ movement.motivo }}</p><p class="text-muted-foreground text-xs">{{ date(movement.createdAt) }}</p>@if (movement.status === 'voided' && movement.voidedReason) { <p class="mt-2 text-xs"><span class="font-semibold">Motivo de anulación:</span> {{ movement.voidedReason }}</p> }</div><p class="shrink-0 tabular-nums">{{ money(movement.amount) }}</p></div>
+                <div class="flex items-start justify-between gap-3 border-b py-3 text-sm"><div><p class="font-semibold">{{ movement.tipo === 'cash_in' ? 'Ingreso' : movement.tipo === 'cash_out' ? 'Retiro' : 'Gasto' }} @if (movement.status === 'voided') { <mo-badge variant="outline">Anulado</mo-badge> }</p><p class="text-muted-foreground mt-1">{{ movement.motivo }}</p><p class="text-muted-foreground text-xs">{{ date(movement.createdAt) }}</p>@if (movement.status === 'voided' && movement.voidedReason) { <p class="mt-2 text-xs"><span class="font-semibold">Motivo de anulación:</span> {{ movement.voidedReason }}</p> }</div><p class="shrink-0 tabular-nums">{{ (movement.amount | money) }}</p></div>
               }
             </section>
           }

@@ -2,13 +2,14 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core'
 import { StatCardComponent } from '@angular-app/shared/molecules/stat-card.component'
 import { TableShellComponent } from '@angular-app/shared/molecules/table/table-shell.component'
 import type { LoyaltyProgramReport } from '@angular-app/features/loyalty/domain/services/program-report'
+import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
 
 /** Tab "Fidelización" de /reportes (PLAN-60): KPIs del período + clientes activos. */
 @Component({
   selector: 'mo-loyalty-report',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [StatCardComponent, TableShellComponent],
+  imports: [...MO_TABLE, StatCardComponent, TableShellComponent],
   template: `
     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <mo-stat-card label="Sellos otorgados" [value]="'' + report().sellosOtorgados">
@@ -57,22 +58,20 @@ import type { LoyaltyProgramReport } from '@angular-app/features/loyalty/domain/
           <p class="font-display text-sm font-bold">Clientes del período</p>
           <p class="text-muted-foreground text-xs">Ordenados por sellos ganados</p>
         </div>
-        <table class="w-full text-sm">
-          <thead
-            class="bg-muted/50 text-muted-foreground text-left text-xs tracking-wide uppercase"
-          >
+        <table moTable>
+          <thead moThead>
             <tr>
-              <th class="px-4 py-2">Cliente</th>
-              <th class="px-4 py-2 text-right">Sellos ganados</th>
-              <th class="px-4 py-2 text-right">Recompensas desbloqueadas</th>
+              <th moTh class="text-left">Cliente</th>
+              <th moTh class="text-right">Sellos ganados</th>
+              <th moTh class="text-right">Recompensas desbloqueadas</th>
             </tr>
           </thead>
           <tbody class="divide-y">
             @for (c of report().topClientes; track c.clienteId) {
               <tr>
-                <td class="px-4 py-2.5 font-semibold">{{ c.nombre }}</td>
-                <td class="px-4 py-2.5 text-right tabular-nums">{{ c.sellosGanados }}</td>
-                <td class="px-4 py-2.5 text-right tabular-nums">
+                <td moTd class="font-semibold">{{ c.nombre }}</td>
+                <td moTd class="text-right tabular-nums">{{ c.sellosGanados }}</td>
+                <td moTd class="text-right tabular-nums">
                   {{ c.recompensasDesbloqueadas }}
                 </td>
               </tr>
