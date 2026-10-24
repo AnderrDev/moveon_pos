@@ -16,7 +16,7 @@ Relacionar los **gastos del negocio con las entradas totales** del período: nó
 - Las entradas del período se muestran además por método de pago (`paymentBreakdown` de reportes), principalmente efectivo y transferencia, para control operativo.
 - **Fondo de reinversión de mercancía:** el costo de lo vendido no se trata como gasto operativo ni utilidad disponible. Desde una fecha configurable por tienda:
   `disponible = saldo_inicial + costo_vendido_acumulado - compras_mercancia_acumuladas`.
-  Las compras de mercancía se registran como entradas de inventario con `costo_unitario`; si una entrada no tiene costo, no descuenta del fondo y se muestra advertencia.
+  Las compras de mercancía se registran como entradas de inventario con `costo_unitario`; si una entrada no tiene costo, no descuenta del fondo y se muestra advertencia. Corregir el costo de una entrada mediante `correct_inventory_entry_cost_atomic` actualiza estos agregados inmediatamente, sin crear un gasto ni cambiar la cantidad en stock.
 
 ## Datos (migrations `20260704_002`, `20260704_003` y `20260708_001`)
 

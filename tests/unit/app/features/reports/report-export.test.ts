@@ -111,3 +111,19 @@ describe('buildDailyReportWorkbook utilidad', () => {
     ])
   })
 })
+
+
+describe('reporte sin desglose fiscal visible', () => {
+  it('omite el desglose y conserva columnas alineadas y total de ventas', () => {
+    const report = makeReport()
+    report.cashierBreakdown = [{ cashierId: 'cashier-1', countCompleted: 1, countVoided: 0, totalVentas: 90_000, taxTotal: 14_370 }]
+    const workbook = buildDailyReportWorkbook(report, '2026-06-15')
+    expect(JSON.stringify(workbook)).not.toMatch(/\bIVA\b/)
+    for (const sheet of workbook.sheets) {
+      for (const row of sheet.rows) expect(row).toHaveLength(sheet.columns.length)
+    }
+    const sales = workbook.sheets.find((sheet) => sheet.name === 'Ventas')!
+    const totalColumn = sales.columns.findIndex((column) => column.header === 'Total')
+    expect(sales.rows[0]![totalColumn]).toBe(90_000)
+  })
+})

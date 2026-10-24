@@ -215,11 +215,6 @@ interface PostSaleOutputJob {
                               >
                                 {{ money(product.precioVenta) }}
                               </span>
-                              @if (mostrarIvaEnPos() && product.ivaTasa > 0) {
-                                <span class="text-muted-foreground mt-1 block text-[10px]">
-                                  IVA {{ product.ivaTasa }}% incluido
-                                </span>
-                              }
                               @if (product.components.length > 0) {
                                 <span class="text-amber-600 mt-1.5 flex items-center gap-1 text-[10px] font-semibold">
                                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-3 w-3 shrink-0"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
@@ -518,12 +513,6 @@ interface PostSaleOutputJob {
                       >
                     </div>
                   }
-                  @if (mostrarIvaEnPos() && cart.totals().taxTotal > 0) {
-                    <div class="mb-1.5 flex justify-between text-sm">
-                      <span class="text-muted-foreground">IVA</span>
-                      <span class="text-muted-foreground">{{ money(cart.totals().taxTotal) }}</span>
-                    </div>
-                  }
 
                   <div class="mt-2.5 flex items-end justify-between border-t pt-2.5">
                     <span class="text-muted-foreground text-sm font-semibold">Total</span>
@@ -741,7 +730,7 @@ interface PostSaleOutputJob {
               </div>
               <p class="text-muted-foreground text-[11px]">
                 @if (discountMode() === 'amount') {
-                  Monto en pesos distribuido entre los productos para recalcular correctamente el IVA.
+                  Monto en pesos distribuido entre los productos.
                 } @else {
                   Porcentaje sobre el subtotal ({{ money(cart.totals().subtotal) }}), distribuido entre los productos.
                 }
@@ -983,7 +972,6 @@ export class PosPage {
 
   readonly cart = inject(PosCartStore)
   readonly products = signal<PosProduct[]>([])
-  readonly mostrarIvaEnPos = signal(true)
   readonly imprimirAlFinalizarVenta = signal(false)
   readonly imprimirEstaVenta = signal(false)
   readonly abrirCajonEnEfectivo = signal(true)
@@ -1139,7 +1127,6 @@ export class PosPage {
       this.products.set(products)
       this.categories.set(categories)
       this.cashSession.set(cashSession)
-      this.mostrarIvaEnPos.set(tienda.receipt.mostrarIvaEnPos)
       this.imprimirAlFinalizarVenta.set(tienda.receipt.imprimirAlFinalizarVenta)
       this.abrirCajonEnEfectivo.set(tienda.receipt.abrirCajonEnEfectivo)
       this.stampsPerReward.set(tienda.fidelizacion.sellosParaRecompensa)

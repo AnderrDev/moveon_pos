@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   adjustStockSchema,
+  correctEntryCostSchema,
   registerEntrySchema,
   transferStockSchema,
 } from '@angular-app/features/inventory/domain/dtos/inventory.dto'
@@ -24,26 +25,87 @@ describe('registerEntrySchema', () => {
   })
 
   it('rechaza costo unitario negativo', () => {
-    expect(registerEntrySchema.safeParse({ productId, cantidad: 1, costoUnitario: -1 }).success).toBe(false)
+    expect(
+      registerEntrySchema.safeParse({ productId, cantidad: 1, costoUnitario: -1 }).success
+    ).toBe(false)
+  })
+})
+
+describe('correctEntryCostSchema', () => {
+  it('acepta costo nuevo, decisión de actualizar producto y motivo', () => {
+    expect(
+      correctEntryCostSchema.safeParse({
+        movementId: productId,
+        newCost: 22_000,
+        updateProductCost: true,
+        reason: 'La factura se digitó con el costo equivocado',
+      }).success
+    ).toBe(true)
+  })
+
+  it('rechaza costo en cero y motivo corto', () => {
+    expect(
+      correctEntryCostSchema.safeParse({
+        movementId: productId,
+        newCost: 0,
+        updateProductCost: false,
+        reason: 'Error',
+      }).success
+    ).toBe(false)
   })
 })
 
 describe('adjustStockSchema', () => {
   it('acepta ajustes positivos y negativos', () => {
-    expect(adjustStockSchema.safeParse({ productId, cantidadDelta: 5, ubicacion: 'punto_venta', motivo: 'Conteo físico' }).success).toBe(true)
-    expect(adjustStockSchema.safeParse({ productId, cantidadDelta: -2, ubicacion: 'bodega', motivo: 'Producto dañado' }).success).toBe(true)
+    expect(
+      adjustStockSchema.safeParse({
+        productId,
+        cantidadDelta: 5,
+        ubicacion: 'punto_venta',
+        motivo: 'Conteo físico',
+      }).success
+    ).toBe(true)
+    expect(
+      adjustStockSchema.safeParse({
+        productId,
+        cantidadDelta: -2,
+        ubicacion: 'bodega',
+        motivo: 'Producto dañado',
+      }).success
+    ).toBe(true)
   })
 
   it('rechaza ajuste en cero', () => {
-    expect(adjustStockSchema.safeParse({ productId, cantidadDelta: 0, ubicacion: 'punto_venta', motivo: 'Conteo físico' }).success).toBe(false)
+    expect(
+      adjustStockSchema.safeParse({
+        productId,
+        cantidadDelta: 0,
+        ubicacion: 'punto_venta',
+        motivo: 'Conteo físico',
+      }).success
+    ).toBe(false)
   })
 
   it('requiere motivo descriptivo', () => {
-    expect(adjustStockSchema.safeParse({ productId, cantidadDelta: 1, ubicacion: 'punto_venta', motivo: 'ok' }).success).toBe(false)
+    expect(
+      adjustStockSchema.safeParse({
+        productId,
+        cantidadDelta: 1,
+        ubicacion: 'punto_venta',
+        motivo: 'ok',
+      }).success
+    ).toBe(false)
   })
 
   it('requiere una ubicación válida', () => {
-    expect(adjustStockSchema.safeParse({ productId, cantidadDelta: 1, ubicacion: 'estante', motivo: 'Conteo físico' }).success).toBe(false)
+    expect(
+      adjustStockSchema.safeParse({
+        productId,
+        cantidadDelta: 1,
+        ubicacion: 'estante',
+        motivo: 'Conteo físico',
+      }).success
+    ).toBe(false)
   })
 })
 

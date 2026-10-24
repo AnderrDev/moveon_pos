@@ -9,6 +9,8 @@ export default defineConfig({
       'tests/unit/**/*.test.ts',
       'src/**/*.test.ts',
       'apps/pos-angular/src/app/features/**/*.test.ts',
+      'apps/landing-web/src/app/**/*.test.ts',
+      'apps/links-web/src/app/**/*.test.ts',
     ],
     exclude: ['tests/e2e/**', 'node_modules/**'],
     coverage: {
@@ -20,6 +22,10 @@ export default defineConfig({
         'apps/pos-angular/src/app/features/**/domain/usecases/**/*.ts',
         'apps/pos-angular/src/app/features/**/domain/services/**/*.ts',
         'apps/pos-angular/src/app/features/**/presentation/forms/**/*.ts',
+        // landing-web: solo la lógica pura (el resto son componentes y datos
+        // estáticos, sin setup de tests Angular todavía).
+        'apps/landing-web/src/app/features/catalog/catalog-filters.ts',
+        'apps/landing-web/src/app/shared/whatsapp.ts',
         'src/shared/cache/**/*.ts',
         'src/shared/lib/error-message.ts',
         'src/shared/lib/format.ts',

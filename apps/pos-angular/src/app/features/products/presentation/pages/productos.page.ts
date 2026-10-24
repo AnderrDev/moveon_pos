@@ -137,7 +137,6 @@ import { buildProductsWorkbook } from '@angular-app/features/products/presentati
                 <th moTh>SKU</th>
                 <th moTh class="text-right">Costo</th>
                 <th moTh class="text-right">Precio</th>
-                <th moTh class="text-right">IVA</th>
                 <th moTh class="text-right">Stock min.</th>
                 <th moTh class="text-right">Pto. venta</th>
                 <th moTh class="text-right">Bodega</th>
@@ -167,9 +166,6 @@ import { buildProductsWorkbook } from '@angular-app/features/products/presentati
                   </td>
                   <td moTd class="text-right font-semibold tabular-nums">
                     {{ money(product.precioVenta) }}
-                  </td>
-                  <td moTd class="text-muted-foreground text-right tabular-nums">
-                    {{ product.ivaTasa }}%
                   </td>
                   <td moTd class="text-muted-foreground text-right tabular-nums">
                     {{ product.stockMinimo }}

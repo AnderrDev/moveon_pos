@@ -37,3 +37,8 @@ En el modal de cobro, el cajero puede cambiar entre `Imprimir` y `No imprimir` p
 La caja monedero se controla a traves del puerto de la impresora. Al habilitar `abrirCajonEnEfectivo`, la aplicacion envia `ESC p` al pin 2 despues de guardar una venta con efectivo; tambien funciona en pagos mixtos y es independiente de la impresion de la tirilla. `Probar caja` permite validar la conexion sin registrar una venta.
 
 La escritura mezcla el bloque `recibo` con el JSON actual; no elimina configuraciones ajenas guardadas en `settings.data`.
+
+
+## Presentación sin IVA (2026-10-17)
+
+Desde 2026-10-17 el POS no muestra IVA: se retiraron los controles de visibilidad y el desglose de la vista previa, tirillas normales y de prueba. Las propiedades persistidas se conservan por compatibilidad, pero ya no activan el desglose visible.

@@ -35,6 +35,11 @@ export class ClubProgressService {
    * Consulta pública por celular (RPC anon `storefront_club_progress`).
    * `null` = no encontrado/no autorizado/entrada inválida — la UI muestra
    * un único mensaje genérico (sin oráculo de existencia, ADR 0016).
+   *
+   * ⚠️ El RPC no existe en el proyecto remoto: su migración (20260723020000)
+   * nunca se aplicó, así que en producción esto lanza PGRST202 y la sección
+   * muestra el estado de error a todos. Ver docs/modules/catalogo.md.
+   * El cast estructural desaparece al aplicar la migración + `pnpm db:types`.
    */
   async lookup(celular: string): Promise<ClubProgress | null> {
     const client = this.db.supabase as unknown as RpcClient

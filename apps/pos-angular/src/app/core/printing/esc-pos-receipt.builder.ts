@@ -45,7 +45,6 @@ const COMMAND = {
 
 export function buildEscPosReceipt(input: EscPosReceiptInput): string {
   const { sale, store } = input
-  const taxSummary = summarizeTaxes(sale)
   const output: string[] = [COMMAND.initialize, COMMAND.alignCenter, COMMAND.boldOn]
 
   output.push(...lines(store.titulo), COMMAND.boldOff)
@@ -83,9 +82,6 @@ export function buildEscPosReceipt(input: EscPosReceiptInput): string {
         formatMoney(item.total)
       )
     )
-    if (store.mostrarIva && item.taxRate > 0) {
-      output.push(...pairLines(`  IVA ${formatTaxRate(item.taxRate)}%`, formatMoney(itemTax(item))))
-    }
   }
 
   output.push(divider())
@@ -96,14 +92,6 @@ export function buildEscPosReceipt(input: EscPosReceiptInput): string {
     }
     if (sale.globalDiscountTotal > 0) {
       output.push(...pairLines('Desc. global', `-${formatMoney(sale.globalDiscountTotal)}`))
-    }
-  }
-  if (store.mostrarIva) {
-    for (const tax of taxSummary) {
-      output.push(...pairLines(`IVA ${formatTaxRate(tax.rate)}%`, formatMoney(tax.amount)))
-    }
-    if (taxSummary.length === 0 && sale.taxTotal > 0) {
-      output.push(...pairLines('IVA', formatMoney(sale.taxTotal)))
     }
   }
   output.push(COMMAND.boldOn, ...pairLines('TOTAL', formatMoney(sale.total)), COMMAND.boldOff)
@@ -138,8 +126,7 @@ export function buildEscPosTestReceipt(store: EscPosReceiptStore): string {
   if (store.mostrarTelefono && store.telefono) output.push(...lines(`Tel. ${store.telefono}`))
 
   output.push(...lines('PRUEBA DE IMPRESION'), COMMAND.alignLeft, divider())
-  output.push(...pairLines('Producto ejemplo', formatMoney(22_000)))
-  if (store.mostrarIva) output.push(...pairLines('IVA 19%', formatMoney(4_180)))
+  output.push(...pairLines('Producto ejemplo', formatMoney(26_180)))
   output.push(COMMAND.boldOn, ...pairLines('TOTAL', formatMoney(26_180)), COMMAND.boldOff)
 
   if (store.mensajePie) {
@@ -215,28 +202,6 @@ function formatMoney(value: number): string {
 }
 
 function formatQuantity(value: number): string {
-  return Number.isInteger(value) ? String(value) : String(value).replace('.', ',')
-}
-
-function summarizeTaxes(sale: Sale): { rate: number; amount: number }[] {
-  const byRate = new Map<number, number>()
-  for (const item of sale.items) {
-    if (item.taxRate <= 0) continue
-    byRate.set(item.taxRate, (byRate.get(item.taxRate) ?? 0) + itemTax(item))
-  }
-  return [...byRate.entries()]
-    .map(([rate, amount]) => ({ rate, amount }))
-    .filter((tax) => tax.amount > 0)
-    .sort((left, right) => left.rate - right.rate)
-}
-
-function itemTax(item: Sale['items'][number]): number {
-  if (item.taxAmount > 0) return item.taxAmount
-  const taxableAmount = Math.max(0, item.unitPrice * item.quantity - item.discountAmount)
-  return Math.round((taxableAmount * item.taxRate) / 100)
-}
-
-function formatTaxRate(value: number): string {
   return Number.isInteger(value) ? String(value) : String(value).replace('.', ',')
 }
 

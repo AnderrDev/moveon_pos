@@ -293,11 +293,6 @@ import { buildTurnSalesWorkbook } from '@angular-app/shared/services/export/turn
                                     Desc. global −{{ money(item.globalDiscountAmount) }}
                                   </span>
                                 }
-                                @if (item.taxRate > 0) {
-                                  <span class="text-muted-foreground">
-                                    IVA {{ item.taxRate }}% incluido: {{ money(item.taxAmount) }}
-                                  </span>
-                                }
                               </div>
                             </div>
                             <p class="shrink-0 text-sm font-black tabular-nums">
@@ -337,10 +332,6 @@ import { buildTurnSalesWorkbook } from '@angular-app/shared/services/export/turn
                               <dd class="mt-1 text-xs font-semibold">{{ sale.discountReason }}</dd>
                             </div>
                           }
-                          <div class="flex justify-between gap-3">
-                            <dt class="text-muted-foreground">IVA incluido</dt>
-                            <dd class="font-semibold tabular-nums">{{ money(sale.taxTotal) }}</dd>
-                          </div>
                           <div class="border-border flex justify-between gap-3 border-t pt-3">
                             <dt class="font-black">Total</dt>
                             <dd class="text-primary text-lg font-black tabular-nums">

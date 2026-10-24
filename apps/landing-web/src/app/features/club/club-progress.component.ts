@@ -4,6 +4,7 @@ import {
   ClubProgressService,
   type ClubProgress,
 } from './club-progress.service'
+import { reportError } from '../../core/observability/sentry'
 
 type LookupState = 'idle' | 'loading' | 'found' | 'notFound' | 'error'
 
@@ -463,7 +464,8 @@ export class ClubProgressComponent {
       } else {
         this.state.set('notFound')
       }
-    } catch {
+    } catch (error: unknown) {
+      void reportError(error)
       this.state.set('error')
     }
   }

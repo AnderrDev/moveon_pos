@@ -14,7 +14,7 @@ import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
 import { InventoryRepository } from '@angular-app/features/inventory/domain/repositories/inventory.repository'
 import { SessionService } from '@angular-app/core/auth/session.service'
-import { formatTime, formatShortDate } from '@/shared/lib/format'
+import { formatCurrency, formatTime, formatShortDate } from '@/shared/lib/format'
 import type { InventoryMovement } from '@angular-app/features/inventory/domain/entities/inventory.entity'
 import { ExcelExportService } from '@angular-app/shared/services/export/excel-export.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
@@ -23,6 +23,12 @@ import { buildKardexWorkbook } from '@angular-app/features/inventory/presentatio
 interface ProductSummary {
   id: string
   nombre: string
+  costo: number | null
+}
+
+export interface EntryCostCorrectionRequest {
+  movement: InventoryMovement
+  isLatestEntry: boolean
 }
 
 const TIPO_LABELS: Record<string, string> = {
@@ -49,7 +55,7 @@ const LOCATION_LABELS: Record<string, string> = {
       [open]="open()"
       title="Kardex"
       [description]="product()?.nombre ?? null"
-      width="lg"
+      width="xl"
       (closed)="closed.emit()"
     >
       @if (loading()) {
@@ -78,7 +84,10 @@ const LOCATION_LABELS: Record<string, string> = {
                 <th moTh>Tipo</th>
                 <th moTh>Ubicacion</th>
                 <th moTh class="text-right">Cantidad</th>
+                <th moTh class="text-right">Costo unitario</th>
+                <th moTh class="text-right">Costo total</th>
                 <th moTh>Motivo</th>
+                <th moTh></th>
               </tr>
             </thead>
             <tbody class="divide-y">
@@ -103,7 +112,20 @@ const LOCATION_LABELS: Record<string, string> = {
                   >
                     {{ mov.cantidad > 0 ? '+' : '' }}{{ mov.cantidad }}
                   </td>
+                  <td moTd class="text-muted-foreground text-right tabular-nums">
+                    {{ moneyOrDash(mov.costoUnitario) }}
+                  </td>
+                  <td moTd class="text-right font-semibold tabular-nums">
+                    {{ movementTotal(mov) }}
+                  </td>
                   <td moTd class="text-muted-foreground text-xs">{{ mov.motivo ?? '—' }}</td>
+                  <td moTd class="text-right">
+                    @if (mov.tipo === 'entry') {
+                      <mo-button size="sm" variant="ghost" (click)="requestCostCorrection(mov)">
+                        Corregir costo
+                      </mo-button>
+                    }
+                  </td>
                 </tr>
               }
             </tbody>
@@ -122,6 +144,7 @@ export class KardexDialog {
   readonly open = input<boolean>(false)
   readonly product = input<ProductSummary | null>(null)
   readonly closed = output<void>()
+  readonly correctCostRequested = output<EntryCostCorrectionRequest>()
 
   readonly movements = signal<InventoryMovement[]>([])
   readonly loading = signal(false)
@@ -151,6 +174,24 @@ export class KardexDialog {
 
   locationLabel(ubicacion: string): string {
     return LOCATION_LABELS[ubicacion] ?? ubicacion
+  }
+
+  moneyOrDash(value: number | null): string {
+    return value == null ? '—' : formatCurrency(value)
+  }
+
+  movementTotal(movement: InventoryMovement): string {
+    return movement.costoUnitario == null
+      ? '—'
+      : formatCurrency(movement.cantidad * movement.costoUnitario)
+  }
+
+  requestCostCorrection(movement: InventoryMovement): void {
+    const latestEntry = this.movements().find((item) => item.tipo === 'entry')
+    this.correctCostRequested.emit({
+      movement,
+      isLatestEntry: latestEntry?.id === movement.id,
+    })
   }
 
   badgeVariant(tipo: string): 'default' | 'success' | 'warning' | 'destructive' {

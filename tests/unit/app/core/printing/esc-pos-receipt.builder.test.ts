@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Sale } from '@angular-app/features/sales/domain/entities/sale.entity'
 import {
   buildEscPosReceipt,
+  buildEscPosTestReceipt,
   ESC_POS_RECEIPT_COLUMNS,
 } from '@angular-app/core/printing/esc-pos-receipt.builder'
 
@@ -93,6 +94,21 @@ describe('buildEscPosReceipt', () => {
     expect(result).toContain('TOTAL')
     expect(result.endsWith('\x1bd\x03\x1dV\x00')).toBe(true)
     expect(result).not.toContain('\f')
+  })
+
+  it('omite IVA incluso con la configuración anterior activada y conserva el total', () => {
+    const store = {
+      titulo: 'COMPROBANTE', nit: null, direccion: null, ciudad: null,
+      telefono: null, mensajePie: null, mostrarNit: false,
+      mostrarDireccion: false, mostrarTelefono: false, mostrarIva: true,
+    }
+    const result = buildEscPosReceipt({
+      sale: { ...sale, taxTotal: 3_513, items: [{ ...sale.items[0]!, taxRate: 19, taxAmount: 3_513 }] },
+      store, customer: null, cashierEmail: null, change: 0,
+    })
+    expect(result).not.toContain('IVA')
+    expect(result).toMatch(/TOTAL +\$ 22\.000/)
+    expect(buildEscPosTestReceipt(store)).not.toContain('IVA')
   })
 
   it('mantiene las lineas de texto dentro de las 32 columnas', () => {

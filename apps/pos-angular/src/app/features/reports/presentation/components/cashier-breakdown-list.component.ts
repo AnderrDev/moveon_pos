@@ -32,9 +32,6 @@ import type { CashierSalesSummary } from '@angular-app/features/reports/domain/s
                 <span class="font-mono font-semibold tabular-nums">{{
                   money(c.totalVentas)
                 }}</span>
-                <span class="text-muted-foreground ml-2 font-mono text-xs tabular-nums">
-                  IVA {{ money(c.taxTotal) }}
-                </span>
               </span>
             </li>
           }

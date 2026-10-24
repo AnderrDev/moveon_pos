@@ -117,3 +117,8 @@ El script lee `SUPABASE_URL` (con fallback a `NEXT_PUBLIC_SUPABASE_URL`) y
 - Incluye categoría, información comercial, costo, precio, IVA, stock mínimo y estado.
 - Productos y categorías son rutas exclusivas de `admin`; por tanto, el costo no se expone a cajeros.
 - No se exportan UUID, `tienda_id` ni campos técnicos.
+
+
+## Presentación sin IVA (2026-10-17)
+
+Desde 2026-10-17 se omite IVA del formulario, tabla y exportación de productos. Se conserva el control interno y su mapeo: editar conserva la tasa existente y crear usa el valor predeterminado existente (0). No cambia el contrato de importación Siigo ni el cálculo de ventas.

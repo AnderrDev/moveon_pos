@@ -80,3 +80,8 @@ Componentes presentacionales:
 - El reporte de stock muestra `punto_venta`, `bodega` y total.
 - "Stock bajo" se calcula contra `punto_venta`, porque es el stock vendible.
 - Productos `prepared` siguen excluidos de bajo stock.
+
+
+## Presentación sin IVA (2026-10-17)
+
+Desde 2026-10-17 se omite el IVA en tarjetas, detalle de ventas, desglose por cajero, pestaña Financiero y exportaciones Excel. Los cálculos internos y datos históricos se conservan; este cambio no corrige ni modifica las utilidades descritas en la revisión de esa fecha.

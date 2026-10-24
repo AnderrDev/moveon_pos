@@ -1,0 +1,459 @@
+
+<div class="mo3">
+
+  <!-- ══ HEADER ══ -->
+  <header class="mo3-header" [class.mo3-menu-open]="mobileMenuOpen()">
+    <div class="mo3-wrap mo3-headwrap">
+      <a href="#inicio" class="mo3-brand">
+        <img src="assets/catalog/moveon-logo-brand.png" alt="Move On Nutrition" class="mo3-logo">
+      </a>
+      <nav id="catalog-mobile-menu" class="mo3-nav" aria-label="Secciones del catálogo">
+        <a href="#catalogo" class="mo3-navlink" (click)="closeMobileMenu()">Catálogo</a>
+        <a href="#batidos" class="mo3-navlink" (click)="closeMobileMenu()">Batidos</a>
+        <a href="#club" class="mo3-navlink" (click)="closeMobileMenu()">Mi Club</a>
+        <a href="#cafe" class="mo3-navlink" (click)="closeMobileMenu()">Café</a>
+        <a href="#ubicacion" class="mo3-navlink" (click)="closeMobileMenu()">Ubicación</a>
+        <a href="#contacto" class="mo3-navlink" (click)="closeMobileMenu()">Contacto</a>
+        <a [href]="waGeneral()" target="_blank" rel="noopener" class="mo3-btn-yellow mo3-navcta" (click)="closeMobileMenu()">
+          Comprar por WhatsApp
+        </a>
+      </nav>
+      <a [href]="waGeneral()" target="_blank" rel="noopener" class="mo3-btn-yellow mo3-headercta">
+        Comprar por WhatsApp
+      </a>
+      <button
+        type="button"
+        class="mo3-menubtn"
+        aria-controls="catalog-mobile-menu"
+        [attr.aria-expanded]="mobileMenuOpen()"
+        [attr.aria-label]="mobileMenuOpen() ? 'Cerrar menú de navegación' : 'Abrir menú de navegación'"
+        (click)="toggleMobileMenu()"
+      >
+        <span class="mo3-menulabel">Menú</span>
+        <span class="mo3-menuicon" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ══ CINTA DE OFERTAS (carrusel del header) ══ -->
+  @if (!loading() && ofertas().length > 0) {
+    <mo-offers-carousel [productos]="ofertas()" [whatsappNumber]="whatsappNumber()" />
+  }
+
+  <!-- ══ HERO ══ -->
+  <section id="inicio" class="mo3-hero">
+    <div class="mo3-herobg" aria-hidden="true">
+      <div class="mo3-heroglow"></div>
+      <div class="mo3-herodots"></div>
+      <div class="mo3-herograin"></div>
+    </div>
+    <div class="mo3-wrap" style="padding-top:clamp(56px,9vw,110px);padding-bottom:clamp(40px,6vw,72px);">
+      <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:clamp(20px,3vw,32px);font-size:var(--mo-fs-caption);font-weight:600;letter-spacing:2px;text-transform:uppercase;">
+        <span style="color:#F9D128;">Tienda de suplementos deportivos</span>
+        <span style="color:#606060;">/</span>
+        <span style="color:#9A9A9A;">Viva Fontibón — Bogotá</span>
+      </div>
+      <h1 class="mo3-display" style="margin:0;font-size:var(--mo-fs-hero);line-height:1.02;text-transform:uppercase;letter-spacing:.5px;max-width:15ch;">
+        Más energía. Más fuerza.
+        <span style="color:#F9D128;"> Más resultados.</span>
+      </h1>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:clamp(24px,4vw,56px);align-items:end;margin-top:clamp(28px,4vw,48px);">
+        <p style="margin:0;color:#9A9A9A;font-size:var(--mo-fs-body-lg);line-height:1.65;max-width:52ch;text-wrap:pretty;">
+          Proteínas, creatinas, pre entrenos, aminoácidos y batidos preparados al momento. Mira el catálogo y escríbenos por WhatsApp para comprar o preguntar disponibilidad.
+        </p>
+        <div style="display:flex;gap:2px;flex-wrap:wrap;justify-self:start;">
+          <a href="#catalogo" class="mo3-btn-yellow" style="padding:16px 28px;">Ver catálogo ↓</a>
+          <a [href]="waGeneral()" target="_blank" rel="noopener" class="mo3-btn-outline" style="padding:16px 28px;">WhatsApp →</a>
+        </div>
+      </div>
+    </div>
+    <!-- ticker -->
+    <div class="mo3-heroticker" style="background:#F9D128;overflow:hidden;border-top:1px solid #000000;">
+      <div class="mo3-tickertrack">
+        <div style="display:flex;gap:0;padding:10px 0;white-space:nowrap;">
+          <span class="mo3-display" style="color:#000000;font-size:var(--mo-fs-body);text-transform:uppercase;letter-spacing:2px;padding:0 22px;">Proteínas ✦ Creatinas ✦ Pre entrenos ✦ Aminoácidos ✦ Quemadores ✦ Vitaminas ✦ Batidos preparados ✦ Sachets ✦ Bebidas ✦</span>
+          <span class="mo3-display" style="color:#000000;font-size:var(--mo-fs-body);text-transform:uppercase;letter-spacing:2px;padding:0 22px;">Proteínas ✦ Creatinas ✦ Pre entrenos ✦ Aminoácidos ✦ Quemadores ✦ Vitaminas ✦ Batidos preparados ✦ Sachets ✦ Bebidas ✦</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ CATÁLOGO ══ -->
+  <section id="catalogo" style="border-bottom:1px solid rgba(255,255,255,.12);">
+    <div class="mo3-wrap" style="padding-top:clamp(48px,7vw,88px);padding-bottom:clamp(48px,7vw,88px);">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:clamp(24px,3vw,40px);">
+        <div style="display:flex;align-items:baseline;gap:16px;">
+          <span class="mo3-sectionindex" style="color:#F9D128;">01</span>
+          <h2 class="mo3-display" style="margin:0;font-size:var(--mo-fs-h2);text-transform:uppercase;letter-spacing:.5px;">¿Qué estás buscando?</h2>
+        </div>
+        <span style="color:#9A9A9A;font-size:var(--mo-fs-caption);font-weight:600;letter-spacing:1.5px;text-transform:uppercase;">Busca o filtra por categoría</span>
+      </div>
+
+      <!-- loading -->
+      @if (loading()) {
+        <div style="display:flex;flex-direction:column;border-top:1px solid rgba(255,255,255,.12);">
+          @for (i of [1,2,3,4,5,6]; track i) {
+            <div style="border-bottom:1px solid rgba(255,255,255,.12);padding:clamp(14px,2vw,20px) clamp(8px,1.5vw,16px);">
+              <div class="mo3-skelpulse" style="height:clamp(24px,2.6vw,34px);width:min(46%, 320px);background:#161616;"></div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- error -->
+      @if (loadError()) {
+        <div style="border:1px solid rgba(255,255,255,.12);padding:clamp(20px,3vw,32px);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+          <span style="color:#9A9A9A;font-size:var(--mo-fs-body);line-height:1.5;max-width:52ch;">No pudimos cargar el catálogo en este momento. Escríbenos por WhatsApp y te contamos qué hay disponible hoy.</span>
+          <a [href]="waGeneral()" target="_blank" rel="noopener" class="mo3-btn-yellow" style="padding:13px 22px;white-space:nowrap;">Preguntar por WhatsApp →</a>
+        </div>
+      }
+
+      <!-- buscador + filtros -->
+      @if (!loading() && !loadError()) {
+        <div class="mo3-catalogtools">
+          <div class="mo3-searchwrap">
+            <label class="mo3-searchlabel" for="catalog-search">Buscar en el catálogo</label>
+            <input
+              id="catalog-search"
+              class="mo3-search"
+              type="search"
+              inputmode="search"
+              autocomplete="off"
+              [value]="search()"
+              (input)="onSearch($event)"
+              placeholder="Ej: creatina, whey, sachet, energía"
+            >
+            <span class="mo3-searchicon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <circle cx="10.8" cy="10.8" r="6.8"></circle>
+                <path d="m16 16 5 5"></path>
+              </svg>
+            </span>
+          </div>
+          <div class="mo3-chipbar" aria-label="Filtrar por categoría">
+            <button
+              type="button"
+              class="mo3-chip"
+              [class.mo3-active]="selectedCategory() === 'all'"
+              [attr.aria-pressed]="selectedCategory() === 'all'"
+              (click)="selectCategory('all')"
+            >
+              Todos <span class="mo3-chipcount">{{ totalProductos() }}</span>
+            </button>
+            @for (cat of categoryChips(); track cat.id) {
+              <button
+                type="button"
+                class="mo3-chip"
+                [class.mo3-active]="selectedCategory() === cat.id"
+                [attr.aria-pressed]="selectedCategory() === cat.id"
+                (click)="selectCategory(cat.id)"
+              >
+                {{ cat.nombre }} <span class="mo3-chipcount">{{ cat.conteoTexto }}</span>
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="mo3-resultsbar" aria-live="polite">
+          <span>{{ resultsLabel() }}</span>
+          @if (search() || selectedCategory() !== 'all') {
+            <button type="button" class="mo3-chip" (click)="clearFilters()">Limpiar filtros</button>
+          }
+        </div>
+
+        @if (productosPaginados().length > 0) {
+          <div class="mo3-productgrid">
+            @for (p of productosPaginados(); track p.id) {
+              <article class="mo3-productcard">
+                <div class="mo3-cardmedia">
+                  @if (p.imageUrl) {
+                    <img [src]="p.imageUrl" [alt]="p.nombre" loading="lazy">
+                  } @else {
+                    <span class="mo3-imgfallback">
+                      <span>
+                        <strong>Move On</strong>
+                        {{ p.nombre }}
+                      </span>
+                    </span>
+                  }
+                  @if (p.etiqueta) {
+                    <span [style.background]="badgeBg(p.etiqueta)" [style.color]="badgeFg(p.etiqueta)" style="position:absolute;top:0;left:0;font-size:var(--mo-fs-micro);font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:7px 12px;">{{ p.etiqueta }}</span>
+                  }
+                </div>
+                <div class="mo3-cardbody">
+                  <span class="mo3-cardbrand">{{ marcaDe(p) }}</span>
+                  <h3 class="mo3-cardtitle">{{ p.nombre }}</h3>
+                  @if (p.paraQueSirve) {
+                    <p class="mo3-carddesc">{{ shortText(p.paraQueSirve) }}</p>
+                  }
+                </div>
+                <a [href]="waProducto(p)" target="_blank" rel="noopener" class="mo3-cardwa">
+                  <span>Preguntar por WhatsApp</span><span>→</span>
+                </a>
+              </article>
+            }
+          </div>
+          @if (showPagination()) {
+            <nav class="mo3-pagination" aria-label="Paginación del catálogo">
+              <button type="button" class="mo3-pagebtn" [disabled]="currentPage() === 1" (click)="prevPage()">
+                ← Anterior
+              </button>
+              <span class="mo3-pagecount">
+                Página {{ currentPage() }} de {{ totalPages() }}
+              </span>
+              <button type="button" class="mo3-pagebtn" [disabled]="currentPage() === totalPages()" (click)="nextPage()">
+                Siguiente →
+              </button>
+            </nav>
+          }
+        } @else {
+          <div class="mo3-emptycatalog">
+            <span style="color:#9A9A9A;font-size:var(--mo-fs-body);line-height:1.5;max-width:54ch;">
+              No encontramos productos con ese filtro. Escríbenos y te confirmamos disponibilidad o alternativas similares.
+            </span>
+            <a [href]="waGeneral()" target="_blank" rel="noopener" class="mo3-btn-yellow" style="padding:13px 22px;white-space:nowrap;">Preguntar por WhatsApp →</a>
+          </div>
+        }
+      }
+    </div>
+  </section>
+
+  <!-- ══ BATIDOS ══ -->
+  <section id="batidos" style="background:#F9D128;color:#000000;">
+    <div class="mo3-wrap" style="padding-top:clamp(48px,7vw,88px);padding-bottom:clamp(48px,7vw,88px);">
+      <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:10px;">
+          <span class="mo3-sectionindex" style="opacity:.65;">02</span>
+        <h2 class="mo3-display" style="margin:0;font-size:var(--mo-fs-section);text-transform:uppercase;letter-spacing:.5px;">Batidos preparados en tienda</h2>
+      </div>
+      <p style="margin:0 0 clamp(24px,3vw,40px) calc(14px + 2em);font-size:var(--mo-fs-body);font-weight:500;line-height:1.6;max-width:56ch;text-wrap:pretty;">
+        Ideal para después de entrenar o como opción rápida de proteína durante el día. Los preparamos al momento en nuestra sede de Viva Fontibón.
+      </p>
+      <div class="mo3-shakeboard">
+        <div class="mo3-shakehero">
+          <div class="mo3-shakeintro">
+            <span class="mo3-shakekicker">Menú de proteína</span>
+            <strong class="mo3-display mo3-proteintitle">Batido de <span>proteína</span></strong>
+            <p class="mo3-shakecopy">Arma tu batido con base, fruta o café y toppings. Lo preparamos al momento en la barra.</p>
+          </div>
+          <div class="mo3-shakesteps" aria-label="Pasos para armar el batido">
+            <div class="mo3-shakestep">
+              <b>01</b>
+              <span>Elige base</span>
+            </div>
+            <div class="mo3-shakestep">
+              <b>02</b>
+              <span>Agrega sabor</span>
+            </div>
+            <div class="mo3-shakestep">
+              <b>03</b>
+              <span>Termina con toppings</span>
+            </div>
+          </div>
+          <div class="mo3-shakebasegrid">
+            @for (base of batidoBases; track base.nombre) {
+              <div class="mo3-shakebase">
+                <span class="mo3-basekicker">{{ base.codigo }}</span>
+                <span class="mo3-basename">{{ base.nombre }}</span>
+                <span class="mo3-display" style="font-size:var(--mo-fs-h3);">{{ base.precio }}</span>
+              </div>
+            }
+          </div>
+        </div>
+        <div class="mo3-shakemenu">
+          <div class="mo3-menusection">
+            <span class="mo3-menutitle">Adicionales</span>
+            <ul class="mo3-menuitems">
+              @for (item of batidoAdicionales; track item) {
+                <li>{{ item }}</li>
+              }
+            </ul>
+            <span class="mo3-pricepill">Cada ingrediente +$2.000</span>
+          </div>
+          <div class="mo3-menusection">
+            <span class="mo3-menutitle">Complementa con toppings</span>
+            @for (item of batidoToppings; track item.nombre) {
+              <div class="mo3-pricerow">
+                <span>{{ item.nombre }}</span><i aria-hidden="true"></i><strong>{{ item.precio }}</strong>
+              </div>
+            }
+          </div>
+          <div class="mo3-menusection">
+            <span class="mo3-menutitle">Toppings premium</span>
+            @for (item of batidoPremium; track item.nombre) {
+              <div class="mo3-pricerow">
+                <span>{{ item.nombre }}</span><i aria-hidden="true"></i><strong>{{ item.precio }}</strong>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+      <div style="border:2px solid #000000;padding:clamp(18px,2.5vw,26px) clamp(20px,3vw,32px);margin-bottom:clamp(20px,3vw,28px);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <span style="font-size:var(--mo-fs-eyebrow);font-weight:700;letter-spacing:2px;text-transform:uppercase;opacity:.6;">También en tienda</span>
+          <span style="font-size:var(--mo-fs-body);font-weight:600;line-height:1.5;max-width:58ch;text-wrap:pretty;">Sachets individuales de proteína, creatina y pre entreno, y bebidas listas para tomar. Perfectos para probar antes de llevar el tarro completo.</span>
+        </div>
+        <a href="#catalogo" class="mo3-sachets-link">Ver sachets →</a>
+      </div>
+      <a [href]="waBatidos()" target="_blank" rel="noopener" class="mo3-blackbtn">Pedir por WhatsApp →</a>
+    </div>
+  </section>
+
+  <!-- ══ MI CLUB (ADR 0016) ══ -->
+  <mo-club-progress />
+
+  <!-- ══ CAFÉ Y SNACKS ══ -->
+  <section id="cafe" style="border-bottom:1px solid rgba(255,255,255,.12);">
+    <div class="mo3-wrap" style="padding-top:clamp(48px,7vw,88px);padding-bottom:clamp(48px,7vw,88px);">
+      <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:10px;">
+        <span class="mo3-sectionindex" style="color:#F9D128;">03</span>
+        <h2 class="mo3-display" style="margin:0;font-size:var(--mo-fs-section);text-transform:uppercase;letter-spacing:.5px;">Café y snacks proteicos</h2>
+      </div>
+      <p style="margin:0 0 clamp(24px,3vw,40px) calc(14px + 2em);color:#9A9A9A;font-size:var(--mo-fs-body);font-weight:500;line-height:1.6;max-width:56ch;text-wrap:pretty;">
+        Grano de la Sierra Nevada de Santa Marta, preparado en máquina automática. El complemento perfecto para tu snack proteico antes o después de entrenar.
+      </p>
+
+      <div class="mo3-cafeboard">
+        <div class="mo3-cafehero">
+          <div style="display:grid;gap:14px;">
+            <span class="mo3-shakekicker">Barra de café</span>
+            <strong class="mo3-display">Café + snack</strong>
+            <p>Una pausa rápida con café caliente y opciones proteicas para antes o después de entrenar.</p>
+          </div>
+          <div class="mo3-cafefacts" aria-label="Datos del café en tienda">
+            <div class="mo3-cafefact">
+              <b>Origen</b>
+              <span>Sierra Nevada</span>
+            </div>
+            <div class="mo3-cafefact">
+              <b>Servicio</b>
+              <span>Listo en tienda</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mo3-cafemenu">
+          <div class="mo3-menusection">
+            <span class="mo3-menutitle">Café</span>
+            @for (item of cafeItems; track item.nombre) {
+              <div class="mo3-menurow">
+                <span class="mo3-menurow-label">{{ item.nombre }}</span>
+                <i class="mo3-menurow-dots" aria-hidden="true"></i>
+                <strong class="mo3-display mo3-menurow-price">{{ item.precio }}</strong>
+              </div>
+            }
+          </div>
+          <div class="mo3-menusection">
+            <span class="mo3-menutitle">Snacks proteicos</span>
+            @for (item of snackItems; track item.nombre) {
+              <div class="mo3-menurow">
+                <span class="mo3-menurow-label">
+                  {{ item.nombre }}
+                  @if (item.badge) {
+                    <span class="mo3-proteinbadge">{{ item.badge }}</span>
+                  }
+                </span>
+                <i class="mo3-menurow-dots" aria-hidden="true"></i>
+                <strong class="mo3-display mo3-menurow-price">{{ item.precio }}</strong>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="mo3-menusection">
+        <span class="mo3-menutitle">Combos</span>
+        <div class="mo3-combogrid">
+          @for (combo of combos; track combo.nombre) {
+            <div class="mo3-combocard">
+              <span>Combo</span>
+              <strong>{{ combo.nombre }}</strong>
+              <b class="mo3-display">{{ combo.precio }}</b>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ CONFIANZA ══ -->
+  <section style="border-bottom:1px solid rgba(255,255,255,.12);">
+    <div class="mo3-wrap" style="padding-top:clamp(48px,7vw,88px);padding-bottom:clamp(48px,7vw,88px);">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:clamp(24px,3vw,40px);">
+        @for (item of confianza; track item.titulo) {
+          <div style="display:flex;flex-direction:column;gap:10px;border-top:2px solid #F9D128;padding-top:16px;">
+            <span class="mo3-display" style="font-size:var(--mo-fs-body-lg);text-transform:uppercase;letter-spacing:.5px;">{{ item.titulo }}</span>
+            <span style="color:#9A9A9A;font-size:var(--mo-fs-small);line-height:1.6;">{{ item.texto }}</span>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ UBICACIÓN ══ -->
+  <section id="ubicacion">
+    <div class="mo3-wrap" style="padding-top:clamp(48px,7vw,88px);padding-bottom:clamp(48px,7vw,88px);display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:clamp(28px,4vw,64px);align-items:start;">
+      <div style="display:flex;flex-direction:column;gap:18px;">
+        <div style="display:flex;align-items:baseline;gap:16px;">
+          <span class="mo3-sectionindex" style="color:#F9D128;">04</span>
+          <h2 class="mo3-display" style="margin:0;font-size:var(--mo-fs-section);text-transform:uppercase;line-height:1.05;">Encuéntranos en <span style="color:#F9D128;">Viva Fontibón</span></h2>
+        </div>
+        <p style="margin:0;color:#9A9A9A;font-size:var(--mo-fs-body);line-height:1.65;max-width:48ch;">Diagonal al Éxito y Smart Fit. Pasa por tu batido después de entrenar o recoge tu pedido en tienda.</p>
+        <div style="border:1px solid rgba(255,255,255,.15);">
+          <div style="display:flex;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.12);">
+            <span style="color:#9A9A9A;font-size:var(--mo-fs-caption);font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">Lunes a viernes</span>
+            <span style="color:#FFFFFF;font-size:var(--mo-fs-small);font-weight:600;">{{ horarioSemana }}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;gap:12px;padding:14px 18px;">
+            <span style="color:#9A9A9A;font-size:var(--mo-fs-caption);font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">Sábados y domingos</span>
+            <span style="color:#FFFFFF;font-size:var(--mo-fs-small);font-weight:600;">{{ horarioFestivos }}</span>
+          </div>
+        </div>
+        <a [href]="mapsUrl" target="_blank" rel="noopener" class="mo3-btn-yellow" style="align-self:flex-start;padding:15px 26px;">Cómo llegar →</a>
+      </div>
+      <div style="min-height:340px;align-self:stretch;border:1px solid rgba(255,255,255,.15);background:#0E0E0E;overflow:hidden;">
+        <iframe
+          title="Ubicación de Move On Nutrition en Google Maps"
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d63629.68238329992!2d-74.23709279578088!3d4.619918978575545!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8e3f9d0486464481%3A0x9777f316ebd1e25!2sMove%20On%20Nutrition!5e0!3m2!1ses-419!2sco!4v1783659763653!5m2!1ses-419!2sco"
+          width="600"
+          height="450"
+          style="border:0;width:100%;height:100%;min-height:340px;display:block;"
+          allowfullscreen
+          loading="lazy"
+          referrerpolicy="strict-origin-when-cross-origin"
+        ></iframe>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ FOOTER ══ -->
+  <footer id="contacto" style="border-top:1px solid rgba(255,255,255,.12);overflow:hidden;">
+    <div class="mo3-wrap" style="padding-top:clamp(40px,6vw,72px);">
+      <div style="display:flex;flex-wrap:wrap;gap:clamp(28px,4vw,64px);justify-content:space-between;margin-bottom:clamp(36px,5vw,64px);">
+        <div style="display:flex;flex-direction:column;gap:12px;max-width:36ch;">
+          <span style="color:#F9D128;font-size:var(--mo-fs-eyebrow);font-weight:700;letter-spacing:2px;text-transform:uppercase;">Contacto directo</span>
+          <a [href]="waGeneral()" target="_blank" rel="noopener" class="mo3-footlink">WhatsApp · {{ whatsappDisplay() }}</a>
+          <a [href]="igLink()" target="_blank" rel="noopener" class="mo3-footlink">Instagram · &#64;{{ instagram() }}</a>
+          <span style="color:#9A9A9A;font-size:var(--mo-fs-small);line-height:1.5;">Viva Fontibón, Bogotá · Diagonal al Éxito y Smart Fit</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <span style="color:#F9D128;font-size:var(--mo-fs-eyebrow);font-weight:700;letter-spacing:2px;text-transform:uppercase;">Secciones</span>
+          <a href="#catalogo" class="mo3-footnav">Catálogo</a>
+          <a href="#batidos" class="mo3-footnav">Batidos</a>
+          <a href="#cafe" class="mo3-footnav">Café</a>
+          <a href="#ubicacion" class="mo3-footnav">Ubicación</a>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;justify-content:flex-end;">
+          <span style="color:#606060;font-size:var(--mo-fs-caption);">Catálogo sujeto a disponibilidad.</span>
+          <span style="color:#606060;font-size:var(--mo-fs-caption);">Move On © {{ currentYear }} · Bogotá, Colombia</span>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:center;padding:0 clamp(16px,4vw,40px) clamp(28px,4vw,48px);">
+      <img src="assets/catalog/moveon-logo-brand.png" alt="Move On Nutrition" style="width:min(560px,84vw);height:auto;display:block;opacity:.9;">
+    </div>
+  </footer>
+</div>
