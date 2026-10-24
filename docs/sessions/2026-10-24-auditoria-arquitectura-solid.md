@@ -170,3 +170,12 @@ Sin cambios de código en esta sesión. Consultas remotas solo de lectura (`pg_p
 - **Desplegado en producción (autorizado por el dueño):** md5 de `create_sale_atomic` remoto reverificado antes de aplicar → 000800 aplicada y registrada (búsqueda tras auth, manejo de carrera, una sola firma de `register_expense_atomic` sin `anon`, columna e índice de gastos; md5 remoto = local probado `57e366f2…`) → merge `dev→main` `f013dcb` (incluye `45b749a`, solo docs iOS) tras lint, 803 tests y build → Netlify `moveon-client` `6adcec6cf61227b31d4f1106` y `moveon-catalogo-web` `6adcec6c9cc524d721cc0f69` ready; bundle con venta en curso, clave de gastos y cierre idempotente; `/`, `/pos`, `/caja`, `/finanzas` → 200.
 - Pendiente: regenerar `database.types.ts` con `pnpm db:types` (ya coincide con el remoto).
 - **P1 de la auditoría completo.**
+
+## 16. P2 — decisiones del dueño y bloque 1 (use-cases)
+
+- **Decisiones:** (a) regla de dependencias = la real del linter + prohibir presentation→presentation fuera de `dialogs|components` y los ciclos entre features; (b) orden = dominio primero (use-cases, casts, upload) y después componentización.
+- **Bloque 1:** los 11 use-cases señalados ahora validan con Zod y devuelven `Result` (`code: 'validation'`): `deleteCustomer`, `deleteTemplate`, `deleteProduct`, `deactivateProduct`, `deactivateCategoria`, `saveProductComponents`, `expireRewards`, `adjustStamps`, `saveReceiptSettings`, `saveLoyaltySettings`.
+  - `entityRefSchema` compartido (`src/shared/validations/common.ts`) para los de id + tienda.
+  - Reglas movidas al dominio como fuente única y reutilizadas por los formularios: `loyalty/domain/dtos/adjust-stamps.dto.ts`, `loyaltyConfigSchema` (junto a `LoyaltyConfig`), `settings/domain/dtos/receipt-settings.dto.ts`.
+  - Los 8 llamadores con escritura manejan `result.ok` (antes un error de validación habría pasado como éxito). `expireRewards` sigue oportunista.
+- Tests actualizados al contrato nuevo + casos de rechazo; `save-settings-use-cases.test.ts` nuevo. `pnpm lint`, `pnpm test` (814), typecheck OK. Sin cambios de base de datos.

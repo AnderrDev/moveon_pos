@@ -112,7 +112,11 @@ export class RecurrentesDialog {
     try {
       const auth = await this.session.getAuthContext()
       if (!auth) throw new Error('No autenticado')
-      await deleteTemplate({ repo: this.repo }, template.id, auth.tiendaId)
+      const result = await deleteTemplate({ repo: this.repo }, template.id, auth.tiendaId)
+      if (!result.ok) {
+        this.toast.error(result.error.message)
+        return
+      }
       this.toast.success('Plantilla eliminada')
       this.deleted.emit(template.id)
     } catch (error) {

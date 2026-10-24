@@ -463,7 +463,7 @@ export class ClienteLoyaltyDialog {
     this.adjusting.set(true)
     this.adjustErrors.set({})
     try {
-      const newBalance = await adjustStamps(
+      const result = await adjustStamps(
         { repo: this.loyaltyRepo },
         adjustStampsFormMapper.toPayload(parsed.data, {
           tiendaId: auth.tiendaId,
@@ -471,7 +471,11 @@ export class ClienteLoyaltyDialog {
           createdBy: auth.userId,
         }),
       )
-      this.toast.success(`Sellos ajustados. Nuevo saldo: ${newBalance}`)
+      if (!result.ok) {
+        this.adjustErrors.set({ root: result.error.message })
+        return
+      }
+      this.toast.success(`Sellos ajustados. Nuevo saldo: ${result.value}`)
       this.adjustForm.reset(createAdjustStampsFormDefaults())
       await this.load()
     } catch (error) {

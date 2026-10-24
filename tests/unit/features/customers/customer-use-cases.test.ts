@@ -100,14 +100,26 @@ describe('updateCustomer', () => {
 })
 
 describe('deleteCustomer', () => {
+  const id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1'
+  const tid = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2'
+
   it('delega en el repositorio con los ids correctos', async () => {
     let received: [string, string] | null = null
     const repo = {
-      delete: async (id: string, tid: string) => {
-        received = [id, tid]
+      delete: async (clienteId: string, t: string) => {
+        received = [clienteId, t]
       },
     }
-    await deleteCustomer({ repo }, cliente.id, tiendaId)
-    expect(received).toEqual([cliente.id, tiendaId])
+    const result = await deleteCustomer({ repo }, id, tid)
+    expect(result).toEqual({ ok: true, value: undefined })
+    expect(received).toEqual([id, tid])
+  })
+
+  it('rechaza ids inválidos sin llamar al repositorio', async () => {
+    let called = false
+    const repo = { delete: async () => { called = true } }
+    const result = await deleteCustomer({ repo }, 'cliente-1', tid)
+    expect(result.ok).toBe(false)
+    expect(called).toBe(false)
   })
 })

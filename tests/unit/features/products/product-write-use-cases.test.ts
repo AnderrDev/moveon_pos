@@ -92,17 +92,31 @@ describe('updateProduct', () => {
 })
 
 describe('deactivateProduct / deleteProduct', () => {
+  const id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1'
+
   it('delegan en el repositorio con los ids correctos', async () => {
     let deactivated: [string, string] | null = null
     let deleted: [string, string] | null = null
-    await deactivateProduct({ repo: { deactivateProduct: async (id, tid) => { deactivated = [id, tid] } } }, product.id, tiendaId)
-    await deleteProduct({ repo: { deleteProduct: async (id, tid) => { deleted = [id, tid] } } }, product.id, tiendaId)
-    expect(deactivated).toEqual([product.id, tiendaId])
-    expect(deleted).toEqual([product.id, tiendaId])
+    const r1 = await deactivateProduct({ repo: { deactivateProduct: async (pid, tid) => { deactivated = [pid, tid] } } }, id, tiendaId)
+    const r2 = await deleteProduct({ repo: { deleteProduct: async (pid, tid) => { deleted = [pid, tid] } } }, id, tiendaId)
+    expect(r1.ok && r2.ok).toBe(true)
+    expect(deactivated).toEqual([id, tiendaId])
+    expect(deleted).toEqual([id, tiendaId])
+  })
+
+  it('rechazan ids inválidos sin llamar al repositorio', async () => {
+    let called = false
+    const r1 = await deactivateProduct({ repo: { deactivateProduct: async () => { called = true } } }, product.id, tiendaId)
+    const r2 = await deleteProduct({ repo: { deleteProduct: async () => { called = true } } }, id, 'tienda-1')
+    expect(r1.ok || r2.ok).toBe(false)
+    expect(called).toBe(false)
   })
 })
 
 describe('saveProductComponents', () => {
+  const id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1'
+  const vaso = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2'
+
   it('delega la lista de componentes en el repositorio', async () => {
     let received: unknown = null
     const repo = {
@@ -110,9 +124,23 @@ describe('saveProductComponents', () => {
         received = { productId, tid, components }
       },
     }
-    const components = [{ componenteId: 'vaso-1', cantidad: 1 }]
-    await saveProductComponents({ repo }, product.id, tiendaId, components)
-    expect(received).toEqual({ productId: product.id, tid: tiendaId, components })
+    const components = [{ componenteId: vaso, cantidad: 1 }]
+    const result = await saveProductComponents({ repo }, id, tiendaId, components)
+    expect(result).toEqual({ ok: true, value: undefined })
+    expect(received).toEqual({ productId: id, tid: tiendaId, components })
+  })
+
+  it('rechaza cantidad cero o componentes repetidos sin llamar al repositorio', async () => {
+    let called = false
+    const repo = { saveComponents: async () => { called = true } }
+    const zero = await saveProductComponents({ repo }, id, tiendaId, [{ componenteId: vaso, cantidad: 0 }])
+    const dup = await saveProductComponents({ repo }, id, tiendaId, [
+      { componenteId: vaso, cantidad: 1 },
+      { componenteId: vaso, cantidad: 2 },
+    ])
+    expect(zero.ok).toBe(false)
+    expect(!dup.ok && dup.error.message).toBe('Hay componentes repetidos')
+    expect(called).toBe(false)
   })
 })
 
@@ -149,10 +177,20 @@ describe('createCategoria / updateCategoria', () => {
 
 describe('deactivateCategoria', () => {
   it('delega en el repositorio con los ids correctos', async () => {
+    const id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1'
     let received: [string, string] | null = null
-    const repo = { deactivateCategoria: async (id: string, tid: string) => { received = [id, tid] } }
-    await deactivateCategoria({ repo }, categoria.id, tiendaId)
-    expect(received).toEqual([categoria.id, tiendaId])
+    const repo = { deactivateCategoria: async (cid: string, tid: string) => { received = [cid, tid] } }
+    const result = await deactivateCategoria({ repo }, id, tiendaId)
+    expect(result).toEqual({ ok: true, value: undefined })
+    expect(received).toEqual([id, tiendaId])
+  })
+
+  it('rechaza ids inválidos sin llamar al repositorio', async () => {
+    let called = false
+    const repo = { deactivateCategoria: async () => { called = true } }
+    const result = await deactivateCategoria({ repo }, categoria.id, tiendaId)
+    expect(result.ok).toBe(false)
+    expect(called).toBe(false)
   })
 })
 

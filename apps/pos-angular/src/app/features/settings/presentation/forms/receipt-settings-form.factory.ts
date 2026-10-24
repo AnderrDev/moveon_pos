@@ -1,19 +1,21 @@
 import { z } from 'zod'
+import {
+  RECEIPT_TEXT_LIMITS,
+  receiptPrinterNameSchema,
+  receiptTituloSchema,
+} from '@angular-app/features/settings/domain/dtos/receipt-settings.dto'
 
 const optionalText = (max: number) => z.string().trim().max(max)
 
+/** Borde del formulario: mismas reglas que `receiptSettingsSchema` (dominio), con textos vacíos como ''. */
 export const receiptSettingsFormSchema = z.object({
-  titulo: z.string().trim().min(2, 'Escribe un titulo').max(32, 'Maximo 32 caracteres'),
-  nit: optionalText(30),
-  direccion: optionalText(100),
-  ciudad: optionalText(60),
-  telefono: optionalText(30),
-  mensajePie: optionalText(120),
-  printerName: z
-    .string()
-    .trim()
-    .min(1, 'Escribe el nombre de la impresora')
-    .max(80, 'Maximo 80 caracteres'),
+  titulo: receiptTituloSchema,
+  nit: optionalText(RECEIPT_TEXT_LIMITS.nit),
+  direccion: optionalText(RECEIPT_TEXT_LIMITS.direccion),
+  ciudad: optionalText(RECEIPT_TEXT_LIMITS.ciudad),
+  telefono: optionalText(RECEIPT_TEXT_LIMITS.telefono),
+  mensajePie: optionalText(RECEIPT_TEXT_LIMITS.mensajePie),
+  printerName: receiptPrinterNameSchema,
   mostrarNit: z.boolean(),
   mostrarDireccion: z.boolean(),
   mostrarTelefono: z.boolean(),
