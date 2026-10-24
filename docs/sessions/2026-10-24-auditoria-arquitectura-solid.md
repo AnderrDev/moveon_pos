@@ -121,3 +121,15 @@ Sin cambios de código en esta sesión. Consultas remotas solo de lectura (`pg_p
 - `PosSaleService` queda como adaptador: sin Supabase ni auditoría; mapea `PosCartItem` al DTO, inyecta la abstracción `SaleRepository` (pos → sales/domain, excepción permitida) y traduce el error con `mapSaleError`. API pública intacta: `pos.page.ts` sin cambios.
 - Tests: use-case (5), contrato exacto de argumentos de la RPC + auditoría + error (3), DTO actualizado. `docs/modules/sales.md` alineado con el código real.
 - `pnpm lint`, `pnpm test` (780), typecheck OK. Sin publicar (se publica junto con #5).
+
+## 11. Prueba real en local y publicación de P1 #5 + #6 (autorizado por el dueño)
+
+- Supabase local al día: se registraron en `schema_migrations` local las migraciones aplicadas a mano con psql y `supabase migration up --local --include-all` dejó todas las del repo registradas. Seed local: 2 productos con stock 10 (`QA-WHEY`, `QA-CREA`) y 2 clientes del club.
+- POS con `pnpm dev:local` (runtime-config verificado en `127.0.0.1:54321` antes de iniciar sesión), en el navegador integrado:
+  - Cajero: venta `V-000001` de $205.000 (Whey + Creatina, efectivo, con cliente) → `completed`, 2 ítems con `unit_cost`, pago correcto, stock 10→9, +2 sellos, auditoría `venta/create`. Aviso de QZ Tray esperado (sin impresora local).
+  - Cajero: movimiento de caja $20.000 vía `add_cash_movement_atomic`; cuadre esperado $350.000 correcto.
+  - Cajero: eliminar cliente → borrado lógico (`deleted_by` cajero, `activo=false`, `customer.deleted`), no reaparece al recargar.
+  - Admin: ajuste −1 vía `adjust_stock_atomic` → stock 9→8, auditado por trigger.
+  - Catálogo pedido con `offset=0&limit=1000` (paginación nueva). Consola: solo errores de QZ Tray y un 503 de arranque del servidor.
+- Merge `dev→main` `d89ecf8` (incluye `e63c3e8`, solo docs iOS; el trabajo sin confirmar de la sesión iOS —`reports.repository.ts`, migración `20261024120000_owner_sales_summary.sql`— NO entró). Netlify `moveon-client` `6adce51129c2fc8fb032b77d` y `moveon-catalogo-web` `6adce5111852fc13c5e35014` ready; bundle con el schema de dominio de venta; rutas 200; runtime → Supabase POS.
+- Nota: la prueba local corrió sobre el árbol de trabajo, que incluía el cambio sin confirmar de la sesión iOS en `reports.repository.ts` (no afecta los flujos probados).
