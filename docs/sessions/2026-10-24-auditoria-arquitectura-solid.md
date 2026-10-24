@@ -188,3 +188,28 @@ Sin cambios de código en esta sesión. Consultas remotas solo de lectura (`pg_p
 - Verificación: `pnpm lint`, `pnpm lint:landing`, `pnpm test` (821), typecheck de POS y landing OK. UI local: inventario con stock correcto, diálogo del club y ajuste +1 ("Nuevo saldo: 3").
 - **Hallazgo — desfase de producción (no tocado):** el remoto no tiene `correct_sale_customer_atomic`, `storefront_club_progress` ni `storefront_contact_settings`; las migraciones `20260624000100`, `20260624000200`, `20260710000100`, `20260710000200`, `20260723010000`, `20260723020000` no están registradas. En producción fallan "asociar cliente a una venta ya cobrada" (POS) y "Mi Club" (catálogo); el contacto del catálogo usa el fallback. Pendiente desde 2026-08-12; requiere decisión del dueño.
 - **Publicado (autorizado por el dueño):** merge `dev→main` `a4b79c7` tras lint POS+landing, 821 tests y build de producción de ambas apps; diff sin secretos. Incluyó de la sesión iOS `5da148e` (migración `20261024130000_owner_cash_session_summary.sql` + tests de integración, sin código web; la migración NO se aplica sola en remoto) y dos commits de docs. Netlify `moveon-client` `6adcf31c4f2ed8cfc22ca819` y `moveon-catalogo-web` `6adcf31cfd7cc1d6ad68def2` ready; bundle con las reglas nuevas; `/`, `/pos`, `/inventario`, `/productos`, `/clientes`, `/configuracion`, `/catalogo` y el catálogo → 200. Sin migraciones aplicadas en este paso.
+
+## 18. Desfase de migraciones en producción — diagnóstico y propuesta (sin aplicar)
+
+Comparación del registro remoto (`schema_migrations`) con `supabase/migrations/` y de cada objeto contra el remoto (solo lectura):
+
+| Migración | Estado real en remoto | Acción propuesta |
+|---|---|---|
+| `20260624000100_catalogo_publico` | Hecha a mano: policies anon de categorías/productos y `update_updated_at_column` existen; `combos_semana` se creó y luego se eliminó a propósito (`20260904000100`) | **Solo registrar.** Ejecutarla resucitaría `combos_semana` y su semilla |
+| `20260624000200_product_image_url` | Columna existe; 78 productos con imagen | **Solo registrar.** Su `UPDATE` pisaría las imágenes actuales con URLs viejas |
+| `20260710000100_storefront_contact_settings` | **Falta la tabla** | **Aplicar** (semilla = WhatsApp/Instagram oficiales, tienda de producción `a1b2c3d4-…0001`) |
+| `20260710000200_storefront_productos_publicos_sin_precios` | Vista existe sin `precio_venta`; anon sin SELECT en `productos` | **Solo registrar.** Su `DROP VIEW` desharía `security_invoker` y grants de 2026-08-29 |
+| `20260716000100_loyalty_expire_sweep` | Aplicada como `20260717224803` | **Solo registrar** la versión del repo |
+| `20260716000200_table_grants_parity` | Aplicada como `20260717224819` | **Solo registrar.** ⚠️ Ejecutarla de nuevo re-otorgaría INSERT/UPDATE/DELETE en todas las tablas y desharía en silencio todo el P0 |
+| `20260723010000_correct_sale_customer_atomic` | **Falta la función** → falla "asociar cliente a venta ya cobrada" | **Aplicar** |
+| `20260723020000_storefront_club_progress` | **Falta la función** → "Mi Club" caído | **Aplicar** (RPC anon decidida en ADR 0016: devuelve primer nombre y sellos por celular) |
+| `20261010004041_allow_cashier_loyalty_adjustments` | Aplicada como `20261010005039` | **Solo registrar** |
+| `20261024120000/130000/140000_owner_*` | No aplicadas | Fuera de alcance: sesión iOS |
+
+**Riesgo actual:** un `supabase db push` hoy ejecutaría las 6 "solo registrar" y sería destructivo (permisos del P0, imágenes, vista, `combos_semana`).
+
+**Prueba en local (dentro de una transacción con ROLLBACK, estado local intacto):** sobre un estado que imita producción (sin los 3 objetos), las 3 migraciones a aplicar corren limpias; anon lee el contacto; `storefront_club_progress('310 555 6677')` devuelve el progreso y un celular inexistente 0 filas; admin asocia cliente a una venta sin cliente (cajero recibe "Solo el admin…", diseño de la migración).
+
+**Propuesta (dos pasos, cada uno en una transacción con su verificación):**
+1. **Registrar sin ejecutar** las 6 versiones ya satisfechas (`20260624000100`, `20260624000200`, `20260710000200`, `20260716000100`, `20260716000200`, `20261010004041`). Solo inserta filas en `supabase_migrations.schema_migrations`; las filas remotas con otro timestamp se conservan. Efecto: `migration list` alineado y `db push` deja de ser destructivo.
+2. **Aplicar y registrar** `20260710000100`, `20260723010000`, `20260723020000` (aditivas; el frontend publicado ya las espera). Verificar: objetos y grants, REST anon de contacto y de `storefront_club_progress` con un celular inexistente (`[]`), y "Mi Club"/contacto en el catálogo publicado.
