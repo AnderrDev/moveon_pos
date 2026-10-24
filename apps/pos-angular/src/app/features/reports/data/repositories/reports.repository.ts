@@ -6,13 +6,9 @@ import { ProductRepository } from '@angular-app/features/products/domain/reposit
 import { TiendaInfoService } from '@angular-app/core/tienda/tienda-info.service'
 import { DEFAULT_TIMEZONE, getStoreRangeUtc } from '@angular-app/features/reports/domain/services/day-range'
 import { isLowStock, isOutOfStock } from '@angular-app/features/inventory/domain/services/low-stock'
-import { groupSalesByCashier } from '@angular-app/features/reports/domain/services/group-sales-by-cashier'
-import { groupSalesByLocalDay, groupSalesByLocalHour } from '@angular-app/features/reports/domain/services/sales-trend'
-import { groupSalesByProduct } from '@angular-app/features/reports/domain/services/top-products'
+import { buildSalesSummary } from '@angular-app/features/reports/domain/services/sales-summary'
 import { ReportRepository } from '@angular-app/features/reports/domain/repositories/report.repository'
 import type {
-  DailyPaymentBreakdown,
-  DailyProductSale,
   DailyReport,
   DailySaleDetail,
   DailySaleItemDetail,
@@ -58,69 +54,10 @@ export class ReportsRepository extends ReportRepository {
       this.cashRepo.listSessionsByDateRange(tiendaId, dayStart, dayEnd),
     ])
 
+    // Agregados del período (pura, compartida con la paridad de la RPC
+    // owner_sales_summary de la app iOS del dueño, ADR 0021 §4).
+    const summary = buildSalesSummary(sales, timezone)
     const completed = sales.filter((s) => s.status === 'completed')
-    const voided = sales.filter((s) => s.status === 'voided')
-
-    const totalVentas = completed.reduce((s, v) => s + v.total, 0)
-    const subtotalVentas = completed.reduce((s, v) => s + v.subtotal, 0)
-    const taxTotal = completed.reduce((s, v) => s + v.taxTotal, 0)
-    const discountTotal = completed.reduce((s, v) => s + v.discountTotal, 0)
-    const itemDiscountTotal = completed.reduce((s, v) => s + v.itemDiscountTotal, 0)
-    const globalDiscountTotal = completed.reduce((s, v) => s + v.globalDiscountTotal, 0)
-    const discountedSales = completed.filter((sale) => sale.discountTotal > 0)
-    const averageDiscountPercentage =
-      discountedSales.length > 0
-        ? (discountedSales.reduce(
-            (sum, sale) => sum + (sale.subtotal > 0 ? sale.discountTotal / sale.subtotal : 0),
-            0
-          ) /
-            discountedSales.length) *
-          100
-        : 0
-    const avgVenta = completed.length > 0 ? Math.round(totalVentas / completed.length) : 0
-
-    const payMap = new Map<string, { count: number; total: number }>()
-    for (const sale of completed) {
-      for (const p of sale.payments) {
-        const cur = payMap.get(p.metodo) ?? { count: 0, total: 0 }
-        payMap.set(p.metodo, { count: cur.count + 1, total: cur.total + p.amount })
-      }
-    }
-    const paymentBreakdown: DailyPaymentBreakdown[] = Array.from(payMap.entries())
-      .map(([metodo, v]) => ({ metodo, ...v }))
-      .sort((a, b) => b.total - a.total)
-
-    // Top productos (PLAN-39): agregación en cliente sobre las ventas ya
-    // cargadas del período (solo completadas, semántica de la sección 4 de
-    // scripts/reports/business-status-report.sql). Cero queries nuevas.
-    const productGroups = groupSalesByProduct(completed)
-
-    // Costo congelado en la venta (ADR 0019): `sale_items.unit_cost`, agregado
-    // por producto en `groupSalesByProduct`. El margen de un período pasado ya
-    // no cambia cuando se actualiza el costo del catálogo. Si a alguna línea le
-    // falta el costo, el producto queda en `null` y se excluye de
-    // `utilidadTotal` — nunca se asume costo 0.
-    let utilidadTotal = 0
-    const productSales: DailyProductSale[] = productGroups.map((v) => {
-      const costoTotal = v.costoTotal
-      // Costo unitario promedio ponderado: el costo pudo cambiar entre ventas
-      // del período, así que ya no hay un único costo por producto.
-      const costoUnitario =
-        costoTotal != null && v.qty > 0 ? Math.round(costoTotal / v.qty) : null
-      const utilidad = costoTotal != null ? v.total - costoTotal : null
-      const margenPct = utilidad != null && v.total > 0 ? (utilidad / v.total) * 100 : null
-      if (utilidad != null) utilidadTotal += utilidad
-      return { ...v, costoUnitario, costoTotal, utilidad, margenPct }
-    })
-
-    // Desglose por cajero: agrupación en cliente sobre las ventas ya cargadas
-    // del período (completadas + anuladas). Cero queries nuevas.
-    const cashierBreakdown = groupSalesByCashier(sales)
-
-    // Tendencia (PLAN-38): ventas por hora local y por día local, agrupación
-    // en cliente sobre las mismas ventas ya cargadas. Cero queries nuevas.
-    const hourlySales = groupSalesByLocalHour(sales, timezone)
-    const dailySales = groupSalesByLocalDay(sales, timezone)
 
     // Desglose de IVA por tasa: solo ventas completadas, agrupadas por taxRate.
     const taxMap = new Map<number, { baseAmount: number; taxAmount: number }>()
@@ -197,24 +134,8 @@ export class ReportsRepository extends ReportRepository {
     return {
       date: dayStart,
       dateTo: dayEnd,
-      totalVentas,
-      countVentas: completed.length,
-      countAnuladas: voided.length,
-      subtotalVentas,
-      taxTotal,
-      discountTotal,
-      itemDiscountTotal,
-      globalDiscountTotal,
-      discountedSalesCount: discountedSales.length,
-      averageDiscountPercentage,
-      avgVenta,
-      paymentBreakdown,
+      ...summary,
       taxBreakdown,
-      productSales,
-      utilidadTotal,
-      cashierBreakdown,
-      hourlySales,
-      dailySales,
       sales,
       salesDetail,
       saleItems,
