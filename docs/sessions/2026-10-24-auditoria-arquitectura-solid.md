@@ -133,3 +133,11 @@ Sin cambios de código en esta sesión. Consultas remotas solo de lectura (`pg_p
   - Catálogo pedido con `offset=0&limit=1000` (paginación nueva). Consola: solo errores de QZ Tray y un 503 de arranque del servidor.
 - Merge `dev→main` `d89ecf8` (incluye `e63c3e8`, solo docs iOS; el trabajo sin confirmar de la sesión iOS —`reports.repository.ts`, migración `20261024120000_owner_sales_summary.sql`— NO entró). Netlify `moveon-client` `6adce51129c2fc8fb032b77d` y `moveon-catalogo-web` `6adce5111852fc13c5e35014` ready; bundle con el schema de dominio de venta; rutas 200; runtime → Supabase POS.
 - Nota: la prueba local corrió sobre el árbol de trabajo, que incluía el cambio sin confirmar de la sesión iOS en `reports.repository.ts` (no afecta los flujos probados).
+
+## 12. P1 #7 — datos del POS por repositorio (misma fecha)
+
+- `ProductRepository` gana `listComponentsByTienda` y `listActiveOptionsByTienda` (tipos `ProductComponentLink` / `ProductOptionLink`), implementados en `ProductsRepository` con `fetchAllPages` (antes las lecturas del POS no paginaban: tope silencioso de 1000 filas) y reutilizando los mappers existentes.
+- `PosDataService` ya no inyecta `SupabaseClientService`: catálogo por `ProductsCacheStore` + `InventoryRepository` + `ProductRepository`, caja abierta por `CashRegisterRepository.getOpenSession`. Se eliminaron 3 fachadas `as unknown as` y sus tipos de fila.
+- Tests: `pos-data-service.test.ts` (agrupación/orden de componentes y opciones, stock real/preparado/combo, costo oculto a cajero, caja abierta) y `tienda-wide-reads.test.ts` (paginación 1200 filas y mapeo).
+- Prueba local en el navegador (runtime-config verificado en local): catálogo con batido "Bajo pedido", combo "8 disponibles" derivado (Creatina 8 / Whey 9) con sus componentes, batido agregado con su opción por defecto "Whey QA · +$3.000" (total $18.000), "Caja abierta".
+- `pnpm lint`, `pnpm test` (792), typecheck OK. Sin publicar.
