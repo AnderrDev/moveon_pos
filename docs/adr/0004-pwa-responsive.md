@@ -1,7 +1,7 @@
 # ADR 0004 — PWA responsive (no apps nativas)
 
 **Fecha:** 2026-04-25
-**Estado:** Aceptado
+**Estado:** Aceptado — modificado por ADR 0021 (2026-10-24)
 **Decisores:** Equipo MOVEONAPP
 
 ## Contexto
@@ -35,3 +35,7 @@ Construimos **una sola PWA responsive** con Next.js. Puede instalarse en escrito
 - Soporte tablet (768px+) en Sprint 4.
 - No optimizamos para móvil < 768px en MVP.
 - La decisión inicial de usar `window.print()` fue reemplazada por impresion ESC/POS RAW mediante QZ Tray; ver ADR 0010.
+
+## Modificación — ADR 0021 (2026-10-24)
+
+El POS sigue siendo una única PWA para operar la tienda. Como excepción acotada, el ADR 0021 agrega una **app iOS nativa solo para el dueño** (rol `admin`, solo lectura en v1) que consume el mismo Supabase. La regla "no apps nativas" deja de aplicar a ese caso; para la operación de caja sigue vigente.

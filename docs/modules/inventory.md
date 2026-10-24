@@ -74,8 +74,7 @@ La corrección recalcula automáticamente el fondo de reinversión porque este a
 
 ### RN-I11: Permisos de escritura de movimientos
 
-Los usuarios activos de la tienda pueden leer el Kardex. Las inserciones manuales (`entry`, `adjustment`) están restringidas por RLS a `admin`; ventas, anulaciones y traslados escriben mediante sus RPC `SECURITY DEFINER`, que vuelven a validar identidad, tienda y rol. No existen policies públicas de `UPDATE`/`DELETE`; la única corrección admitida es la RPC acotada al costo de un `entry`.
-
+Los usuarios activos de la tienda pueden leer el Kardex. Desde `20261024000500` **nadie escribe `inventory_movements` directo** (sin `INSERT`/`UPDATE`/`DELETE` para `authenticated`): entradas (`register_inventory_entry_atomic`), ajustes (`adjust_stock_atomic`), corrección de costo, traslados, ventas, anulaciones y stock inicial pasan por RPC `SECURITY DEFINER` que validan identidad, tienda y rol. `adjust_stock_atomic` es solo admin, exige motivo de 3–200 caracteres, rechaza delta cero y productos `prepared`/`combo`, y bloquea la fila del producto; el trigger `tr_audit_inventory_adjustment` audita el ajuste. Prueba: `supabase/tests/stock-adjustment-customer-soft-delete.test.sql`.
 ---
 
 ## Use cases

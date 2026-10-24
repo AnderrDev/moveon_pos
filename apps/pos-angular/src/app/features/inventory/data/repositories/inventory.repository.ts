@@ -29,16 +29,6 @@ interface RpcClient {
   ): Promise<{ data: T | null; error: { message: string } | null }>
 }
 
-interface UntypedClient {
-  from(table: string): {
-    insert(values: Record<string, unknown>): {
-      select(cols: string): {
-        single<T>(): Promise<{ data: T | null; error: { message: string } | null }>
-      }
-    }
-  }
-}
-
 @Injectable({ providedIn: 'root' })
 export class InventoryRepository extends InventoryRepositoryContract {
   private readonly supabaseClient = inject(SupabaseClientService)
@@ -159,20 +149,16 @@ export class InventoryRepository extends InventoryRepositoryContract {
   }
 
   async adjustStock(input: AdjustStockInput): Promise<InventoryMovement> {
-    const client = this.supabaseClient.supabase as unknown as UntypedClient
-    const { data, error } = await client
-      .from('inventory_movements')
-      .insert({
-        tienda_id: input.tiendaId,
-        producto_id: input.productId,
-        tipo: 'adjustment',
-        ubicacion: input.ubicacion,
-        cantidad: input.cantidadDelta,
-        motivo: input.motivo,
-        created_by: input.createdBy,
-      })
-      .select(MOV_COLS)
-      .single<InventoryMovementRow>()
+    // inventory_movements no admite INSERT directo: la RPC fija tipo y autor.
+    const client = this.supabaseClient.supabase as unknown as RpcClient
+    const { data, error } = await client.rpc<InventoryMovementRow>('adjust_stock_atomic', {
+      p_tienda_id: input.tiendaId,
+      p_producto_id: input.productId,
+      p_ubicacion: input.ubicacion,
+      p_cantidad_delta: input.cantidadDelta,
+      p_motivo: input.motivo,
+      p_created_by: input.createdBy,
+    })
 
     if (error) throw new Error(error.message)
     if (!data) throw new Error('Ajuste creado sin respuesta')

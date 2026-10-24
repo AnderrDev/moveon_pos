@@ -63,3 +63,13 @@ Especificación funcional completa, modelo de datos, RPC y reglas de negocio en
   cliente con mayor saldo positivo y cuántos sellos le faltan para el siguiente batido gratis.
 - El resumen se obtiene en bloque desde cuentas y recompensas vigentes, sin una consulta por
   cliente. Si fidelización no está disponible, el directorio conserva búsqueda, edición y scroll.
+
+## Borrado lógico (2026-10-24, `20261024000400`–`000500`)
+
+- "Eliminar cliente" llama a `delete_customer_atomic`: marca `deleted_at`, `deleted_by` y `activo = false`, y audita `customer.deleted`. Ya no se borra la fila: las ventas conservan su cliente y `loyalty_accounts` / `loyalty_transactions` / `loyalty_rewards` no se pierden en cascada.
+- Mismo permiso que antes: cualquier usuario activo de la tienda.
+- Listados y búsqueda por celular/documento excluyen `deleted_at is not null`. Los índices únicos `ux_clientes_celular_normalizado` y `ux_clientes_documento` ignoran eliminados, así que su celular/documento puede reutilizarse en un cliente nuevo.
+- `activo = false` lo saca del club (no acumula sellos y `storefront_club_progress` no lo muestra).
+- El trigger `sales_enforce_customer_not_deleted` impide asociarlo a ventas nuevas o por corrección.
+- `authenticated` no tiene `DELETE` sobre `clientes`; `INSERT`/`UPDATE` solo sobre las columnas del formulario (no puede tocar `deleted_at`/`deleted_by`/`activo`).
+

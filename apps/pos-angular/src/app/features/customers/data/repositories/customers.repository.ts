@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
+import { SessionService } from '@angular-app/core/auth/session.service'
 import { fetchAllPages } from '@angular-app/core/supabase/fetch-all-pages'
 import { AuditLogRepository } from '@angular-app/features/audit/domain/repositories/audit-log.repository'
 import { normalizePhoneCO } from '@angular-app/features/customers/domain/value-objects/phone-co'
@@ -32,18 +33,18 @@ interface UntypedClient {
         }
       }
     }
-    delete(): {
-      eq(col: string, value: unknown): {
-        eq(col: string, value: unknown): Promise<{ error: { message: string } | null }>
-      }
-    }
   }
+  rpc<T>(
+    fn: string,
+    args: Record<string, unknown>,
+  ): Promise<{ data: T | null; error: { message: string } | null }>
 }
 
 @Injectable({ providedIn: 'root' })
 export class CustomersRepository extends CustomerRepositoryContract {
   private readonly supabaseClient = inject(SupabaseClientService)
   private readonly audit = inject(AuditLogRepository)
+  private readonly session = inject(SessionService)
 
   async list(tiendaId: string): Promise<Cliente[]> {
     const rows = await fetchAllPages<ClienteRow>(async (from, to) => {
@@ -51,6 +52,7 @@ export class CustomersRepository extends CustomerRepositoryContract {
         .from('clientes')
         .select(CLIENTE_COLS)
         .eq('tienda_id', tiendaId)
+        .is('deleted_at', null)
         .order('nombre', { ascending: true })
         .order('id', { ascending: true })
         .range(from, to)
@@ -85,6 +87,7 @@ export class CustomersRepository extends CustomerRepositoryContract {
       .select(CLIENTE_COLS)
       .eq('tienda_id', tiendaId)
       .eq(column, value)
+      .is('deleted_at', null)
       .limit(1)
       .returns<ClienteRow[]>()
     if (error) throw new Error(error.message)
@@ -137,18 +140,19 @@ export class CustomersRepository extends CustomerRepositoryContract {
     return cliente
   }
 
+  /**
+   * Borrado lógico (delete_customer_atomic): conserva ventas y fidelización;
+   * la RPC marca deleted_at, desactiva el club y deja la auditoría.
+   */
   async delete(id: string, tiendaId: string): Promise<void> {
-    const { data } = await this.supabaseClient.supabase
-      .from('clientes')
-      .select(CLIENTE_COLS)
-      .eq('id', id)
-      .eq('tienda_id', tiendaId)
-      .maybeSingle<ClienteRow>()
-    const label = data ? rowToCliente(data).nombre : id
-
+    const auth = await this.session.getAuthContext()
+    if (!auth) throw new Error('Sesión expirada')
     const client = this.supabaseClient.supabase as unknown as UntypedClient
-    const { error } = await client.from('clientes').delete().eq('id', id).eq('tienda_id', tiendaId)
+    const { error } = await client.rpc<string>('delete_customer_atomic', {
+      p_cliente_id: id,
+      p_tienda_id: tiendaId,
+      p_deleted_by: auth.userId,
+    })
     if (error) throw new Error(error.message)
-    void this.audit.log({ tiendaId, entityType: 'cliente', entityId: id, entityLabel: label, action: 'delete' })
   }
 }
