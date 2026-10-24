@@ -91,6 +91,16 @@ El dueño aprobó el ADR 0021.
 
 El dueño pidió que la app viva en un repo nuevo. Se movió `apps/ios-owner/` a `/Users/ander/Documents/moveonapp-pos-planeacion/moveon-owner-ios` (git nuevo, rama `main`), con `README.md`, `CLAUDE.md` (apunta a `/docs` de este repo), `AGENTS.md` y `scripts/test.sh` (antes `scripts/ios-test.sh` aquí, borrado). Se agregó ADR 0021 §7 (enmienda) y se actualizaron el módulo y la fila PLAN-76. Docs, plan, specs y RPC `owner_*` siguen en este repo. La decisión de la tabla §3 "`apps/ios-owner/` en el monorepo" queda reemplazada por esta.
 
+## 11. Continuación — PLAN-77 (login, gate de rol, Face ID)
+
+Hecho en `moveon-owner-ios` (commit `8173761`): dominio de sesión y política de acceso, repositorio Supabase con mapeo de errores igual al web, login, recuperación de contraseña (enlace a `/restablecer-contrasena` del POS web, nueva clave `PASSWORD_RESET_URL` en `App.xcconfig`), bloqueo con Face ID/código. Detalle en `docs/modules/ios-owner.md` §Autenticación.
+
+**Tests:** paquete 33 en verde; app 15 en verde (`AppSession`: restaurar, bloquear/desbloquear, admin, cajero denegado con cierre de sesión, validación sin red, recuperación genérica).
+
+**QA en simulador contra Supabase local:** `cajero@moveon.local` → "Acceso solo para el dueño…"; `admin@moveon.local` → entra; reabrir la app restaura la sesión y pide desbloqueo con el código del iPhone (el simulador no tiene Face ID enrolado, así que no se probó la cara; sí el flujo de bloqueo). No se probó el envío real del correo de recuperación (requiere SMTP local/Inbucket, que estaba detenido).
+
+**Datos de prueba creados (solo local):** usuario `cajero@moveon.local` con fila `user_tiendas` rol `cajero` en la tienda demo.
+
 ## 8. Notas adicionales
 
 - Fuentes de datos ya existentes para la app: `get_stock_levels`, `get_monthly_sales_totals`, `get_monthly_expense_totals`, `get_reinvestment_fund_totals`, `list_cash_history_days`.

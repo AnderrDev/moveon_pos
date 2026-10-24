@@ -50,6 +50,14 @@ Las vistas y view models reciben **protocolos de `Domain`**; solo `AppContainer`
 | Stock | `get_stock_levels`, `inventory_movements` | 82 |
 | Finanzas | RPC `owner_finance_summary` (nueva), `get_monthly_sales_totals`, `get_monthly_expense_totals`, `get_reinvestment_fund_totals` | 83 |
 
+## Autenticación (PLAN-77)
+
+- `Domain/Auth`: `AuthRepository` (contrato), `OwnerAccessPolicy` (solo `admin`; con varias tiendas toma la primera donde es admin), `OwnerSession.signIn/restore` (revalidan el rol en cada apertura y **cierran sesión** si no es admin o si falla la lectura de `user_tiendas`), `LoginCredentials` (espejo de `loginFormSchema`).
+- `Data/Auth`: `SupabaseAuthRepository` (sesión en Keychain vía SDK; renovación con límite de 10 s como `GET_SESSION_TIMEOUT_MS`; `signOut(scope: .local)`), `AuthFailureMapper` (mismos criterios que `login-error-mapper.ts`).
+- App: `AppSession` (fases restaurando / login / bloqueada / dentro). La sesión restaurada arranca **bloqueada**; al pasar a segundo plano se bloquea. Desbloqueo con `LAPolicy.deviceOwnerAuthentication` (Face ID con el código del iPhone como respaldo); si el teléfono no tiene código ni biometría no se bloquea.
+- Recuperar contraseña envía el enlace a `PASSWORD_RESET_URL` (la página `/restablecer-contrasena` del POS web); la nueva contraseña se define allá. Mensaje genérico para no revelar si el correo existe.
+- Usuario de prueba local adicional: `cajero@moveon.local` / `Test1234!` (rol `cajero`, solo en el stack local) para verificar el rechazo.
+
 ## Reglas
 
 1. **No se reimplementan reducciones de negocio en Swift** (totales, utilidad, cuadres). Salen de RPC `owner_*` (`security invoker`, `stable`), cada una con un test de paridad contra el servicio TS que hoy calcula lo mismo:
