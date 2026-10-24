@@ -1,3 +1,4 @@
+import { auditDiff } from '@/shared/lib/audit-diff'
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
 import { SessionService } from '@angular-app/core/auth/session.service'
@@ -108,6 +109,14 @@ export class CustomersRepository extends CustomerRepositoryContract {
   }
 
   async update(id: string, tiendaId: string, input: ClienteInput): Promise<Cliente> {
+    // Valores anteriores para auditar qué cambió (antes → después).
+    const { data: beforeRow } = await this.supabaseClient.supabase
+      .from('clientes')
+      .select(CLIENTE_COLS)
+      .eq('id', id)
+      .eq('tienda_id', tiendaId)
+      .maybeSingle<ClienteRow>()
+
     const { data, error } = await this.supabaseClient.supabase
       .from('clientes')
       .update(toWriteValues(input) as TablesUpdate<'clientes'>)
@@ -118,16 +127,21 @@ export class CustomersRepository extends CustomerRepositoryContract {
     if (error) throw mapWriteError(error.message)
     if (!data) throw new Error('Cliente actualizado sin respuesta')
     const cliente = rowToCliente(data)
-    const auditChanges: Record<string, unknown> = {}
-    for (const [k, v] of Object.entries(input)) if (v !== undefined) auditChanges[k] = v
-    void this.audit.log({
-      tiendaId,
-      entityType: 'cliente',
-      entityId: id,
-      entityLabel: cliente.nombre,
-      action: 'update',
-      changes: auditChanges,
-    })
+    const editedFields = (Object.keys(input) as (keyof ClienteInput)[])
+      .filter((k) => input[k] !== undefined && k in cliente) as (keyof Cliente)[]
+    const auditChanges = beforeRow
+      ? auditDiff(rowToCliente(beforeRow), cliente, editedFields)
+      : Object.fromEntries(editedFields.map((k) => [k, { from: null, to: cliente[k] }]))
+    if (Object.keys(auditChanges).length > 0) {
+      void this.audit.log({
+        tiendaId,
+        entityType: 'cliente',
+        entityId: id,
+        entityLabel: cliente.nombre,
+        action: 'update',
+        changes: auditChanges,
+      })
+    }
     return cliente
   }
 

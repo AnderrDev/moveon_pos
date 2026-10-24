@@ -1,3 +1,4 @@
+import { AUDIT_MODULES } from '@angular-app/features/audit/domain/services/audit-modules'
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
 import { SessionService } from '@angular-app/core/auth/session.service'
@@ -38,12 +39,22 @@ export class AuditLogRepository extends AuditLogRepositoryContract {
   async list(tiendaId: string, filter: AuditLogFilter = {}): Promise<AuditLog[]> {
     let query = this.supabase.supabase
       .from('audit_logs')
-      .select('id, tienda_id, user_id, user_email, entity_type, entity_id, entity_label, action, changes, created_at')
+      .select('id, tienda_id, user_id, user_email, entity_type, entity_id, entity_label, action, changes, metadata, created_at')
       .eq('tienda_id', tiendaId)
       .order('created_at', { ascending: false })
       .limit(filter.limit ?? 200)
 
-    if (filter.entityType) query = query.eq('entity_type', filter.entityType)
+    if (filter.module) {
+      const module = AUDIT_MODULES.find((m) => m.key === filter.module)
+      if (module) {
+        // Las dos convenciones: tipo de entidad de la app o prefijo de acción de la base.
+        const conditions = [
+          `entity_type.in.(${module.entityTypes.join(',')})`,
+          ...module.actionPrefixes.map((p) => `action.like.${p}*`),
+        ]
+        query = query.or(conditions.join(','))
+      }
+    }
     if (filter.from) query = query.gte('created_at', filter.from.toISOString())
     if (filter.to) query = query.lt('created_at', filter.to.toISOString())
 

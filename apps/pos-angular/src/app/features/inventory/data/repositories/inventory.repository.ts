@@ -151,18 +151,7 @@ export class InventoryRepository extends InventoryRepositoryContract {
     if (error) throw new Error(error.message)
     if (!data) throw new Error('Ajuste creado sin respuesta')
     const movement = rowToInventoryMovement(data)
-    void this.audit.log({
-      tiendaId: input.tiendaId,
-      entityType: 'movimiento_inventario',
-      entityId: movement.id,
-      entityLabel: input.productName ?? input.productId,
-      action: 'adjust',
-      changes: {
-        cantidadDelta: input.cantidadDelta,
-        ubicacion: input.ubicacion,
-        motivo: input.motivo,
-      },
-    })
+    // El trigger tr_audit_inventory_adjustment ya audita (inventory.adjusted).
     return movement
   }
 
