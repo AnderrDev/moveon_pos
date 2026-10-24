@@ -3,6 +3,7 @@
 **Fecha:** 2026-10-24
 **Estado:** Aceptado (aprobado por el dueño el 2026-10-24)
 **Decisor:** Dueño del producto
+**Enmendado:** 2026-10-24 §6 (punto de venta completo, propuesto)
 **Modifica:** ADR 0021 §1 ("v1 de solo lectura", nombre "MOVE ON Dueño", "un POS móvil queda fuera de alcance")
 
 ## Contexto
@@ -98,3 +99,39 @@ ADR 0021 §2 (stack), §5 (seguridad: solo anon key, nunca service role), §7 (r
 1. Ninguna escritura del iPhone sin una RPC `*_atomic` existente o el mismo `update` del web; si hace falta otra, va en un ADR o en una enmienda.
 2. Cada escritura nueva lleva su fixture de payload y su test en ambos repos.
 3. Venta del iPhone: idempotencia, caja abierta y comprobante con los datos del servidor.
+
+## 6. Enmienda (2026-10-24): punto de venta completo — **propuesta**
+
+**Contexto.** PLAN-91 entregó un carrito simple (sin descuentos, cliente ni canje, §3). El dueño aclaró que lo que quiere es **el punto de venta del web en el iPhone**: "donde están todos los productos, podemos agregarlos y finiquitar la venta incluido descuento, asociar cliente y esas cosas". Sus respuestas:
+- todo lo del POS web: descuentos, asociar cliente, crear cliente y MOVE ON Club;
+- búsqueda por texto, sin cámara;
+- una pestaña propia "Vender".
+
+**Decisión.** Se reemplaza la limitación de §3 ("sin descuentos ni canje"):
+
+1. **Pestaña "Vender"** en la barra de abajo, que sustituye al botón de carrito de Ventas.
+   - Catálogo en cuadrícula, como el web: categorías, búsqueda por nombre, SKU o código de barras escrito, insignias de stock y productos agotados deshabilitados.
+   - Combos con sus productos incluidos, opciones editables en el carrito y el carrito siempre visible.
+   - El carrito sobrevive al cambio de pestaña.
+2. **Descuentos.**
+   - Por producto: pesos por unidad, hasta el precio.
+   - Global: en pesos o %, hasta el total disponible.
+   - Motivo obligatorio (≥ 3 caracteres) para el descuento discrecional.
+   - Todo con las reglas de `sale-calculator.ts` del web.
+3. **Cliente.**
+   - Buscar por nombre, documento o celular entre los clientes no eliminados, y asociarlo a la venta (`p_cliente_id`).
+   - Crear cliente desde el cobro con el mismo formulario y validaciones del web (`cliente.dto.ts`). Es el mismo insert del web sobre `clientes`, limitado a las columnas que la base permite al rol (`20261024000500`), y queda auditado.
+4. **MOVE ON Club.**
+   - Al asociar un cliente se ven sus sellos y recompensas disponibles (`loyalty_accounts` y `loyalty_rewards`, como el web) y los sellos que sumaría la venta.
+   - Se puede canjear una recompensa en una línea elegible (`p_loyalty_redemptions`), con las reglas de RN-LF del web.
+5. **Totales en el teléfono.** Para saber cuánto cobrar, la app calcula la vista previa con la misma lógica que el web (`sale-calculator.ts`: reparto del global, IVA incluido, canje). Es la única excepción al ADR 0021 §4 ("no se reimplementan reducciones"), y es la misma que ya hace el POS web.
+   - El servidor sigue recalculando y validando todo. El comprobante muestra sus cifras.
+   - **Paridad:** un test de contrato envía al Supabase local ventas con descuentos de línea, descuento global con reparto, canje y cliente, y compara el total del servidor con la vista previa de Swift, con fixtures compartidos.
+6. **Fuera de alcance** (sigue en el web):
+   - escáner con la cámara;
+   - impresión de tirilla;
+   - historial del turno con correcciones de pago o de cliente;
+   - abrir y cerrar caja.
+
+**Consecuencias.** Es la pantalla más grande de la app y la que más escribe. Cada parte lleva su contrato de payload y su QA contra el Supabase local antes de seguir con la siguiente (PLAN-92..96).
+

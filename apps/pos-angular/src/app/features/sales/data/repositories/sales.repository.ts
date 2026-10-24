@@ -160,13 +160,7 @@ export class SalesRepository extends SaleRepositoryContract {
       p_voided_reason: reason,
     })
     if (error) throw new Error(error.message)
-    void this.audit.log({
-      tiendaId,
-      entityType: 'venta',
-      entityId: saleId,
-      action: 'void',
-      changes: { reason },
-    })
+    // void_sale_atomic ya audita (sale.voided) con usuario y venta.
   }
 
   async correctPayment(

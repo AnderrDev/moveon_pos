@@ -126,7 +126,7 @@ Migración `20261024120000_owner_sales_summary.sql`. `owner_sales_summary(p_tien
 - **Salida (snake_case):** `from`, `to`, `timezone`, `total_ventas`, `count_ventas`, `count_anuladas`, `subtotal_ventas`, `tax_total`, `discount_total`, `item_discount_total`, `global_discount_total`, `discounted_sales_count`, `average_discount_percentage`, `avg_venta`, `utilidad_total`, y las listas `payment_breakdown` (`metodo`, `count`, `total`), `product_sales` (`product_id`, `nombre`, `sku`, `num_ventas`, `qty`, `total`, `avg_price`, `costo_unitario`, `costo_total`, `utilidad`, `margen_pct`), `cashier_breakdown` (`cashier_id`, `cashier_email`, `count_completed`, `count_voided`, `total_ventas`, `tax_total`), `hourly_sales` y `daily_sales` (`hour`/`date`, `count`, `total`, `avg_ticket`).
 - **Semántica = web:** totales solo de completadas; el canje del Club cuenta como descuento (`discount_total` lo incluye, como en el web); utilidad solo con costo conocido (un producto con alguna línea sin costo queda en `null`); una línea canjeada en 0 con costo da utilidad negativa, igual que en `/reportes`.
 - **Paridad:** `pnpm test:parity` (`tests/integration/owner-sales-summary.parity.test.ts`, config `vitest.integration.config.ts`). Necesita el Supabase local corriendo; crea dos usuarios y una tienda de prueba, carga `tests/integration/fixtures/owner-sales-summary.sql` con psql en el contenedor, compara la RPC con `buildSalesSummary` sobre las mismas filas y borra todo al final. Cubre: venta a las 23:30 local, anulada, pago mixto, descuento global, combo con costo fraccionario, canje del Club, línea sin costo, cambio de nombre del producto, ventas fuera del período y de otra tienda, cajero rechazado, sin sesión, rango inválido. No corre en `pnpm test`.
-- **Estado:** aplicada solo en el Supabase local. Al remoto se aplica con confirmación del dueño (antes de publicar la app, PLAN-84).
+- **Estado:** aplicada en local y en producción (2026-10-24, autorizada por el dueño en PLAN-84), junto con `owner_cash_session_summary` y `owner_finance_summary`, registradas en `schema_migrations`.
 
 ## Reglas
 
@@ -155,4 +155,8 @@ xcodebuild test -project MoveOnOwner.xcodeproj -scheme MoveOnOwner \
 
 ## Distribución
 
-Cuenta Apple Developer + TestFlight interno (ADR 0021 §6). Mientras no exista la cuenta: firma personal de Xcode en el iPhone del dueño (expira cada 7 días). **Pendiente:** decisión del dueño sobre la cuenta. Mientras tanto se trabaja con simulador y firma personal; la cuenta solo es necesaria en PLAN-84.
+Cuenta Apple Developer + TestFlight interno (ADR 0021 §6). Mientras no exista la cuenta: firma personal de Xcode en el iPhone del dueño (expira cada 7 días).
+
+- **Estado (2026-10-24):** no hay cuenta de pago; la única identidad de firma es una Apple Development personal. Hay dos iPhone emparejados con este Mac. La versión Release compila para iPhone (sin firmar) sin avisos y sin el modo demo.
+- **Build de producción:** `scripts/make_secrets.sh <archivo .env>` con `SUPABASE_URL` y `SUPABASE_ANON_KEY` de producción (los de `runtime-config.json` del web) y `PASSWORD_RESET_URL` del POS publicado; luego `xcodegen generate`, elegir el equipo personal en Xcode e instalar en el iPhone. Para volver a local: `scripts/make_secrets.sh` sin argumentos.
+- **Cuidado:** con la configuración de producción la app escribe datos reales (vender, anular, inventario, productos).

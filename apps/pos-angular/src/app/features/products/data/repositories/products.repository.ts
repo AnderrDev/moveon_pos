@@ -1,3 +1,4 @@
+import { auditDiff } from '@/shared/lib/audit-diff'
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
 import { fetchAllPages } from '@angular-app/core/supabase/fetch-all-pages'
@@ -195,6 +196,14 @@ export class ProductsRepository extends ProductRepositoryContract {
     if (dto.participaFidelizacion !== undefined) patch.participa_fidelizacion = dto.participaFidelizacion
     if (dto.isActive !== undefined) patch.is_active = dto.isActive
 
+    // Valores anteriores para auditar qué cambió (antes → después).
+    const { data: beforeRow } = await this.supabaseClient.supabase
+      .from('productos')
+      .select(PRODUCT_COLS)
+      .eq('id', id)
+      .eq('tienda_id', tiendaId)
+      .maybeSingle<ProductRow>()
+
     const { data, error } = await this.supabaseClient.supabase
       .from('productos')
       .update(patch)
@@ -206,16 +215,22 @@ export class ProductsRepository extends ProductRepositoryContract {
     if (error) throw new Error(error.message)
     if (!data) throw new Error('Producto actualizado sin respuesta')
     const product = rowToProduct(data)
-    const auditChanges: Record<string, unknown> = {}
-    for (const [k, v] of Object.entries(dto)) if (v !== undefined) auditChanges[k] = v
-    void this.audit.log({
-      tiendaId,
-      entityType: 'producto',
-      entityId: id,
-      entityLabel: product.nombre,
-      action: 'update',
-      changes: auditChanges,
-    })
+    const editedFields = (Object.keys(dto) as (keyof UpdateProductDto)[])
+      .filter((k) => dto[k] !== undefined && k in product) as (keyof Product)[]
+    const auditChanges = beforeRow
+      ? auditDiff(rowToProduct(beforeRow), product, editedFields)
+      : Object.fromEntries(editedFields.map((k) => [k, { from: null, to: product[k] }]))
+    // Sin cambios reales (guardar sin tocar nada) no se audita.
+    if (Object.keys(auditChanges).length > 0) {
+      void this.audit.log({
+        tiendaId,
+        entityType: 'producto',
+        entityId: id,
+        entityLabel: product.nombre,
+        action: 'update',
+        changes: auditChanges,
+      })
+    }
     return product
   }
 

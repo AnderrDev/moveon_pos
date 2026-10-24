@@ -181,13 +181,7 @@ export class CashRegisterRepository extends CashRegisterRepositoryContract {
       p_voided_reason: input.voidedReason,
     })
     if (error) throw new Error(error.message)
-    void this.audit.log({
-      tiendaId: input.tiendaId,
-      entityType: 'movimiento_caja',
-      entityId: input.movementId,
-      action: 'void',
-      changes: { reason: input.voidedReason },
-    })
+    // void_cash_movement_atomic ya audita (cash_movement.voided).
   }
 
   async listMovements(sessionId: string): Promise<CashMovement[]> {
@@ -267,18 +261,7 @@ export class CashRegisterRepository extends CashRegisterRepositoryContract {
 
     const session = await this.getSessionById(input.sessionId, input.tiendaId)
     if (!session) throw new Error('Cierre sin respuesta')
-    void this.audit.log({
-      tiendaId: input.tiendaId,
-      entityType: 'sesion_caja',
-      entityId: input.sessionId,
-      action: 'close',
-      changes: {
-        actualCashAmount: input.actualCashAmount,
-        closingWithdrawalAmount: input.actualCashAmount - input.cashLeftAmount,
-        cashLeftAmount: input.cashLeftAmount,
-        notasCierre: input.notasCierre ?? null,
-      },
-    })
+    // close_cash_session_atomic ya audita (cash_session.closed) con diferencias y retiro.
     return session
   }
 
@@ -292,13 +275,7 @@ export class CashRegisterRepository extends CashRegisterRepositoryContract {
       p_reason: input.reason,
     })
     if (error) throw new Error(error.message)
-    void this.audit.log({
-      tiendaId: input.tiendaId,
-      entityType: 'movimiento_caja',
-      entityId: input.movementId,
-      action: 'correct_movement',
-      changes: { newAmount: input.newAmount, newMotivo: input.newMotivo, reason: input.reason },
-    })
+    // correct_cash_movement_atomic ya audita (cash_movement.corrected) con antes/después.
   }
 
   async correctOpening(input: CorrectOpeningInput): Promise<CashSession> {
@@ -313,13 +290,7 @@ export class CashRegisterRepository extends CashRegisterRepositoryContract {
 
     const session = await this.getSessionById(input.sessionId, input.tiendaId)
     if (!session) throw new Error('Correccion sin respuesta')
-    void this.audit.log({
-      tiendaId: input.tiendaId,
-      entityType: 'sesion_caja',
-      entityId: input.sessionId,
-      action: 'correct_opening',
-      changes: { newAmount: input.newAmount, reason: input.reason },
-    })
+    // correct_cash_session_opening_atomic ya audita (cash_session.opening_corrected).
     return session
   }
 }

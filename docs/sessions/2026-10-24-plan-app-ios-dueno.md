@@ -288,6 +288,25 @@ Hecho en `moveon-owner-ios` (commit `e125945`, sin push). Detalle en `docs/modul
   - **Caja:** las ventas en efectivo del turno quedan en 43.000. La otra sesión registró a la vez un gasto de 18.000 y retiros por 140.000 en la misma caja, así que el esperado es 125.000 + 43.000 − 18.000 − 140.000 = 10.000.
   - **Visto en QA y corregido:** los campos del cobro no se veían dentro de la tarjeta (mismo fondo).
 
+## 26. PLAN-84 — QA integral, migraciones `owner_*` en producción y distribución
+
+- `moveon-owner-ios`: `main` con PLAN-91 subido (`47a9e97`).
+- **QA integral contra el Supabase local:**
+  - Face ID que no coincide → aviso del sistema; al cancelar queda en la pantalla de desbloqueo. El cajero queda rechazado con "Acceso solo para administradores…". Un correo inválido muestra su error y el admin entra con contraseña.
+  - El resumen muestra $1.283.000 en 7 ventas, igual que la RPC.
+  - La caja refleja en vivo un gasto anulado por la otra sesión: esperado 125.000 + 43.000 − 140.000 = 28.000.
+  - Antes de esto, cada PLAN se verificó en el simulador (§9–§25). Tests: 210 unitarios y 22 de interfaz en iOS; 35 de integración en el POS.
+- **Migraciones en producción** (pedido del dueño: "aplica… migraciones owner_* a producción"):
+  - **Antes:** producción no tenía funciones `owner_*`, y las dependencias (`get_reinvestment_fund_totals`, `get_monthly_sales_totals`, `get_monthly_expense_totals` y las tablas de gastos y caja) tenían las mismas firmas que en local.
+  - **Aplicación:** `20261024120000`, `130000` y `140000` en una sola transacción, con el registro en `schema_migrations`.
+  - **Verificación:** `SECURITY INVOKER`, `STABLE`, EXECUTE solo `authenticated`/`postgres`/`service_role` (sin `anon`) y las 3 versiones registradas. Al ejecutarlas como un admin real dentro de un bloque que siempre se revierte, las tres responden: ventas con 20 claves, caja abierta con 13 claves y finanzas con 6 meses de tendencia. No se leyeron cifras del negocio.
+- **Distribución:**
+  - No hay cuenta Apple Developer de pago (solo la identidad Apple Development personal), así que no hay TestFlight.
+  - La versión Release compila para iPhone sin firmar y sin avisos.
+  - Hay dos iPhone emparejados ("iPhone de Ander" e "iPhone de Vevita").
+  - **Pendiente de decisión del dueño:** instalar una versión que apunte a producción en su iPhone. Es irreversible en el sentido de que la app escribe datos reales; los pasos están en el módulo.
+- **Datos de QA creados en local en esta sesión** (solo local): productos y categoría "QA iOS…", ventas V-000005, entradas, ajustes y traslados de QA Creatina y la anulación de V-000002.
+
 ## 8. Notas adicionales
 
 - Fuentes de datos ya existentes para la app: `get_stock_levels`, `get_monthly_sales_totals`, `get_monthly_expense_totals`, `get_reinvestment_fund_totals`, `list_cash_history_days`.
