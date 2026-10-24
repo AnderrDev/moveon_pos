@@ -211,6 +211,20 @@ Hecho en `moveon-owner-ios` (commit `e125945`, sin push). Detalle en `docs/modul
   - La app mostró "Entrada registrada y costo de QA Creatina 300g actualizado" y recargó el stock y el kardex.
 - Sin cambios en el POS para este PLAN, aparte de los docs: el fixture y el test de contrato son de PLAN-85.
 
+## 22. Continuación — PLAN-88 (ajustes y traslados)
+
+- `moveon-owner-ios`: `main` con PLAN-87 subido (`e6c5e49`).
+- **POS** (`cca4637`): fixtures `adjust_stock.json`, `transfer_stock.json` y `audit_log_transfer.json`, con sus casos de contrato (un producto con 20 en bodega queda en 18 tras ajustar −2; el traslado de 4 mueve el stock y devuelve el id). `pnpm test:parity` → 27 en verde.
+- **iOS:**
+  - Dominio: `InventoryAdjustment`, `InventoryTransfer`, `AdjustStockUseCase` y `TransferStockUseCase` (validan, llaman a la RPC y auditan; si la RPC falla no se audita).
+  - Datos: `AdjustStockParams`, `TransferStockParams` y `SupabaseInventoryWriter` (el ajuste devuelve la fila y se toma su id).
+  - Presentación: `StockAdjustmentFormViewModel`/`Sheet`, `StockTransferFormViewModel`/`Sheet`, `StockWrite` + `StockWriteSheet` (enrutado común de las tres escrituras) y el marco `StockFormChrome`. `SecondaryButton` y `Validators.requiredText` van en Core.
+  - Pasan 173 tests unitarios (con la auditoría comparada contra los contratos) y 17 de interfaz (2 nuevos: ajuste negativo con confirmación y traslado).
+- **QA contra el Supabase local** (QA Creatina 300g, antes: punto de venta 6, bodega 11):
+  - **Traslado:** pedir 20 muestra "Stock insuficiente en origen. Disponible: 11" y "Describe el motivo del traslado". Con 5 y "QA iOS traslado" quedan `transfer_out` −5 en bodega y `transfer_in` +5 en punto de venta, con 11 / 6.
+  - **Ajuste −1 en bodega:** "QA iOS: corrige entrada duplicada" compensa la entrada accidental de PLAN-87. La confirmación aparece antes de guardar (0 ajustes en la base hasta confirmar) y luego queda `adjustment` −1, con 11 / 5.
+  - **Auditoría:** `audit_logs` tiene las dos filas del cliente (`transfer` y `adjust`) con `admin@moveon.local`, la etiqueta "QA Creatina 300g" y los `changes` del web, más la fila `inventory.adjusted` del trigger del servidor.
+
 ## 8. Notas adicionales
 
 - Fuentes de datos ya existentes para la app: `get_stock_levels`, `get_monthly_sales_totals`, `get_monthly_expense_totals`, `get_reinvestment_fund_totals`, `list_cash_history_days`.
