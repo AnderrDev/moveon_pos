@@ -8,7 +8,9 @@ import {
   signal,
 } from '@angular/core'
 import { getErrorMessage } from '@/shared/lib/error-message'
-import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
+import { AdjustStockFormPresenter } from '@angular-app/features/inventory/presentation/presenters/adjust-stock-form.presenter'
+import { adjustStockFormMapper } from '@angular-app/features/inventory/presentation/forms/adjust-stock-form.mapper'
+import { ReactiveFormsModule } from '@angular/forms'
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 import { FormNumberInputComponent } from '@angular-app/shared/molecules/form-number-input.component'
@@ -38,6 +40,7 @@ const LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
   selector: 'mo-adjust-stock-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [AdjustStockFormPresenter],
   imports: [
     ReactiveFormsModule,
     DialogComponent,
@@ -60,9 +63,10 @@ const LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
       [busy]="saving()"
       (closed)="onClose()"
     >
-      <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
+      <form [formGroup]="presenter.form" (ngSubmit)="submit()" class="space-y-4">
         <mo-form-number-input
           controlName="cantidadDelta"
+          [error]="presenter.errors().cantidadDelta ?? null"
           label="Variación (+ entrada / − salida)"
           description="Ej: 5 para sumar, -3 para restar"
           [step]="1"
@@ -71,6 +75,7 @@ const LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
         />
         <mo-form-select
           controlName="ubicacion"
+          [error]="presenter.errors().ubicacion ?? null"
           label="Ubicacion"
           [required]="true"
           [options]="locationOptions"
@@ -78,13 +83,14 @@ const LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
         />
         <mo-form-textarea
           controlName="motivo"
+          [error]="presenter.errors().motivo ?? null"
           label="Motivo"
           [required]="true"
           [rows]="3"
           placeholder="Conteo fisico, daño, perdida, etc."
         />
 
-        <mo-form-error [message]="rootError()" />
+        <mo-form-error [message]="presenter.errors().root ?? null" />
 
         <mo-dialog-footer>
           <mo-button variant="outline" type="button" [disabled]="saving()" (click)="onClose()"
@@ -102,6 +108,7 @@ export class AdjustStockDialog {
   private readonly repo = inject(InventoryRepository)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
+  readonly presenter = inject(AdjustStockFormPresenter)
 
   readonly open = input<boolean>(false)
   readonly product = input<ProductSummary | null>(null)
@@ -110,73 +117,50 @@ export class AdjustStockDialog {
   readonly saved = output<void>()
 
   readonly saving = signal(false)
-  readonly rootError = signal<string | null>(null)
   readonly locationOptions = LOCATION_OPTIONS
-
-  readonly form = new FormGroup({
-    cantidadDelta: new FormControl<number>(0, {
-      nonNullable: true,
-      validators: [Validators.required],
-    }),
-    ubicacion: new FormControl<InventoryLocation>('punto_venta', {
-      nonNullable: true,
-      validators: [Validators.required],
-    }),
-    motivo: new FormControl<string>('', {
-      nonNullable: true,
-      validators: [Validators.required, Validators.minLength(3)],
-    }),
-  })
 
   constructor() {
     effect(() => {
       if (this.open()) {
-        this.form.reset({ cantidadDelta: 0, ubicacion: 'punto_venta', motivo: '' })
-        this.rootError.set(null)
+        this.presenter.reset()
       }
     })
   }
 
   async submit(): Promise<void> {
     if (this.saving()) return
-    this.form.markAllAsTouched()
-    if (this.form.invalid) return
+    const value = this.presenter.validate()
+    if (!value) return
 
-    const value = this.form.getRawValue()
     const product = this.product()
     if (!product) return
 
     const auth = await this.session.getAuthContext()
     if (!auth) {
-      this.rootError.set('Sesion expirada')
+      this.presenter.setRootError('Sesion expirada')
       return
     }
 
     this.saving.set(true)
-    this.form.disable({ emitEvent: false })
+    this.presenter.form.disable({ emitEvent: false })
 
     try {
       const result = await adjustStock(
         { repo: this.repo, tiendaId: auth.tiendaId, createdBy: auth.userId },
-        {
-          productId: product.id,
-          cantidadDelta: Number(value.cantidadDelta),
-          ubicacion: value.ubicacion,
-          motivo: value.motivo.trim(),
-        },
+        adjustStockFormMapper.toPayload(value, product.id),
       )
       if (!result.ok) {
-        this.rootError.set(result.error.message)
+        this.presenter.setRootError(result.error.message)
         return
       }
       this.toast.success('Ajuste registrado')
       this.saved.emit()
       this.closed.emit()
     } catch (error) {
-      this.rootError.set(getErrorMessage(error, 'Error al ajustar stock'))
+      this.presenter.setRootError(getErrorMessage(error, 'Error al ajustar stock'))
     } finally {
       this.saving.set(false)
-      this.form.enable({ emitEvent: false })
+      this.presenter.form.enable({ emitEvent: false })
     }
   }
 

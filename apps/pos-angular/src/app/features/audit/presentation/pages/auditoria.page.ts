@@ -10,25 +10,11 @@ import { SessionService } from '@angular-app/core/auth/session.service'
 import { AuditLogRepository } from '@angular-app/features/audit/domain/repositories/audit-log.repository'
 import type { AuditLog, AuditEntityType } from '@angular-app/features/audit/domain/entities/audit-log.entity'
 import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
-
-type DateRange = 'today' | 'week' | 'month' | 'all'
-
-function dateRangeToDates(range: DateRange): { from?: Date; to?: Date } {
-  const now = new Date()
-  if (range === 'today') {
-    const from = new Date(now); from.setHours(0, 0, 0, 0)
-    return { from }
-  }
-  if (range === 'week') {
-    const from = new Date(now); from.setDate(now.getDate() - 7); from.setHours(0, 0, 0, 0)
-    return { from }
-  }
-  if (range === 'month') {
-    const from = new Date(now); from.setDate(now.getDate() - 30); from.setHours(0, 0, 0, 0)
-    return { from }
-  }
-  return {}
-}
+import { TiendaInfoService } from '@angular-app/core/tienda/tienda-info.service'
+import {
+  auditRangeStart,
+  type AuditDateRange,
+} from '@angular-app/features/audit/presentation/services/audit-date-range'
 
 const ACTION_LABELS: Record<string, string> = {
   create: 'Crear',
@@ -166,12 +152,13 @@ const ACTION_VARIANT: Record<string, 'default' | 'warning' | 'destructive'> = {
 export class AuditoriaPage {
   private readonly repo = inject(AuditLogRepository)
   private readonly session = inject(SessionService)
+  private readonly tiendaInfo = inject(TiendaInfoService)
 
   readonly logs = signal<AuditLog[]>([])
   readonly loading = signal(true)
   readonly loadError = signal<string | null>(null)
   readonly filterModule = signal<string>('')
-  readonly dateRange = signal<DateRange>('week')
+  readonly dateRange = signal<AuditDateRange>('week')
 
   constructor() {
     void this.load()
@@ -183,13 +170,13 @@ export class AuditoriaPage {
     try {
       const auth = await this.session.getAuthContext()
       if (!auth) throw new Error('No autenticado')
-      const { from, to } = dateRangeToDates(this.dateRange())
+      const { timezone } = await this.tiendaInfo.get(auth.tiendaId)
+      const from = auditRangeStart(this.dateRange(), timezone)
       const mod = this.filterModule()
       this.logs.set(
         await this.repo.list(auth.tiendaId, {
           entityType: mod ? (mod as AuditEntityType) : undefined,
           from,
-          to,
           limit: 500,
         })
       )
@@ -206,7 +193,7 @@ export class AuditoriaPage {
   }
 
   onDateRangeChange(event: Event): void {
-    this.dateRange.set((event.target as HTMLSelectElement).value as DateRange)
+    this.dateRange.set((event.target as HTMLSelectElement).value as AuditDateRange)
     void this.load()
   }
 

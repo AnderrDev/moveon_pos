@@ -1,0 +1,12 @@
+{
+  "description": "Edición de un producto: solo los campos que cambiaron; vaciar un campo envía null (PLAN-89)",
+  "kind": "update",
+  "target": "productos",
+  "match": { "id": "{{producto_id}}", "tienda_id": "{{tienda_id}}" },
+  "payload": {
+    "precio_venta": 105000,
+    "costo": null,
+    "codigo_barras": null,
+    "stock_minimo": 3
+  }
+}

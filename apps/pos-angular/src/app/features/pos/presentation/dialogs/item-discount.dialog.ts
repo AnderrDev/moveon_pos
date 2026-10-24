@@ -1,20 +1,22 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  computed,
   effect,
+  inject,
   input,
   output,
-  signal,
 } from '@angular/core'
-import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
+import { toSignal } from '@angular/core/rxjs-interop'
+import { ReactiveFormsModule } from '@angular/forms'
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 import { FormCurrencyInputComponent } from '@angular-app/shared/molecules/form-currency-input.component'
 import { FormNumberInputComponent } from '@angular-app/shared/molecules/form-number-input.component'
-import { FormErrorComponent } from '@angular-app/shared/molecules/form-error.component'
 import type { PosCartItem } from '@angular-app/features/pos/presentation/services/pos-cart.store'
 import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
+import { ItemDiscountFormPresenter } from '@angular-app/features/pos/presentation/presenters/item-discount-form.presenter'
+import { itemDiscountFormMapper } from '@angular-app/features/pos/presentation/forms/item-discount-form.mapper'
+import type { DiscountMode } from '@angular-app/features/pos/presentation/forms/item-discount-form.factory'
 
 export interface ItemDiscountResult {
   key: string
@@ -26,18 +28,19 @@ export interface ItemDiscountResult {
   selector: 'mo-item-discount-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MoneyPipe, 
+  providers: [ItemDiscountFormPresenter],
+  imports: [
+    MoneyPipe,
     ReactiveFormsModule,
     DialogComponent,
     ButtonComponent,
     FormCurrencyInputComponent,
     FormNumberInputComponent,
-    FormErrorComponent,
   ],
   template: `
     <mo-dialog [open]="open()" title="Descuento por producto" width="sm" (closed)="onClose()">
       @if (item(); as i) {
-        <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
+        <form [formGroup]="presenter.form" (ngSubmit)="submit()" class="space-y-4">
           <div class="bg-muted/50 rounded-lg px-3.5 py-2.5">
             <p class="truncate text-sm font-semibold">{{ i.nombre }}</p>
             <p class="text-muted-foreground text-xs tabular-nums">
@@ -75,7 +78,7 @@ export interface ItemDiscountResult {
                 controlName="discountAmount"
                 description="Monto en pesos descontado de cada unidad."
                 [max]="i.unitPrice"
-                [error]="amountError()"
+                [error]="presenter.errors().discountAmount ?? null"
               />
             } @else {
               <mo-form-number-input
@@ -84,12 +87,10 @@ export interface ItemDiscountResult {
                 placeholder="0"
                 [min]="0"
                 [max]="100"
-                [error]="amountError()"
+                [error]="presenter.errors().discountPercent ?? null"
               />
             }
           </div>
-
-          <mo-form-error [message]="amountError()" />
 
           <div class="flex justify-end gap-2 pt-1">
             <mo-button variant="outline" type="button" (click)="onClose()">Cancelar</mo-button>
@@ -107,52 +108,26 @@ export class ItemDiscountDialog {
   readonly closed = output<void>()
   readonly applied = output<ItemDiscountResult>()
 
-  readonly amountError = signal<string | null>(null)
-  readonly discountMode = signal<'amount' | 'percent'>('amount')
-
-  readonly form = new FormGroup({
-    discountAmount: new FormControl<number>(0, {
-      nonNullable: true,
-      validators: [Validators.min(0)],
-    }),
-    discountPercent: new FormControl<number>(0, {
-      nonNullable: true,
-      validators: [Validators.min(0), Validators.max(100)],
-    }),
+  readonly presenter = inject(ItemDiscountFormPresenter)
+  readonly discountMode = toSignal(this.presenter.form.controls.discountMode.valueChanges, {
+    initialValue: this.presenter.form.controls.discountMode.value,
   })
-
-  readonly maxDiscount = computed(() => this.item()?.unitPrice ?? 0)
 
   constructor() {
     effect(() => {
-      if (this.open()) {
-        this.discountMode.set('amount')
-        this.form.reset({ discountAmount: this.item()?.discountAmount ?? 0, discountPercent: 0 })
-        this.amountError.set(null)
-      }
+      if (this.open()) this.presenter.reset(itemDiscountFormMapper.toFormValue(this.item()))
     })
   }
 
-
-  setDiscountMode(mode: 'amount' | 'percent'): void {
-    if (this.discountMode() === mode) return
-    this.discountMode.set(mode)
-
-    // Al cambiar de modo, refleja el descuento actual en el input que se va a
-    // mostrar (la fuente de verdad sigue siendo el monto por unidad en pesos).
+  setDiscountMode(mode: DiscountMode): void {
     const unitPrice = this.item()?.unitPrice ?? 0
-    if (mode === 'percent') {
-      const amount = this.form.controls.discountAmount.value
-      const percent = unitPrice > 0 ? Math.round((amount / unitPrice) * 100) : 0
-      this.form.controls.discountPercent.setValue(percent)
-    } else {
-      const percent = this.form.controls.discountPercent.value
-      this.form.controls.discountAmount.setValue(Math.round((unitPrice * percent) / 100))
-    }
-    this.amountError.set(null)
+    this.presenter.form.setValue(
+      itemDiscountFormMapper.switchMode(this.presenter.form.getRawValue(), mode, unitPrice),
+    )
+    this.presenter.clearErrors()
   }
 
-  discountModeClass(mode: 'amount' | 'percent'): string {
+  discountModeClass(mode: DiscountMode): string {
     const active = this.discountMode() === mode
     return [
       'h-8 min-w-9 rounded-md border px-2.5 text-xs font-semibold transition-colors',
@@ -165,22 +140,9 @@ export class ItemDiscountDialog {
   submit(): void {
     const item = this.item()
     if (!item) return
-
-    const amount =
-      this.discountMode() === 'percent'
-        ? Math.round((item.unitPrice * this.form.controls.discountPercent.value) / 100)
-        : this.form.controls.discountAmount.value
-    if (amount < 0) {
-      this.amountError.set('El descuento no puede ser negativo')
-      return
-    }
-    if (amount > item.unitPrice) {
-      this.amountError.set('El descuento no puede superar el precio unitario')
-      return
-    }
-
-    this.amountError.set(null)
-    this.applied.emit({ key: item.key, discountAmount: amount })
+    const value = this.presenter.validate(item.unitPrice)
+    if (!value) return
+    this.applied.emit({ key: item.key, discountAmount: itemDiscountFormMapper.toDiscountAmount(value, item.unitPrice) })
     this.closed.emit()
   }
 

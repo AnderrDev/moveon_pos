@@ -15,6 +15,7 @@
  */
 
 import type { Sale } from '@angular-app/features/sales/domain/entities/sale.entity'
+import { storeDateIso } from '@/shared/lib/day-range'
 
 /** Resumen agregado de ventas completadas de una hora local del período. */
 export interface HourlySalesSummary {
@@ -50,16 +51,6 @@ function localHour(date: Date, timezone: string): number {
   const part = dtf.formatToParts(date).find((p) => p.type === 'hour')
   // `Intl` rinde la hora 24 como 0 en algunos runtimes; normalizamos.
   return part ? Number(part.value) % 24 : 0
-}
-
-/** Formatea `date` a `YYYY-MM-DD` en `timezone`, vía `Intl` (mismo patrón que `isoDate` de `report-period.helpers.ts`, reimplementado aquí porque ese archivo es de la capa Angular-feature, no de dominio). */
-function localDateIso(date: Date, timezone: string): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: timezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(date)
 }
 
 /**
@@ -122,7 +113,7 @@ export function groupSalesByLocalDay(sales: Sale[], timezone: string): DailySale
   for (const sale of sales) {
     if (sale.status !== 'completed') continue
 
-    const date = localDateIso(sale.createdAt, timezone)
+    const date = storeDateIso(sale.createdAt, timezone)
     const current = byDay.get(date) ?? { count: 0, total: 0 }
     current.count += 1
     current.total += sale.total

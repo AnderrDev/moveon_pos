@@ -250,3 +250,18 @@ Se dejó a propósito: el esqueleto con layout del POS, el tono del carrito dura
 Verificado en local (runtime-config en local): historial (detalle, filtro por transferencia 3/7, "Corregir" abre su diálogo), reportes (periodos, estado y método 7 → 1 → 3, tablas con alineación y padding del sistema), caja (resumen con los mismos valores, Corregir/Anular movimiento), productos (editar batido: agregar/quitar componente, opción repetida rechazada, cambiar predeterminada; combo con ahorro; nuevo producto con inventario inicial y combo sin stock), POS (íconos 16/20/12 px, cobro en `mo-dialog`, Escape con selector encima, venta completada con toast), login con `mo-button`. `pnpm lint`, typecheck y 843 tests en verde.
 
 Sin publicar hasta que el dueño lo confirme (merge `dev` → `main`).
+
+## 21. P2 #16 y #17 — formularios al patrón Zod y fechas de la tienda
+
+- **Zona horaria (#17):** `storeDateIso` y `shiftIsoDate` en `src/shared/lib/day-range.ts` son la única fuente de "hoy en la tienda"; reportes (`isoDate`/`addDays` delegan), `sales-trend`, historial de caja y nombre de exportaciones la reutilizan. `/auditoria` ya no usa `setHours` del dispositivo: `auditRangeStart` (audit/presentation/services) calcula medianoche de la tienda de hoy / −7 / −30 días con la zona de `TiendaInfoService`. 5 tests.
+- **Formularios (#16):** los 8 que validaban con `Validators` de Angular pasan a factory + mapper + presenter:
+  - Caja: abrir caja (en `caja.page` + `mo-cash-open-session-form`), agregar movimiento, corregir movimiento, corregir apertura.
+  - Inventario: entrada de mercancía, ajuste, traslado.
+  - POS: descuento por producto (schema armado con el precio unitario; conversión $↔% en el mapper).
+  - Los schemas se derivan del DTO del dominio (`omit`, `extend` + `z.string().trim().pipe(dto.shape.x)`), así que la regla vive en un solo lugar. `inventory.dto.ts` expone `transferStockFieldsSchema` + `transferLocationsDiffer`/`TRANSFER_LOCATIONS_ERROR` para que DTO y formulario compartan "origen ≠ destino".
+  - Comportamiento visible: los errores ahora salen en cada campo (antes el formulario solo no enviaba). El stock insuficiente del traslado sigue como error general (depende del producto).
+  - 13 tests nuevos (caja 6, inventario 5, descuento 3 — más los 5 de fechas). Total 861.
+- **Verificado en local:** descuento (100 % → 150 % rechazado → 20 % = $38.000), ajuste (errores en campo; PV 9→10), traslado (origen = destino, stock insuficiente, 2 und bodega→PV), entrada (costo prellenado, total $141.000, bodega 3→6), movimiento de caja (motivo recortado rechazado, gasto registrado), corregir movimiento y apertura (motivo mínimo), cierre y reapertura con la sugerencia del último cierre, `/auditoria` "Hoy".
+- `tsc --noEmit` falla solo en `tests/integration/ios-payloads.contract.test.ts`, trabajo sin commitear de la sesión iOS; el build de Angular y lint pasan.
+- Commits: ed9b811 6fd3dad (+ docs). Sin publicar.
+- **Queda del #16:** 5 diálogos con Zod en línea pero sin presenter (gastos: nómina, plantilla, fondo, empleado; fidelización: ajuste de sellos del cliente).

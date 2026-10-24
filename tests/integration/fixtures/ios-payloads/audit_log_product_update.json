@@ -1,0 +1,20 @@
+{
+  "description": "Auditoría de la edición de un producto: las claves del web, solo los campos que cambiaron (PLAN-89)",
+  "kind": "insert",
+  "target": "audit_logs",
+  "payload": {
+    "tienda_id": "{{tienda_id}}",
+    "user_id": "{{user_id}}",
+    "user_email": "{{user_email}}",
+    "entity_type": "producto",
+    "entity_id": "{{entity_id}}",
+    "entity_label": "Proteína contrato",
+    "action": "update",
+    "changes": {
+      "precioVenta": 105000,
+      "costo": null,
+      "codigoBarras": null,
+      "stockMinimo": 3
+    }
+  }
+}

@@ -1,3 +1,4 @@
+import { shiftIsoDate, storeDateIso } from '@/shared/lib/day-range'
 /**
  * Lógica pura de fechas/presets para el módulo de reportes.
  *
@@ -15,12 +16,7 @@ export type SalesStatusFilter = 'all' | 'completed' | 'voided'
 
 /** Formatea `date` a `YYYY-MM-DD` en la zona horaria indicada. */
 export function isoDate(date: Date, timezone: string): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: timezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(date)
+  return storeDateIso(date, timezone)
 }
 
 // Toda la aritmética de estas funciones opera en UTC (`T00:00:00Z`, `Date.UTC`,
@@ -29,9 +25,7 @@ export function isoDate(date: Date, timezone: string): string {
 
 /** Suma (o resta) `days` días a una fecha `YYYY-MM-DD`. */
 export function addDays(iso: string, days: number): string {
-  const d = new Date(`${iso}T00:00:00Z`)
-  d.setUTCDate(d.getUTCDate() + days)
-  return d.toISOString().slice(0, 10)
+  return shiftIsoDate(iso, days)
 }
 
 /** Lunes de la semana ISO que contiene `iso`. */

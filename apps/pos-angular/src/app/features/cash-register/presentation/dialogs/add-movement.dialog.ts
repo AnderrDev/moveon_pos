@@ -8,7 +8,9 @@ import {
   signal,
 } from '@angular/core'
 import { getErrorMessage } from '@/shared/lib/error-message'
-import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
+import { AddMovementFormPresenter } from '@angular-app/features/cash-register/presentation/presenters/add-movement-form.presenter'
+import { addMovementFormMapper } from '@angular-app/features/cash-register/presentation/forms/add-movement-form.mapper'
+import { ReactiveFormsModule } from '@angular/forms'
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 import { FormCurrencyInputComponent } from '@angular-app/shared/molecules/form-currency-input.component'
@@ -36,6 +38,7 @@ const TIPO_OPTIONS: FormSelectOption<string>[] = [
   selector: 'mo-add-movement-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [AddMovementFormPresenter],
   imports: [
     ReactiveFormsModule,
     DialogComponent,
@@ -48,23 +51,23 @@ const TIPO_OPTIONS: FormSelectOption<string>[] = [
   ],
   template: `
     <mo-dialog [open]="open()" title="Movimiento de caja" [busy]="saving()" (closed)="onClose()">
-      <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
+      <form [formGroup]="presenter.form" (ngSubmit)="submit()" class="space-y-4">
         <mo-form-select
-          controlName="tipo"
+          controlName="tipo" [error]="presenter.errors().tipo ?? null"
           label="Tipo"
           [placeholder]="null"
           [options]="tipoOptions"
         />
-        <mo-form-currency-input controlName="amount" label="Monto" [required]="true" />
+        <mo-form-currency-input controlName="amount" [error]="presenter.errors().amount ?? null" label="Monto" [required]="true" />
         <mo-form-textarea
-          controlName="motivo"
+          controlName="motivo" [error]="presenter.errors().motivo ?? null"
           label="Motivo"
           [required]="true"
           [rows]="2"
           placeholder="Detalle de la operacion"
         />
 
-        <mo-form-error [message]="rootError()" />
+        <mo-form-error [message]="presenter.errors().root ?? null" />
 
         <mo-dialog-footer>
           <mo-button variant="outline" type="button" [disabled]="saving()" (click)="onClose()"
@@ -82,6 +85,7 @@ export class AddMovementDialog {
   private readonly repo = inject(CashRegisterRepository)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
+  readonly presenter = inject(AddMovementFormPresenter)
 
   readonly open = input<boolean>(false)
   readonly sessionId = input<string | null>(null)
@@ -91,68 +95,50 @@ export class AddMovementDialog {
   readonly saved = output<void>()
 
   readonly saving = signal(false)
-  readonly rootError = signal<string | null>(null)
   readonly tipoOptions = TIPO_OPTIONS
-
-  readonly form = new FormGroup({
-    tipo: new FormControl<string>('cash_in', {
-      nonNullable: true,
-      validators: [Validators.required],
-    }),
-    amount: new FormControl<number>(0, {
-      nonNullable: true,
-      validators: [Validators.required, Validators.min(1)],
-    }),
-    motivo: new FormControl<string>('', {
-      nonNullable: true,
-      validators: [Validators.required, Validators.minLength(3)],
-    }),
-  })
 
   constructor() {
     effect(() => {
       if (this.open()) {
-        this.form.reset({ tipo: this.initialType(), amount: 0, motivo: '' })
-        this.rootError.set(null)
+        this.presenter.reset({ tipo: this.initialType() })
       }
     })
   }
 
   async submit(): Promise<void> {
     if (this.saving()) return
-    this.form.markAllAsTouched()
-    if (this.form.invalid) return
+    const value = this.presenter.validate()
+    if (!value) return
 
     const sid = this.sessionId()
     if (!sid) return
 
     const auth = await this.session.getAuthContext()
     if (!auth) {
-      this.rootError.set('Sesion expirada')
+      this.presenter.setRootError('Sesion expirada')
       return
     }
 
     this.saving.set(true)
-    this.form.disable({ emitEvent: false })
+    this.presenter.form.disable({ emitEvent: false })
 
     try {
-      const value = this.form.getRawValue()
       const result = await addCashMovement(
         { repo: this.repo, cashSessionId: sid, createdBy: auth.userId },
-        { tipo: value.tipo as CashMovementType, amount: value.amount, motivo: value.motivo.trim() }
+        addMovementFormMapper.toPayload(value),
       )
       if (!result.ok) {
-        this.rootError.set(result.error.message)
+        this.presenter.setRootError(result.error.message)
         return
       }
       this.toast.success('Movimiento registrado')
       this.saved.emit()
       this.closed.emit()
     } catch (error) {
-      this.rootError.set(getErrorMessage(error, 'Error al registrar'))
+      this.presenter.setRootError(getErrorMessage(error, 'Error al registrar'))
     } finally {
       this.saving.set(false)
-      this.form.enable({ emitEvent: false })
+      this.presenter.form.enable({ emitEvent: false })
     }
   }
 

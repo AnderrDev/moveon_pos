@@ -16,11 +16,13 @@ una escritura. Es el contrato entre los dos repos:
   "description": "Qué escritura es y desde qué pantalla",
   "kind": "rpc",                       // "rpc" → supabase.rpc(target, payload)
                                        // "insert" → supabase.from(target).insert(payload)
+                                       // "update" → supabase.from(target).update(payload).match(match)
   "target": "register_inventory_entry_atomic",
   "payload": { "p_tienda_id": "{{tienda_id}}", "p_cantidad": 12 }
 }
 ```
 
+- `match` (solo en `update`): las columnas que identifican la fila.
 - Los valores que cambian en cada corrida (ids, correo) van como marcadores
   `"{{nombre}}"`; ambos lados los reemplazan por sus propios valores antes de
   comparar o enviar.

@@ -27,7 +27,7 @@ export type OpenSessionForm = FormGroup<{ openingAmount: FormControl<number> }>
       }
 
       <form [formGroup]="form()" (ngSubmit)="submitted.emit()" class="mt-4 space-y-4">
-        <mo-form-currency-input controlName="openingAmount" label="Monto de apertura" [required]="true" />
+        <mo-form-currency-input controlName="openingAmount" label="Monto de apertura" [required]="true" [error]="amountError()" />
         <mo-form-error [message]="error()" />
         <mo-button type="submit" [loading]="opening()" loadingText="Abriendo..." class="w-full">
           Abrir caja
@@ -39,6 +39,7 @@ export type OpenSessionForm = FormGroup<{ openingAmount: FormControl<number> }>
 export class CashOpenSessionFormComponent {
   readonly form = input.required<OpenSessionForm>()
   readonly suggestedAmount = input<number | null>(null)
+  readonly amountError = input<string | null>(null)
   readonly error = input<string | null>(null)
   readonly opening = input(false)
   readonly submitted = output<void>()
