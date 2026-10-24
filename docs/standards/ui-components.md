@@ -38,6 +38,7 @@ apps/pos-angular/src/app/shared/
 │   ├── stat-card.component.ts     (mo-stat-card)
 │   ├── dialog-footer.component.ts (mo-dialog-footer)
 │   ├── segmented.component.ts     (mo-segmented: filtro de selección única)
+│   ├── menu.component.ts          (mo-menu + moMenuItem: acciones secundarias "⋯")
 │   └── table/
 │       ├── table-shell.component.ts  (mo-table-shell)
 │       └── table.directives.ts       (moTable, moThead, moTh, moTr, moTd — export MO_TABLE)
@@ -73,6 +74,7 @@ Criterio de nivel: **atom** = un elemento estilizado; **molecule** = composició
 | `mo-dialog` | `open`, `title`*, `description`, `busy`, `width: sm\|md\|lg\|xl` · `(closed)`. Escape cierra solo el diálogo de arriba (pila de abiertos) |
 | `mo-field-wrapper` y `mo-form-*` | `controlName`* + `label`/`error`/`required` — enlazan al FormGroup padre vía `viewProviders` (ver forms.md) |
 | `mo-segmented` | `options`* (`{ value, label }[]`), `[(value)]`* (string) — filas de filtros (método de pago, estado, periodo). No usar para pestañas principales |
+| `mo-menu` + `moMenuItem` (`MO_MENU`) | `label` (aria-label, def. "Más acciones"), `showLabel`, `size: default\|sm` · ng-content de `<button moMenuItem>` / `<a moMenuItem>`. Panel `fixed` (no se recorta en tablas), cierra al elegir, clic fuera, Escape o scroll. Úsalo cuando una cabecera o fila tenga más de 2 acciones: 1–2 visibles + el resto aquí |
 | `mo-sale-detail-body` | `sale`*, `canCorrectPayment` · `(correctPayment)` → `{ paymentId, metodo }` |
 | `mo-empty-state` | `title`*, `description` + slot de acción |
 | `mo-page-header` | `title`*, `subtitle` + slot de acciones |
@@ -142,6 +144,24 @@ export class BadgeComponent {
 - Clases dinámicas con `[class]` + `computed()`; si crece, extrae a un `helpers.ts` de la propia feature.
 - Nunca clases arbitrarias (`text-[#ff0000]`) salvo justificación documentada.
 - Iconos: SVG inline o librería Angular (`lucide-angular`, `ng-icons`). **No** `lucide-react`.
+- **Iconos `lucide-angular`: posiciona un `<span>` envoltorio, no el `<lucide-angular>`.** Las clases del host se copian al `<svg>` interno, así que `absolute left-3 -translate-y-1/2` en el host desplaza el ícono dos veces (bug visto en buscadores). Patrón: `<span class="absolute inset-y-0 left-3 flex items-center"><lucide-angular [img]="…" class="h-4 w-4" /></span>`.
+
+### 5.1 Identidad de marca (2026-10-24)
+
+El POS usa la identidad MOVE ON (la misma del catálogo/landing):
+
+| Token | Valor | Uso |
+|---|---|---|
+| `primary` | amarillo de marca `#F9D128` | **Solo relleno**: botón primario, ítem de nav activo, "+" de agregar, progreso. Texto encima siempre negro (`primary-foreground`). |
+| `foreground` / `sidebar` | negro `#000` | Texto, sidebar, bloque de cobro, filtros activos (`bg-foreground text-background`). |
+| `ring` | negro | Foco visible (el amarillo no se ve sobre blanco). |
+| `font-display` | Montserrat 600–900 (Google Fonts en `index.html`) | Títulos, nombres de producto, precios y totales. El cuerpo sigue en la fuente del sistema. |
+
+- **Prohibido `text-primary` sobre fondo claro**: el amarillo como texto es ilegible (~1.4:1). Para énfasis usa `text-foreground` + peso. No crear tonos derivados del amarillo (decisión del dueño): un solo amarillo, sin "dorados".
+- **Sin etiquetas en MAYÚSCULAS** (`uppercase`/`tracking-wide`): etiquetas en tamaño oración, `text-sm font-medium text-muted-foreground`; cifras en `font-display font-extrabold tabular-nums`.
+- **Pestañas principales** (Reportes, Productos/Categorías): barra con `border-b` y subrayado amarillo de 3px en la activa. Sub-vistas y filtros: píldoras negras (`mo-segmented` o equivalente).
+- `amber-*` queda reservado para avisos (warning), no como color de marca.
+- Logo oficial (blanco + amarillo, para fondo negro): `apps/pos-angular/public/assets/brand/moveon-logo.png`.
 
 ---
 

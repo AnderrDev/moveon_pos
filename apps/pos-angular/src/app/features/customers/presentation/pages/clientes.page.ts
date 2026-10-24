@@ -52,11 +52,9 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
     <section class="flex h-full min-h-0 flex-col">
       <mo-page-header title="Clientes" [subtitle]="subtitle()">
         <div class="relative">
-          <lucide-angular
-            [img]="icons.search"
-            class="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2"
-            aria-hidden="true"
-          />
+          <span class="text-muted-foreground pointer-events-none absolute inset-y-0 left-3 flex items-center" aria-hidden="true">
+            <lucide-angular [img]="icons.search" class="h-4 w-4" />
+          </span>
           <input
             type="search"
             [value]="query()"
@@ -132,7 +130,7 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
                   <td moTd>
                     <div class="flex items-center gap-3">
                       <span
-                        class="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-black uppercase"
+                        class="bg-primary/10 text-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-black uppercase"
                       >
                         {{ initials(c) }}
                       </span>
@@ -141,7 +139,7 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
                           <p class="truncate font-semibold">{{ c.nombre }}</p>
                           @if (c.autorizaFidelizacion) {
                             <span
-                              class="bg-primary/10 text-primary inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold"
+                              class="bg-primary/10 text-foreground inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold"
                               title="Participa en MOVE ON Club"
                             >
                               <lucide-angular

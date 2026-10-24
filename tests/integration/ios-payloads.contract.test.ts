@@ -18,11 +18,17 @@ const PRODUCTO = randomUUID()
 const CON_STOCK = randomUUID()
 const CATEGORIA = randomUUID()
 const VENTA = randomUUID()
+/** Venta nueva: producto con 5 en el punto de venta y batido con opciones. */
+const VENDIBLE = randomUUID()
+const BATIDO = randomUUID()
+const SIN_PROTEINA = randomUUID()
 
 /** Fixtures con caso en este archivo. Uno nuevo sin caso hace fallar el primer test. */
 const COVERED = [
   'adjust_stock',
+  'create_sale',
   'audit_log_adjust',
+  'audit_log_create_sale',
   'audit_log_product_create',
   'audit_log_product_update',
   'audit_log_transfer',
@@ -50,6 +56,14 @@ const SEED_SQL = `
   insert into public.sale_items (sale_id, producto_id, producto_nombre, quantity, unit_price, unit_cost, total)
     values (:'venta', :'con_stock', 'Creatina contrato', 2, 80000, 40000, 160000);
   insert into public.payments (sale_id, metodo, amount) values (:'venta', 'cash', 160000);
+  insert into public.productos (id, tienda_id, nombre, sku, tipo, precio_venta, costo, iva_tasa, stock_minimo, is_active) values
+    (:'vendible', :'tienda', 'Vendible contrato', 'IOS-VEND-1', 'simple', 80000, 40000, 0, 0, true),
+    (:'batido', :'tienda', 'Batido contrato', null, 'prepared', 15000, null, 0, 0, true);
+  insert into public.product_options (id, tienda_id, producto_id, grupo, nombre, precio_extra, es_default, orden, is_active) values
+    (gen_random_uuid(), :'tienda', :'batido', 'Proteína', 'Whey', 3000, true, 0, true),
+    (:'sin_proteina', :'tienda', :'batido', 'Proteína', 'Sin proteína', 0, false, 1, true);
+  insert into public.inventory_movements (tienda_id, producto_id, tipo, cantidad, ubicacion, motivo, created_by)
+    values (:'tienda', :'vendible', 'entry', 5, 'punto_venta', 'Inventario inicial', :'admin');
   insert into public.categorias (id, tienda_id, nombre, orden, is_active) values (:'categoria', :'tienda', 'Creatinas', 0, true);
   insert into public.inventory_movements (tienda_id, producto_id, tipo, cantidad, ubicacion, motivo, created_by)
     values (:'tienda', :'con_stock', 'entry', 20, 'bodega', 'Inventario inicial', :'admin');
@@ -80,7 +94,7 @@ describe('payloads de escritura de la app iOS contra el Supabase local', () => {
     stack = localStack()
     ;[adminId] = await createUsers(stack, [adminEmail])
     psql(stack, CLEANUP_SQL)
-    psql(stack, SEED_SQL, { tienda: TIENDA, admin: adminId, producto: PRODUCTO, con_stock: CON_STOCK, categoria: CATEGORIA, venta: VENTA })
+    psql(stack, SEED_SQL, { tienda: TIENDA, admin: adminId, producto: PRODUCTO, con_stock: CON_STOCK, categoria: CATEGORIA, venta: VENTA, vendible: VENDIBLE, batido: BATIDO, sin_proteina: SIN_PROTEINA })
     admin = await signIn(stack, adminEmail)
   })
 
@@ -227,7 +241,52 @@ describe('payloads de escritura de la app iOS contra el Supabase local', () => {
     expect(again.error?.message).toContain('Venta no encontrada o ya anulada')
   })
 
-  it.each(['audit_log_product_create', 'audit_log_product_update', 'audit_log_void_sale'])('%s: la auditoría del producto se guarda tal cual', async (name) => {
+  it('create_sale: el servidor recalcula, numera, descuenta el cambio del efectivo y saca el stock', async () => {
+    const { data: session } = await admin.from('cash_sessions').select('id').eq('tienda_id', TIENDA).eq('status', 'open').single()
+    const key = randomUUID()
+    const vars = {
+      tienda_id: TIENDA,
+      cash_session_id: (session as { id: string }).id,
+      user_id: adminId,
+      idempotency_key: key,
+      producto_id: VENDIBLE,
+      batido_id: BATIDO,
+      option_id: SIN_PROTEINA,
+    }
+    const { data: saleId, error } = await send(admin, loadPayload('create_sale', vars))
+    expect(error).toBeNull()
+
+    const { data: sale } = await admin
+      .from('sales')
+      .select('sale_number, status, total, subtotal, discount_total, payments(metodo, amount, referencia), sale_items(producto_nombre, quantity, unit_price, option_nombre, total)')
+      .eq('id', saleId as string)
+      .single()
+    const row = sale as {
+      sale_number: string
+      payments: { metodo: string; amount: number; referencia: string | null }[]
+      sale_items: { producto_nombre: string; quantity: number; unit_price: number; option_nombre: string | null; total: number }[]
+    }
+    expect(row).toMatchObject({ status: 'completed', total: 110000, subtotal: 110000, discount_total: 0 })
+    expect(row.sale_number).toMatch(/^V-\d{6}$/)
+    // El cambio (120.000 − 110.000) sale del efectivo: los pagos suman exactamente el total.
+    expect([...row.payments].sort((a, b) => a.metodo.localeCompare(b.metodo))).toEqual([
+      { metodo: 'cash', amount: 90000, referencia: null },
+      { metodo: 'transfer', amount: 20000, referencia: 'TRX-123' },
+    ])
+    expect([...row.sale_items].sort((a, b) => a.total - b.total)).toEqual([
+      { producto_nombre: 'Batido contrato', quantity: 2, unit_price: 15000, option_nombre: 'Sin proteína', total: 30000 },
+      { producto_nombre: 'Vendible contrato', quantity: 1, unit_price: 80000, option_nombre: null, total: 80000 },
+    ])
+    expect(await levelOf(admin, VENDIBLE)).toEqual({ punto_venta_stock: 4, bodega_stock: 0 })
+
+    // Reintento con la misma clave: devuelve la misma venta, no crea otra.
+    const retry = await send(admin, loadPayload('create_sale', vars))
+    expect(retry.data).toBe(saleId)
+    const { count } = await admin.from('sales').select('id', { count: 'exact', head: true }).eq('idempotency_key', key)
+    expect(count).toBe(1)
+  })
+
+  it.each(['audit_log_product_create', 'audit_log_product_update', 'audit_log_void_sale', 'audit_log_create_sale'])('%s: la auditoría del producto se guarda tal cual', async (name) => {
     const entityId = randomUUID()
     const fixture = loadPayload(name, { tienda_id: TIENDA, user_id: adminId, user_email: adminEmail, entity_id: entityId })
     const { data, error } = await send(admin, fixture)

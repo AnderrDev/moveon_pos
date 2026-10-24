@@ -662,10 +662,12 @@ export type Database = {
       inventory_movements: {
         Row: {
           cantidad: number
+          cash_movement_id: string | null
           costo_unitario: number | null
           created_at: string
           created_by: string
           id: string
+          metodo_pago: string | null
           motivo: string | null
           producto_id: string
           referencia_id: string | null
@@ -676,10 +678,12 @@ export type Database = {
         }
         Insert: {
           cantidad: number
+          cash_movement_id?: string | null
           costo_unitario?: number | null
           created_at?: string
           created_by: string
           id?: string
+          metodo_pago?: string | null
           motivo?: string | null
           producto_id: string
           referencia_id?: string | null
@@ -690,10 +694,12 @@ export type Database = {
         }
         Update: {
           cantidad?: number
+          cash_movement_id?: string | null
           costo_unitario?: number | null
           created_at?: string
           created_by?: string
           id?: string
+          metodo_pago?: string | null
           motivo?: string | null
           producto_id?: string
           referencia_id?: string | null
@@ -1719,10 +1725,12 @@ export type Database = {
         }
         Returns: {
           cantidad: number
+          cash_movement_id: string | null
           costo_unitario: number | null
           created_at: string
           created_by: string
           id: string
+          metodo_pago: string | null
           motivo: string | null
           producto_id: string
           referencia_id: string | null
@@ -2017,6 +2025,7 @@ export type Database = {
           p_cantidad: number
           p_costo_unitario: number
           p_created_by: string
+          p_metodo_pago?: string
           p_motivo: string
           p_producto_id: string
           p_tienda_id: string
@@ -2063,6 +2072,39 @@ export type Database = {
           p_voided_reason: string
         }
         Returns: string
+      }
+      void_expense_atomic: {
+        Args: {
+          p_expense_id: string
+          p_reason: string
+          p_tienda_id: string
+        }
+        Returns: {
+          cash_movement_id: string | null
+          category_id: string
+          concepto: string
+          created_at: string
+          created_by: string
+          empleado_id: string | null
+          fecha_gasto: string
+          id: string
+          idempotency_key: string | null
+          metodo_pago: string
+          monto: number
+          notas: string | null
+          periodo: string | null
+          status: string
+          tienda_id: string
+          voided_at: string | null
+          voided_by: string | null
+          voided_reason: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "expenses"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       void_sale_atomic: {
         Args: {

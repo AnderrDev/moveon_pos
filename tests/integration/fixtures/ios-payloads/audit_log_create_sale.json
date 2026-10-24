@@ -1,0 +1,19 @@
+{
+  "description": "Auditoría de una venta creada, con las claves que registra el web (PLAN-91)",
+  "kind": "insert",
+  "target": "audit_logs",
+  "payload": {
+    "tienda_id": "{{tienda_id}}",
+    "user_id": "{{user_id}}",
+    "user_email": "{{user_email}}",
+    "entity_type": "venta",
+    "entity_id": "{{entity_id}}",
+    "entity_label": "V-000001",
+    "action": "create",
+    "changes": {
+      "total": 110000,
+      "items": 2,
+      "payments": ["cash", "transfer"]
+    }
+  }
+}

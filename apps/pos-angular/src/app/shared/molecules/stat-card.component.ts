@@ -25,12 +25,12 @@ const VALUE_TONE_CLASSES: Record<StatTone, string> = {
   imports: [CardComponent],
   template: `
     <mo-card class="h-full" [tone]="tone() === 'warning' ? 'warning' : 'default'">
-      <p class="text-xs font-semibold uppercase" [class]="labelClasses()">{{ label() }}</p>
-      <p class="font-display mt-2 text-2xl font-bold tabular-nums" [class]="valueClasses()">
+      <p class="text-sm font-medium" [class]="labelClasses()">{{ label() }}</p>
+      <p class="font-display mt-1.5 text-[1.75rem] leading-tight font-extrabold tabular-nums" [class]="valueClasses()">
         {{ value() }}
       </p>
       @if (hint(); as h) {
-        <p class="text-muted-foreground text-xs">{{ h }}</p>
+        <p class="text-muted-foreground mt-1 text-xs">{{ h }}</p>
       }
       <ng-content />
     </mo-card>

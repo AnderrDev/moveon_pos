@@ -14,7 +14,7 @@ import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
     <div class="grid gap-4 lg:grid-cols-2">
       <!-- Bloque de ingresos -->
       <div class="bg-card rounded-xl border p-6">
-        <h3 class="font-display mb-1 text-sm font-bold tracking-wide uppercase">Ingresos</h3>
+        <h3 class="font-display mb-1 text-sm font-bold">Ingresos</h3>
         <p class="text-muted-foreground mb-4 text-xs">
           {{ fromIso() === toIso() ? fromIso() : fromIso() + ' al ' + toIso() }}
           · {{ report().countVentas }} ventas completadas
@@ -30,7 +30,7 @@ import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
           </div>
           <div class="border-border flex justify-between gap-3 border-t pt-3">
             <dt class="font-black">Ingresos netos</dt>
-            <dd class="text-primary text-xl font-black tabular-nums">
+            <dd class="text-foreground text-xl font-black tabular-nums">
               {{ (report().totalVentas | money) }}
             </dd>
           </div>
@@ -46,7 +46,7 @@ import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
 
       <!-- Por método de pago (cuadre bancario) -->
       <div class="bg-card rounded-xl border p-6">
-        <h3 class="font-display mb-1 text-sm font-bold tracking-wide uppercase">
+        <h3 class="font-display mb-1 text-sm font-bold">
           Ingresos por método de pago
         </h3>
         <p class="text-muted-foreground mb-4 text-xs">Para cuadre bancario y de caja</p>
@@ -75,7 +75,7 @@ import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
 
       <!-- Productos vendidos con costo, utilidad y margen -->
       <div class="bg-card rounded-xl border p-6 lg:col-span-2">
-        <h3 class="font-display mb-1 text-sm font-bold tracking-wide uppercase">
+        <h3 class="font-display mb-1 text-sm font-bold">
           Productos vendidos y utilidad
         </h3>
         <p class="text-muted-foreground mb-4 text-xs">Ventas completadas del período</p>

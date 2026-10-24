@@ -22,11 +22,11 @@ import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
           <div class="bg-muted/50 rounded-xl px-4 py-3">
             <div class="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+                <p class="text-muted-foreground text-xs font-semibold">
                   {{ isAdmin() ? 'Información comercial' : 'Precio' }}
                 </p>
                 @if (!isAdmin()) {
-                  <p class="text-primary mt-0.5 text-lg font-bold tabular-nums">
+                  <p class="text-foreground mt-0.5 text-lg font-bold tabular-nums">
                     {{ (product.precioVenta | money) }}
                   </p>
                 }
@@ -41,15 +41,15 @@ import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
             @if (isAdmin()) {
               <div class="mt-3 grid grid-cols-2 gap-2 border-t pt-3">
                 <div class="bg-card rounded-lg border px-3 py-2.5">
-                  <p class="text-muted-foreground text-[11px] font-semibold uppercase">
+                  <p class="text-muted-foreground text-[11px] font-semibold">
                     Precio de venta
                   </p>
-                  <p class="text-primary mt-1 text-base font-bold tabular-nums">
+                  <p class="text-foreground mt-1 text-base font-bold tabular-nums">
                     {{ (product.precioVenta | money) }}
                   </p>
                 </div>
                 <div class="bg-card rounded-lg border px-3 py-2.5">
-                  <p class="text-muted-foreground text-[11px] font-semibold uppercase">Costo</p>
+                  <p class="text-muted-foreground text-[11px] font-semibold">Costo</p>
                   <p class="mt-1 text-base font-bold tabular-nums">
                     {{ product.costo === null ? 'No registrado' : (product.costo | money) }}
                   </p>

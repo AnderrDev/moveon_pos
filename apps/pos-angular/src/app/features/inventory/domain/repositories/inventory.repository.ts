@@ -1,4 +1,5 @@
 import type { InventoryLocation } from '@/shared/types'
+import type { EntryPaymentMethod } from '@angular-app/features/inventory/domain/entities/inventory.entity'
 import type {
   InventoryMovement,
   StockLevel,
@@ -12,6 +13,7 @@ export interface RegisterEntryInput {
   ubicacion: InventoryLocation
   costoUnitario?: number
   motivo?: string
+  metodoPago?: EntryPaymentMethod
   createdBy: string
 }
 

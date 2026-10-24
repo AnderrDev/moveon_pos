@@ -11,7 +11,7 @@ import { X, LucideAngularModule } from 'lucide-angular'
 
 const INPUT_CLASS =
   'border-input bg-background focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2'
-const LABEL_CLASS = 'text-muted-foreground mb-1 block text-[11px] font-semibold tracking-wide uppercase'
+const LABEL_CLASS = 'text-muted-foreground mb-1 block text-[11px] font-semibold'
 
 /**
  * Opciones de venta de un preparado (ADR 0017): el cajero elige una al vender.

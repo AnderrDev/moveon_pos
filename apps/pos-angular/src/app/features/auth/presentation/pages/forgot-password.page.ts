@@ -45,7 +45,7 @@ const CONNECTION_MESSAGE = 'No se pudo conectar. Revisa tu conexión a internet'
           </div>
           <a
             routerLink="/login"
-            class="text-primary mt-6 inline-block text-sm font-semibold hover:underline"
+            class="text-foreground mt-6 inline-block text-sm font-semibold hover:underline"
           >
             Volver a iniciar sesión
           </a>
@@ -69,7 +69,7 @@ const CONNECTION_MESSAGE = 'No se pudo conectar. Revisa tu conexión a internet'
 
           <a
             routerLink="/login"
-            class="text-primary mt-6 inline-block text-sm font-semibold hover:underline"
+            class="text-foreground mt-6 inline-block text-sm font-semibold hover:underline"
           >
             Volver a iniciar sesión
           </a>

@@ -13,6 +13,7 @@ describe('buildKardexWorkbook', () => {
       cantidad: 10,
       costoUnitario: 22_000,
       motivo: 'Compra proveedor',
+      metodoPago: null,
       referenciaTipo: null,
       referenciaId: null,
       createdBy: 'user-1',

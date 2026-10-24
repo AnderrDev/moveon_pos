@@ -19,7 +19,7 @@ import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
   template: `
     @if (sessions().length > 0) {
       <mo-card>
-        <h3 class="font-display mb-3 text-sm font-bold tracking-wide uppercase">
+        <h3 class="font-display mb-3 text-sm font-bold">
           Cierres de caja
         </h3>
         <div class="overflow-auto">

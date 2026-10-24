@@ -91,7 +91,7 @@ const NON_CASH_METHODS: { metodo: Exclude<PaymentMethod, 'cash'>; controlName: s
             <div class="rounded-lg border p-3">
               <div class="flex items-center justify-between gap-3">
                 <span class="text-sm font-semibold">{{ row.label }}</span>
-                <span class="text-muted-foreground text-[11px] font-semibold uppercase tracking-wide">
+                <span class="text-muted-foreground text-[11px] font-semibold">
                   Esperado {{ (row.expected | money) }} ({{ row.expectedCount }}
                   {{ row.expectedCount === 1 ? 'pago' : 'pagos' }})
                 </span>
@@ -103,7 +103,7 @@ const NON_CASH_METHODS: { metodo: Exclude<PaymentMethod, 'cash'>; controlName: s
                   [required]="row.metodo === 'cash'"
                 />
                 <div class="text-right">
-                  <p class="text-muted-foreground text-[11px] font-semibold uppercase tracking-wide">
+                  <p class="text-muted-foreground text-[11px] font-semibold">
                     Diferencia
                   </p>
                   <p class="font-semibold tabular-nums" [class]="differenceClass(row.difference)">

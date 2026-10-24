@@ -25,7 +25,7 @@ import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
         }
       </mo-stat-card>
       <div class="border-primary/30 bg-primary/8 rounded-xl border p-5">
-        <p class="text-xs font-semibold uppercase">Recompensas generadas</p>
+        <p class="text-xs font-semibold">Recompensas generadas</p>
         <p class="font-display mt-2 text-2xl font-bold tabular-nums">
           {{ report().recompensasGeneradas }}
         </p>
@@ -34,7 +34,7 @@ import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
         </p>
       </div>
       <div class="rounded-xl border border-emerald-500/30 bg-emerald-500/8 p-5">
-        <p class="text-xs font-semibold text-emerald-800 uppercase">Batidos canjeados</p>
+        <p class="text-xs font-semibold text-emerald-800">Batidos canjeados</p>
         <p class="font-display mt-2 text-2xl font-bold tabular-nums">
           {{ report().recompensasCanjeadas }}
         </p>

@@ -69,7 +69,7 @@ import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
           </tbody>
           <tfoot class="border-border border-t">
             <tr>
-              <td moTd class="font-black text-xs uppercase" colspan="4">Utilidad total</td>
+              <td moTd class="font-black text-xs" colspan="4">Utilidad total</td>
               <td moTd class="text-right font-bold tabular-nums" colspan="2">
                 {{ (utilidadTotal() | money) }}
               </td>

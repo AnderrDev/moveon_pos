@@ -25,7 +25,7 @@ import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
     <mo-dialog [open]="true" title="Cobrar venta" width="sm" [busy]="checkout.isSaving()" (closed)="closed.emit()">
         <div class="space-y-4">
           <div class="bg-muted/50 rounded-xl px-4 py-3">
-            <p class="text-muted-foreground mb-2 text-[10px] font-semibold tracking-wide uppercase">
+            <p class="text-muted-foreground mb-2 text-xs font-semibold">
               Resumen de compra
             </p>
             <div class="border-border/50 mb-2.5 space-y-1 border-b pb-2.5">
@@ -73,7 +73,7 @@ import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
             @if (cart.change() > 0) {
               <div class="mt-1 flex justify-between font-bold">
                 <span>Cambio</span>
-                <span class="text-primary">{{ (cart.change() | money) }}</span>
+                <span class="text-foreground">{{ (cart.change() | money) }}</span>
               </div>
             }
           </div>
@@ -83,9 +83,9 @@ import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
           @if (cart.clienteId()) {
             <div class="bg-primary/5 border-primary/20 flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5">
               <span class="flex min-w-0 items-center gap-2">
-                <lucide-angular [img]="icons.user" class="text-primary h-4 w-4 shrink-0" aria-hidden="true" />
+                <lucide-angular [img]="icons.user" class="text-foreground h-4 w-4 shrink-0" aria-hidden="true" />
                 <span class="min-w-0">
-                  <span class="text-muted-foreground block text-[10px] font-semibold tracking-wide uppercase">Cliente</span>
+                  <span class="text-muted-foreground block text-xs font-semibold">Cliente</span>
                   <span class="block truncate text-sm font-semibold">{{ cart.clienteNombre() }}</span>
                 </span>
               </span>
@@ -93,7 +93,7 @@ import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
                 type="button"
                 (click)="pickCustomer.emit()"
                 [disabled]="checkout.isSaving()"
-                class="text-muted-foreground hover:text-primary shrink-0 text-xs font-semibold underline disabled:opacity-50"
+                class="text-muted-foreground hover:text-foreground shrink-0 text-xs font-semibold underline disabled:opacity-50"
               >
                 Cambiar
               </button>
@@ -103,7 +103,7 @@ import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
               type="button"
               (click)="pickCustomer.emit()"
               [disabled]="checkout.isSaving()"
-              class="text-muted-foreground hover:border-primary hover:text-primary flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed py-2.5 text-xs font-semibold transition-colors disabled:opacity-50"
+              class="text-muted-foreground hover:border-primary hover:text-foreground flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed py-2.5 text-xs font-semibold transition-colors disabled:opacity-50"
             >
               <lucide-angular [img]="icons.user" class="h-4 w-4" aria-hidden="true" />
               Asociar cliente a esta venta
@@ -143,7 +143,7 @@ import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 
           <div class="space-y-2">
             <div class="flex items-center justify-between gap-2">
-              <p class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+              <p class="text-muted-foreground text-xs font-semibold">
                 Descuento global
               </p>
               <div class="flex gap-1" role="group" aria-label="Tipo de descuento">
@@ -219,7 +219,7 @@ import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
           @if (checkout.discretionaryDiscountTotal() > 0) {
             <div class="space-y-2 rounded-xl border border-amber-500/30 bg-amber-500/8 p-3">
               <div class="flex items-center justify-between gap-3">
-                <p class="text-xs font-bold tracking-wide uppercase">Control del descuento</p>
+                <p class="text-xs font-bold">Control del descuento</p>
                 <span class="text-muted-foreground text-[11px] tabular-nums">
                   {{ (checkout.discretionaryDiscountTotal() | money) }} · {{ checkout.discountPercentage() }}%
                 </span>
@@ -244,7 +244,7 @@ import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
           }
 
           <div class="space-y-3">
-            <p class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+            <p class="text-muted-foreground text-xs font-semibold">
               Metodo de pago
             </p>
             <div class="grid grid-cols-2 gap-1.5 min-[420px]:grid-cols-3">
@@ -291,7 +291,7 @@ import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
               <button
                 type="button"
                 (click)="checkout.addExactPayment()"
-                class="text-muted-foreground hover:border-primary hover:text-primary w-full rounded-lg border border-dashed py-2 text-xs transition-colors"
+                class="text-muted-foreground hover:border-primary hover:text-foreground w-full rounded-lg border border-dashed py-2 text-xs transition-colors"
               >
                 Monto exacto: {{ (cart.remainingAmount() | money) }}
               </button>
@@ -299,7 +299,7 @@ import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
           </div>
 
           <div class="space-y-2">
-            <p class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+            <p class="text-muted-foreground text-xs font-semibold">
               Tirilla de compra
             </p>
             <div class="grid grid-cols-2 gap-2" role="group" aria-label="Imprimir tirilla">
@@ -326,14 +326,14 @@ import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
           </div>
 
           <div class="space-y-2">
-            <p class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+            <p class="text-muted-foreground text-xs font-semibold">
               Caja fuerte
             </p>
             <button
               type="button"
               (click)="openCashDrawer.emit()"
               [disabled]="openingCashDrawer()"
-              class="text-muted-foreground hover:border-primary hover:text-primary w-full rounded-lg border border-dashed py-2 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+              class="text-muted-foreground hover:border-primary hover:text-foreground w-full rounded-lg border border-dashed py-2 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50"
             >
               {{ openingCashDrawer() ? 'Abriendo caja fuerte...' : 'Abrir caja fuerte' }}
             </button>

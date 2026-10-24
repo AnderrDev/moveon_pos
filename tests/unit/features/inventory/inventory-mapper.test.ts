@@ -12,6 +12,7 @@ describe('rowToInventoryMovement', () => {
       cantidad: 4,
       costo_unitario: null,
       motivo: 'Reposicion mostrador',
+      metodo_pago: null,
       referencia_tipo: 'transfer',
       referencia_id: '11111111-1111-4111-8111-111111111111',
       created_by: 'user-1',

@@ -157,23 +157,20 @@ export class ExpensesRepository extends ExpenseRepository {
     return rowToExpense(data)
   }
 
-  async voidExpense(dto: VoidExpenseDto, userId: string): Promise<Expense> {
-    const { data, error } = await this.supabaseClient.supabase
-      .from('expenses')
-      .update({
-        status: 'voided',
-        voided_by: userId,
-        voided_at: new Date().toISOString(),
-        voided_reason: dto.motivo,
-      })
-      .eq('id', dto.expenseId)
-      .eq('tienda_id', dto.tiendaId)
-      .eq('status', 'active')
-      .select(EXPENSE_COLS)
-      .single()
+  /**
+   * Anula vía RPC atómica: si el gasto se pagó con efectivo de caja, su
+   * salida de caja se anula en la misma transacción. `voided_by` lo resuelve
+   * la RPC con `auth.uid()` — el parámetro se mantiene por el contrato.
+   */
+  async voidExpense(dto: VoidExpenseDto, _userId: string): Promise<Expense> {
+    const { data, error } = await this.supabaseClient.supabase.rpc('void_expense_atomic', {
+      p_expense_id: dto.expenseId,
+      p_tienda_id: dto.tiendaId,
+      p_reason: dto.motivo,
+    })
     if (error) throw new Error(error.message)
     if (!data) throw new Error('El gasto ya estaba anulado')
-    return rowToExpense(data as ExpenseRow)
+    return rowToExpense(data)
   }
 
   /**
@@ -350,6 +347,12 @@ export class ExpensesRepository extends ExpenseRepository {
       ventasSinCosto: Number((row as { ventas_sin_costo?: number }).ventas_sin_costo ?? 0),
       entradasSinCosto: Number(row.entradas_sin_costo),
     }
+  }
+
+  async getMerchandisePurchases(tiendaId: string, fromIso: string, toIso: string): Promise<number> {
+    // Misma agregación del fondo de reinversión, acotada al período.
+    const totals = await this.getFundTotals(tiendaId, fromIso, fromIso, toIso)
+    return totals.comprasMes
   }
 
   async listTemplates(tiendaId: string): Promise<ExpenseTemplate[]> {

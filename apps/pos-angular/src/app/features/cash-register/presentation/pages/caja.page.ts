@@ -19,7 +19,7 @@ import {
 import { CorrectOpeningDialog } from '@angular-app/features/cash-register/presentation/dialogs/correct-opening.dialog'
 import { CorrectMovementDialog } from '@angular-app/features/cash-register/presentation/dialogs/correct-movement.dialog'
 import { SaleDetailListComponent } from '@angular-app/shared/organisms/sale-detail-list.component'
-import { formatCurrency } from '@/shared/lib/format'
+import { formatCurrency, formatShortDate, formatTime } from '@/shared/lib/format'
 import { PAYMENT_FILTER_OPTIONS } from '@/shared/lib/payment-methods'
 import type {
   CashMovement,
@@ -38,6 +38,7 @@ import {
 import { computeCashTurnSummary } from '@angular-app/features/cash-register/domain/services/cash-closure'
 import type { CashMovementType } from '@/shared/types'
 import { SegmentedComponent } from '@angular-app/shared/molecules/segmented.component'
+import { MO_MENU } from '@angular-app/shared/molecules/menu.component'
 import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
 import { CashOpenSessionFormComponent } from '@angular-app/features/cash-register/presentation/components/cash-open-session-form.component'
 import { OpenSessionFormPresenter } from '@angular-app/features/cash-register/presentation/presenters/open-session-form.presenter'
@@ -59,6 +60,7 @@ import { cashMovementLabel } from '@angular-app/features/cash-register/presentat
     EmptyStateComponent,
     SkeletonComponent,
     SegmentedComponent,
+    ...MO_MENU,
     CashOpenSessionFormComponent,
     CashTurnSummaryComponent,
     CashMovementsTableComponent,
@@ -71,35 +73,29 @@ import { cashMovementLabel } from '@angular-app/features/cash-register/presentat
   ],
   template: `
     <section class="flex flex-col gap-4">
-      <mo-page-header title="Caja" subtitle="Apertura, movimientos y cierre">
-        @if (isAdmin()) {
-          <a routerLink="/caja/historial" class="focus:ring-ring rounded-lg px-3 py-2 text-sm font-semibold underline underline-offset-4 focus:ring-2">Historial de cajas</a>
-        }
-        <mo-button
-          variant="outline"
-          [loading]="openingDrawer()"
-          loadingText="Abriendo..."
-          (click)="openCashDrawer()"
-        >
-          Abrir registradora
-        </mo-button>
+      <mo-page-header title="Caja" [subtitle]="headerSubtitle()">
         @if (openSession()) {
-          <mo-button
-            variant="outline"
-            [loading]="exporting()"
-            loadingText="Generando..."
-            (click)="exportTurn()"
-          >
-            Descargar Excel
-          </mo-button>
-          <mo-button variant="outline" (click)="openMovement()">+ Movimiento</mo-button>
-          @if (canCorrectOpening()) {
-            <mo-button variant="outline" (click)="correctOpeningOpen.set(true)">
-              Corregir apertura
-            </mo-button>
-          }
-          <mo-button variant="destructive" (click)="closeOpen.set(true)">Cerrar caja</mo-button>
+          <mo-button variant="outline" (click)="openMovement()">Registrar movimiento</mo-button>
+          <mo-button (click)="closeOpen.set(true)">Cerrar caja</mo-button>
         }
+        <mo-menu>
+          <button type="button" moMenuItem [disabled]="openingDrawer()" (click)="openCashDrawer()">
+            {{ openingDrawer() ? 'Abriendo registradora…' : 'Abrir registradora' }}
+          </button>
+          @if (openSession()) {
+            <button type="button" moMenuItem [disabled]="exporting()" (click)="exportTurn()">
+              {{ exporting() ? 'Generando Excel…' : 'Descargar Excel del turno' }}
+            </button>
+            @if (canCorrectOpening()) {
+              <button type="button" moMenuItem (click)="correctOpeningOpen.set(true)">
+                Corregir base de apertura
+              </button>
+            }
+          }
+          @if (isAdmin()) {
+            <a routerLink="/caja/historial" moMenuItem>Historial de cajas</a>
+          }
+        </mo-menu>
       </mo-page-header>
 
       @if (loading()) {
@@ -253,6 +249,12 @@ export class CajaPage {
 
   /** Solo admin ve el historial de turnos cerrados (supervisión, no operación del cajero). */
   readonly isAdmin = computed(() => this.session.isAdmin())
+
+  readonly headerSubtitle = computed(() => {
+    const session = this.openSession()
+    if (!session) return 'No hay un turno abierto'
+    return `Turno abierto desde el ${formatShortDate(session.openedAt)}, ${formatTime(session.openedAt)}`
+  })
 
   /** Venta expandida en "Ventas del turno" (mo-sale-detail-list). */
   readonly expandedSaleId = signal<string | null>(null)

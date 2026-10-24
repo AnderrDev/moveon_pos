@@ -30,7 +30,7 @@ interface FeaturedLoyaltyCustomer {
         />
       </span>
       <div class="min-w-0">
-        <p class="text-primary text-[10px] font-black tracking-[0.12em] uppercase">
+        <p class="text-foreground text-xs font-black">
           {{
             item().progress.availableRewards > 0
               ? 'Premio disponible'

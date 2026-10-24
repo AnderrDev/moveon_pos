@@ -25,13 +25,13 @@ import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
         <div class="divide-border divide-y">
           @for (item of sale().items; track item.id) {
             <div class="flex items-start gap-3 px-4 py-3.5">
-              <span class="bg-primary/10 text-primary inline-flex h-8 min-w-8 shrink-0 items-center justify-center rounded-lg px-2 text-xs font-black tabular-nums">
+              <span class="bg-primary/10 text-foreground inline-flex h-8 min-w-8 shrink-0 items-center justify-center rounded-lg px-2 text-xs font-black tabular-nums">
                 {{ item.quantity }}×
               </span>
               <div class="min-w-0 flex-1">
                 <p class="text-sm leading-snug font-bold">{{ item.productoNombre }}</p>
                 @if (item.optionNombre) {
-                  <p class="text-primary text-[11px] font-semibold">
+                  <p class="text-foreground text-[11px] font-semibold">
                     {{ item.optionNombre }}
                   </p>
                 }
@@ -86,7 +86,7 @@ import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
             }
             <div class="border-border flex justify-between gap-3 border-t pt-3">
               <dt class="font-black">Total</dt>
-              <dd class="text-primary text-lg font-black tabular-nums">{{ (sale().total | money) }}</dd>
+              <dd class="text-foreground text-lg font-black tabular-nums">{{ (sale().total | money) }}</dd>
             </div>
           </dl>
         </section>
@@ -109,7 +109,7 @@ import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
                 @if (canCorrectPayment() && sale().status === 'completed') {
                   <button
                     type="button"
-                    class="text-muted-foreground hover:text-primary border-border hover:border-primary rounded-lg border px-2 py-1 text-[11px] font-semibold transition-colors"
+                    class="text-muted-foreground hover:text-foreground border-border hover:border-primary rounded-lg border px-2 py-1 text-[11px] font-semibold transition-colors"
                     (click)="correctPayment.emit({ paymentId: payment.id, metodo: payment.metodo })"
                   >
                     Corregir
@@ -126,7 +126,7 @@ import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
             </div>
             <div class="flex justify-between gap-3">
               <dt class="font-black">Cambio entregado</dt>
-              <dd class="text-primary font-black tabular-nums">{{ (sale().change | money) }}</dd>
+              <dd class="text-foreground font-black tabular-nums">{{ (sale().change | money) }}</dd>
             </div>
           </dl>
         </section>

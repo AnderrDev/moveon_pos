@@ -43,7 +43,7 @@ export class TheadDirective {
 
   readonly classes = computed(() =>
     [
-      'bg-muted/50 text-muted-foreground text-xs uppercase',
+      'bg-muted/50 text-muted-foreground text-xs',
       THEAD_DENSITY_CLASSES[this.table?.density() ?? 'default'],
     ].join(' '),
   )

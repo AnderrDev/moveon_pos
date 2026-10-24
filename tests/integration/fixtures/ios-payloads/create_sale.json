@@ -1,0 +1,50 @@
+{
+  "description": "Venta desde el iPhone (PLAN-91): un producto y un batido con opción elegida, pago mixto efectivo + transferencia con cambio. Sin cliente, descuentos ni canje. El servidor recalcula precios, IVA, total y número",
+  "kind": "rpc",
+  "target": "create_sale_atomic",
+  "payload": {
+    "p_tienda_id": "{{tienda_id}}",
+    "p_cash_session_id": "{{cash_session_id}}",
+    "p_sale_number": "",
+    "p_cashier_id": "{{user_id}}",
+    "p_cliente_id": null,
+    "p_subtotal": 110000,
+    "p_discount_total": 0,
+    "p_tax_total": 0,
+    "p_total": 110000,
+    "p_idempotency_key": "{{idempotency_key}}",
+    "p_items": [
+      {
+        "producto_id": "{{producto_id}}",
+        "producto_nombre": "Vendible contrato",
+        "producto_sku": "IOS-VEND-1",
+        "quantity": 1,
+        "unit_price": 80000,
+        "option_id": null,
+        "discount_amount": 0,
+        "tax_rate": 0,
+        "tax_amount": 0,
+        "total": 80000
+      },
+      {
+        "producto_id": "{{batido_id}}",
+        "producto_nombre": "Batido contrato",
+        "producto_sku": null,
+        "quantity": 2,
+        "unit_price": 15000,
+        "option_id": "{{option_id}}",
+        "discount_amount": 0,
+        "tax_rate": 0,
+        "tax_amount": 0,
+        "total": 30000
+      }
+    ],
+    "p_payments": [
+      { "metodo": "cash", "amount": 100000, "referencia": null },
+      { "metodo": "transfer", "amount": 20000, "referencia": "TRX-123" }
+    ],
+    "p_global_discount_total": 0,
+    "p_discount_reason": null,
+    "p_loyalty_redemptions": null
+  }
+}

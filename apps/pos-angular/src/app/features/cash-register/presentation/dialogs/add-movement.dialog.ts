@@ -1,12 +1,14 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   effect,
   inject,
   input,
   output,
   signal,
 } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { AddMovementFormPresenter } from '@angular-app/features/cash-register/presentation/presenters/add-movement-form.presenter'
 import { addMovementFormMapper } from '@angular-app/features/cash-register/presentation/forms/add-movement-form.mapper'
@@ -58,6 +60,11 @@ const TIPO_OPTIONS: FormSelectOption<string>[] = [
           [placeholder]="null"
           [options]="tipoOptions"
         />
+        @if (isExpense()) {
+          <p class="text-muted-foreground -mt-2 text-xs">
+            También queda registrado en Finanzas como "Gastos de caja".
+          </p>
+        }
         <mo-form-currency-input controlName="amount" [error]="presenter.errors().amount ?? null" label="Monto" [required]="true" />
         <mo-form-textarea
           controlName="motivo" [error]="presenter.errors().motivo ?? null"
@@ -96,6 +103,11 @@ export class AddMovementDialog {
 
   readonly saving = signal(false)
   readonly tipoOptions = TIPO_OPTIONS
+
+  private readonly tipoValue = toSignal(this.presenter.form.controls.tipo.valueChanges, {
+    initialValue: this.presenter.form.controls.tipo.value,
+  })
+  readonly isExpense = computed(() => this.tipoValue() === 'expense')
 
   constructor() {
     effect(() => {

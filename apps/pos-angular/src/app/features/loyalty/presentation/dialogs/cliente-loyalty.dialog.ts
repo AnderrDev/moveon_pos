@@ -108,7 +108,7 @@ const TYPE_LABELS: Record<LoyaltyTransactionType, string> = {
               aria-hidden="true"
             />
             <div class="relative flex items-baseline justify-between gap-3">
-              <p class="text-primary text-[11px] font-black tracking-widest uppercase">
+              <p class="text-foreground text-[11px] font-black">
                 Tarjeta de sellos
               </p>
               <p class="font-display text-lg leading-none font-black tabular-nums">
@@ -126,7 +126,7 @@ const TYPE_LABELS: Record<LoyaltyTransactionType, string> = {
                   </span>
                 } @else {
                   <span
-                    class="border-primary/35 text-primary/30 flex h-10 w-10 items-center justify-center rounded-full border-2 border-dashed text-xs font-black tabular-nums"
+                    class="border-foreground/20 text-muted-foreground flex h-10 w-10 items-center justify-center rounded-full border-2 border-dashed text-xs font-black tabular-nums"
                   >
                     {{ $index + 1 }}
                   </span>
@@ -151,7 +151,7 @@ const TYPE_LABELS: Record<LoyaltyTransactionType, string> = {
                 <lucide-angular [img]="icons.medal" class="h-4.5 w-4.5" aria-hidden="true" />
               </span>
               <div class="min-w-0">
-                <p class="text-muted-foreground text-[10px] font-bold tracking-wide uppercase">
+                <p class="text-muted-foreground text-xs font-bold">
                   Sellos ganados (histórico)
                 </p>
                 <p class="font-display text-xl leading-tight font-black tabular-nums">
@@ -164,7 +164,7 @@ const TYPE_LABELS: Record<LoyaltyTransactionType, string> = {
                 <lucide-angular [img]="icons.gift" class="h-4.5 w-4.5" aria-hidden="true" />
               </span>
               <div class="min-w-0">
-                <p class="text-muted-foreground text-[10px] font-bold tracking-wide uppercase">
+                <p class="text-muted-foreground text-xs font-bold">
                   Batidos canjeados
                 </p>
                 <p class="font-display text-xl leading-tight font-black tabular-nums">
@@ -205,7 +205,7 @@ const TYPE_LABELS: Record<LoyaltyTransactionType, string> = {
               (ngSubmit)="submitAdjust()"
               class="bg-muted/30 space-y-3 rounded-xl border p-4"
             >
-              <p class="flex items-center gap-1.5 text-xs font-bold tracking-wide uppercase">
+              <p class="flex items-center gap-1.5 text-xs font-bold">
                 <lucide-angular [img]="icons.adjust" class="h-3.5 w-3.5" aria-hidden="true" />
                 Ajuste manual de sellos
               </p>
@@ -243,7 +243,7 @@ const TYPE_LABELS: Record<LoyaltyTransactionType, string> = {
 
           <!-- Historial (PLAN-57) -->
           <div>
-            <p class="mb-2 flex items-center gap-1.5 text-xs font-bold tracking-wide uppercase">
+            <p class="mb-2 flex items-center gap-1.5 text-xs font-bold">
               <lucide-angular [img]="icons.history" class="h-3.5 w-3.5" aria-hidden="true" />
               Historial
             </p>
@@ -370,7 +370,7 @@ export class ClienteLoyaltyDialog {
 
   private readonly typeIconClasses: Record<LoyaltyTransactionType, string> = {
     earn: 'bg-emerald-100 text-emerald-700',
-    redeem: 'bg-primary/15 text-primary',
+    redeem: 'bg-primary/15 text-foreground',
     void: 'bg-destructive/10 text-destructive',
     adjustment: 'bg-muted text-muted-foreground',
     expire: 'bg-amber-100 text-amber-700',

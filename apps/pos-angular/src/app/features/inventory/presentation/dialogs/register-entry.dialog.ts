@@ -29,6 +29,7 @@ import { registerEntry } from '@angular-app/features/inventory/domain/usecases/r
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import type { InventoryLocation } from '@/shared/types'
+import type { EntryPaymentMethod } from '@angular-app/features/inventory/domain/entities/inventory.entity'
 import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 
 interface ProductSummary {
@@ -37,6 +38,14 @@ interface ProductSummary {
   /** Costo actual del producto — se precarga para que las compras alimenten el fondo de reinversión. */
   costo?: number | null
 }
+
+const PAYMENT_OPTIONS: FormSelectOption<EntryPaymentMethod | ''>[] = [
+  { value: '', label: 'No registrar el pago' },
+  { value: 'efectivo_caja', label: 'Efectivo de la caja' },
+  { value: 'efectivo_externo', label: 'Efectivo (fuera de caja)' },
+  { value: 'transferencia', label: 'Transferencia' },
+  { value: 'tarjeta', label: 'Tarjeta' },
+]
 
 const LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
   { value: 'bodega', label: 'Bodega' },
@@ -96,10 +105,24 @@ const LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
             class="border-primary/20 bg-primary/5 flex items-center justify-between rounded-lg border px-3.5 py-3"
           >
             <span class="text-sm font-medium">Total de la compra</span>
-            <span class="text-primary text-lg font-bold tabular-nums">{{
+            <span class="text-foreground text-lg font-bold tabular-nums">{{
               (entryTotal() | money)
             }}</span>
           </div>
+        }
+        <mo-form-select
+          controlName="metodoPago"
+          [error]="presenter.errors().metodoPago ?? null"
+          label="¿Cómo se pagó la compra?"
+          [options]="paymentOptions"
+          [placeholder]="null"
+        />
+        @if (paysFromCash()) {
+          <p class="text-muted-foreground -mt-2 text-xs">
+            Se registrará una salida de la caja abierta por
+            <span class="text-foreground font-semibold">{{ (entryTotal() | money) }}</span>.
+            No cuenta como gasto: el costo entra a la utilidad cuando se vende.
+          </p>
         }
         <mo-form-textarea controlName="motivo"
           [error]="presenter.errors().motivo ?? null" label="Motivo (opcional)" [rows]="2" />
@@ -132,6 +155,7 @@ export class RegisterEntryDialog {
 
   readonly saving = signal(false)
   readonly locationOptions = LOCATION_OPTIONS
+  readonly paymentOptions = PAYMENT_OPTIONS
 
   private readonly formValue = toSignal(this.presenter.form.valueChanges, {
     initialValue: this.presenter.form.getRawValue(),
@@ -140,6 +164,8 @@ export class RegisterEntryDialog {
   readonly entryTotal = computed(
     () => Number(this.formValue().cantidad ?? 0) * Number(this.formValue().costoUnitario ?? 0)
   )
+
+  readonly paysFromCash = computed(() => this.formValue().metodoPago === 'efectivo_caja')
 
   constructor() {
     effect(() => {
@@ -176,9 +202,11 @@ export class RegisterEntryDialog {
         return
       }
       this.toast.success(
-        value.costoUnitario > 0
-          ? `Entrada registrada y costo de ${product.nombre} actualizado`
-          : `Entrada registrada (+${value.cantidad} ${product.nombre})`
+        value.metodoPago === 'efectivo_caja'
+          ? `Entrada registrada y salida de caja creada (${product.nombre})`
+          : value.costoUnitario > 0
+            ? `Entrada registrada y costo de ${product.nombre} actualizado`
+            : `Entrada registrada (+${value.cantidad} ${product.nombre})`
       )
       this.saved.emit()
       this.closed.emit()

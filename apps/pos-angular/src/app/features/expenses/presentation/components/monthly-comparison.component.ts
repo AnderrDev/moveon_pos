@@ -21,7 +21,7 @@ import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
       <table moTable>
         <!-- thead sin moThead: el original no es sticky (el default del DS agrega sticky top-0). -->
         <thead
-          class="bg-muted/50 text-muted-foreground text-left text-xs tracking-wide uppercase"
+          class="bg-muted/50 text-muted-foreground text-left text-xs"
         >
           <tr>
             <th moTh>Mes</th>

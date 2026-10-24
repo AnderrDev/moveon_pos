@@ -23,7 +23,7 @@ type SortCriterion = 'qty' | 'total'
   template: `
     <mo-card>
       <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h3 class="font-display text-sm font-bold tracking-wide uppercase">Top productos</h3>
+        <h3 class="font-display text-sm font-bold">Top productos</h3>
         <div class="flex gap-1">
           <button
             type="button"

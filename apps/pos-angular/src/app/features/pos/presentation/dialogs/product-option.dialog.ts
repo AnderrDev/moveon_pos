@@ -55,7 +55,7 @@ export interface ProductOptionResult {
           </div>
 
           <div class="flex items-center justify-between gap-3 border-t pt-3">
-            <span class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+            <span class="text-muted-foreground text-xs font-semibold">
               Precio final
             </span>
             <span class="text-base font-bold tabular-nums">{{ (finalPrice() | money) }}</span>

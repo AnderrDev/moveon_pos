@@ -19,7 +19,7 @@ import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
   imports: [BadgeComponent, ButtonComponent, MoneyPipe, ...MO_TABLE],
   template: `
     <div class="flex shrink-0 items-center justify-between border-b px-4 py-3">
-      <h3 class="font-display text-sm font-bold tracking-wide uppercase">Movimientos del turno</h3>
+      <h3 class="font-display text-sm font-bold">Movimientos del turno</h3>
       <mo-badge variant="default">{{ movements().length }}</mo-badge>
     </div>
 
