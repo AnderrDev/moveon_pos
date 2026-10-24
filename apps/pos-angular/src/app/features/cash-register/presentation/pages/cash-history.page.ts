@@ -21,6 +21,7 @@ import { CashHistoryFormPresenter } from '../presenters/cash-history-form.presen
 import { toCashHistoryQuery } from '../forms/cash-history-form.mapper'
 import type { CashHistoryFormValue } from '../forms/cash-history-form.factory'
 import { LatestRequest } from '../services/cash-history-request-state'
+import { storeDateIso } from '@/shared/lib/day-range'
 @Component({
  selector: 'mo-cash-history-page', standalone: true, changeDetection: ChangeDetectionStrategy.OnPush,
  imports: [RouterLink, PageHeaderComponent, ButtonComponent, SkeletonComponent, CashHistoryFiltersComponent, CashHistoryDaysComponent, CashHistoryTableComponent, CashSessionDetailDrawer],
@@ -87,7 +88,7 @@ export class CashHistoryPageComponent implements OnDestroy {
      if (!auth || auth.rol !== 'admin') throw new Error('Solo administración puede consultar el historial.')
      const info = await this.tiendaInfo.get(auth.tiendaId)
      this.timezone.set(info.timezone)
-     const today = new Intl.DateTimeFormat('en-CA', { timeZone: info.timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
+     const today = storeDateIso(new Date(), info.timezone)
      this.presenter.reset(today)
      this.applied = this.presenter.validate()
      this.closers.set(await this.repo.listCashClosers(auth.tiendaId))

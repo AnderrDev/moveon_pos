@@ -97,3 +97,24 @@ export function getStoreRangeUtc(fromIso: string, toIso: string, timezone: strin
   const { end } = getStoreDayRangeUtc(toIso, timezone)
   return { start, end }
 }
+
+/**
+ * Fecha calendario `YYYY-MM-DD` de `date` en la zona horaria de la tienda.
+ * Única fuente de "hoy en la tienda": no usar `getDate()`/`setHours()`, que
+ * dependen de la zona del dispositivo.
+ */
+export function storeDateIso(date: Date, timezone: string): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date)
+}
+
+/** Suma (o resta) `days` días a una fecha calendario `YYYY-MM-DD` (aritmética en UTC). */
+export function shiftIsoDate(iso: string, days: number): string {
+  const d = new Date(`${iso}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + days)
+  return d.toISOString().slice(0, 10)
+}

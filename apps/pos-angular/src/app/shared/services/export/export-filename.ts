@@ -1,14 +1,5 @@
-const EXPORT_TIMEZONE = 'America/Bogota'
-
-function exportDateIso(date = new Date()): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: EXPORT_TIMEZONE,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(date)
-}
+import { DEFAULT_TIMEZONE, storeDateIso } from '@/shared/lib/day-range'
 
 export function buildExportFilename(content: string, date = new Date()): string {
-  return `moveonapp-${content}-${exportDateIso(date)}.xlsx`
+  return `moveonapp-${content}-${storeDateIso(date, DEFAULT_TIMEZONE)}.xlsx`
 }
