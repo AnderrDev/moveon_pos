@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
+import { fetchAllPages } from '@angular-app/core/supabase/fetch-all-pages'
 import { AuditLogRepository } from '@angular-app/features/audit/domain/repositories/audit-log.repository'
 import {
   rowToCategoria,
@@ -33,6 +34,8 @@ import {
 
 const PRODUCT_COLS =
   'id, tienda_id, nombre, sku, codigo_barras, categoria_id, proveedor_id, proveedores(nombre), para_que_sirve, recomendado_para, image_url, tipo, unidad, precio_venta, costo, iva_tasa, stock_minimo, participa_fidelizacion, is_active, deleted_at, created_at, updated_at'
+/** Máximo de resultados de una búsqueda por término (no aplica al listado completo). */
+const PRODUCT_SEARCH_LIMIT = 200
 const CATEGORIA_COLS = 'id, tienda_id, nombre, orden, is_active, created_at, updated_at'
 const PROVEEDOR_COLS = 'id, tienda_id, nombre, is_active, created_at, updated_at'
 
@@ -108,31 +111,42 @@ export class ProductsRepository extends ProductRepositoryContract {
   private readonly supabaseClient = inject(SupabaseClientService)
   private readonly audit = inject(AuditLogRepository)
 
+  /**
+   * Sin término de búsqueda devuelve el catálogo COMPLETO (paginado): el POS,
+   * inventario y reportes dependen de ver todos los productos. Antes un
+   * `.limit(200)` fijo los cortaba en silencio. Con término, el tope de
+   * `PRODUCT_SEARCH_LIMIT` es solo un límite de resultados de búsqueda.
+   */
   async listProducts(params: SearchProductsParams): Promise<Product[]> {
-    let query = this.supabaseClient.supabase
-      .from('productos')
-      .select(PRODUCT_COLS)
-      .eq('tienda_id', params.tiendaId)
-      .is('deleted_at', null)
+    // Se eliminan los metacaracteres de la sintaxis de filtros de PostgREST
+    // (, ( ) . ") para que el término no pueda inyectar condiciones extra.
+    const term = params.query?.trim().replace(/[,()."\\]/g, ' ').trim() ?? ''
 
-    if (params.soloActivos) query = query.eq('is_active', true)
-    if (params.categoriaId) query = query.eq('categoria_id', params.categoriaId)
-    if (params.query?.trim()) {
-      // Se eliminan los metacaracteres de la sintaxis de filtros de PostgREST
-      // (, ( ) . ") para que el término no pueda inyectar condiciones extra.
-      const q = params.query.trim().replace(/[,()."\\]/g, ' ').trim()
-      if (q) {
-        query = query.or(`nombre.ilike.%${q}%,sku.ilike.%${q}%,codigo_barras.eq.${q}`)
-      }
+    // Cada página necesita un builder nuevo: los de supabase-js no se reutilizan.
+    const buildQuery = () => {
+      let query = this.supabaseClient.supabase
+        .from('productos')
+        .select(PRODUCT_COLS)
+        .eq('tienda_id', params.tiendaId)
+        .is('deleted_at', null)
+      if (params.soloActivos) query = query.eq('is_active', true)
+      if (params.categoriaId) query = query.eq('categoria_id', params.categoriaId)
+      if (term) query = query.or(`nombre.ilike.%${term}%,sku.ilike.%${term}%,codigo_barras.eq.${term}`)
+      return query.order('nombre', { ascending: true }).order('id', { ascending: true })
     }
 
-    const { data, error } = await query
-      .order('nombre', { ascending: true })
-      .limit(200)
-      .returns<ProductRow[]>()
+    if (term) {
+      const { data, error } = await buildQuery().limit(PRODUCT_SEARCH_LIMIT).returns<ProductRow[]>()
+      if (error) throw new Error(error.message)
+      return (data ?? []).map(rowToProduct)
+    }
 
-    if (error) throw new Error(error.message)
-    return (data ?? []).map(rowToProduct)
+    const rows = await fetchAllPages<ProductRow>(async (from, to) => {
+      const { data, error } = await buildQuery().range(from, to).returns<ProductRow[]>()
+      if (error) throw new Error(error.message)
+      return data ?? []
+    })
+    return rows.map(rowToProduct)
   }
 
   async listCategorias(tiendaId: string): Promise<Categoria[]> {

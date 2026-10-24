@@ -1,15 +1,26 @@
 import type { Sale } from '@angular-app/features/sales/domain/entities/sale.entity'
+import type { CreateSaleDto } from '@angular-app/features/sales/domain/dtos/sale.dto'
+
+/** Venta validada lista para persistir; los canjes ya apuntan al índice de su línea. */
+export interface CreateSaleRequest extends Omit<CreateSaleDto, 'loyaltyRedemptions'> {
+  tiendaId: string
+  cashierId: string
+  loyaltyRedemptions: { rewardId: string; itemIndex: number }[]
+}
 
 /**
  * Contrato de persistencia de ventas. Abstract class (ADR 0015 §6.1).
- * Reescrito desde el uso real (2026-07-17): la creación de venta NO pasa por
- * este repositorio — usa la RPC transaccional `create_sale_atomic` directo
- * desde `PosSaleService` (ver `docs/modules/sales.md`), así que no hay
- * método `create` aquí. La interfaz previa lo declaraba sin implementación
- * real, y usaba `Result<T>`/`void()` (nombre reservado) que no coincidían
- * con la implementación (`voidSale`, `throw`).
+ * Desde 2026-10-24 la creación también pasa por aquí (`create` →
+ * `create_sale_atomic`, orquestada por el use-case `createSale`); antes
+ * `PosSaleService` llamaba la RPC directo desde presentation.
  */
 export abstract class SaleRepository {
+  /**
+   * Persiste la venta de forma atómica (ventas, ítems, pagos, inventario,
+   * canjes) y devuelve su id. Idempotente por `idempotencyKey`. Lanza con el
+   * mensaje crudo de la RPC (p. ej. 'Stock insuficiente').
+   */
+  abstract create(request: CreateSaleRequest): Promise<string>
   abstract findById(id: string, tiendaId: string): Promise<Sale | null>
   abstract listBySession(cashSessionId: string, tiendaId: string): Promise<Sale[]>
   abstract listByDate(tiendaId: string, start: Date, end: Date): Promise<Sale[]>

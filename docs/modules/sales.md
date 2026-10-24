@@ -167,6 +167,8 @@ Si el cajero olvidó asociar el cliente en el cobro, un admin puede corregirlo d
 
 ### `CreateSaleUseCase`
 
+> **Implementación real (2026-10-24):** `createSale(deps, input)` en `features/sales/domain/usecases/create-sale.use-case.ts`, con `createSaleSchema` (`sales/domain/dtos/sale.dto.ts`) como única fuente de validación. Resuelve cada canje a `itemIndex` por `key` de línea (producto + opción) y persiste vía `SaleRepository.create` → `create_sale_atomic`. Un rechazo de la RPC vuelve como `Result` (`kind: 'remote'`, mensaje crudo). `PosSaleService` (presentation) solo adapta el carrito y traduce el mensaje con `mapSaleError`; ya no toca Supabase. El bloque siguiente es el diseño original y se conserva como referencia.
+
 **Input (Zod):**
 
 ```typescript
@@ -241,17 +243,21 @@ Lecturas paginadas con filtros.
 
 ## Repositorio (interfaz)
 
+Contrato real: `abstract class SaleRepository` en `features/sales/domain/repositories/sale.repository.ts`, implementado por `SalesRepository` (`sales/data`) y cableado en `sales.providers.ts`.
+
 ```typescript
-export interface SaleRepository {
-  findById(id: string): Promise<Sale | null>
-  findByIdempotencyKey(key: string): Promise<Sale | null>
-  findByCashSession(sessionId: string): Promise<Sale[]>
-  list(filters: SaleFilters): Promise<Paginated<Sale>>
-  save(sale: Sale): Promise<void>
-  void(saleId: string, voidedBy: string, reason: string): Promise<void>
-  getNextSaleNumber(tiendaId: string): Promise<string>
+export abstract class SaleRepository {
+  abstract create(request: CreateSaleRequest): Promise<string>        // create_sale_atomic; lanza con el mensaje crudo
+  abstract findById(id: string, tiendaId: string): Promise<Sale | null>
+  abstract listBySession(cashSessionId: string, tiendaId: string): Promise<Sale[]>
+  abstract listByDate(tiendaId: string, start: Date, end: Date): Promise<Sale[]>
+  abstract voidSale(saleId: string, tiendaId: string, reason: string): Promise<void>
+  abstract correctPayment(paymentId: string, tiendaId: string, newMetodo: string, reason: string): Promise<void>
+  abstract correctSaleCustomer(saleId: string, tiendaId: string, clienteId: string, reason: string): Promise<void>
 }
 ```
+
+Tests: `tests/unit/features/sales/create-sale.use-case.test.ts` y `sales-repository-create.test.ts` (contrato exacto de argumentos de la RPC).
 
 ---
 

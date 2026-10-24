@@ -12,32 +12,26 @@ App nativa para iPhone con la que el dueño consulta el negocio fuera de la tien
 
 Repo propio **`moveon-owner-ios`** (ADR 0021 §7), clonado junto a este como `../moveon-owner-ios`. Este documento, el ADR y el plan siguen viviendo aquí; las RPC `owner_*` y sus tests también.
 
+**Reglas de ingeniería: las mismas que `gym_ios`** (decisión del dueño, 2026-10-24), en `moveon-owner-ios/docs/ENGINEERING_RULES.md`: arquitectura limpia, SOLID, patrones aprobados y prohibidos, Swift 6 estricto, errores con `AppError` + `UserMessages`, tests con Swift Testing (nombres en español, fakes en `Support`), definición de hecho. Su §12 registra las decisiones propias de esta app.
+
 ```
 moveon-owner-ios/
-├── project.yml                  # Definición del proyecto (XcodeGen) — fuente de verdad
-├── MoveOnOwner.xcodeproj        # GENERADO por `xcodegen`, no se versiona
+├── project.yml                  # XcodeGen; el .xcodeproj se genera y no se versiona
 ├── Config/
-│   ├── App.xcconfig             # Versionado: apunta al Supabase LOCAL por defecto
-│   ├── Example.xcconfig         # Plantilla para otro backend (producción)
-│   └── Local.xcconfig           # Opcional, fuera de git: sobrescribe App.xcconfig
-├── MoveOnOwner/                 # App target SwiftUI
-│   ├── App/                     #   @main, AppContainer (composition root), AppConfig
-│   └── Features/<feature>/Presentation/   # Views + ViewModels (@Observable)
-└── Packages/MoveOnKit/          # Swift Package local
-    ├── Sources/Domain/          #   Swift puro, sin dependencias
-    ├── Sources/Data/            #   Implementaciones Supabase (depende de supabase-swift)
-    └── Tests/                   #   Swift Testing
+│   ├── App.xcconfig             # Incluye Secrets.xcconfig
+│   ├── Secrets.example.xcconfig # Plantilla
+│   └── Secrets.xcconfig         # Fuera de git; lo genera scripts/make_secrets.sh
+├── MoveOnOwner/
+│   ├── App/                     # @main, AppDependencies (composition root), RootView, Demo/ (solo DEBUG)
+│   ├── Core/{Config,Errors,Logging,Forms,Theme,Components}
+│   ├── Data/Supabase/           # Cliente y SupabaseErrorMapper (solo Data importa SDKs)
+│   └── Features/<Feature>/{Domain,Data,Presentation}
+├── MoveOnOwnerTests/            # Espejo de MoveOnOwner/ + Support/ (fakes)
+├── docs/ENGINEERING_RULES.md
+└── scripts/make_secrets.sh
 ```
 
-**Fronteras (las hace cumplir `Package.swift`, no la disciplina):**
-
-| Target | Puede importar | No puede importar |
-|---|---|---|
-| `Domain` | `Foundation` | `Supabase`, `SwiftUI`, `Data` |
-| `Data` | `Domain`, `Supabase` | `SwiftUI` |
-| App (`MoveOnOwner`) | `Domain`, `Data`, `SwiftUI` | — (solo `AppContainer` construye tipos de `Data`) |
-
-Las vistas y view models reciben **protocolos de `Domain`**; solo `AppContainer` conoce las implementaciones de `Data` (equivalente a `<feature>.providers.ts`, ADR 0015).
+Un solo target de app, como `gym_ios` (sin paquetes SPM locales hasta el disparador de modularización de sus reglas, §2.4). Presentación depende solo de protocolos del dominio; `AppDependencies` es el único sitio que conoce las implementaciones (equivalente a `<feature>.providers.ts`, ADR 0015).
 
 ## Pantallas (v1)
 
@@ -52,10 +46,11 @@ Las vistas y view models reciben **protocolos de `Domain`**; solo `AppContainer`
 
 ## Autenticación (PLAN-77)
 
-- `Domain/Auth`: `AuthRepository` (contrato), `OwnerAccessPolicy` (solo `admin`; con varias tiendas toma la primera donde es admin), `OwnerSession.signIn/restore` (revalidan el rol en cada apertura y **cierran sesión** si no es admin o si falla la lectura de `user_tiendas`), `LoginCredentials` (espejo de `loginFormSchema`).
-- `Data/Auth`: `SupabaseAuthRepository` (sesión en Keychain vía SDK; renovación con límite de 10 s como `GET_SESSION_TIMEOUT_MS`; `signOut(scope: .local)`), `AuthFailureMapper` (mismos criterios que `login-error-mapper.ts`).
-- App: `AppSession` (fases restaurando / login / Face ID / dentro). **Regla del dueño (2026-10-24): basta con contraseña o Face ID.** Con sesión guardada se pide Face ID (`deviceOwnerAuthenticationWithBiometrics`, sin respaldo con el código del iPhone); el botón "Entrar con contraseña" vuelve al login. Si el teléfono no tiene Face ID, la sesión guardada se cierra y se entra con la contraseña. No se bloquea al pasar a segundo plano.
-- Recuperar contraseña envía el enlace a `PASSWORD_RESET_URL` (la página `/restablecer-contrasena` del POS web); la nueva contraseña se define allá. Mensaje genérico para no revelar si el correo existe.
+- `Features/Auth/Domain`: `AuthRepository` (contrato; lanza `AppError`), `OwnerAccess` (solo `admin`; con varias tiendas toma la primera donde es admin), `ResolveOwnerAccessUseCase` (lee `user_tiendas` y **cierra sesión** si no es admin o si no se pudo comprobar), `BiometricAuthenticating`.
+- `Features/Auth/Data`: `SupabaseAuthRepository` (sesión en Keychain vía SDK; renovación con límite de 10 s como `GET_SESSION_TIMEOUT_MS`; `signOut(scope: .local)`), `UserTiendaDTO`, `DeviceBiometricAuthenticator`.
+- `Features/Auth/Presentation`: `SessionStore` (fases comprobando / login / Face ID / dentro), `LoginViewModel`, `ForgotPasswordViewModel`. Validación y textos iguales a `loginFormSchema` y `login-error-mapper.ts` del web (`Core/Forms/Validators`, `Core/Errors/UserMessages`).
+- **Regla del dueño (2026-10-24): basta con contraseña o Face ID.** Con sesión guardada se pide Face ID (sin respaldo con el código del iPhone); "Entrar con contraseña" vuelve al login. Si el teléfono no tiene Face ID, la sesión guardada se cierra y se pide la contraseña. No se bloquea al pasar a segundo plano.
+- "¿Olvidaste tu contraseña?" envía el enlace a `PASSWORD_RESET_URL` (la página `/restablecer-contrasena` del POS web); la contraseña nueva se define allá. Mensaje genérico para no revelar si el correo existe.
 - Usuario de prueba local adicional: `cajero@moveon.local` / `Test1234!` (rol `cajero`, solo en el stack local) para verificar el rechazo.
 
 ## Reglas
@@ -71,17 +66,17 @@ Las vistas y view models reciben **protocolos de `Domain`**; solo `AppContainer`
 
 ## Comandos
 
+Desde `../moveon-owner-ios`:
+
 ```bash
 brew install xcodegen                 # una vez
-# desde el repo moveon-owner-ios
-scripts/test.sh                       # genera el proyecto y corre los tests (paquete + app)
-open MoveOnOwner.xcodeproj
-
-# Solo para apuntar a producción (nunca para pruebas con datos):
-cp Config/Example.xcconfig Config/Local.xcconfig
+scripts/make_secrets.sh               # Config/Secrets.xcconfig con el Supabase LOCAL
+xcodegen generate
+xcodebuild test -project MoveOnOwner.xcodeproj -scheme MoveOnOwner \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 ```
 
-En `.xcconfig` las URL se escriben con `/$()/` en lugar de `//` (`https:/$()/xxx.supabase.co`), porque `//` inicia un comentario.
+`scripts/make_secrets.sh ruta/.env` apunta a otro backend (solo para producción, nunca para pruebas con datos).
 
 ## Distribución
 

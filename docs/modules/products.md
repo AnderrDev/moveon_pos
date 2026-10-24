@@ -122,3 +122,7 @@ El script lee `SUPABASE_URL` (con fallback a `NEXT_PUBLIC_SUPABASE_URL`) y
 ## Presentación sin IVA (2026-10-17)
 
 Desde 2026-10-17 se omite IVA del formulario, tabla y exportación de productos. Se conserva el control interno y su mapeo: editar conserva la tasa existente y crear usa el valor predeterminado existente (0). No cambia el contrato de importación Siigo ni el cálculo de ventas.
+
+## Listado completo sin tope (2026-10-24)
+
+`ProductRepository.listProducts` sin término de búsqueda devuelve el catálogo completo, paginado con `fetchAllPages` (orden `nombre`, `id`). Antes un `.limit(200)` fijo cortaba en silencio el catálogo del POS (vía `ProductsCacheStore`), inventario y reportes al pasar de 200 productos (había 144). Con término de búsqueda se mantiene un tope de 200 resultados (`PRODUCT_SEARCH_LIMIT`). Test: `tests/unit/features/products/list-products-pagination.test.ts`.

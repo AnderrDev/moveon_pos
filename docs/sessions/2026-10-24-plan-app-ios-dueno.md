@@ -103,6 +103,20 @@ Hecho en `moveon-owner-ios` (commit `8173761`): dominio de sesión y política d
 
 **Datos de prueba creados (solo local):** usuario `cajero@moveon.local` con fila `user_tiendas` rol `cajero` en la tienda demo.
 
+## 12. Continuación — reglas de `gym_ios`
+
+El dueño pidió que las reglas del proyecto sean iguales a las de `gym_ios` (`~/Desktop/gym_ios`). Hecho en `moveon-owner-ios` (commit `1a8ee5b`):
+
+- `docs/ENGINEERING_RULES.md`: §1–11 copiadas de `gym_ios` (solo cambian nombres, rutas y ejemplos); §12 con las decisiones de esta app (backend y spec en el POS, solo lectura, un solo target, modo oscuro de marca, Face ID o contraseña, recuperación por el web, textos del web, tests de UI pendientes para PLAN-79). `CLAUDE.md` con el mismo formato; se quitó `AGENTS.md` (gym_ios no lo tiene).
+- Reestructura a un solo target (`App/Core/Data/Features`), sin `MoveOnKit`. Se eliminaron `CurrencyFormatter` y `StoreCalendar` (sin uso aún; YAGNI): vuelven en PLAN-79 a `Core/Formatting` y `Core/Dates`.
+- `AppError` + `UserMessages`, `SupabaseErrorMapper`, `AppLogger`, `Validators`, tokens `AppColors/AppFont/AppMetrics`, componentes (`BrandMark`, `PrimaryButton`, `LinkButton`, `AppTextField`, `ErrorBox`, `ModelHost` copiado de gym_ios).
+- Secretos: `Config/Secrets.xcconfig` (fuera de git) con `scripts/make_secrets.sh` (Supabase local por defecto). Se quitó `scripts/test.sh`.
+- ADR 0021 §8 y `docs/modules/ios-owner.md` actualizados.
+
+**Tests:** 50 en verde (Swift Testing, nombres en español), sin avisos del compilador en archivos propios. **Simulador** (contra Supabase local): Face ID con la sesión guardada → entra; cerrar sesión → login; login legible con texto grande (accessibility-medium). El rechazo del cajero quedó cubierto por tests; contra el backend real se había verificado antes de la reestructura con la misma consulta.
+
+**Pendiente:** tests de UI y modo demo (`-demo`) con PLAN-79; VoiceOver no se revisó.
+
 ## 8. Notas adicionales
 
 - Fuentes de datos ya existentes para la app: `get_stock_levels`, `get_monthly_sales_totals`, `get_monthly_expense_totals`, `get_reinvestment_fund_totals`, `list_cash_history_days`.
