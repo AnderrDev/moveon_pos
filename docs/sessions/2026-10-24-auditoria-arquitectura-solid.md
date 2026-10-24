@@ -103,4 +103,7 @@ Sin cambios de código en esta sesión. Consultas remotas solo de lectura (`pg_p
 - pgTAP `stock-adjustment-customer-soft-delete.test.sql` (23). Control negativo: con solo el paso 1 falla 12/23; con ambos pasa 23/23. Resto de suites sin regresión (mismas 5 preexistentes fallando).
 - `pnpm lint`, `pnpm test` (768), typecheck OK.
 - Decisión: no se añadió bloqueo de stock negativo en ajustes (sería una regla de negocio nueva); `adjust_loyalty_stamps` no rechaza clientes eliminados, pero la UI ya no los lista.
-- **Pendiente:** desplegar en producción (000400 → frontend → 000500). Bloqueado por el clasificador de permisos; requiere OK explícito del dueño.
+- **Desplegado en producción (autorizado por el dueño):** 000400 aplicada y registrada (RPC DEFINER sin `anon`, columnas, índices parciales, trigger; 0 clientes eliminados) → merge `dev→main` `ffafa4d` → Netlify `moveon-client` `6adce150be2cd6add2a6e9ef` y `moveon-catalogo-web` `6adce1503f5447d33427934d` ready, bundle con `adjust_stock_atomic` y `delete_customer_atomic` → 000500 aplicada y registrada. Verificado: `inventory_movements` solo `SELECT`; `clientes` sin `DELETE`, sin `UPDATE`/`INSERT` de `deleted_at`/`activo`, con edición del formulario intacta.
+- El merge incluyó 3 commits de solo documentación de la sesión iOS (`4497130`, `385d2dc`, `7970dff`: ADR 0021, plan PLAN-75..84, PLAN-77) que ya estaban en `dev`; no afectan el build web.
+- Riesgo residual: una pestaña abierta con el bundle anterior falla al ajustar stock o eliminar cliente hasta recargar.
+- **P0 de la auditoría completo.**
