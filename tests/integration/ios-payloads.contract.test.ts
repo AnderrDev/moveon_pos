@@ -48,7 +48,7 @@ async function levelOf(client: SupabaseClient, productId: string): Promise<{ pun
   return { punto_venta_stock: Number(level?.punto_venta_stock ?? 0), bodega_stock: Number(level?.bodega_stock ?? 0) }
 }
 
-async function send(client: SupabaseClient, fixture: IosPayload): Promise<{ data: unknown; error: unknown }> {
+async function send(client: SupabaseClient, fixture: IosPayload): Promise<{ data: unknown; error: { code?: string; message?: string } | null }> {
   if (fixture.kind === 'rpc') return client.rpc(fixture.target, fixture.payload)
   if (fixture.kind === 'update') {
     return client.from(fixture.target).update(fixture.payload).match(fixture.match ?? {}).select().single()

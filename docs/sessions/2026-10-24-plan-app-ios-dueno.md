@@ -245,6 +245,9 @@ Hecho en `moveon-owner-ios` (commit `e125945`, sin push). Detalle en `docs/modul
   - **Editar:** vaciar el código de barras, precio 8.500 y mínimo 4 → la base queda con `codigo_barras` null, 8500 y 4; la auditoría `update` lleva solo `{precioVenta, stockMinimo, codigoBarras: null}`, más la fila `product.price_changed` del trigger.
   - **SKU repetido:** "QA-CREA" → "Ya existe un producto con ese SKU." y no se crea nada.
 - El test de interfaz de Caja falló una vez por tiempos y pasa al repetirlo; queda anotado como intermitente.
+- **Producción (`20261024150000`):** el dueño pidió aplicarla y verificarla. Ya estaba aplicada y registrada por la sesión de auditoría (con autorización del dueño, ver su spec §22), así que no se volvió a ejecutar. Estado leído en remoto: `prosecdef = true`, EXECUTE solo para `authenticated`/`postgres`/`service_role` y `authenticated` sin INSERT directo en `inventory_movements` (el bloqueo de 000500 intacto).
+- **Verificación funcional en producción sin dejar datos:** un bloque `DO` actúa como un admin real (`set local role authenticated` + `request.jwt.claims`), llama a `create_product_with_initial_stock` con 3 unidades en bodega y termina siempre con una excepción, que revierte todo. Resultado: "VERIFICACION_OK … movimientos_entry=1 bodega=3.000". Comprobado después: 0 productos y 0 movimientos con ese id o nombre.
+- **Typecheck:** `tests/integration/ios-payloads.contract.test.ts` tipa el error de `send` (`code`/`message`); `tsc --noEmit` vuelve a 0 errores (lo había señalado la sesión de auditoría). No se corrió `pnpm typecheck` completo porque su hook reapunta `runtime-config.json` a producción.
 
 ## 8. Notas adicionales
 
