@@ -257,34 +257,12 @@ export interface SaleRepository {
 
 ## RLS
 
-```sql
--- Solo lectura de ventas de tienda del usuario
-CREATE POLICY "read_own_tienda_sales" ON sales
-  FOR SELECT USING (
-    tienda_id IN (SELECT tienda_id FROM user_tiendas WHERE user_id = auth.uid() AND is_active = true)
-  );
+Estado real desde `20261024000200`–`20261024000300` (antes solo existía `tenant_isolation FOR ALL`, que permitía a cualquier usuario de la tienda borrar o editar ventas vía PostgREST):
 
--- Crear ventas: solo si hay sesión abierta para el usuario
--- (validación adicional en use case)
-CREATE POLICY "create_sales_with_open_session" ON sales
-  FOR INSERT WITH CHECK (
-    tienda_id IN (SELECT tienda_id FROM user_tiendas WHERE user_id = auth.uid() AND is_active = true)
-    AND cashier_id = auth.uid()
-  );
-
--- Update: solo admin (para anulación)
--- (validación adicional en use case por rol)
-CREATE POLICY "update_sales_admin_only" ON sales
-  FOR UPDATE USING (
-    EXISTS (
-      SELECT 1 FROM user_tiendas
-      WHERE user_id = auth.uid()
-        AND tienda_id = sales.tienda_id
-        AND rol = 'admin'
-        AND is_active = true
-    )
-  );
-```
+- `sales`, `sale_items`, `payments`, `sale_counters`: policy `<tabla>_select` (solo `SELECT`, aislamiento por tienda). `authenticated` y `anon` no tienen `INSERT`/`UPDATE`/`DELETE`/`TRUNCATE`.
+- Toda escritura pasa por RPC `SECURITY DEFINER` que validan identidad, tienda y rol: `create_sale_atomic`, `void_sale_atomic` (admin), `correct_payment_atomic`, `correct_sale_customer_atomic`.
+- Las ventas no se pueden borrar desde el cliente; la única baja es la anulación auditada.
+- Prueba: `supabase/tests/lock-direct-writes.test.sql` (denegaciones como cajero + ciclo crear/corregir/anular vía RPC).
 
 ---
 
