@@ -86,7 +86,7 @@ import { ChevronDown, FileText, LucideAngularModule } from 'lucide-angular'
           class="border-border bg-muted/20 rounded-2xl border border-dashed px-5 py-12 text-center"
         >
           <div
-            class="bg-primary/10 text-primary mx-auto flex h-12 w-12 items-center justify-center rounded-2xl"
+            class="bg-primary/10 text-foreground mx-auto flex h-12 w-12 items-center justify-center rounded-2xl"
           >
             <lucide-angular [img]="icons.fileText" class="h-6 w-6" [strokeWidth]="1.8" aria-hidden="true" />
           </div>
@@ -111,13 +111,13 @@ import { ChevronDown, FileText, LucideAngularModule } from 'lucide-angular'
           <div
             class="border-primary/20 bg-primary/5 col-span-2 rounded-2xl border p-3.5 sm:col-span-1"
           >
-            <p class="text-primary text-[10px] font-bold tracking-wide uppercase">Total vendido</p>
-            <p class="font-display text-primary mt-1 text-xl font-black tabular-nums">
+            <p class="text-foreground text-xs font-bold">Total vendido</p>
+            <p class="font-display text-foreground mt-1 text-xl font-black tabular-nums">
               {{ (completedSalesTotal() | money) }}
             </p>
           </div>
           <div class="border-border bg-card rounded-2xl border p-3.5">
-            <p class="text-muted-foreground text-[10px] font-bold tracking-wide uppercase">
+            <p class="text-muted-foreground text-xs font-bold">
               Ventas efectivas
             </p>
             <p class="font-display mt-1 text-xl font-black tabular-nums">
@@ -125,7 +125,7 @@ import { ChevronDown, FileText, LucideAngularModule } from 'lucide-angular'
             </p>
           </div>
           <div class="border-border bg-card rounded-2xl border p-3.5">
-            <p class="text-muted-foreground text-[10px] font-bold tracking-wide uppercase">
+            <p class="text-muted-foreground text-xs font-bold">
               Anuladas
             </p>
             <p class="font-display mt-1 text-xl font-black tabular-nums">
@@ -192,12 +192,12 @@ import { ChevronDown, FileText, LucideAngularModule } from 'lucide-angular'
                   <div class="flex shrink-0 items-center gap-3">
                     <div class="text-right">
                       <p
-                        class="text-muted-foreground text-[10px] font-bold tracking-wide uppercase"
+                        class="text-muted-foreground text-xs font-bold"
                       >
                         Total
                       </p>
                       <p
-                        class="font-display text-primary mt-0.5 text-lg font-black tabular-nums"
+                        class="font-display text-foreground mt-0.5 text-lg font-black tabular-nums"
                         [class.text-muted-foreground]="sale.status === 'voided'"
                         [class.line-through]="sale.status === 'voided'"
                       >
@@ -210,17 +210,17 @@ import { ChevronDown, FileText, LucideAngularModule } from 'lucide-angular'
 
                 <div class="mt-4 grid gap-2 text-xs sm:grid-cols-3">
                   <div class="bg-muted/50 min-w-0 rounded-xl px-3 py-2.5">
-                    <p class="text-muted-foreground text-[10px] font-bold uppercase">Usuario</p>
+                    <p class="text-muted-foreground text-xs font-bold">Usuario</p>
                     <p class="mt-0.5 truncate font-semibold">{{ cashierLabel(sale) }}</p>
                   </div>
                   <div class="bg-muted/50 rounded-xl px-3 py-2.5">
-                    <p class="text-muted-foreground text-[10px] font-bold uppercase">Productos</p>
+                    <p class="text-muted-foreground text-xs font-bold">Productos</p>
                     <p class="mt-0.5 font-semibold tabular-nums">
                       {{ itemCount(sale) }} unidades · {{ sale.items.length }} referencias
                     </p>
                   </div>
                   <div class="bg-muted/50 min-w-0 rounded-xl px-3 py-2.5">
-                    <p class="text-muted-foreground text-[10px] font-bold uppercase">Pago</p>
+                    <p class="text-muted-foreground text-xs font-bold">Pago</p>
                     <p class="mt-0.5 truncate font-semibold">{{ paymentMethods(sale) }}</p>
                   </div>
                 </div>

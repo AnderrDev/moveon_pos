@@ -59,7 +59,7 @@ import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 
         <a
           routerLink="/login"
-          class="text-primary mt-6 inline-block text-sm font-semibold hover:underline"
+          class="text-foreground mt-6 inline-block text-sm font-semibold hover:underline"
         >
           Volver a iniciar sesión
         </a>

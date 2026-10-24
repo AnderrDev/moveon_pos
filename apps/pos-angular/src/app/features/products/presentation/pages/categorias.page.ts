@@ -35,7 +35,7 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
   ],
   template: `
     <section class="flex h-full min-h-0 flex-col">
-      <mo-page-header title="Productos" subtitle="Catalogo y precios">
+      <mo-page-header title="Productos" subtitle="Catálogo y precios">
         <mo-button
           variant="outline"
           [loading]="exporting()"
@@ -45,22 +45,22 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
         >
           Descargar Excel
         </mo-button>
-        <mo-button (click)="openCreate()">+ Nueva categoria</mo-button>
+        <mo-button (click)="openCreate()">Nueva categoría</mo-button>
       </mo-page-header>
 
-      <nav class="mb-4 flex gap-1 text-sm">
+      <nav class="-mt-1 mb-4 flex gap-6 border-b text-sm" aria-label="Secciones de productos">
         <a
           routerLink="/productos"
-          routerLinkActive="bg-primary text-primary-foreground"
+          routerLinkActive="border-primary! text-foreground!"
           [routerLinkActiveOptions]="{ exact: true }"
-          class="hover:bg-muted rounded-lg px-3 py-1.5 font-semibold"
+          class="text-muted-foreground hover:text-foreground -mb-px border-b-[3px] border-transparent pt-1 pb-2.5 font-semibold transition-colors"
           >Productos</a
         >
         <a
           routerLink="/productos/categorias"
-          routerLinkActive="bg-primary text-primary-foreground"
-          class="hover:bg-muted rounded-lg px-3 py-1.5 font-semibold"
-          >Categorias</a
+          routerLinkActive="border-primary! text-foreground!"
+          class="text-muted-foreground hover:text-foreground -mb-px border-b-[3px] border-transparent pt-1 pb-2.5 font-semibold transition-colors"
+          >Categorías</a
         >
       </nav>
 
@@ -75,7 +75,7 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
           title="Sin categorias"
           description="Crea categorias para organizar tu catalogo."
         >
-          <mo-button (click)="openCreate()">+ Nueva categoria</mo-button>
+          <mo-button (click)="openCreate()">Nueva categoría</mo-button>
         </mo-empty-state>
       } @else {
         <mo-table-shell class="flex-1">

@@ -73,7 +73,7 @@ export type ReceiptOutputStatus = 'printing' | 'error'
               </div>
 
               <div class="bg-card/70 px-4 py-3.5">
-                <p class="text-foreground text-xs font-bold tracking-wide uppercase">Antes de reintentar</p>
+                <p class="text-foreground text-xs font-bold">Antes de reintentar</p>
                 <ol class="mt-3 space-y-2.5">
                   @for (step of recoverySteps(); track step; let index = $index) {
                     <li class="text-muted-foreground flex gap-2.5 text-sm leading-5">

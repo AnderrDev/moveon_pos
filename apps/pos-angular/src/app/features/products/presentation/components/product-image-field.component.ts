@@ -50,7 +50,7 @@ import { Image, LoaderCircle, LucideAngularModule } from 'lucide-angular'
 
           @if (uploading()) {
             <div class="bg-background/70 absolute inset-0 flex items-center justify-center">
-              <lucide-angular [img]="icons.loader" class="text-primary h-6 w-6 animate-spin" [strokeWidth]="3" aria-hidden="true" />
+              <lucide-angular [img]="icons.loader" class="text-foreground h-6 w-6 animate-spin" [strokeWidth]="3" aria-hidden="true" />
             </div>
           }
         </div>

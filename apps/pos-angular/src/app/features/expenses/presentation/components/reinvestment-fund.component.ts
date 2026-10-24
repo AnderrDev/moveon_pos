@@ -25,11 +25,11 @@ import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
       @if (fund(); as f) {
         <div class="mt-4 grid gap-4 sm:grid-cols-3">
           <div>
-            <p class="text-muted-foreground text-xs tracking-wide uppercase">
+            <p class="text-muted-foreground text-sm font-medium">
               Disponible para reinvertir
             </p>
             <p
-              class="mt-1 text-2xl font-bold"
+              class="font-display mt-1.5 text-[1.75rem] leading-tight font-extrabold tabular-nums"
               [class.text-emerald-600]="f.disponible > 0"
               [class.text-destructive]="f.disponible < 0"
             >
@@ -38,13 +38,13 @@ import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
             <p class="text-muted-foreground mt-1 text-xs">Acumulado, arrastra entre meses</p>
           </div>
           <div>
-            <p class="text-muted-foreground text-xs tracking-wide uppercase">Apartado este mes</p>
-            <p class="mt-1 text-2xl font-bold">{{ (f.apartadoMes | money) }}</p>
+            <p class="text-muted-foreground text-sm font-medium">Apartado este mes</p>
+            <p class="font-display mt-1.5 text-[1.75rem] leading-tight font-extrabold tabular-nums">{{ (f.apartadoMes | money) }}</p>
             <p class="text-muted-foreground mt-1 text-xs">Costo de lo vendido en el mes</p>
           </div>
           <div>
-            <p class="text-muted-foreground text-xs tracking-wide uppercase">Invertido este mes</p>
-            <p class="mt-1 text-2xl font-bold">{{ (f.invertidoMes | money) }}</p>
+            <p class="text-muted-foreground text-sm font-medium">Invertido este mes</p>
+            <p class="font-display mt-1.5 text-[1.75rem] leading-tight font-extrabold tabular-nums">{{ (f.invertidoMes | money) }}</p>
             <p class="text-muted-foreground mt-1 text-xs">Compras de mercancía registradas</p>
           </div>
         </div>

@@ -13,7 +13,7 @@ import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
     <div class="bg-card rounded-xl border border-amber-500/25 p-5">
       <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h3 class="font-display text-sm font-bold tracking-wide uppercase">
+          <h3 class="font-display text-sm font-bold">
             Control de descuentos
           </h3>
           <p class="text-muted-foreground mt-1 text-xs">

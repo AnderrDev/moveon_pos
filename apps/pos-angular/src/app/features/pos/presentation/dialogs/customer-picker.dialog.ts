@@ -35,7 +35,7 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
           <button
             type="button"
             (click)="onCreateRequested()"
-            class="border-primary/50 text-primary hover:bg-primary/10 h-11 shrink-0 rounded-lg border border-dashed px-3 text-xs font-bold transition-colors"
+            class="border-primary/50 text-foreground hover:bg-primary/10 h-11 shrink-0 rounded-lg border border-dashed px-3 text-xs font-bold transition-colors"
           >
             + Nuevo
           </button>
@@ -53,7 +53,7 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
             <button
               type="button"
               (click)="load()"
-              class="text-primary mt-2 text-xs font-semibold underline"
+              class="text-foreground mt-2 text-xs font-semibold underline"
             >
               Reintentar
             </button>
@@ -87,7 +87,7 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
                 </span>
                 @if (c.autorizaFidelizacion) {
                   <span
-                    class="bg-primary/10 text-primary inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-bold"
+                    class="bg-primary/10 text-foreground inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-bold"
                   >
                     Club
                   </span>

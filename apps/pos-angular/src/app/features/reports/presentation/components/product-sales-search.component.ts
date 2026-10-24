@@ -18,7 +18,7 @@ import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
   imports: [MoneyPipe, BadgeComponent, MO_TABLE],
   template: `
     <div>
-      <h3 class="font-display mb-3 text-sm font-bold tracking-wide uppercase">
+      <h3 class="font-display mb-3 text-sm font-bold">
         Buscar producto
       </h3>
       <input

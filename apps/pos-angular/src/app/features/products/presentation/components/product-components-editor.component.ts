@@ -68,7 +68,7 @@ type ComboSavings = ReturnType<typeof comboSavings>
             @if (savings().ahorro > 0) {
               <div class="flex items-baseline gap-1.5">
                 <dt class="text-muted-foreground">Ahorro</dt>
-                <dd class="text-primary font-semibold tabular-nums">
+                <dd class="text-foreground font-semibold tabular-nums">
                   {{ (savings().ahorro | money) }} ({{ savings().porcentaje }}%)
                 </dd>
               </div>
@@ -83,7 +83,7 @@ type ComboSavings = ReturnType<typeof comboSavings>
 
       <div class="flex items-end gap-2 pt-1">
         <div class="min-w-0 flex-1">
-          <label for="product-component-id" class="text-muted-foreground mb-1 block text-[11px] font-semibold tracking-wide uppercase">
+          <label for="product-component-id" class="text-muted-foreground mb-1 block text-[11px] font-semibold">
             Producto
           </label>
           <select
@@ -99,7 +99,7 @@ type ComboSavings = ReturnType<typeof comboSavings>
           </select>
         </div>
         <div class="w-24 shrink-0">
-          <label for="product-component-qty" class="text-muted-foreground mb-1 block text-[11px] font-semibold tracking-wide uppercase">
+          <label for="product-component-qty" class="text-muted-foreground mb-1 block text-[11px] font-semibold">
             Cantidad
           </label>
           <input

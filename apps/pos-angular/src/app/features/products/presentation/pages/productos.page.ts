@@ -4,6 +4,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router'
 import { PageHeaderComponent } from '@angular-app/shared/molecules/page-header.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 import { BadgeComponent } from '@angular-app/shared/atoms/badge.component'
+import { MO_MENU } from '@angular-app/shared/molecules/menu.component'
 import { EmptyStateComponent } from '@angular-app/shared/molecules/empty-state.component'
 import { ProductFormDialog } from '@angular-app/features/products/presentation/dialogs/product-form.dialog'
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
@@ -39,10 +40,11 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
     DialogComponent,
     TableShellComponent,
     MO_TABLE,
+    ...MO_MENU,
   ],
   template: `
     <section class="flex h-full min-h-0 flex-col">
-      <mo-page-header title="Productos" subtitle="Catalogo y precios">
+      <mo-page-header title="Productos" subtitle="Catálogo y precios">
         <mo-button
           variant="outline"
           [loading]="exporting()"
@@ -52,22 +54,22 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
         >
           Descargar Excel
         </mo-button>
-        <mo-button (click)="openCreate()">+ Nuevo producto</mo-button>
+        <mo-button (click)="openCreate()">Nuevo producto</mo-button>
       </mo-page-header>
 
-      <nav class="mb-4 flex gap-1 text-sm">
+      <nav class="-mt-1 mb-4 flex gap-6 border-b text-sm" aria-label="Secciones de productos">
         <a
           routerLink="/productos"
-          routerLinkActive="bg-primary text-primary-foreground"
+          routerLinkActive="border-primary! text-foreground!"
           [routerLinkActiveOptions]="{ exact: true }"
-          class="hover:bg-muted rounded-lg px-3 py-1.5 font-semibold"
+          class="text-muted-foreground hover:text-foreground -mb-px border-b-[3px] border-transparent pt-1 pb-2.5 font-semibold transition-colors"
           >Productos</a
         >
         <a
           routerLink="/productos/categorias"
-          routerLinkActive="bg-primary text-primary-foreground"
-          class="hover:bg-muted rounded-lg px-3 py-1.5 font-semibold"
-          >Categorias</a
+          routerLinkActive="border-primary! text-foreground!"
+          class="text-muted-foreground hover:text-foreground -mb-px border-b-[3px] border-transparent pt-1 pb-2.5 font-semibold transition-colors"
+          >Categorías</a
         >
       </nav>
 
@@ -76,7 +78,7 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
           type="search"
           [value]="query()"
           (input)="onQueryInput($event)"
-          placeholder="Buscar por nombre, SKU o codigo de barras"
+          placeholder="Buscar por nombre, SKU o código de barras"
           class="border-input bg-card focus:ring-ring h-10 flex-1 rounded-lg border px-3 text-sm focus:ring-2 focus:outline-none"
         />
         <select
@@ -84,7 +86,7 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
           (change)="filterCategoria.set(getSelectValue($event))"
           class="border-input bg-card focus:ring-ring h-10 rounded-lg border px-3 text-sm focus:ring-2 focus:outline-none"
         >
-          <option value="all">Todas las categorias</option>
+          <option value="all">Todas las categorías</option>
           @for (cat of categorias(); track cat.id) {
             <option [value]="cat.id">{{ cat.nombre }}</option>
           }
@@ -115,7 +117,7 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
       @if (loading()) {
         <mo-skeleton heightClass="h-72" />
       } @else if (loadError()) {
-        <mo-empty-state title="No se pudo cargar el catalogo" [description]="loadError()">
+        <mo-empty-state title="No se pudo cargar el catálogo" [description]="loadError()">
           <mo-button (click)="load()">Reintentar</mo-button>
         </mo-empty-state>
       } @else if (filteredProducts().length === 0) {
@@ -123,7 +125,7 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
           title="Sin productos"
           description="Crea tu primer producto para empezar a vender."
         >
-          <mo-button (click)="openCreate()">+ Nuevo producto</mo-button>
+          <mo-button (click)="openCreate()">Nuevo producto</mo-button>
         </mo-empty-state>
       } @else {
         <mo-table-shell class="flex-1">
@@ -189,18 +191,20 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
                     </div>
                   </td>
                   <td moTd class="text-right">
-                    <div class="flex justify-end gap-1">
+                    <div class="flex items-center justify-end gap-1.5">
                       <mo-button size="sm" variant="outline" (click)="openEdit(product)">
                         Editar
                       </mo-button>
-                      @if (product.isActive) {
-                        <mo-button size="sm" variant="ghost" (click)="confirmDeactivate(product)">
-                          Desactivar
-                        </mo-button>
-                      }
-                      <mo-button size="sm" variant="ghost" class="text-destructive hover:text-destructive" (click)="openDeleteConfirm(product)">
-                        Eliminar
-                      </mo-button>
+                      <mo-menu size="sm" [label]="'Más acciones para ' + product.nombre">
+                        @if (product.isActive) {
+                          <button type="button" moMenuItem (click)="confirmDeactivate(product)">
+                            Desactivar
+                          </button>
+                        }
+                        <button type="button" moMenuItem class="text-destructive" (click)="openDeleteConfirm(product)">
+                          Eliminar
+                        </button>
+                      </mo-menu>
                     </div>
                   </td>
                 </tr>

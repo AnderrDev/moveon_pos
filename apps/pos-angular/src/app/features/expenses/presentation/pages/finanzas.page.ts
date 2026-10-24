@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { PageHeaderComponent } from '@angular-app/shared/molecules/page-header.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
+import { MO_MENU } from '@angular-app/shared/molecules/menu.component'
+import { ChevronLeft, ChevronRight, LucideAngularModule } from 'lucide-angular'
 import { EmptyStateComponent } from '@angular-app/shared/molecules/empty-state.component'
 import { VoidReasonDialog } from '@angular-app/shared/organisms/void-reason/void-reason.dialog'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
@@ -70,6 +72,8 @@ function monthRange(month: string): { from: string; to: string } {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SkeletonComponent, 
+    LucideAngularModule,
+    ...MO_MENU,
     PageHeaderComponent,
     ButtonComponent,
     EmptyStateComponent,
@@ -95,36 +99,32 @@ function monthRange(month: string): { from: string; to: string } {
         <div class="bg-card flex items-center rounded-lg border">
           <button
             type="button"
-            class="hover:bg-muted h-10 rounded-l-lg px-3 text-sm"
+            class="hover:bg-muted flex h-10 w-10 items-center justify-center rounded-l-lg"
             aria-label="Mes anterior"
             (click)="goPrevMonth()"
           >
-            ‹
+            <lucide-angular [img]="icons.prev" class="h-4 w-4" aria-hidden="true" />
           </button>
-          <span class="min-w-36 px-2 text-center text-sm font-semibold capitalize">
+          <span class="min-w-36 px-2 text-center text-sm font-semibold">
             {{ monthLabel() }}
           </span>
           <button
             type="button"
-            class="hover:bg-muted h-10 rounded-r-lg px-3 text-sm disabled:opacity-40"
+            class="hover:bg-muted flex h-10 w-10 items-center justify-center rounded-r-lg disabled:opacity-40"
             aria-label="Mes siguiente"
             [disabled]="isCurrentMonth()"
             (click)="goNextMonth()"
           >
-            ›
+            <lucide-angular [img]="icons.next" class="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
         <mo-button variant="outline" (click)="recurrentesOpen.set(true)">Gastos del mes</mo-button>
-        <mo-button
-          variant="outline"
-          [loading]="exporting()"
-          loadingText="Generando..."
-          [disabled]="loading()"
-          (click)="exportFinanzas()"
-        >
-          Descargar Excel
-        </mo-button>
-        <mo-button (click)="openNewExpense()">+ Registrar gasto</mo-button>
+        <mo-button (click)="openNewExpense()">Registrar gasto</mo-button>
+        <mo-menu>
+          <button type="button" moMenuItem [disabled]="loading() || exporting()" (click)="exportFinanzas()">
+            {{ exporting() ? 'Generando Excel…' : 'Descargar Excel del mes' }}
+          </button>
+        </mo-menu>
       </mo-page-header>
 
       @if (loading()) {
@@ -151,7 +151,7 @@ function monthRange(month: string): { from: string; to: string } {
           />
 
           <div>
-            <h3 class="text-muted-foreground mb-2 text-xs tracking-wide uppercase">
+            <h3 class="mb-2 text-sm font-bold">
               Gastos del mes ({{ expenses().length }})
             </h3>
             @if (expenses().length === 0) {
@@ -159,7 +159,7 @@ function monthRange(month: string): { from: string; to: string } {
                 title="Sin gastos este mes"
                 description="Registra nómina, arriendo, mantenimiento y demás gastos para ver la utilidad neta real."
               >
-                <mo-button (click)="openNewExpense()">+ Registrar gasto</mo-button>
+                <mo-button (click)="openNewExpense()">Registrar gasto</mo-button>
               </mo-empty-state>
             } @else {
               <mo-expense-list
@@ -236,6 +236,8 @@ function monthRange(month: string): { from: string; to: string } {
   `,
 })
 export class FinanzasPage {
+  readonly icons = { prev: ChevronLeft, next: ChevronRight }
+
   private readonly repo = inject(ExpenseRepository)
   private readonly reportsService = inject(ReportRepository)
   private readonly session = inject(SessionService)
@@ -277,7 +279,8 @@ export class FinanzasPage {
 
   readonly monthLabel = computed(() => {
     const [y, m] = this.month().split('-').map(Number)
-    return new Date(y, m - 1, 1).toLocaleDateString('es-CO', { month: 'long', year: 'numeric' })
+    const label = new Date(y, m - 1, 1).toLocaleDateString('es-CO', { month: 'long', year: 'numeric' })
+    return label.charAt(0).toUpperCase() + label.slice(1)
   })
 
   readonly isCurrentMonth = computed(() => this.month() >= currentMonthLocal())

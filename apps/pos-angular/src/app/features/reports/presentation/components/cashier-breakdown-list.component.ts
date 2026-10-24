@@ -11,7 +11,7 @@ import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
   imports: [MoneyPipe, CardComponent],
   template: `
     <mo-card>
-      <h3 class="font-display mb-3 text-sm font-bold tracking-wide uppercase">Por cajero</h3>
+      <h3 class="font-display mb-3 text-sm font-bold">Por cajero</h3>
       @if (cashierBreakdown().length === 0) {
         <p class="text-muted-foreground text-sm">Sin ventas registradas.</p>
       } @else {

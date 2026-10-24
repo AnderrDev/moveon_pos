@@ -71,36 +71,29 @@ interface PostSaleOutputJob {
   ],
   template: `
     <section class="flex h-full min-h-0 flex-col">
-      <header
-        class="mb-3 flex shrink-0 flex-col gap-1 sm:mb-4 sm:flex-row sm:items-start sm:justify-between"
-      >
-        <div>
-          <h1 class="font-display text-2xl font-bold">Punto de Venta</h1>
-          <p class="text-muted-foreground text-sm">
+      <header class="mb-4 flex shrink-0 flex-wrap items-center justify-between gap-3">
+        <div class="min-w-0">
+          <h1 class="font-display text-2xl font-extrabold">Punto de Venta</h1>
+          <p class="text-muted-foreground mt-0.5 flex items-center gap-2 text-sm">
+            <span
+              [class]="cashSession() ? 'h-2 w-2 rounded-full bg-emerald-500' : 'bg-destructive h-2 w-2 rounded-full'"
+              aria-hidden="true"
+            ></span>
             @if (cashSession()) {
-              Turno abierto · Caja {{ (cashSession()!.openingAmount | money) }}
+              Caja abierta, base {{ (cashSession()!.openingAmount | money) }}
             } @else {
-              No hay caja abierta
+              Caja cerrada: ábrela para poder cobrar
             }
           </p>
         </div>
         <div class="flex shrink-0 items-center gap-2">
           @if (cashSession()) {
-            <mo-button size="xs" variant="outline" (click)="historyOpen.set(true)">
+            <mo-button size="sm" variant="outline" (click)="historyOpen.set(true)">
               Ventas del turno
             </mo-button>
           } @else {
-            <mo-button size="xs" (click)="goToCaja()">Abrir caja</mo-button>
+            <mo-button size="sm" (click)="goToCaja()">Abrir caja</mo-button>
           }
-          <span
-            [class]="
-              cashSession()
-                ? 'inline-flex h-7 w-fit items-center rounded-full border border-emerald-600 bg-emerald-500/15 px-2.5 text-xs font-semibold text-emerald-700'
-                : 'text-muted-foreground inline-flex h-7 w-fit items-center rounded-full border px-2.5 text-xs font-semibold'
-            "
-          >
-            {{ cashSession() ? 'Caja abierta' : 'Caja cerrada' }}
-          </span>
         </div>
       </header>
 
@@ -127,13 +120,10 @@ interface PostSaleOutputJob {
           </div>
         </div>
       } @else {
-        <div
-          class="bg-card flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border lg:flex-row"
-        >
+        <div class="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden lg:flex-row lg:gap-5">
           <mo-pos-catalog
             [products]="products()"
             [categories]="categories()"
-            [cartItemCount]="cart.items().length"
             (add)="selectProduct($event)"
             (info)="openProductInfo($event)"
           />

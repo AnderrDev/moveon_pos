@@ -50,7 +50,7 @@ export interface ItemDiscountResult {
 
           <div class="space-y-2">
             <div class="flex items-center justify-between gap-2">
-              <span class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+              <span class="text-muted-foreground text-xs font-semibold">
                 Descuento por unidad
               </span>
               <div class="flex gap-1" role="group" aria-label="Tipo de descuento">

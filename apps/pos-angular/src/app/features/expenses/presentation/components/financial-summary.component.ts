@@ -15,8 +15,8 @@ import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
   template: `
     <div class="grid gap-4 sm:grid-cols-3">
       <div class="bg-card rounded-xl border p-4">
-        <p class="text-muted-foreground text-xs tracking-wide uppercase">Entradas totales</p>
-        <p class="mt-1 text-2xl font-bold">{{ (s().entradasTotales | money) }}</p>
+        <p class="text-muted-foreground text-sm font-medium">Entradas totales</p>
+        <p class="font-display mt-1.5 text-[1.75rem] leading-tight font-extrabold tabular-nums">{{ (s().entradasTotales | money) }}</p>
         @if (s().entradasPorMetodo.length > 0) {
           <dl class="mt-3 space-y-1.5 border-t pt-2 text-xs">
             @for (payment of s().entradasPorMetodo; track payment.metodo) {
@@ -36,8 +36,8 @@ import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
         }
       </div>
       <div class="bg-card rounded-xl border p-4">
-        <p class="text-muted-foreground text-xs tracking-wide uppercase">Gastos del negocio</p>
-        <p class="mt-1 text-2xl font-bold">{{ (s().gastosTotal | money) }}</p>
+        <p class="text-muted-foreground text-sm font-medium">Gastos del negocio</p>
+        <p class="font-display mt-1.5 text-[1.75rem] leading-tight font-extrabold tabular-nums">{{ (s().gastosTotal | money) }}</p>
         <p class="text-muted-foreground mt-1 text-xs">
           @if (s().pctGastosSobreEntradas !== null) {
             {{ s().pctGastosSobreEntradas }}% de las entradas
@@ -47,9 +47,9 @@ import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
         </p>
       </div>
       <div class="bg-card rounded-xl border p-4">
-        <p class="text-muted-foreground text-xs tracking-wide uppercase">Utilidad neta</p>
+        <p class="text-muted-foreground text-sm font-medium">Utilidad neta</p>
         <p
-          class="mt-1 text-2xl font-bold"
+          class="font-display mt-1.5 text-[1.75rem] leading-tight font-extrabold tabular-nums"
           [class.text-emerald-600]="s().utilidadNeta > 0"
           [class.text-destructive]="s().utilidadNeta < 0"
         >
@@ -113,7 +113,7 @@ import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
       </dl>
 
       @if (s().porCategoria.length > 0) {
-        <h4 class="text-muted-foreground mt-5 text-xs tracking-wide uppercase">
+        <h4 class="text-muted-foreground mt-5 text-xs">
           Gastos por categoría (% sobre entradas)
         </h4>
         <ul class="mt-2 space-y-2">

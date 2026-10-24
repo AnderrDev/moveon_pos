@@ -48,7 +48,7 @@ type LoyaltyOverviewState = 'loading' | 'ready' | 'error'
         </div>
       }
     } @else if (compact()) {
-      <span class="text-primary text-[10px] font-black tabular-nums">
+      <span class="text-foreground text-[10px] font-black tabular-nums">
         {{ progress().stampsBalance }}/{{ stampsPerReward() }} · faltan {{ remaining() }}
       </span>
     } @else {

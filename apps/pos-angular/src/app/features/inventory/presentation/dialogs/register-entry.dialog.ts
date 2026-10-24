@@ -96,7 +96,7 @@ const LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
             class="border-primary/20 bg-primary/5 flex items-center justify-between rounded-lg border px-3.5 py-3"
           >
             <span class="text-sm font-medium">Total de la compra</span>
-            <span class="text-primary text-lg font-bold tabular-nums">{{
+            <span class="text-foreground text-lg font-bold tabular-nums">{{
               (entryTotal() | money)
             }}</span>
           </div>

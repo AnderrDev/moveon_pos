@@ -15,14 +15,13 @@ import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
   providers: [LoginFormPresenter],
   template: `
     <main class="bg-background flex min-h-dvh items-center justify-center px-4 py-10">
-      <section class="bg-card w-full max-w-md rounded-2xl border p-6 shadow-xl">
+      <section class="bg-card w-full max-w-md overflow-hidden rounded-2xl border shadow-xl">
+        <div class="bg-foreground px-6 py-6">
+          <img src="assets/brand/moveon-logo.png" alt="MOVE ON Nutrition" class="h-auto w-44" />
+        </div>
+        <div class="p-6">
         <div class="mb-6">
-          <div
-            class="bg-primary mb-4 flex h-11 w-11 items-center justify-center rounded-xl text-sm font-black text-white"
-          >
-            M
-          </div>
-          <h1 class="font-display text-2xl font-bold">MOVEONAPP POS</h1>
+          <h1 class="font-display text-2xl font-extrabold">Punto de Venta</h1>
           <p class="text-muted-foreground mt-1 text-sm">Ingresa para operar la tienda.</p>
         </div>
 
@@ -43,7 +42,7 @@ import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
           </label>
 
           <label class="block">
-            <span class="text-sm font-semibold">Contrasena</span>
+            <span class="text-sm font-semibold">Contraseña</span>
             <input
               type="password"
               formControlName="password"
@@ -69,11 +68,12 @@ import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 
           <a
             routerLink="/recuperar-contrasena"
-            class="text-muted-foreground hover:text-primary block text-center text-sm font-semibold"
+            class="text-muted-foreground hover:text-foreground block text-center text-sm font-semibold"
           >
             ¿Olvidaste tu contraseña?
           </a>
         </form>
+        </div>
       </section>
     </main>
   `,

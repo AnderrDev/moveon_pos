@@ -73,6 +73,22 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
         </mo-button>
       </mo-page-header>
 
+      <!-- Tabs -->
+      <nav class="-mt-1 flex gap-6 overflow-x-auto border-b text-sm [scrollbar-width:none]" aria-label="Tipo de reporte">
+        <button type="button" (click)="tab.set('daily')" [class]="tabClass('daily')">
+          Ventas
+        </button>
+        <button type="button" (click)="tab.set('accounting')" [class]="tabClass('accounting')">
+          Financiero
+        </button>
+        <button type="button" (click)="tab.set('loyalty')" [class]="tabClass('loyalty')">
+          Fidelización
+        </button>
+        <button type="button" (click)="tab.set('stock')" [class]="tabClass('stock')">
+          Stock
+        </button>
+      </nav>
+
       <!-- Selector de período -->
       @if (tab() !== 'stock') {
         <mo-card padding="sm">
@@ -105,24 +121,9 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
         </mo-card>
       }
 
-      <!-- Tabs -->
-      <nav class="flex gap-1 text-sm">
-        <button type="button" (click)="tab.set('daily')" [class]="tabClass('daily')">
-          Ventas
-        </button>
-        <button type="button" (click)="tab.set('accounting')" [class]="tabClass('accounting')">
-          Financiero
-        </button>
-        <button type="button" (click)="tab.set('loyalty')" [class]="tabClass('loyalty')">
-          Fidelización
-        </button>
-        <button type="button" (click)="tab.set('stock')" [class]="tabClass('stock')">
-          Stock
-        </button>
-      </nav>
 
       @if (tab() === 'daily' && !loading() && !loadError()) {
-        <nav class="flex gap-1 text-xs">
+        <nav class="flex flex-wrap gap-2 text-sm" aria-label="Vista de ventas">
           @for (st of salesSubTabs; track st.id) {
             <button type="button" (click)="subTab.set(st.id)" [class]="subTabClass(st.id)">
               {{ st.label }}
@@ -285,19 +286,21 @@ export class ReportesPage {
 
   tabClass(value: TabId): string {
     return [
-      'rounded-lg px-3 py-1.5 font-semibold transition-colors',
-      this.tab() === value ? 'bg-primary text-primary-foreground' : 'hover:bg-muted',
+      '-mb-px shrink-0 border-b-[3px] pt-1 pb-2.5 font-semibold transition-colors',
+      this.tab() === value
+        ? 'border-primary text-foreground'
+        : 'text-muted-foreground hover:text-foreground border-transparent',
     ].join(' ')
   }
-
 
   subTabClass(value: SalesSubTabId): string {
     return [
-      'rounded-md px-2.5 py-1 font-semibold transition-colors',
-      this.subTab() === value ? 'bg-secondary text-secondary-foreground' : 'hover:bg-muted text-muted-foreground',
+      'rounded-full border px-3.5 py-1.5 font-semibold transition-colors',
+      this.subTab() === value
+        ? 'border-foreground bg-foreground text-background'
+        : 'bg-card text-foreground hover:border-foreground/40',
     ].join(' ')
   }
-
 
   salesListTitle(): string {
     return this.salesFilter() === 'voided' ? 'Ventas anuladas' : 'Detalle de ventas'

@@ -19,7 +19,7 @@ import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
   template: `
     <div class="grid gap-4 md:grid-cols-2">
       <mo-card>
-        <h3 class="font-display mb-3 text-sm font-bold tracking-wide uppercase">
+        <h3 class="font-display mb-3 text-sm font-bold">
           Ventas por hora
         </h3>
         @if (hourlySales().length > 0) {
@@ -51,7 +51,7 @@ import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
       </mo-card>
 
       <mo-card>
-        <h3 class="font-display mb-3 text-sm font-bold tracking-wide uppercase">
+        <h3 class="font-display mb-3 text-sm font-bold">
           Ventas por día
         </h3>
         @if (dailySales().length > 0) {

@@ -89,7 +89,7 @@ const TIPO_OPTIONS: FormSelectOption<string>[] = [
         </div>
 
         <div class="bg-muted/40 space-y-2 rounded-lg border px-3.5 py-3">
-          <p class="text-xs font-bold tracking-wide uppercase">MOVE ON Club</p>
+          <p class="text-xs font-bold">MOVE ON Club</p>
           <mo-form-checkbox
             controlName="autorizaFidelizacion"
             label="Autoriza participar en el programa de fidelización"

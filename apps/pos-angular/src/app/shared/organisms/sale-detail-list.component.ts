@@ -23,7 +23,7 @@ import { ChevronDown, LucideAngularModule } from 'lucide-angular'
   imports: [LucideAngularModule, MoneyPipe, BadgeComponent, SaleDetailBodyComponent],
   template: `
     <div>
-      <h3 class="font-display mb-3 text-sm font-bold tracking-wide uppercase">
+      <h3 class="font-display mb-3 text-sm font-bold">
         {{ title() }}
       </h3>
       @if (sales().length === 0) {
@@ -59,9 +59,9 @@ import { ChevronDown, LucideAngularModule } from 'lucide-angular'
                   </div>
                   <div class="flex shrink-0 items-center gap-3">
                     <div class="text-right">
-                      <p class="text-muted-foreground text-[10px] font-bold tracking-wide uppercase">Total</p>
+                      <p class="text-muted-foreground text-xs font-bold">Total</p>
                       <p
-                        class="font-display text-primary mt-0.5 text-lg font-black tabular-nums"
+                        class="font-display text-foreground mt-0.5 text-lg font-black tabular-nums"
                         [class.text-muted-foreground]="sale.status === 'voided'"
                         [class.line-through]="sale.status === 'voided'"
                       >{{ (sale.total | money) }}</p>
@@ -72,17 +72,17 @@ import { ChevronDown, LucideAngularModule } from 'lucide-angular'
 
                 <div class="mt-4 grid gap-2 text-xs sm:grid-cols-3">
                   <div class="bg-muted/50 min-w-0 rounded-xl px-3 py-2.5">
-                    <p class="text-muted-foreground text-[10px] font-bold uppercase">Usuario</p>
+                    <p class="text-muted-foreground text-xs font-bold">Usuario</p>
                     <p class="mt-0.5 truncate font-semibold">{{ saleUserLabel(sale) }}</p>
                   </div>
                   <div class="bg-muted/50 rounded-xl px-3 py-2.5">
-                    <p class="text-muted-foreground text-[10px] font-bold uppercase">Productos</p>
+                    <p class="text-muted-foreground text-xs font-bold">Productos</p>
                     <p class="mt-0.5 font-semibold tabular-nums">
                       {{ saleItemCount(sale) }} unidades · {{ sale.items.length }} referencias
                     </p>
                   </div>
                   <div class="bg-muted/50 min-w-0 rounded-xl px-3 py-2.5">
-                    <p class="text-muted-foreground text-[10px] font-bold uppercase">Pago</p>
+                    <p class="text-muted-foreground text-xs font-bold">Pago</p>
                     <p class="mt-0.5 truncate font-semibold">{{ salePaymentMethods(sale) }}</p>
                   </div>
                 </div>

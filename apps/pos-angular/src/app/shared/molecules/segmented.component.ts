@@ -36,7 +36,7 @@ export class SegmentedComponent {
     return [
       'rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors',
       this.value() === optionValue
-        ? 'bg-secondary text-secondary-foreground'
+        ? 'bg-foreground text-background'
         : 'hover:bg-muted text-muted-foreground',
     ].join(' ')
   }
