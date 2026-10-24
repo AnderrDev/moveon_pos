@@ -275,7 +275,16 @@ export class CashRegisterRepository extends CashRegisterRepositoryContract {
       p_notas_cierre: input.notasCierre ?? null,
     })
 
-    if (error) throw new Error(error.message)
+    if (error) {
+      // Reintento tras perder la respuesta: la RPC ya cerró la caja y ahora
+      // rechaza con "ya esta cerrada". Si la cerró este mismo usuario, el
+      // cierre pedido ya ocurrió → se devuelve la sesión cerrada (idempotente).
+      if (error.message.includes('ya esta cerrada')) {
+        const closed = await this.getSessionById(input.sessionId, input.tiendaId)
+        if (closed?.status === 'closed' && closed.closedBy === input.closedBy) return closed
+      }
+      throw new Error(error.message)
+    }
 
     const session = await this.getSessionById(input.sessionId, input.tiendaId)
     if (!session) throw new Error('Cierre sin respuesta')

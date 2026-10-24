@@ -87,6 +87,20 @@ export class SalesRepository extends SaleRepositoryContract {
     return data
   }
 
+  async findByIdempotencyKey(
+    idempotencyKey: string,
+    tiendaId: string,
+  ): Promise<{ id: string; saleNumber: string; total: number } | null> {
+    const { data, error } = await this.supabaseClient.supabase
+      .from('sales')
+      .select('id, sale_number, total')
+      .eq('tienda_id', tiendaId)
+      .eq('idempotency_key', idempotencyKey)
+      .maybeSingle()
+    if (error) throw new Error(error.message)
+    return data ? { id: data.id, saleNumber: data.sale_number, total: Number(data.total) } : null
+  }
+
   async findById(saleId: string, tiendaId: string): Promise<Sale | null> {
     const { data, error } = await this.supabaseClient.supabase
       .from('sales')

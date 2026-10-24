@@ -8,6 +8,7 @@ import {
   output,
   signal,
 } from '@angular/core'
+import { generateIdempotencyKey } from '@/shared/lib/idempotency-key'
 import { ReactiveFormsModule } from '@angular/forms'
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
@@ -135,6 +136,11 @@ const METODO_OPTIONS: FormSelectOption<string>[] = [
 })
 export class ExpenseFormDialog {
   private readonly repo = inject(ExpenseRepository)
+  /**
+   * Una por apertura del diálogo (se regenera al abrir): los reintentos del
+   * mismo gasto no lo duplican, y un gasto nuevo nunca reutiliza la anterior.
+   */
+  private idempotencyKey = generateIdempotencyKey()
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
   protected readonly presenter = inject(ExpenseFormPresenter)
@@ -158,7 +164,10 @@ export class ExpenseFormDialog {
 
   constructor() {
     effect(() => {
-      if (this.open()) this.presenter.reset(this.initial() ?? {})
+      if (this.open()) {
+        this.idempotencyKey = generateIdempotencyKey()
+        this.presenter.reset(this.initial() ?? {})
+      }
     })
   }
 
@@ -180,7 +189,10 @@ export class ExpenseFormDialog {
         tiendaId: auth.tiendaId,
         periodo: this.periodo() ?? undefined,
       })
-      const result = await registerExpense({ repo: this.repo, userId: auth.userId }, dto)
+      const result = await registerExpense(
+        { repo: this.repo, userId: auth.userId },
+        { ...dto, idempotencyKey: this.idempotencyKey },
+      )
       if (!result.ok) {
         this.presenter.setRootError(result.error.message)
         return

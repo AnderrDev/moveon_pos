@@ -156,4 +156,15 @@ Sin cambios de código en esta sesión. Consultas remotas solo de lectura (`pg_p
 - `ProductsRepository.saveComponents/saveOptions` → una RPC cada uno; se recortaron las fachadas de escritura sin uso.
 - pgTAP 28/28 (control negativo: con solo 000600 fallan únicamente las 2 de escritura directa). Test unitario del contrato de argumentos (3). `pnpm lint`, `pnpm test` (795), typecheck OK.
 - UI local como admin: batido → default "Sin proteína" y de vuelta a "Whey QA" (caso del bug), ambos "Producto actualizado" vía RPC; combo intacto.
-- Sin publicar. Despliegue sin corte: 000600 → frontend → 000700.
+- **Desplegado en producción (autorizado por el dueño):** 000600 aplicada y registrada (RPC DEFINER, sin `anon`) → merge `dev→main` `197bfde` (solo estos cambios) → Netlify `moveon-client` `6adce91ebc196545b7c64e2f` y `moveon-catalogo-web` `6adce91e6a4eac4036b67a91` ready, bundle con ambas RPC y sin el upsert viejo → 000700 aplicada y registrada. Verificado: `product_components`/`product_options` solo `pc_read`/`po_read` y sin INSERT/UPDATE/DELETE para `authenticated`. Riesgo residual: una pestaña con el bundle anterior falla al guardar recetas/opciones hasta recargar.
+
+## 15. P1 #9 — idempotencia de venta, cierre y gastos (misma fecha)
+
+- Decisión: NO persistir la clave de venta tal cual. El carrito no sobrevive a una recarga; reutilizar la clave con otro carrito haría que la RPC devolviera la venta anterior sin registrar la nueva. En su lugar, "venta en curso" en `sessionStorage` + consulta por clave al volver (`pending-sale.ts`, `SaleRepository.findByIdempotencyKey`). Se descarta solo al confirmar: postgrest no lanza en caídas de red y `mapSaleError` las vuelve genéricas, así que un error no se distingue de un rechazo.
+- `20261024000800_idempotent_sale_and_expense.sql`: `create_sale_atomic` (mismo cuerpo que producción, md5 verificado) con la búsqueda por clave tras la validación de identidad/tienda y antes de exigir caja abierta, y manejo de `unique_violation`; `expenses.idempotency_key` + `ux_expenses_idempotency_key`; `register_expense_atomic` con `p_idempotency_key` (se elimina la firma anterior para evitar sobrecargas ambiguas en PostgREST; las llamadas sin clave siguen funcionando).
+- Cierre de caja: idempotente en el cliente (sin tocar la RPC).
+- Gastos: clave regenerada en cada apertura del diálogo — detectado que los diálogos se reutilizan entre aperturas; una clave fija por instancia habría devuelto el primer gasto en el segundo.
+- `generateIdempotencyKey` movido a `src/shared/lib/idempotency-key.ts`. `database.types.ts` editado a mano con `p_idempotency_key` y `expenses.idempotency_key` (regenerar tras desplegar).
+- pgTAP `idempotent-sale-expense.test.sql` 12/12; resto de suites sin cambios (mismas 5 preexistentes; `sale-discount` con los mismos fallos 4 y 8). Tests unitarios: venta en curso (4), cierre idempotente (2), gasto con clave (2). `pnpm lint`, `pnpm test` (803), typecheck OK.
+- UI local: aviso "Venta registrada … (V-000001). No la cobres de nuevo." con una clave existente; "Venta sin registrar …" con una inexistente; venta real `V-000002` deja la venta en curso vacía.
+- Sin publicar. Orden: aplicar 000800 (compatible con el frontend actual) → publicar frontend.

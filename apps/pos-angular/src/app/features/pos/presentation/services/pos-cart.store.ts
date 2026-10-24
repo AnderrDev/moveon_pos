@@ -1,4 +1,5 @@
 import { computed, Injectable, signal } from '@angular/core'
+import { generateIdempotencyKey } from '@/shared/lib/idempotency-key'
 import {
   calculateCartItem,
   calculateCartTotals,
@@ -74,13 +75,6 @@ function toCartItem(input: ToCartItemInput): PosCartItem {
     components: input.components,
     option: input.option,
   }
-}
-
-function generateIdempotencyKey(): string {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-    return crypto.randomUUID()
-  }
-  return `idem-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
 }
 
 @Injectable()

@@ -80,3 +80,7 @@ apps/pos-angular/src/app/features/expenses/          (estructura ADR 0015)
 
 - La comparativa mensual usa `entradas − gastos` sin costo de productos (cargar 6 meses de `sale_items` sería pesado; anotado en la UI).
 - Probado end-to-end en Chrome contra producción (2026-07-05): CRUD de gastos, nómina, plantillas, export y guards de rol. Ver `docs/sessions/2026-07-05-finanzas-cierre-plan49.md`.
+
+## Gastos idempotentes (2026-10-24, `20261024000800`)
+
+`register_expense_atomic` acepta `p_idempotency_key` (opcional; `expenses.idempotency_key` con índice único por tienda). Los diálogos de gasto y de pago de nómina generan una clave **cada vez que se abren** (los diálogos se reutilizan entre aperturas) y la reenvían en los reintentos: un reintento devuelve el gasto ya registrado sin duplicar el egreso de caja. Sin clave, el comportamiento es el de antes.

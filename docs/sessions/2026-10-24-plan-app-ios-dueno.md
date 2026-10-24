@@ -128,6 +128,15 @@ El dueño pidió que las reglas del proyecto sean iguales a las de `gym_ios` (`~
 - **Base local:** estaba atrasada; `supabase migration up --local --include-all` aplicó hasta `20261024000200`. Se detuvo en `20261024000300_lock_direct_writes…` (de otra sesión) porque sus políticas ya estaban aplicadas a mano en local sin registro; no se tocó. `20261024000400/500` siguen sin registrar en local. La RPC nueva se aplicó con psql y se registró en `schema_migrations`.
 - **Remoto:** `owner_sales_summary` NO está aplicada en producción; pendiente de confirmación del dueño.
 
+## 14. Continuación — PLAN-79 (dashboard "Hoy")
+
+Hecho en `moveon-owner-ios` (commit `e125945`, sin push). Detalle en `docs/modules/ios-owner.md` §Dashboard y decisiones en `ENGINEERING_RULES.md` §12 del repo iOS.
+
+- **Tests:** 81 unitarios + 6 de UI (modo demo) en verde, sin avisos propios. Hallazgo al escribir los de UI: el aviso del sistema "¿Guardar contraseña?" tapa la app tras el login; lo dibuja `com.apple.SafariViewService` y los tests lo descartan.
+- **Cambio de diseño durante la sesión:** el selector de período pasó de un menú escondido a un control segmentado visible (más a mano para el dueño).
+- **QA real:** se cargaron en el Supabase LOCAL 4 ventas de hoy en la tienda demo (`IOS-QA-1..4`, ids `e1000000-…`), con pago mixto y una línea sin costo. La app mostró $ 645.000 / 5 ventas / utilidad $ 270.000 / ticket $ 129.000, idéntico a `owner_sales_summary` consultada con psql. Se encontró y corrigió que una caja abierta desde otro día (la local está abierta desde el 15 sep) se mostraba como si fuera de hoy.
+- **Pendiente:** push del repo iOS; `owner_sales_summary` sigue solo en local.
+
 ## 8. Notas adicionales
 
 - Fuentes de datos ya existentes para la app: `get_stock_levels`, `get_monthly_sales_totals`, `get_monthly_expense_totals`, `get_reinvestment_fund_totals`, `list_cash_history_days`.

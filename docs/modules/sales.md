@@ -295,3 +295,9 @@ Estado real desde `20261024000200`–`20261024000300` (antes solo existía `tena
 - Cada venta conserva número, estado, cliente, usuario responsable, totales, cambio y motivo de anulación.
 - Las líneas de producto y pagos se exportan por separado para facilitar filtros y conciliación.
 - Las ventas anuladas se incluyen con su estado, pero no se suman al total efectivo del resumen.
+
+## Idempotencia de la venta (2026-10-24, `20261024000800`)
+
+- La clave se genera al iniciar el flujo (`PosCartStore`, helper compartido `src/shared/lib/idempotency-key.ts`) y se reutiliza en cada reintento del mismo carrito; se regenera solo al confirmar.
+- `create_sale_atomic` busca la clave DESPUÉS de validar identidad y tienda (antes un usuario ajeno podía obtener el id) y ANTES de exigir caja abierta (un reintento tras cerrar caja devuelve la venta ya registrada). Una carrera con la misma clave devuelve la venta existente en vez de `unique_violation`.
+- **Recarga a mitad de cobro:** el carrito no sobrevive a una recarga, así que la clave NO se reutiliza con otro carrito. Antes de cobrar se guarda la "venta en curso" en `sessionStorage` (`pending-sale.ts`) y solo se descarta al confirmar. Al cargar el POS, si quedó una, se consulta `SaleRepository.findByIdempotencyKey` y se avisa al cajero si quedó registrada (no cobrar de nuevo) o no.

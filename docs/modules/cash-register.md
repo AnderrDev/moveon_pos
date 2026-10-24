@@ -63,3 +63,7 @@ Gestión de sesiones de caja: apertura, cierre, ingresos/egresos manuales, cuadr
 - El administrador puede descargar el Excel de cualquier turno desde su detalle en `/caja/historial`; el resumen incluye responsable del cierre.
 - La descarga usa las mismas ventas y movimientos autorizados de la sesión actual; no realiza consultas con privilegios adicionales.
 - Está disponible para cualquier usuario activo que ya puede operar la caja compartida.
+
+## Cierre idempotente (2026-10-24)
+
+Si se pierde la respuesta del cierre y se reintenta, `close_cash_session_atomic` rechaza con "La caja ya esta cerrada". `CashRegisterRepository.closeSession` trata ese caso como éxito cuando la sesión quedó cerrada por el mismo usuario y devuelve la sesión cerrada (sin auditar dos veces); si la cerró otra persona, el error se mantiene.
