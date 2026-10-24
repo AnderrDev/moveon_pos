@@ -113,3 +113,11 @@ Sin cambios de código en esta sesión. Consultas remotas solo de lectura (`pg_p
 - `products.repository.ts#listProducts`: sin término → `fetchAllPages` con builder nuevo por página y orden estable (`nombre`, `id`); con término → tope `PRODUCT_SEARCH_LIMIT = 200`. Ningún llamador usaba búsqueda por término; los 4 (caché del POS/productos, inventario, reportes) quedaban truncados a 200.
 - Test con el repositorio real en node (`Injector.create` + `runInInjectionContext` + `@angular/compiler`, primer test de repositorio sin TestBed) y builder PostgREST falso: 250 y 2.300 productos, y búsqueda saneada con tope. Control negativo: con el código anterior fallan 2/3.
 - `pnpm lint`, `pnpm test` (771), typecheck OK. Solo frontend, sin migración. Sin publicar.
+
+## 10. P1 #6 — crear venta en el dominio (misma fecha)
+
+- Nuevo `sales/domain/usecases/create-sale.use-case.ts` (`createSale`): valida con `createSaleSchema` (reescrito con el contrato real; el anterior estaba desactualizado y solo lo usaban sus tests), resuelve canjes `itemKey → itemIndex` y persiste por `SaleRepository.create`. Rechazo de la RPC → `Result` `remote` (es un resultado esperado del cobro, no fallo técnico).
+- `SaleRepository.create` + `CreateSaleRequest` en el contrato; `SalesRepository.create` (sales/data) concentra la llamada a `create_sale_atomic` y la auditoría, con los mismos argumentos que antes.
+- `PosSaleService` queda como adaptador: sin Supabase ni auditoría; mapea `PosCartItem` al DTO, inyecta la abstracción `SaleRepository` (pos → sales/domain, excepción permitida) y traduce el error con `mapSaleError`. API pública intacta: `pos.page.ts` sin cambios.
+- Tests: use-case (5), contrato exacto de argumentos de la RPC + auditoría + error (3), DTO actualizado. `docs/modules/sales.md` alineado con el código real.
+- `pnpm lint`, `pnpm test` (780), typecheck OK. Sin publicar (se publica junto con #5).

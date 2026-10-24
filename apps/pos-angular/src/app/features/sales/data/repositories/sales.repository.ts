@@ -4,7 +4,10 @@ import { fetchAllPages } from '@angular-app/core/supabase/fetch-all-pages'
 import { AuditLogRepository } from '@angular-app/features/audit/domain/repositories/audit-log.repository'
 import { rowToSale, type SaleRow } from '@angular-app/features/sales/data/models/sale.mapper'
 import type { Sale } from '@angular-app/features/sales/domain/entities/sale.entity'
-import { SaleRepository as SaleRepositoryContract } from '@angular-app/features/sales/domain/repositories/sale.repository'
+import {
+  SaleRepository as SaleRepositoryContract,
+  type CreateSaleRequest,
+} from '@angular-app/features/sales/domain/repositories/sale.repository'
 
 const SALE_COLS =
   'id, tienda_id, cash_session_id, sale_number, cliente_id, cashier_id, cashier_email, subtotal, item_discount_total, global_discount_total, discount_total, discount_reason, discount_approved_by, tax_total, total, status, billing_status, billing_document_id, voided_by, voided_at, voided_reason, idempotency_key, created_at, updated_at'
@@ -23,6 +26,66 @@ interface RpcClient {
 export class SalesRepository extends SaleRepositoryContract {
   private readonly supabaseClient = inject(SupabaseClientService)
   private readonly audit = inject(AuditLogRepository)
+
+  async create(request: CreateSaleRequest): Promise<string> {
+    const client = this.supabaseClient.supabase as unknown as RpcClient
+    const { data, error } = await client.rpc<string>('create_sale_atomic', {
+      p_tienda_id: request.tiendaId,
+      p_cash_session_id: request.cashSessionId,
+      // El sale_number lo genera create_sale_atomic (correlativo por tienda).
+      // Se envía un placeholder porque la firma del RPC lo exige, pero el RPC lo ignora.
+      p_sale_number: '',
+      p_cashier_id: request.cashierId,
+      p_cliente_id: request.clienteId,
+      p_subtotal: request.totals.subtotal,
+      p_discount_total: request.totals.discountTotal,
+      p_tax_total: request.totals.taxTotal,
+      p_total: request.totals.total,
+      p_idempotency_key: request.idempotencyKey,
+      p_items: request.items.map((item) => ({
+        producto_id: item.productId,
+        producto_nombre: item.nombre,
+        producto_sku: item.sku ?? null,
+        quantity: item.quantity,
+        unit_price: item.unitPrice,
+        option_id: item.optionId ?? null,
+        discount_amount: item.discountAmount,
+        tax_rate: item.taxRate,
+        tax_amount: item.taxAmount,
+        total: item.total,
+      })),
+      p_payments: request.payments.map((payment) => ({
+        metodo: payment.metodo,
+        amount: payment.amount,
+        referencia: payment.referencia ?? null,
+      })),
+      p_global_discount_total: request.globalDiscountTotal,
+      p_discount_reason: request.discountReason,
+      p_loyalty_redemptions:
+        request.loyaltyRedemptions.length > 0
+          ? request.loyaltyRedemptions.map((r) => ({ reward_id: r.rewardId, item_index: r.itemIndex }))
+          : null,
+    })
+
+    // postgrest-js (sin `.throwOnError()`) devuelve `error` como objeto plano
+    // `{ message, ... }`, NO una instancia de Error: se relanza con el texto
+    // crudo de la RPC (ej. 'Stock insuficiente') para que presentation lo traduzca.
+    if (error) throw new Error(error.message?.trim() ? error.message : 'Error al crear venta')
+    if (!data) throw new Error('Venta creada sin id de respuesta')
+
+    void this.audit.log({
+      tiendaId: request.tiendaId,
+      entityType: 'venta',
+      entityId: data,
+      action: 'create',
+      changes: {
+        total: request.totals.total,
+        items: request.items.length,
+        payments: request.payments.map((p) => p.metodo),
+      },
+    })
+    return data
+  }
 
   async findById(saleId: string, tiendaId: string): Promise<Sale | null> {
     const { data, error } = await this.supabaseClient.supabase

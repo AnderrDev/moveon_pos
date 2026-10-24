@@ -11,13 +11,17 @@ const uuid = '11111111-1111-4111-8111-111111111111'
 describe('createSaleSchema', () => {
   const validSale = {
     cashSessionId: uuid,
+    idempotencyKey: 'session-123',
+    clienteId: null,
     items: [
       {
+        key: uuid,
         productId: uuid,
-        productoNombre: 'Whey Protein',
-        productoSku: 'WHY-001',
+        nombre: 'Whey Protein',
+        sku: 'WHY-001',
         quantity: 1,
         unitPrice: 100000,
+        optionId: null,
         discountAmount: 0,
         taxRate: 19,
         taxAmount: 19000,
@@ -25,16 +29,15 @@ describe('createSaleSchema', () => {
       },
     ],
     payments: [{ metodo: 'cash', amount: 119000 }],
-    subtotal: 100000,
-    discountTotal: 0,
-    taxTotal: 19000,
-    total: 119000,
-    change: 0,
-    idempotencyKey: 'session-123',
+    totals: { subtotal: 100000, discountTotal: 0, taxTotal: 19000, total: 119000 },
+    globalDiscountTotal: 0,
+    discountReason: null,
   }
 
-  it('acepta una venta válida', () => {
-    expect(createSaleSchema.safeParse(validSale).success).toBe(true)
+  it('acepta una venta válida y completa canjes vacíos por defecto', () => {
+    const result = createSaleSchema.safeParse(validSale)
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data.loyaltyRedemptions).toEqual([])
   })
 
   it('requiere al menos un item', () => {
@@ -58,10 +61,7 @@ describe('createSaleSchema', () => {
       ...validSale,
       items: [{ ...validSale.items[0], discountAmount: 100000, total: 0 }],
       payments: [],
-      subtotal: 100000,
-      discountTotal: 100000,
-      taxTotal: 0,
-      total: 0,
+      totals: { subtotal: 100000, discountTotal: 100000, taxTotal: 0, total: 0 },
     })
     expect(result.success).toBe(true)
   })
@@ -75,6 +75,12 @@ describe('createSaleSchema', () => {
     if (!result.success) {
       expect(result.error.issues[0].path).toEqual(['payments', 0, 'amount'])
     }
+  })
+
+  it('exige motivo de al menos 3 caracteres cuando hay descuento con motivo', () => {
+    const result = createSaleSchema.safeParse({ ...validSale, discountReason: ' x ' })
+    expect(result.success).toBe(false)
+    if (!result.success) expect(result.error.issues[0].message).toMatch(/motivo/)
   })
 })
 
