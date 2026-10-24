@@ -1,24 +1,16 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { Router } from '@angular/router'
-import { LucideAngularModule, Gift, UserRound } from 'lucide-angular'
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { formatCurrency } from '@/shared/lib/format'
-import { getPaymentMethodLabel, PAYMENT_METHOD_OPTIONS } from '@/shared/lib/payment-methods'
-import {
-  validateDiscountAuthorization,
-  validatePaymentsForSale,
-} from '@angular-app/features/sales/domain/services/sale-calculator'
-import { canConfirmSale, discretionaryDiscount } from '@angular-app/features/sales/domain/services/checkout-rules'
 import { preferredOption } from '@angular-app/features/pos/presentation/services/pos-catalog'
 import { PosCatalogComponent } from '@angular-app/features/pos/presentation/components/pos-catalog.component'
 import { PosCartPanelComponent } from '@angular-app/features/pos/presentation/components/pos-cart-panel.component'
-import { buildPaymentEntry, requiresReference } from '@angular-app/features/sales/domain/services/sale-builder'
-import type { PaymentMethod } from '@/shared/types'
+import { PosCheckoutDialogComponent } from '@angular-app/features/pos/presentation/components/pos-checkout-dialog.component'
+import { PosCheckoutStore } from '@angular-app/features/pos/presentation/services/pos-checkout.store'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { TiendaInfoService } from '@angular-app/core/tienda/tienda-info.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
-import { SpinnerComponent } from '@angular-app/shared/atoms/spinner.component'
 import { PosCartStore } from '@angular-app/features/pos/presentation/services/pos-cart.store'
 import { PosDataService } from '@angular-app/features/pos/presentation/services/pos-data.service'
 import { PosSaleService } from '@angular-app/features/pos/presentation/services/pos-sale.service'
@@ -62,11 +54,11 @@ interface PostSaleOutputJob {
   selector: 'mo-pos-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [PosCartStore],
+  providers: [PosCartStore, PosCheckoutStore],
   imports: [
+    PosCheckoutDialogComponent,
     PosCartPanelComponent,
     PosCatalogComponent,
-    LucideAngularModule,
     SalesHistoryDialog,
     CustomerPickerDialog,
     ClienteFormDialog,
@@ -75,7 +67,6 @@ interface PostSaleOutputJob {
     ProductInfoDialog,
     ReceiptOutputStatusDialog,
     ButtonComponent,
-    SpinnerComponent,
   ],
   template: `
     <section class="flex h-full min-h-0 flex-col">
@@ -164,371 +155,14 @@ interface PostSaleOutputJob {
       }
     </section>
 
-    @if (checkoutOpen()) {
-      <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
-        <button
-          type="button"
-          aria-label="Cerrar cobro"
-          class="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
-          [disabled]="isSaving()"
-          (click)="closeCheckout()"
-        ></button>
-        <section
-          class="bg-card ring-border/60 relative z-10 flex max-h-[calc(100dvh-1.5rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl shadow-2xl ring-1"
-        >
-          <div class="bg-primary h-1"></div>
-          <header class="shrink-0 border-b px-4 pt-4 pb-3 sm:px-6">
-            <h2 class="font-display text-lg leading-none font-bold">Cobrar venta</h2>
-          </header>
-
-          <div class="min-h-0 space-y-4 overflow-y-auto p-4 sm:p-6">
-            <div class="bg-muted/50 rounded-xl px-4 py-3">
-              <p class="text-muted-foreground mb-2 text-[10px] font-semibold tracking-wide uppercase">
-                Resumen de compra
-              </p>
-              <div class="border-border/50 mb-2.5 space-y-1 border-b pb-2.5">
-                @for (item of cart.items(); track item.key) {
-                  <div class="flex items-start justify-between gap-2">
-                    <span class="min-w-0 flex-1 text-sm leading-snug">
-                      {{ item.nombre }}
-                      <span class="text-muted-foreground">&nbsp;×&nbsp;{{ item.quantity }}</span>
-                    </span>
-                    <div class="shrink-0 text-right">
-                      <span class="text-sm font-semibold tabular-nums">{{ money(item.total) }}</span>
-                      @if (item.descuentoTotal > 0) {
-                        <span class="text-destructive ml-1.5 text-[11px] tabular-nums">
-                          −{{ money(item.descuentoTotal) }}
-                        </span>
-                      }
-                    </div>
-                  </div>
-                }
-              </div>
-              @if (cart.totals().discountTotal > 0) {
-                <div class="flex justify-between text-sm">
-                  <span class="text-muted-foreground">Descuentos</span>
-                  <span class="text-destructive font-medium"
-                    >−{{ money(cart.totals().discountTotal) }}</span
-                  >
-                </div>
-              }
-              <div class="flex justify-between text-sm">
-                <span class="text-muted-foreground">Total venta</span>
-                <span class="font-semibold">{{ money(cart.totals().total) }}</span>
-              </div>
-              @if (cart.totalPaid() > 0) {
-                <div class="flex justify-between text-sm">
-                  <span class="text-muted-foreground">Pagado</span>
-                  <span class="font-semibold text-emerald-600">{{ money(cart.totalPaid()) }}</span>
-                </div>
-              }
-              @if (cart.remainingAmount() > 0) {
-                <div class="mt-1 flex justify-between text-sm font-semibold">
-                  <span>Falta</span>
-                  <span class="text-destructive">{{ money(cart.remainingAmount()) }}</span>
-                </div>
-              }
-              @if (cart.change() > 0) {
-                <div class="mt-1 flex justify-between font-bold">
-                  <span>Cambio</span>
-                  <span class="text-primary">{{ money(cart.change()) }}</span>
-                </div>
-              }
-            </div>
-
-            <!-- Cliente: última oportunidad de asociarlo antes de confirmar
-                 (después del cobro solo un admin puede corregirlo, RN-S13). -->
-            @if (cart.clienteId()) {
-              <div class="bg-primary/5 border-primary/20 flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5">
-                <span class="flex min-w-0 items-center gap-2">
-                  <lucide-angular [img]="icons.user" class="text-primary h-4 w-4 shrink-0" aria-hidden="true" />
-                  <span class="min-w-0">
-                    <span class="text-muted-foreground block text-[10px] font-semibold tracking-wide uppercase">Cliente</span>
-                    <span class="block truncate text-sm font-semibold">{{ cart.clienteNombre() }}</span>
-                  </span>
-                </span>
-                <button
-                  type="button"
-                  (click)="customerPickerOpen.set(true)"
-                  [disabled]="isSaving()"
-                  class="text-muted-foreground hover:text-primary shrink-0 text-xs font-semibold underline disabled:opacity-50"
-                >
-                  Cambiar
-                </button>
-              </div>
-            } @else {
-              <button
-                type="button"
-                (click)="customerPickerOpen.set(true)"
-                [disabled]="isSaving()"
-                class="text-muted-foreground hover:border-primary hover:text-primary flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed py-2.5 text-xs font-semibold transition-colors disabled:opacity-50"
-              >
-                <lucide-angular [img]="icons.user" class="h-4 w-4" aria-hidden="true" />
-                Asociar cliente a esta venta
-              </button>
-            }
-
-            @if (cart.payments().length > 0) {
-              <div class="space-y-1.5">
-                @for (payment of cart.payments(); track $index) {
-                  <div
-                    class="bg-background flex items-center justify-between rounded-lg border px-3 py-2 text-sm"
-                  >
-                    <span class="min-w-0">
-                      <span class="block font-medium">{{ paymentLabel(payment.metodo) }}</span>
-                      @if (payment.referencia) {
-                        <span class="text-muted-foreground block truncate text-[11px]">
-                          Ref: {{ payment.referencia }}
-                        </span>
-                      }
-                    </span>
-                    <div class="flex shrink-0 items-center gap-3">
-                      <span class="font-mono font-semibold tabular-nums">{{
-                        money(payment.amount)
-                      }}</span>
-                      <button
-                        type="button"
-                        (click)="cart.removePayment($index)"
-                        class="text-muted-foreground hover:text-destructive"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  </div>
-                }
-              </div>
-            }
-
-            <div class="space-y-2">
-              <div class="flex items-center justify-between gap-2">
-                <p class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
-                  Descuento global
-                </p>
-                <div class="flex gap-1" role="group" aria-label="Tipo de descuento">
-                  <button
-                    type="button"
-                    [attr.aria-pressed]="discountMode() === 'amount'"
-                    [class]="discountModeClass('amount')"
-                    (click)="setDiscountMode('amount')"
-                  >
-                    $
-                  </button>
-                  <button
-                    type="button"
-                    [attr.aria-pressed]="discountMode() === 'percent'"
-                    [class]="discountModeClass('percent')"
-                    (click)="setDiscountMode('percent')"
-                  >
-                    %
-                  </button>
-                </div>
-              </div>
-              <div class="flex gap-2">
-                @if (discountMode() === 'amount') {
-                  <input
-                    type="text"
-                    inputmode="numeric"
-                    [value]="globalDiscountInput()"
-                    (input)="setGlobalDiscount($event)"
-                    placeholder="0"
-                    class="border-input bg-card focus:ring-ring h-10 min-w-0 flex-1 rounded-lg border px-3 text-sm tabular-nums outline-none focus:ring-2"
-                  />
-                } @else {
-                  <input
-                    type="text"
-                    inputmode="numeric"
-                    [value]="globalDiscountPercentInput()"
-                    (input)="setGlobalDiscountPercent($event)"
-                    placeholder="0"
-                    class="border-input bg-card focus:ring-ring h-10 min-w-0 flex-1 rounded-lg border px-3 text-sm tabular-nums outline-none focus:ring-2"
-                  />
-                }
-                @if (cart.globalDiscount() > 0) {
-                  <button
-                    type="button"
-                    (click)="clearGlobalDiscount()"
-                    class="rounded-lg border px-4 text-xs font-semibold"
-                  >
-                    Quitar
-                  </button>
-                }
-              </div>
-              <p class="text-muted-foreground text-[11px]">
-                @if (discountMode() === 'amount') {
-                  Monto en pesos distribuido entre los productos.
-                } @else {
-                  Porcentaje sobre el subtotal ({{ money(cart.totals().subtotal) }}), distribuido entre los productos.
-                }
-              </p>
-            </div>
-
-            @if (cart.loyaltyRedemption(); as redemption) {
-              <div class="flex items-center justify-between rounded-xl border border-emerald-600/30 bg-emerald-500/10 px-3 py-2">
-                <span class="flex items-center gap-1.5 text-xs font-bold text-emerald-700">
-                  <lucide-angular [img]="icons.gift" class="h-3.5 w-3.5" aria-hidden="true" />
-                  Canje MOVE ON Club
-                </span>
-                <span class="text-xs font-semibold text-emerald-700 tabular-nums">
-                  −{{ money(redemption.amount) }}
-                </span>
-              </div>
-            }
-
-            @if (discretionaryDiscountTotal() > 0) {
-              <div class="space-y-2 rounded-xl border border-amber-500/30 bg-amber-500/8 p-3">
-                <div class="flex items-center justify-between gap-3">
-                  <p class="text-xs font-bold tracking-wide uppercase">Control del descuento</p>
-                  <span class="text-muted-foreground text-[11px] tabular-nums">
-                    {{ money(discretionaryDiscountTotal()) }} · {{ discountPercentage() }}%
-                  </span>
-                </div>
-                <input
-                  type="text"
-                  [value]="discountReason()"
-                  (input)="setDiscountReason($event)"
-                  maxlength="160"
-                  placeholder="Motivo del descuento"
-                  class="border-input bg-card focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2"
-                />
-                <p class="text-muted-foreground text-[11px]">
-                  El motivo queda en el historial y la auditoría.
-                </p>
-                @if (discountAuthorizationError()) {
-                  <p class="text-destructive text-xs font-semibold">
-                    {{ discountAuthorizationError() }}
-                  </p>
-                }
-              </div>
-            }
-
-            <div class="space-y-3">
-              <p class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
-                Metodo de pago
-              </p>
-              <div class="grid grid-cols-2 gap-1.5 min-[420px]:grid-cols-3">
-                @for (method of paymentMethods; track method.value) {
-                  <button
-                    type="button"
-                    (click)="selectPaymentMethod(method.value)"
-                    [class]="paymentMethodClass(method.value)"
-                  >
-                    {{ method.label }}
-                  </button>
-                }
-              </div>
-
-              @if (showReference()) {
-                <input
-                  type="text"
-                  [value]="paymentReference()"
-                  (input)="setPaymentReference($event)"
-                  placeholder="Referencia (opcional)"
-                  class="border-input bg-card focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2"
-                />
-              }
-
-              <div class="flex gap-2">
-                <input
-                  type="text"
-                  inputmode="numeric"
-                  [value]="paymentAmount()"
-                  (input)="setPaymentAmount($event)"
-                  [placeholder]="cart.remainingAmount() > 0 ? String(cart.remainingAmount()) : '0'"
-                  class="border-input bg-card focus:ring-ring h-10 min-w-0 flex-1 rounded-lg border px-3 text-sm outline-none focus:ring-2"
-                />
-                <button
-                  type="button"
-                  (click)="addPayment()"
-                  class="rounded-lg border px-4 text-sm font-semibold"
-                >
-                  Agregar
-                </button>
-              </div>
-
-              @if (cart.remainingAmount() > 0) {
-                <button
-                  type="button"
-                  (click)="addExactPayment()"
-                  class="text-muted-foreground hover:border-primary hover:text-primary w-full rounded-lg border border-dashed py-2 text-xs transition-colors"
-                >
-                  Monto exacto: {{ money(cart.remainingAmount()) }}
-                </button>
-              }
-            </div>
-
-            <div class="space-y-2">
-              <p class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
-                Tirilla de compra
-              </p>
-              <div class="grid grid-cols-2 gap-2" role="group" aria-label="Imprimir tirilla">
-                <button
-                  type="button"
-                  [attr.aria-pressed]="imprimirEstaVenta()"
-                  [class]="receiptChoiceClass(true)"
-                  (click)="imprimirEstaVenta.set(true)"
-                >
-                  Imprimir
-                </button>
-                <button
-                  type="button"
-                  [attr.aria-pressed]="!imprimirEstaVenta()"
-                  [class]="receiptChoiceClass(false)"
-                  (click)="imprimirEstaVenta.set(false)"
-                >
-                  No imprimir
-                </button>
-              </div>
-              <p class="text-muted-foreground text-[11px]">
-                Esta eleccion aplica solamente a la venta actual.
-              </p>
-            </div>
-
-            <div class="space-y-2">
-              <p class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
-                Caja fuerte
-              </p>
-              <button
-                type="button"
-                (click)="openCashDrawerManually()"
-                [disabled]="openingCashDrawer()"
-                class="text-muted-foreground hover:border-primary hover:text-primary w-full rounded-lg border border-dashed py-2 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {{ openingCashDrawer() ? 'Abriendo caja fuerte...' : 'Abrir caja fuerte' }}
-              </button>
-            </div>
-
-            @if (saleError()) {
-              <p class="bg-destructive/10 text-destructive rounded-lg px-3 py-2 text-sm">
-                {{ saleError() }}
-              </p>
-            }
-
-            <div class="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                (click)="closeCheckout()"
-                [disabled]="isSaving()"
-                class="h-10 rounded-lg border px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                (click)="confirmSale()"
-                [disabled]="!canConfirm() || isSaving()"
-                class="bg-primary text-primary-foreground h-10 rounded-lg px-4 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                @if (isSaving()) {
-                  <mo-spinner size="sm" class="mr-2 inline-block align-[-2px]" />
-                  Guardando venta...
-                } @else {
-                  Confirmar · {{ money(cart.totals().total) }}
-                }
-              </button>
-            </div>
-          </div>
-        </section>
-      </div>
+    @if (checkout.isOpen()) {
+      <mo-pos-checkout-dialog
+        [openingCashDrawer]="openingCashDrawer()"
+        (closed)="closeCheckout()"
+        (confirm)="confirmSale()"
+        (pickCustomer)="customerPickerOpen.set(true)"
+        (openCashDrawer)="openCashDrawerManually()"
+      />
     }
 
     <mo-sales-history-dialog
@@ -597,28 +231,21 @@ export class PosPage {
   private readonly router = inject(Router)
 
   readonly cart = inject(PosCartStore)
+  readonly checkout = inject(PosCheckoutStore)
   readonly products = signal<PosProduct[]>([])
   readonly imprimirAlFinalizarVenta = signal(false)
-  readonly imprimirEstaVenta = signal(false)
   readonly abrirCajonEnEfectivo = signal(true)
   readonly categories = signal<PosCategory[]>([])
   readonly cashSession = signal<OpenCashSession | null>(null)
   readonly loading = signal(true)
   readonly loadError = signal<string | null>(null)
-  readonly checkoutOpen = signal(false)
-  readonly paymentMethod = signal<PaymentMethod>('cash')
-  readonly paymentAmount = signal('')
-  readonly paymentReference = signal<string>('')
-  readonly saleError = signal<string | null>(null)
   readonly historyOpen = signal(false)
-  readonly isSaving = signal(false)
   readonly receiptOutputStatus = signal<ReceiptOutputStatus | null>(null)
   readonly receiptOutputError = signal<string | null>(null)
   readonly pendingReceiptOutput = signal<PostSaleOutputJob | null>(null)
   readonly openingCashDrawer = signal(false)
   readonly customerPickerOpen = signal(false)
 
-  readonly icons = { gift: Gift, user: UserRound }
   readonly customerFormOpen = signal(false)
   readonly loyaltySummary = signal<LoyaltySummary | null>(null)
   readonly loyaltyLoading = signal(false)
@@ -636,20 +263,6 @@ export class PosPage {
   })
   readonly productInfo = signal<PosProduct | null>(null)
   readonly isAdmin = this.sessionService.isAdmin
-  readonly globalDiscountInput = signal('')
-  readonly globalDiscountPercentInput = signal('')
-  readonly discountMode = signal<'amount' | 'percent'>('amount')
-  readonly discountReason = signal('')
-  readonly paymentMethods = PAYMENT_METHOD_OPTIONS
-  readonly String = String
-
-  /**
-   * Descuento discrecional = total − canje MOVE ON Club. El canje no exige
-   * motivo (RN-LF12 / ADR 0013 §5).
-   */
-  readonly discretionaryDiscountTotal = computed(() =>
-    discretionaryDiscount(this.cart.totals().discountTotal, this.cart.loyaltyRedemption()?.amount ?? 0),
-  )
 
   /** Sellos que sumará el carrito actual (previsualización; el RPC es la autoridad). */
   readonly cartStampsPreview = computed(() => {
@@ -672,29 +285,6 @@ export class PosPage {
     return Math.min(100, Math.round((summary.stampsBalance / this.stampsPerReward()) * 100))
   })
 
-  readonly canConfirm = computed(() =>
-    canConfirmSale({
-      itemsCount: this.cart.items().length,
-      total: this.cart.totals().total,
-      totalPaid: this.cart.totalPaid(),
-      discretionaryDiscount: this.discretionaryDiscountTotal(),
-      discountReason: this.discountReason(),
-      discountAuthorizationError: this.discountAuthorizationError(),
-      paymentError: validatePaymentsForSale(this.cart.payments(), this.cart.totals().total),
-    }),
-  )
-  readonly discountAuthorizationError = computed(() => {
-    const role = this.sessionService.role()
-    if (!role) return null
-    return validateDiscountAuthorization(
-      role,
-      this.cart.totals().subtotal,
-      this.discretionaryDiscountTotal()
-    )
-  })
-
-  /** El campo "Referencia" solo aplica a métodos no-efectivo. */
-  readonly showReference = computed(() => requiresReference(this.paymentMethod()))
   readonly receiptOutputKind = computed<ReceiptOutputKind>(() =>
     this.pendingReceiptOutput()?.printReceipt ? 'receipt' : 'drawer'
   )
@@ -764,22 +354,6 @@ export class PosPage {
 
   money(amount: number): string {
     return formatCurrency(amount)
-  }
-
-  paymentLabel(method: PaymentMethod): string {
-    return getPaymentMethodLabel(method)
-  }
-
-  componentLabel(components: { nombre: string; cantidad: number }[]): string {
-    return components
-      .map((c) => (c.cantidad === 1 ? `1 ${c.nombre}` : `${c.cantidad}× ${c.nombre}`))
-      .join(', ')
-  }
-
-  discountPercentage(): string {
-    const subtotal = this.cart.totals().subtotal
-    if (subtotal <= 0) return '0.00'
-    return ((this.discretionaryDiscountTotal() / subtotal) * 100).toFixed(2)
   }
 
   selectProduct(product: PosProduct): void {
@@ -896,143 +470,12 @@ export class PosPage {
     this.discountItem.set(null)
   }
 
-  setGlobalDiscount(event: Event): void {
-    const value = (event.target as HTMLInputElement).value.replace(/\D/g, '')
-    this.globalDiscountInput.set(value)
-    this.cart.setGlobalDiscount(value === '' ? 0 : Number.parseInt(value, 10))
-  }
-
-  setGlobalDiscountPercent(event: Event): void {
-    const digits = (event.target as HTMLInputElement).value.replace(/\D/g, '')
-    const clamped = digits === '' ? '' : String(Math.min(100, Number.parseInt(digits, 10)))
-    this.globalDiscountPercentInput.set(clamped)
-    const percent = clamped === '' ? 0 : Number.parseInt(clamped, 10)
-    this.cart.setGlobalDiscount(Math.round((this.cart.totals().subtotal * percent) / 100))
-  }
-
-  setDiscountMode(mode: 'amount' | 'percent'): void {
-    if (this.discountMode() === mode) return
-    this.discountMode.set(mode)
-
-    // Al cambiar de modo, refleja el monto actual del carrito en el input
-    // que se va a mostrar (la fuente de verdad sigue siendo el monto en pesos).
-    const amount = this.cart.globalDiscount()
-    const subtotal = this.cart.totals().subtotal
-    if (mode === 'percent') {
-      const percent = subtotal > 0 ? Math.round((amount / subtotal) * 100) : 0
-      this.globalDiscountPercentInput.set(percent > 0 ? String(percent) : '')
-    } else {
-      this.globalDiscountInput.set(amount > 0 ? String(amount) : '')
-    }
-  }
-
-  discountModeClass(mode: 'amount' | 'percent'): string {
-    const active = this.discountMode() === mode
-    return [
-      'h-8 min-w-9 rounded-md border px-2.5 text-xs font-semibold transition-colors',
-      active
-        ? 'border-primary bg-primary text-primary-foreground shadow-sm'
-        : 'border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground',
-    ].join(' ')
-  }
-
-  setDiscountReason(event: Event): void {
-    this.discountReason.set((event.target as HTMLInputElement).value)
-  }
-
-  clearGlobalDiscount(): void {
-    this.globalDiscountInput.set('')
-    this.globalDiscountPercentInput.set('')
-    this.cart.setGlobalDiscount(0)
-  }
-
   openCheckout(): void {
-    this.saleError.set(null)
-    this.imprimirEstaVenta.set(this.imprimirAlFinalizarVenta())
-    this.checkoutOpen.set(true)
-    this.discountMode.set('amount')
-    const currentGlobal = this.cart.globalDiscount()
-    this.globalDiscountInput.set(currentGlobal > 0 ? String(currentGlobal) : '')
-    this.globalDiscountPercentInput.set('')
-    if (this.cart.remainingAmount() > 0) {
-      this.paymentAmount.set(String(this.cart.remainingAmount()))
-    }
+    this.checkout.open(this.imprimirAlFinalizarVenta())
   }
 
   closeCheckout(): void {
-    if (this.isSaving()) return
-    this.checkoutOpen.set(false)
-    this.cart.clearPayments()
-    this.paymentAmount.set('')
-    this.paymentReference.set('')
-    this.saleError.set(null)
-  }
-
-  setPaymentAmount(event: Event): void {
-    const value = (event.target as HTMLInputElement).value.replace(/\D/g, '')
-    this.paymentAmount.set(value)
-  }
-
-  setPaymentReference(event: Event): void {
-    this.paymentReference.set((event.target as HTMLInputElement).value)
-  }
-
-  selectPaymentMethod(method: PaymentMethod): void {
-    this.paymentMethod.set(method)
-    // El efectivo no lleva referencia: limpiamos cualquier valor previo.
-    if (!requiresReference(method)) {
-      this.paymentReference.set('')
-    }
-  }
-
-  paymentMethodClass(method: PaymentMethod): string {
-    const active = this.paymentMethod() === method
-    return [
-      'min-h-10 rounded-lg border px-2 py-2 text-xs font-medium transition-colors',
-      active
-        ? 'border-primary bg-primary text-primary-foreground'
-        : 'border-border bg-background hover:bg-muted',
-    ].join(' ')
-  }
-
-  receiptChoiceClass(printReceipt: boolean): string {
-    const active = this.imprimirEstaVenta() === printReceipt
-    return [
-      'h-10 rounded-lg border px-3 text-sm font-semibold transition-colors',
-      active
-        ? 'border-primary bg-primary text-primary-foreground shadow-sm'
-        : 'border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground',
-    ].join(' ')
-  }
-
-  addPayment(): void {
-    const amount = Number.parseInt(this.paymentAmount().replace(/\D/g, ''), 10)
-    this.registerPayment(amount)
-  }
-
-  /** "Monto exacto": arma y agrega el faltante actual en un solo paso. */
-  addExactPayment(): void {
-    this.registerPayment(this.cart.remainingAmount())
-  }
-
-  /**
-   * Arma la entrada de pago con el helper de dominio (descarta referencia si es
-   * efectivo, normaliza vacíos, valida amount > 0) y la agrega al carrito. Tras
-   * agregar reprellena el input con el nuevo faltante y limpia la referencia.
-   */
-  private registerPayment(amount: number): void {
-    const entry = buildPaymentEntry({
-      metodo: this.paymentMethod(),
-      amount,
-      referencia: this.paymentReference(),
-    })
-    if (!entry) return
-
-    this.cart.addPayment(entry)
-    this.paymentReference.set('')
-
-    const remaining = this.cart.remainingAmount()
-    this.paymentAmount.set(remaining > 0 ? String(remaining) : '')
+    this.checkout.close()
   }
 
   async openCashDrawerManually(): Promise<void> {
@@ -1054,10 +497,10 @@ export class PosPage {
 
   async confirmSale(): Promise<void> {
     const cashSession = this.cashSession()
-    if (!cashSession || !this.canConfirm()) return
+    if (!cashSession || !this.checkout.canConfirm()) return
 
-    this.saleError.set(null)
-    this.isSaving.set(true)
+    this.checkout.saleError.set(null)
+    this.checkout.isSaving.set(true)
 
     try {
       const auth = await this.sessionService.getAuthContext()
@@ -1081,7 +524,7 @@ export class PosPage {
         globalDiscountTotal: this.cart.effectiveGlobalDiscount(),
         // Solo el descuento discrecional exige motivo; el canje lleva motivo
         // reservado automático en el RPC (ADR 0013 §5).
-        discountReason: this.discretionaryDiscountTotal() > 0 ? this.discountReason().trim() : null,
+        discountReason: this.checkout.discretionaryDiscountTotal() > 0 ? this.checkout.discountReason().trim() : null,
         change: this.cart.change(),
         loyaltyRedemptions: redemption
           ? [{ rewardId: redemption.rewardId, itemKey: redemption.itemKey }]
@@ -1093,7 +536,7 @@ export class PosPage {
       // rechazo, así que ante cualquier error se conserva y, si el cajero
       // recarga, recoverPendingSale consulta por la clave si se registró.
       if (!result.ok) {
-        this.saleError.set(
+        this.checkout.saleError.set(
           result.error.kind === 'unauthenticated' ? 'Sesion expirada' : result.error.message
         )
         return
@@ -1101,21 +544,14 @@ export class PosPage {
 
       const change = this.cart.change()
       const saleId = result.value.saleId
-      const shouldPrintReceipt = this.imprimirEstaVenta()
+      const shouldPrintReceipt = this.checkout.imprimirEstaVenta()
       const shouldOpenCashDrawer =
         this.abrirCajonEnEfectivo() &&
         this.cart.payments().some((payment) => payment.metodo === 'cash' && payment.amount > 0)
       clearPendingSale(this.storage())
       this.cart.clearCart()
       this.loyaltySummary.set(null)
-      this.globalDiscountInput.set('')
-      this.globalDiscountPercentInput.set('')
-      this.discountMode.set('amount')
-      this.discountReason.set('')
-      this.paymentAmount.set('')
-      this.paymentReference.set('')
-      this.paymentMethod.set('cash')
-      this.checkoutOpen.set(false)
+      this.checkout.resetAfterSale()
       void this.refreshProducts()
 
       this.toast.success(
@@ -1130,9 +566,9 @@ export class PosPage {
         })
       }
     } catch (error) {
-      this.saleError.set(getErrorMessage(error, 'No se pudo completar la venta'))
+      this.checkout.saleError.set(getErrorMessage(error, 'No se pudo completar la venta'))
     } finally {
-      this.isSaving.set(false)
+      this.checkout.isSaving.set(false)
     }
   }
 
