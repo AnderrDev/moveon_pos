@@ -137,6 +137,14 @@ Hecho en `moveon-owner-ios` (commit `e125945`, sin push). Detalle en `docs/modul
 - **QA real:** se cargaron en el Supabase LOCAL 4 ventas de hoy en la tienda demo (`IOS-QA-1..4`, ids `e1000000-…`), con pago mixto y una línea sin costo. La app mostró $ 645.000 / 5 ventas / utilidad $ 270.000 / ticket $ 129.000, idéntico a `owner_sales_summary` consultada con psql. Se encontró y corrigió que una caja abierta desde otro día (la local está abierta desde el 15 sep) se mostraba como si fuera de hoy.
 - **Pendiente:** push del repo iOS; `owner_sales_summary` sigue solo en local.
 
+## 15. Continuación — PLAN-80 (ventas)
+
+- `moveon-owner-ios`: `main` con PLAN-79 subido (`e125945`); PLAN-80 en commit local, sin push.
+- Pestañas Resumen/Ventas, lista paginada, búsqueda por número en todas las fechas y detalle de venta. Piezas compartidas movidas a `Core` y `Domain/Sales` (decisiones en `ENGINEERING_RULES.md` §12 del repo iOS).
+- **Tests:** 98 unitarios + 8 de UI en verde, sin avisos.
+- **QA real (Supabase local):** se anuló `IOS-QA-2` con psql (solo local) para ver el caso de venta anulada. La lista de hoy coincidió con `sales` (6 filas). El detalle de `IOS-QA-3` muestra el pago mixto, y el de `IOS-QA-2` el motivo de anulación. La búsqueda "qa-2" la encontró en todas las fechas.
+- **Ojo:** la otra sesión está creando ventas de prueba (`V-000001`, `V-000002`) en el mismo Supabase local mientras trabaja; por eso el total de hoy pasó de $ 645.000 a $ 700.000 entre pruebas.
+
 ## 8. Notas adicionales
 
 - Fuentes de datos ya existentes para la app: `get_stock_levels`, `get_monthly_sales_totals`, `get_monthly_expense_totals`, `get_reinvestment_fund_totals`, `list_cash_history_days`.

@@ -39,7 +39,7 @@ Un solo target de app, como `gym_ios` (sin paquetes SPM locales hasta el dispara
 |---|---|---|
 | Login, gate de rol, Face ID | Supabase Auth + `user_tiendas` | 77 |
 | Dashboard "Hoy" + selector de período (hecho) | RPC `owner_sales_summary`, `cash_sessions` abierta, `get_stock_levels` + `productos` activos | 78, 79 |
-| Ventas: lista y detalle | `sales`, `sale_items`, `payments` (lectura directa, RLS) | 80 |
+| Ventas: lista y detalle (hecho) | `sales`, `sale_items`, `payments`, `clientes(nombre)` (lectura directa, RLS) | 80 |
 | Caja: turno actual e historial | RPC `owner_cash_session_summary` (nueva), `list_cash_history_days` | 81 |
 | Stock | `get_stock_levels`, `inventory_movements` | 82 |
 | Finanzas | RPC `owner_finance_summary` (nueva), `get_monthly_sales_totals`, `get_monthly_expense_totals`, `get_reinvestment_fund_totals` | 83 |
@@ -61,6 +61,14 @@ Un solo target de app, como `gym_ios` (sin paquetes SPM locales hasta el dispara
 - Estados: carga, error con reintento, sin ventas en el período, y refresco al tirar (conserva los datos y avisa si falla).
 - Modo demo `-demo` (solo DEBUG) y 6 tests de UI sobre él; 81 tests unitarios.
 - Verificado en el simulador contra el Supabase local: las cifras de la app coinciden con la RPC consultada directamente (total $ 645.000, 5 ventas, utilidad $ 270.000).
+
+## Ventas (PLAN-80)
+
+- Pestañas **Resumen** y **Ventas** (`Features/Shell`).
+- Lista del período (Hoy · Ayer · 7 días · Mes · fechas), más recientes primero, paginada de 50 en 50: número, hora (y fecha si el período tiene varios días), cajero, métodos de pago, total; las anuladas con etiqueta "Anulada" y el total tachado.
+- Búsqueda por número en **todas las fechas** (`ilike` con comodines escapados, sin mayúsculas/minúsculas), 400 ms después de la última tecla.
+- Detalle con los mismos bloques que `sale-detail-list.component.ts` del web (productos con opción y descuentos, resumen, pagos con referencia, total recibido y cambio, usuario, cliente o "Consumidor final", fecha y hora) más el **canje del Club** por línea y en el resumen, y una tarjeta "Venta anulada" con motivo y hora.
+- Verificado contra el Supabase local: la lista coincide fila por fila con `sales` del día (incluida una anulada y un pago mixto) y la búsqueda encuentra ventas de cualquier fecha.
 
 ## RPC `owner_sales_summary` (PLAN-78)
 
