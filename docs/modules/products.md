@@ -126,3 +126,11 @@ Desde 2026-10-17 se omite IVA del formulario, tabla y exportación de productos.
 ## Listado completo sin tope (2026-10-24)
 
 `ProductRepository.listProducts` sin término de búsqueda devuelve el catálogo completo, paginado con `fetchAllPages` (orden `nombre`, `id`). Antes un `.limit(200)` fijo cortaba en silencio el catálogo del POS (vía `ProductsCacheStore`), inventario y reportes al pasar de 200 productos (había 144). Con término de búsqueda se mantiene un tope de 200 resultados (`PRODUCT_SEARCH_LIMIT`). Test: `tests/unit/features/products/list-products-pagination.test.ts`.
+
+## Recetas y opciones atómicas (2026-10-24, `20261024000600`–`000700`)
+
+- `saveComponents` → `save_product_components_atomic` y `saveOptions` → `save_product_options_atomic`: una sola transacción cada una (antes delete+insert y select+upsert+update desde el cliente; un fallo a mitad dejaba el producto sin receta u opciones parciales).
+- Solo admin. Validan tienda, que el producto sea `prepared`/`combo` (componentes) o `prepared` (opciones), cantidades > 0, sin repetidos, sin autorreferencia, y que ningún componente sea `prepared`/`combo`. Auditan `product.components_saved` / `product.options_saved`.
+- Opciones: primero liberan `es_default` del producto y luego hacen upsert por (producto, grupo, nombre) — corrige el choque con `ux_product_options_default` al mover la predeterminada a una opción anterior en la lista. Las quitadas se desactivan (ADR 0017 §2.2).
+- Desde `000700`, `product_components` y `product_options` no admiten escritura directa (solo lectura + RPC).
+- Pruebas: `supabase/tests/atomic-product-components-options.test.sql`, `tests/unit/features/products/save-components-options-rpc.test.ts`.

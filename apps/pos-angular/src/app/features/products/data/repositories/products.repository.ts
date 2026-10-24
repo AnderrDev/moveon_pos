@@ -71,12 +71,6 @@ interface ProductComponentsClient {
         }>
       }
     }
-    delete(): {
-      eq(col: 'producto_id', value: string): {
-        eq(col: 'tienda_id', value: string): Promise<{ error: { message: string } | null }>
-      }
-    }
-    insert(values: Record<string, unknown>[]): Promise<{ error: { message: string } | null }>
   }
 }
 
@@ -97,13 +91,6 @@ interface ProductOptionsClient {
           }>
         }
       }
-    }
-    upsert(
-      values: Record<string, unknown>[],
-      options: { onConflict: string },
-    ): Promise<{ error: { message: string } | null }>
-    update(values: Record<string, unknown>): {
-      in(col: 'id', values: string[]): Promise<{ error: { message: string } | null }>
     }
   }
 }
@@ -378,27 +365,19 @@ export class ProductsRepository extends ProductRepositoryContract {
     return rows.map((row) => ({ productoId: row.producto_id, ...rowToProductComponent(row) }))
   }
 
+  /** Reemplazo atómico (save_product_components_atomic): nunca deja el producto sin receta a medias. */
   async saveComponents(
     productId: string,
     tiendaId: string,
     components: { componenteId: string; cantidad: number }[],
   ): Promise<void> {
-    const db = this.supabaseClient.supabase as unknown as ProductComponentsClient
-
-    const { error: delError } = await db
-      .from('product_components')
-      .delete()
-      .eq('producto_id', productId)
-      .eq('tienda_id', tiendaId)
-
-    if (delError) throw new Error(delError.message)
-    if (components.length === 0) return
-
-    const { error: insError } = await db
-      .from('product_components')
-      .insert(buildComponentInsertRows(productId, tiendaId, components))
-
-    if (insError) throw new Error(insError.message)
+    const rpc = this.supabaseClient.supabase as unknown as RpcClient
+    const { error } = await rpc.rpc<number>('save_product_components_atomic', {
+      p_producto_id: productId,
+      p_tienda_id: tiendaId,
+      p_components: buildComponentInsertRows(productId, tiendaId, components),
+    })
+    if (error) throw new Error(error.message)
   }
 
   async getOptions(productId: string, tiendaId: string): Promise<ProductOption[]> {
@@ -436,41 +415,23 @@ export class ProductsRepository extends ProductRepositoryContract {
   }
 
   /**
-   * Guarda las opciones por su clave natural (producto, grupo, nombre): las
-   * existentes se actualizan y las que el admin quitó se DESACTIVAN, nunca se
-   * borran — `sale_items.option_id` de ventas pasadas apunta a esas filas
-   * (ADR 0017 §2.2).
+   * Guarda las opciones por su clave natural (producto, grupo, nombre) en una
+   * sola transacción (save_product_options_atomic): las existentes se
+   * actualizan y las que el admin quitó se DESACTIVAN, nunca se borran —
+   * `sale_items.option_id` de ventas pasadas apunta a esas filas (ADR 0017 §2.2).
    */
   async saveOptions(
     productId: string,
     tiendaId: string,
     options: ProductOption[],
   ): Promise<void> {
-    const db = this.supabaseClient.supabase as unknown as ProductOptionsClient
-    const previous = await this.getOptions(productId, tiendaId)
-
-    if (options.length > 0) {
-      const { error } = await db
-        .from('product_options')
-        .upsert(buildOptionUpsertRows(productId, tiendaId, options), {
-          onConflict: 'producto_id,grupo,nombre',
-        })
-      if (error) throw new Error(error.message)
-    }
-
-    const keep = new Set(options.map((option) => `${option.grupo}::${option.nombre}`))
-    const removedIds = previous
-      .filter((option) => !keep.has(`${option.grupo}::${option.nombre}`))
-      .map((option) => option.id)
-      .filter((id): id is string => Boolean(id))
-
-    if (removedIds.length > 0) {
-      const { error } = await db
-        .from('product_options')
-        .update({ is_active: false, es_default: false })
-        .in('id', removedIds)
-      if (error) throw new Error(error.message)
-    }
+    const rpc = this.supabaseClient.supabase as unknown as RpcClient
+    const { error } = await rpc.rpc<number>('save_product_options_atomic', {
+      p_producto_id: productId,
+      p_tienda_id: tiendaId,
+      p_options: buildOptionUpsertRows(productId, tiendaId, options),
+    })
+    if (error) throw new Error(error.message)
   }
 
   async deactivateCategoria(id: string, tiendaId: string): Promise<void> {
