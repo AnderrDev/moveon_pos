@@ -99,6 +99,8 @@ Hecho en `moveon-owner-ios` (commit `8173761`): dominio de sesión y política d
 
 **QA en simulador contra Supabase local:** `cajero@moveon.local` → "Acceso solo para el dueño…"; `admin@moveon.local` → entra; reabrir la app restaura la sesión y pide desbloqueo con el código del iPhone (el simulador no tiene Face ID enrolado, así que no se probó la cara; sí el flujo de bloqueo). No se probó el envío real del correo de recuperación (requiere SMTP local/Inbucket, que estaba detenido).
 
+**Ajuste a pedido del dueño ("con contraseña o Face ID es más que suficiente"):** se quitó el bloqueo en segundo plano y el respaldo con el código del iPhone. Con sesión guardada: Face ID o "Entrar con contraseña"; sin Face ID en el teléfono, login con contraseña. Verificado en simulador: sin Face ID enrolado → login; con Face ID enrolado → aviso de Face ID y entrada al simular coincidencia. 16 tests de la app en verde (repo iOS, commit siguiente a `8173761`).
+
 **Datos de prueba creados (solo local):** usuario `cajero@moveon.local` con fila `user_tiendas` rol `cajero` en la tienda demo.
 
 ## 8. Notas adicionales

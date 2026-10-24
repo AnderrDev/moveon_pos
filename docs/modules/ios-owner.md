@@ -54,7 +54,7 @@ Las vistas y view models reciben **protocolos de `Domain`**; solo `AppContainer`
 
 - `Domain/Auth`: `AuthRepository` (contrato), `OwnerAccessPolicy` (solo `admin`; con varias tiendas toma la primera donde es admin), `OwnerSession.signIn/restore` (revalidan el rol en cada apertura y **cierran sesión** si no es admin o si falla la lectura de `user_tiendas`), `LoginCredentials` (espejo de `loginFormSchema`).
 - `Data/Auth`: `SupabaseAuthRepository` (sesión en Keychain vía SDK; renovación con límite de 10 s como `GET_SESSION_TIMEOUT_MS`; `signOut(scope: .local)`), `AuthFailureMapper` (mismos criterios que `login-error-mapper.ts`).
-- App: `AppSession` (fases restaurando / login / bloqueada / dentro). La sesión restaurada arranca **bloqueada**; al pasar a segundo plano se bloquea. Desbloqueo con `LAPolicy.deviceOwnerAuthentication` (Face ID con el código del iPhone como respaldo); si el teléfono no tiene código ni biometría no se bloquea.
+- App: `AppSession` (fases restaurando / login / Face ID / dentro). **Regla del dueño (2026-10-24): basta con contraseña o Face ID.** Con sesión guardada se pide Face ID (`deviceOwnerAuthenticationWithBiometrics`, sin respaldo con el código del iPhone); el botón "Entrar con contraseña" vuelve al login. Si el teléfono no tiene Face ID, la sesión guardada se cierra y se entra con la contraseña. No se bloquea al pasar a segundo plano.
 - Recuperar contraseña envía el enlace a `PASSWORD_RESET_URL` (la página `/restablecer-contrasena` del POS web); la nueva contraseña se define allá. Mensaje genérico para no revelar si el correo existe.
 - Usuario de prueba local adicional: `cajero@moveon.local` / `Test1234!` (rol `cajero`, solo en el stack local) para verificar el rechazo.
 
