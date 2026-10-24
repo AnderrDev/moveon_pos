@@ -34,15 +34,22 @@ export const adjustStockSchema = z.object({
   motivo: z.string().min(3, 'Describe el motivo del ajuste').max(200),
 })
 
-export const transferStockSchema = z
-  .object({
-    productId: z.string().uuid('ID de producto inválido'),
-    fromUbicacion: inventoryLocationSchema,
-    toUbicacion: inventoryLocationSchema,
-    cantidad: z.number().positive('La cantidad debe ser mayor a 0'),
-    motivo: z.string().min(3, 'Describe el motivo del traslado').max(200),
-  })
-  .refine((value) => value.fromUbicacion !== value.toUbicacion, {
-    message: 'El origen y destino deben ser diferentes',
-    path: ['toUbicacion'],
-  })
+export const transferStockFieldsSchema = z.object({
+  productId: z.string().uuid('ID de producto inválido'),
+  fromUbicacion: inventoryLocationSchema,
+  toUbicacion: inventoryLocationSchema,
+  cantidad: z.number().positive('La cantidad debe ser mayor a 0'),
+  motivo: z.string().min(3, 'Describe el motivo del traslado').max(200),
+})
+
+/** Regla del traslado, compartida por el DTO y el formulario. */
+export function transferLocationsDiffer(value: { fromUbicacion: string; toUbicacion: string }): boolean {
+  return value.fromUbicacion !== value.toUbicacion
+}
+
+export const TRANSFER_LOCATIONS_ERROR = {
+  message: 'El origen y destino deben ser diferentes',
+  path: ['toUbicacion'],
+}
+
+export const transferStockSchema = transferStockFieldsSchema.refine(transferLocationsDiffer, TRANSFER_LOCATIONS_ERROR)

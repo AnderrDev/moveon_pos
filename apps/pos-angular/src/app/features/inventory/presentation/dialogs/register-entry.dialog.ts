@@ -10,7 +10,9 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { getErrorMessage } from '@/shared/lib/error-message'
-import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
+import { RegisterEntryFormPresenter } from '@angular-app/features/inventory/presentation/presenters/register-entry-form.presenter'
+import { registerEntryFormMapper } from '@angular-app/features/inventory/presentation/forms/register-entry-form.mapper'
+import { ReactiveFormsModule } from '@angular/forms'
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 import { FormNumberInputComponent } from '@angular-app/shared/molecules/form-number-input.component'
@@ -45,6 +47,7 @@ const LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
   selector: 'mo-register-entry-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [RegisterEntryFormPresenter],
   imports: [MoneyPipe, 
     ReactiveFormsModule,
     DialogComponent,
@@ -64,9 +67,10 @@ const LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
       [busy]="saving()"
       (closed)="onClose()"
     >
-      <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
+      <form [formGroup]="presenter.form" (ngSubmit)="submit()" class="space-y-4">
         <mo-form-number-input
           controlName="cantidad"
+          [error]="presenter.errors().cantidad ?? null"
           label="Cantidad"
           [required]="true"
           [step]="1"
@@ -74,6 +78,7 @@ const LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
         />
         <mo-form-select
           controlName="ubicacion"
+          [error]="presenter.errors().ubicacion ?? null"
           label="Ubicacion"
           [required]="true"
           [options]="locationOptions"
@@ -81,6 +86,7 @@ const LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
         />
         <mo-form-currency-input
           controlName="costoUnitario"
+          [error]="presenter.errors().costoUnitario ?? null"
           label="Costo de compra por unidad"
           description="Si lo registras, también será el nuevo costo vigente del producto."
         />
@@ -95,9 +101,10 @@ const LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
             }}</span>
           </div>
         }
-        <mo-form-textarea controlName="motivo" label="Motivo (opcional)" [rows]="2" />
+        <mo-form-textarea controlName="motivo"
+          [error]="presenter.errors().motivo ?? null" label="Motivo (opcional)" [rows]="2" />
 
-        <mo-form-error [message]="rootError()" />
+        <mo-form-error [message]="presenter.errors().root ?? null" />
 
         <mo-dialog-footer>
           <mo-button variant="outline" type="button" [disabled]="saving()" (click)="onClose()"
@@ -115,6 +122,7 @@ export class RegisterEntryDialog {
   private readonly repo = inject(InventoryRepository)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
+  readonly presenter = inject(RegisterEntryFormPresenter)
 
   readonly open = input<boolean>(false)
   readonly product = input<ProductSummary | null>(null)
@@ -123,24 +131,10 @@ export class RegisterEntryDialog {
   readonly saved = output<void>()
 
   readonly saving = signal(false)
-  readonly rootError = signal<string | null>(null)
   readonly locationOptions = LOCATION_OPTIONS
 
-  readonly form = new FormGroup({
-    cantidad: new FormControl<number>(1, {
-      nonNullable: true,
-      validators: [Validators.required, Validators.min(1)],
-    }),
-    ubicacion: new FormControl<InventoryLocation>('bodega', {
-      nonNullable: true,
-      validators: [Validators.required],
-    }),
-    costoUnitario: new FormControl<number>(0, { nonNullable: true }),
-    motivo: new FormControl<string>('', { nonNullable: true }),
-  })
-
-  private readonly formValue = toSignal(this.form.valueChanges, {
-    initialValue: this.form.getRawValue(),
+  private readonly formValue = toSignal(this.presenter.form.valueChanges, {
+    initialValue: this.presenter.form.getRawValue(),
   })
 
   readonly entryTotal = computed(
@@ -150,48 +144,35 @@ export class RegisterEntryDialog {
   constructor() {
     effect(() => {
       if (this.open()) {
-        this.form.reset({
-          cantidad: 1,
-          ubicacion: 'bodega',
-          costoUnitario: this.product()?.costo ?? 0,
-          motivo: '',
-        })
-        this.rootError.set(null)
+        this.presenter.reset(registerEntryFormMapper.toFormValue(this.product()))
       }
     })
   }
 
   async submit(): Promise<void> {
     if (this.saving()) return
-    this.form.markAllAsTouched()
-    if (this.form.invalid) return
+    const value = this.presenter.validate()
+    if (!value) return
 
     const product = this.product()
     if (!product) return
 
     const auth = await this.session.getAuthContext()
     if (!auth) {
-      this.rootError.set('Sesion expirada')
+      this.presenter.setRootError('Sesion expirada')
       return
     }
 
     this.saving.set(true)
-    this.form.disable({ emitEvent: false })
+    this.presenter.form.disable({ emitEvent: false })
 
     try {
-      const value = this.form.getRawValue()
       const result = await registerEntry(
         { repo: this.repo, tiendaId: auth.tiendaId, createdBy: auth.userId },
-        {
-          productId: product.id,
-          cantidad: Number(value.cantidad),
-          ubicacion: value.ubicacion,
-          costoUnitario: value.costoUnitario > 0 ? value.costoUnitario : undefined,
-          motivo: value.motivo.trim() || undefined,
-        }
+        registerEntryFormMapper.toPayload(value, product.id),
       )
       if (!result.ok) {
-        this.rootError.set(result.error.message)
+        this.presenter.setRootError(result.error.message)
         return
       }
       this.toast.success(
@@ -202,10 +183,10 @@ export class RegisterEntryDialog {
       this.saved.emit()
       this.closed.emit()
     } catch (error) {
-      this.rootError.set(getErrorMessage(error, 'Error al registrar entrada'))
+      this.presenter.setRootError(getErrorMessage(error, 'Error al registrar entrada'))
     } finally {
       this.saving.set(false)
-      this.form.enable({ emitEvent: false })
+      this.presenter.form.enable({ emitEvent: false })
     }
   }
 

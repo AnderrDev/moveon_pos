@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { getErrorMessage } from '@/shared/lib/error-message'
-import { FormControl, FormGroup, Validators } from '@angular/forms'
 import { RouterLink } from '@angular/router'
 import { PageHeaderComponent } from '@angular-app/shared/molecules/page-header.component'
 import { CardComponent } from '@angular-app/shared/atoms/card.component'
@@ -40,10 +39,9 @@ import { computeCashTurnSummary } from '@angular-app/features/cash-register/doma
 import type { CashMovementType } from '@/shared/types'
 import { SegmentedComponent } from '@angular-app/shared/molecules/segmented.component'
 import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
-import {
-  CashOpenSessionFormComponent,
-  type OpenSessionForm,
-} from '@angular-app/features/cash-register/presentation/components/cash-open-session-form.component'
+import { CashOpenSessionFormComponent } from '@angular-app/features/cash-register/presentation/components/cash-open-session-form.component'
+import { OpenSessionFormPresenter } from '@angular-app/features/cash-register/presentation/presenters/open-session-form.presenter'
+import { openSessionFormMapper } from '@angular-app/features/cash-register/presentation/forms/open-session-form.mapper'
 import { CashTurnSummaryComponent } from '@angular-app/features/cash-register/presentation/components/cash-turn-summary.component'
 import { CashMovementsTableComponent } from '@angular-app/features/cash-register/presentation/components/cash-movements-table.component'
 import { cashMovementLabel } from '@angular-app/features/cash-register/presentation/services/cash-movement-labels'
@@ -52,6 +50,7 @@ import { cashMovementLabel } from '@angular-app/features/cash-register/presentat
   selector: 'mo-caja-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [OpenSessionFormPresenter],
   imports: [
     RouterLink,
     PageHeaderComponent,
@@ -111,9 +110,10 @@ import { cashMovementLabel } from '@angular-app/features/cash-register/presentat
         </mo-empty-state>
       } @else if (!openSession()) {
         <mo-cash-open-session-form
-          [form]="openForm"
+          [form]="openForm.form"
           [suggestedAmount]="suggestedOpeningAmount()"
-          [error]="openError()"
+          [amountError]="openForm.errors().openingAmount ?? null"
+          [error]="openForm.errors().root ?? null"
           [opening]="opening()"
           (submitted)="open()"
         />
@@ -217,7 +217,6 @@ export class CajaPage {
   readonly sales = signal<Sale[]>([])
   readonly loading = signal(true)
   readonly loadError = signal<string | null>(null)
-  readonly openError = signal<string | null>(null)
   readonly opening = signal(false)
   readonly movementOpen = signal(false)
   readonly movementInitialType = signal<CashMovementType>('cash_in')
@@ -258,12 +257,7 @@ export class CajaPage {
   /** Venta expandida en "Ventas del turno" (mo-sale-detail-list). */
   readonly expandedSaleId = signal<string | null>(null)
 
-  readonly openForm: OpenSessionForm = new FormGroup({
-    openingAmount: new FormControl<number>(0, {
-      nonNullable: true,
-      validators: [Validators.required, Validators.min(0)],
-    }),
-  })
+  readonly openForm = inject(OpenSessionFormPresenter)
 
   readonly cashTurnSummary = computed(() =>
     computeCashTurnSummary(
@@ -342,9 +336,7 @@ export class CajaPage {
       if (!session) {
         const suggestedOpeningAmount = await this.repo.getSuggestedOpeningAmount(auth.tiendaId)
         this.suggestedOpeningAmount.set(suggestedOpeningAmount)
-        if (suggestedOpeningAmount !== null) {
-          this.openForm.controls.openingAmount.setValue(suggestedOpeningAmount)
-        }
+        this.openForm.reset(openSessionFormMapper.toFormValue(suggestedOpeningAmount))
         this.movements.set([])
         this.breakdown.set([])
         this.sales.set([])
@@ -368,13 +360,12 @@ export class CajaPage {
 
   async open(): Promise<void> {
     if (this.opening()) return
-    this.openForm.markAllAsTouched()
-    if (this.openForm.invalid) return
-    this.openError.set(null)
+    const value = this.openForm.validate()
+    if (!value) return
 
     const auth = await this.session.getAuthContext()
     if (!auth) {
-      this.openError.set('Sesion expirada')
+      this.openForm.setRootError('Sesion expirada')
       return
     }
 
@@ -382,16 +373,16 @@ export class CajaPage {
     try {
       const result = await openCashSession(
         { repo: this.repo, tiendaId: auth.tiendaId, openedBy: auth.userId },
-        { openingAmount: this.openForm.value.openingAmount ?? 0 }
+        openSessionFormMapper.toPayload(value),
       )
       if (!result.ok) {
-        this.openError.set(result.error.message)
+        this.openForm.setRootError(result.error.message)
         return
       }
       this.toast.success('Caja abierta')
       await this.load()
     } catch (error) {
-      this.openError.set(getErrorMessage(error, 'No se pudo abrir caja'))
+      this.openForm.setRootError(getErrorMessage(error, 'No se pudo abrir caja'))
     } finally {
       this.opening.set(false)
     }

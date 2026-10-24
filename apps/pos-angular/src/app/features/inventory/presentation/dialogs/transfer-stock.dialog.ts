@@ -7,9 +7,10 @@ import {
   output,
   signal,
 } from '@angular/core'
-import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
+import { ReactiveFormsModule } from '@angular/forms'
 import { getErrorMessage } from '@/shared/lib/error-message'
-import { transferStockSchema } from '@angular-app/features/inventory/domain/dtos/inventory.dto'
+import { TransferStockFormPresenter } from '@angular-app/features/inventory/presentation/presenters/transfer-stock-form.presenter'
+import { transferStockFormMapper } from '@angular-app/features/inventory/presentation/forms/transfer-stock-form.mapper'
 import type { InventoryLocation } from '@/shared/types'
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
@@ -39,6 +40,7 @@ const LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
   selector: 'mo-transfer-stock-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [TransferStockFormPresenter],
   imports: [
     ReactiveFormsModule,
     DialogComponent,
@@ -61,10 +63,11 @@ const LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
       [busy]="saving()"
       (closed)="onClose()"
     >
-      <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
+      <form [formGroup]="presenter.form" (ngSubmit)="submit()" class="space-y-4">
         <div class="grid gap-3 sm:grid-cols-2">
           <mo-form-select
             controlName="fromUbicacion"
+          [error]="presenter.errors().fromUbicacion ?? null"
             label="Origen"
             [required]="true"
             [options]="locationOptions"
@@ -72,6 +75,7 @@ const LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
           />
           <mo-form-select
             controlName="toUbicacion"
+          [error]="presenter.errors().toUbicacion ?? null"
             label="Destino"
             [required]="true"
             [options]="locationOptions"
@@ -81,6 +85,7 @@ const LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
 
         <mo-form-number-input
           controlName="cantidad"
+          [error]="presenter.errors().cantidad ?? null"
           label="Cantidad"
           [required]="true"
           [step]="1"
@@ -89,13 +94,14 @@ const LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
 
         <mo-form-textarea
           controlName="motivo"
+          [error]="presenter.errors().motivo ?? null"
           label="Motivo"
           [required]="true"
           [rows]="3"
           placeholder="Reposicion al punto de venta, conteo de bodega, etc."
         />
 
-        <mo-form-error [message]="rootError()" />
+        <mo-form-error [message]="presenter.errors().root ?? null" />
 
         <mo-dialog-footer>
           <mo-button variant="outline" type="button" [disabled]="saving()" (click)="onClose()"
@@ -113,6 +119,7 @@ export class TransferStockDialog {
   private readonly repo = inject(InventoryRepository)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
+  readonly presenter = inject(TransferStockFormPresenter)
 
   readonly open = input<boolean>(false)
   readonly product = input<ProductStockSummary | null>(null)
@@ -121,105 +128,60 @@ export class TransferStockDialog {
   readonly saved = output<void>()
 
   readonly saving = signal(false)
-  readonly rootError = signal<string | null>(null)
   readonly locationOptions = LOCATION_OPTIONS
-
-  readonly form = new FormGroup({
-    fromUbicacion: new FormControl<InventoryLocation>('bodega', {
-      nonNullable: true,
-      validators: [Validators.required],
-    }),
-    toUbicacion: new FormControl<InventoryLocation>('punto_venta', {
-      nonNullable: true,
-      validators: [Validators.required],
-    }),
-    cantidad: new FormControl<number>(1, {
-      nonNullable: true,
-      validators: [Validators.required, Validators.min(1)],
-    }),
-    motivo: new FormControl<string>('', {
-      nonNullable: true,
-      validators: [Validators.required, Validators.minLength(3)],
-    }),
-  })
 
   constructor() {
     effect(() => {
       if (this.open()) {
-        this.form.reset({
-          fromUbicacion: 'bodega',
-          toUbicacion: 'punto_venta',
-          cantidad: 1,
-          motivo: '',
-        })
-        this.rootError.set(null)
+        this.presenter.reset()
       }
     })
   }
 
   async submit(): Promise<void> {
     if (this.saving()) return
-    this.form.markAllAsTouched()
-    if (this.form.invalid) return
+    const value = this.presenter.validate()
+    if (!value) return
 
     const product = this.product()
     if (!product) return
 
     const auth = await this.session.getAuthContext()
     if (!auth) {
-      this.rootError.set('Sesion expirada')
+      this.presenter.setRootError('Sesion expirada')
       return
     }
     if (auth.rol !== 'admin') {
-      this.rootError.set('Solo el admin puede trasladar inventario')
+      this.presenter.setRootError('Solo el admin puede trasladar inventario')
       return
     }
 
-    const value = this.form.getRawValue()
-    const parsed = transferStockSchema.safeParse({
-      productId: product.id,
-      fromUbicacion: value.fromUbicacion,
-      toUbicacion: value.toUbicacion,
-      cantidad: Number(value.cantidad),
-      motivo: value.motivo.trim(),
-    })
-    if (!parsed.success) {
-      this.rootError.set(parsed.error.issues[0]?.message ?? 'Datos de traslado invalidos')
-      return
-    }
-
-    const available = this.stockFor(product, parsed.data.fromUbicacion)
-    if (parsed.data.cantidad > available) {
-      this.rootError.set(`Stock insuficiente en origen. Disponible: ${available}`)
+    const available = this.stockFor(product, value.fromUbicacion)
+    if (value.cantidad > available) {
+      this.presenter.setRootError(`Stock insuficiente en origen. Disponible: ${available}`)
       return
     }
 
     this.saving.set(true)
-    this.form.disable({ emitEvent: false })
+    this.presenter.form.disable({ emitEvent: false })
 
     try {
       const result = await transferStock(
         { repo: this.repo, tiendaId: auth.tiendaId, createdBy: auth.userId },
-        {
-          productId: product.id,
-          fromUbicacion: parsed.data.fromUbicacion,
-          toUbicacion: parsed.data.toUbicacion,
-          cantidad: parsed.data.cantidad,
-          motivo: parsed.data.motivo.trim(),
-        },
+        transferStockFormMapper.toPayload(value, product.id),
       )
       if (!result.ok) {
-        this.rootError.set(result.error.message)
+        this.presenter.setRootError(result.error.message)
         return
       }
       this.toast.success('Traslado registrado')
       this.saved.emit()
       this.closed.emit()
     } catch (error) {
-      this.rootError.set(getErrorMessage(error, 'Error al trasladar stock'))
+      this.presenter.setRootError(getErrorMessage(error, 'Error al trasladar stock'))
     } finally {
       this.saving.set(false)
-      this.form.enable({ emitEvent: false })
+      this.presenter.form.enable({ emitEvent: false })
     }
   }
 
