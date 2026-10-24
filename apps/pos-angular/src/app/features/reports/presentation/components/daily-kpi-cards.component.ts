@@ -3,14 +3,14 @@ import { formatCurrency } from '@/shared/lib/format'
 import { StatCardComponent } from '@angular-app/shared/molecules/stat-card.component'
 import type { DailyReport } from '@angular-app/features/reports/domain/entities/report.entity'
 
-/** Las 6 tarjetas KPI del tab "Ventas": total, descuentos, ticket promedio, IVA, anuladas, utilidad. */
+/** Las 5 tarjetas KPI del tab "Ventas": total, descuentos, ticket promedio, anuladas, utilidad. */
 @Component({
   selector: 'mo-daily-kpi-cards',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [StatCardComponent],
   template: `
-    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
       <mo-stat-card
         label="Total ventas"
         [value]="money(report().totalVentas)"
@@ -27,7 +27,6 @@ import type { DailyReport } from '@angular-app/features/reports/domain/entities/
         "
       />
       <mo-stat-card label="Ticket promedio" [value]="money(report().avgVenta)" />
-      <mo-stat-card label="IVA" [value]="money(report().taxTotal)" />
       <mo-stat-card label="Anuladas" [value]="'' + report().countAnuladas" />
       @if (hasKnownCost()) {
         <mo-stat-card label="Utilidad" [value]="money(report().utilidadTotal)" />

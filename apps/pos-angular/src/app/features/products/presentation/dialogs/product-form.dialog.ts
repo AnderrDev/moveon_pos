@@ -54,12 +54,6 @@ const TIPO_OPTIONS: FormSelectOption<string>[] = [
   { value: 'combo', label: 'Combo' },
 ]
 
-const IVA_OPTIONS: FormSelectOption<number>[] = [
-  { value: 0, label: '0% (exento)' },
-  { value: 5, label: '5%' },
-  { value: 19, label: '19%' },
-]
-
 const INITIAL_STOCK_LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
   { value: 'bodega', label: 'Bodega' },
   { value: 'punto_venta', label: 'Punto de venta' },
@@ -512,14 +506,7 @@ const INITIAL_STOCK_LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
           />
         </div>
 
-        <div class="grid gap-x-4 gap-y-5 sm:grid-cols-3">
-          <mo-form-select
-            controlName="ivaTasa"
-            label="IVA"
-            [placeholder]="null"
-            [options]="ivaOptions"
-            [error]="presenter.errors().ivaTasa ?? null"
-          />
+        <div class="grid gap-x-4 gap-y-5 sm:grid-cols-2">
           <mo-form-input
             controlName="unidad"
             label="Unidad"
@@ -563,7 +550,6 @@ export class ProductFormDialog {
 
   readonly presenter = inject(ProductFormPresenter)
   readonly tipoOptions = TIPO_OPTIONS
-  readonly ivaOptions = IVA_OPTIONS
   readonly initialStockLocationOptions = INITIAL_STOCK_LOCATION_OPTIONS
   readonly selectedType = toSignal(this.presenter.form.controls.tipo.valueChanges, {
     initialValue: this.presenter.form.controls.tipo.value,

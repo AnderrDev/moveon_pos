@@ -34,10 +34,6 @@ import type { DailyReport } from '@angular-app/features/reports/domain/entities/
               {{ money(report().totalVentas) }}
             </dd>
           </div>
-          <div class="flex justify-between gap-3 text-xs">
-            <dt class="text-muted-foreground">IVA incluido en ingresos netos</dt>
-            <dd class="font-semibold tabular-nums">{{ money(report().taxTotal) }}</dd>
-          </div>
         </dl>
         @if (report().countAnuladas > 0) {
           <p class="text-muted-foreground mt-4 border-t pt-4 text-xs">
@@ -45,72 +41,6 @@ import type { DailyReport } from '@angular-app/features/reports/domain/entities/
               report().countAnuladas !== 1 ? 's' : ''
             }} (no incluidas en los totales)
           </p>
-        }
-      </div>
-
-      <!-- Desglose IVA -->
-      <div class="bg-card rounded-xl border p-6">
-        <h3 class="font-display mb-1 text-sm font-bold tracking-wide uppercase">
-          Desglose de IVA
-        </h3>
-        <p class="text-muted-foreground mb-4 text-xs">
-          Por tasa — ventas completadas únicamente
-        </p>
-        @if (report().taxBreakdown.length === 0) {
-          <p class="text-muted-foreground text-sm">Sin ventas en el período.</p>
-        } @else {
-          <div class="overflow-auto">
-            <table class="w-full text-sm">
-              <thead class="text-muted-foreground text-left text-xs uppercase">
-                <tr>
-                  <th class="py-2 pr-4">Tasa</th>
-                  <th class="py-2 pr-4 text-right">Base gravable</th>
-                  <th class="py-2 pr-4 text-right">IVA generado</th>
-                  <th class="py-2 text-right">Total</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y">
-                @for (row of report().taxBreakdown; track row.taxRate) {
-                  <tr>
-                    <td class="py-2.5 pr-4 font-bold">
-                      @if (row.taxRate === 0) {
-                        <span class="text-muted-foreground">Exento</span>
-                      } @else {
-                        {{ row.taxRate }}%
-                      }
-                    </td>
-                    <td class="py-2.5 pr-4 text-right tabular-nums">
-                      {{ money(row.baseAmount) }}
-                    </td>
-                    <td class="py-2.5 pr-4 text-right font-semibold tabular-nums">
-                      @if (row.taxRate === 0) {
-                        <span class="text-muted-foreground">—</span>
-                      } @else {
-                        {{ money(row.taxAmount) }}
-                      }
-                    </td>
-                    <td class="py-2.5 text-right tabular-nums">
-                      {{ money(row.baseAmount + row.taxAmount) }}
-                    </td>
-                  </tr>
-                }
-              </tbody>
-              <tfoot class="border-border border-t">
-                <tr>
-                  <td class="pt-2.5 pr-4 font-black text-xs uppercase">Total</td>
-                  <td class="pt-2.5 pr-4 text-right font-bold tabular-nums">
-                    {{ money(report().subtotalVentas) }}
-                  </td>
-                  <td class="pt-2.5 pr-4 text-right font-bold tabular-nums">
-                    {{ money(report().taxTotal) }}
-                  </td>
-                  <td class="pt-2.5 text-right font-bold tabular-nums">
-                    {{ money(report().totalVentas) }}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
         }
       </div>
 

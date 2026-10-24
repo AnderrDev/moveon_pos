@@ -158,13 +158,6 @@ import { QzReceiptPrinterService } from '@angular-app/core/printing/qz-receipt-p
                       description="Incluye el telefono comercial."
                     />
                   </div>
-                  <div class="bg-muted/30 rounded-lg border p-4">
-                    <mo-form-checkbox
-                      controlName="mostrarIva"
-                      label="Mostrar IVA"
-                      description="Discrimina el IVA por tasa cuando la venta lo tenga."
-                    />
-                  </div>
                 </div>
 
                 <mo-form-textarea
@@ -193,14 +186,6 @@ import { QzReceiptPrinterService } from '@angular-app/core/printing/qz-receipt-p
                 <p class="text-muted-foreground mt-1 text-sm">
                   Ajusta la informacion auxiliar visible para el cajero sin cambiar los calculos.
                 </p>
-              </div>
-
-              <div class="bg-muted/30 rounded-lg border p-4">
-                  <mo-form-checkbox
-                    controlName="mostrarIvaEnPos"
-                    label="Mostrar IVA en el punto de venta"
-                    description="Muestra la tasa +IVA en las cards y el IVA en el resumen del carrito. Ocultarlo no modifica precios, impuestos ni ventas."
-                  />
               </div>
             </article>
 
@@ -286,10 +271,7 @@ import { QzReceiptPrinterService } from '@angular-app/core/printing/qz-receipt-p
               }
               <div class="my-3 border-t border-dashed border-black"></div>
               <div class="space-y-1 font-mono text-[10px]">
-                <p class="flex justify-between"><span>Producto ejemplo</span><span>$ 22.000</span></p>
-                @if (presenter.form.controls.mostrarIva.value) {
-                  <p class="flex justify-between"><span>IVA 19%</span><span>$ 4.180</span></p>
-                }
+                <p class="flex justify-between"><span>Producto ejemplo</span><span>$ 26.180</span></p>
                 <p class="flex justify-between font-bold"><span>TOTAL</span><span>$ 26.180</span></p>
               </div>
               @if (presenter.form.controls.mensajePie.value) {

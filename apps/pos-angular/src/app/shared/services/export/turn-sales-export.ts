@@ -96,12 +96,6 @@ export function buildTurnSalesWorkbook(
             null,
             completed.reduce((total, sale) => total + sale.globalDiscountTotal, 0),
           ],
-          [
-            'Ventas',
-            'IVA incluido',
-            null,
-            completed.reduce((total, sale) => total + sale.taxTotal, 0),
-          ],
           ...Array.from(paymentTotals.entries()).map(
             ([method, value]) =>
               ['Métodos de pago', getPaymentMethodLabel(method), value.count, value.total] as const
@@ -124,7 +118,6 @@ export function buildTurnSalesWorkbook(
           { header: 'Desc. productos', width: 18, format: 'currency' },
           { header: 'Desc. global', width: 16, format: 'currency' },
           { header: 'Motivo descuento', width: 38 },
-          { header: 'IVA', width: 16, format: 'currency' },
           { header: 'Total', width: 16, format: 'currency' },
           { header: 'Recibido', width: 16, format: 'currency' },
           { header: 'Cambio', width: 16, format: 'currency' },
@@ -142,7 +135,6 @@ export function buildTurnSalesWorkbook(
           sale.itemDiscountTotal,
           sale.globalDiscountTotal,
           sale.discountReason,
-          sale.taxTotal,
           sale.total,
           sale.payments.reduce((total, payment) => total + payment.amount, 0),
           sale.change,
@@ -165,8 +157,6 @@ export function buildTurnSalesWorkbook(
           { header: 'Descuento', width: 16, format: 'currency' },
           { header: 'Desc. producto', width: 18, format: 'currency' },
           { header: 'Desc. global', width: 16, format: 'currency' },
-          { header: 'IVA tasa', width: 12, format: 'percent' },
-          { header: 'IVA incluido', width: 16, format: 'currency' },
           { header: 'Total', width: 16, format: 'currency' },
         ],
         rows: sales.flatMap((sale) =>
@@ -182,8 +172,6 @@ export function buildTurnSalesWorkbook(
             item.discountAmount * item.quantity + item.globalDiscountAmount,
             item.discountAmount * item.quantity,
             item.globalDiscountAmount,
-            item.taxRate,
-            item.taxAmount,
             item.total,
           ])
         ),
