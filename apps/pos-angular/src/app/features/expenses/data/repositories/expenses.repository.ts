@@ -154,7 +154,7 @@ export class ExpensesRepository extends ExpenseRepository {
       throw new Error(error.message)
     }
     if (!data) throw new Error('Gasto creado sin respuesta')
-    return rowToExpense(data as unknown as ExpenseRow)
+    return rowToExpense(data)
   }
 
   async voidExpense(dto: VoidExpenseDto, userId: string): Promise<Expense> {
@@ -201,20 +201,10 @@ export class ExpensesRepository extends ExpenseRepository {
   }
 
   private async callMonthlyTotalsRpc(
-    fn: string,
-    args: Record<string, unknown>,
+    fn: 'get_monthly_sales_totals' | 'get_monthly_expense_totals',
+    args: { p_tienda_id: string; p_from: string },
   ): Promise<{ month: string; total: number }[]> {
-    interface RpcClient {
-      rpc(
-        fn: string,
-        args: Record<string, unknown>,
-      ): Promise<{
-        data: { month: string; total: number }[] | null
-        error: { message: string } | null
-      }>
-    }
-    const client = this.supabaseClient.supabase as unknown as RpcClient
-    const { data, error } = await client.rpc(fn, args)
+    const { data, error } = await this.supabaseClient.supabase.rpc(fn, args)
     if (error) throw new Error(error.message)
     return (data ?? []).map((row) => ({ month: row.month, total: Number(row.total) }))
   }

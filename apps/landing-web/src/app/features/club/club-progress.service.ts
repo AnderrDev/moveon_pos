@@ -20,13 +20,6 @@ interface ClubProgressRow {
   proxima_expiracion: string | null
 }
 
-interface RpcClient {
-  rpc(
-    fn: string,
-    args: Record<string, unknown>,
-  ): Promise<{ data: ClubProgressRow[] | null; error: { message: string } | null }>
-}
-
 @Injectable({ providedIn: 'root' })
 export class ClubProgressService {
   private readonly db = inject(SupabaseClientService)
@@ -39,13 +32,13 @@ export class ClubProgressService {
    * ⚠️ El RPC no existe en el proyecto remoto: su migración (20260723020000)
    * nunca se aplicó, así que en producción esto lanza PGRST202 y la sección
    * muestra el estado de error a todos. Ver docs/modules/catalogo.md.
-   * El cast estructural desaparece al aplicar la migración + `pnpm db:types`.
    */
   async lookup(celular: string): Promise<ClubProgress | null> {
-    const client = this.db.supabase as unknown as RpcClient
-    const { data, error } = await client.rpc('storefront_club_progress', {
-      p_celular: celular,
-    })
+    // Los tipos generados marcan las columnas de retorno como no nulas;
+    // `recompensa_valor_cop` y `proxima_expiracion` pueden venir NULL.
+    const { data, error } = await this.db.supabase
+      .rpc('storefront_club_progress', { p_celular: celular })
+      .returns<ClubProgressRow[]>()
     if (error) throw new Error(error.message)
     const row = data?.[0]
     if (!row) return null

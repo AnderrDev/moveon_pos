@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
 import { fetchAllPages } from '@angular-app/core/supabase/fetch-all-pages'
+import { rpcArgs } from '@angular-app/core/supabase/rpc-args'
 import { applyCashHistoryFilters } from '../models/cash-history-query'
 import { cashHistoryDayRowSchema, rowToCashHistoryDay } from '../models/cash-history-day.mapper'
 import { cashHistoryQuerySchema } from '../../domain/dtos/cash-history-query.dto'
@@ -30,23 +31,6 @@ const SESSION_COLS =
 const MOV_COLS =
   'id, cash_session_id, tipo, amount, motivo, created_by, created_at, status, voided_by, voided_at, voided_reason'
 
-interface UntypedClient {
-  from(table: string): {
-    insert(values: Record<string, unknown>): {
-      select(cols: string): {
-        single<T>(): Promise<{ data: T | null; error: { message: string } | null }>
-      }
-    }
-  }
-}
-
-interface RpcClient {
-  rpc<T>(
-    fn: string,
-    args: Record<string, unknown>,
-  ): Promise<{ data: T | null; error: { message: string } | null }>
-}
-
 @Injectable({ providedIn: 'root' })
 export class CashRegisterRepository extends CashRegisterRepositoryContract {
   private readonly supabaseClient = inject(SupabaseClientService)
@@ -54,11 +38,10 @@ export class CashRegisterRepository extends CashRegisterRepositoryContract {
 
   async listHistoryDays(input: CashHistoryQuery): Promise<CashHistoryDaysPage> {
     const query = cashHistoryQuerySchema.parse(input)
-    const rpc = this.supabaseClient.supabase as unknown as RpcClient
-    const { data, error } = await rpc.rpc<unknown[]>('list_cash_history_days', {
+    const { data, error } = await this.supabaseClient.supabase.rpc('list_cash_history_days', rpcArgs('list_cash_history_days', {
       p_tienda_id: query.tiendaId, p_start: query.start.toISOString(), p_end: query.endExclusive.toISOString(),
       p_closed_by: query.closedBy, p_balance: query.balanceStatus, p_page: query.page, p_page_size: query.pageSize,
-    })
+    }))
     if (error) throw new Error(error.message)
     const rows = (data ?? []).map((row) => cashHistoryDayRowSchema.parse(row))
     return { items: rows.map(rowToCashHistoryDay), total: rows[0]?.total_days ?? 0, page: query.page, pageSize: query.pageSize }
@@ -153,8 +136,7 @@ export class CashRegisterRepository extends CashRegisterRepositoryContract {
   }
 
   async openSession(input: OpenSessionInput): Promise<CashSession> {
-    const client = this.supabaseClient.supabase as unknown as UntypedClient
-    const { data, error } = await client
+    const { data, error } = await this.supabaseClient.supabase
       .from('cash_sessions')
       .insert({
         tienda_id: input.tiendaId,
@@ -179,8 +161,7 @@ export class CashRegisterRepository extends CashRegisterRepositoryContract {
 
   async addMovement(input: AddMovementInput): Promise<CashMovement> {
     // cash_movements no admite INSERT directo: la RPC exige sesión abierta.
-    const rpc = this.supabaseClient.supabase as unknown as RpcClient
-    const { data, error } = await rpc.rpc<CashMovementRow>('add_cash_movement_atomic', {
+    const { data, error } = await this.supabaseClient.supabase.rpc('add_cash_movement_atomic', {
       p_cash_session_id: input.cashSessionId,
       p_tipo: input.tipo,
       p_amount: input.amount,
@@ -193,8 +174,7 @@ export class CashRegisterRepository extends CashRegisterRepositoryContract {
   }
 
   async voidMovement(input: VoidMovementInput): Promise<void> {
-    const rpc = this.supabaseClient.supabase as unknown as RpcClient
-    const { error } = await rpc.rpc<string>('void_cash_movement_atomic', {
+    const { error } = await this.supabaseClient.supabase.rpc('void_cash_movement_atomic', {
       p_movement_id: input.movementId,
       p_tienda_id: input.tiendaId,
       p_voided_by: input.voidedBy,
@@ -261,8 +241,7 @@ export class CashRegisterRepository extends CashRegisterRepositoryContract {
   }
 
   async closeSession(input: CloseSessionInput): Promise<CashSession> {
-    const rpc = this.supabaseClient.supabase as unknown as RpcClient
-    const { error } = await rpc.rpc<string>('close_cash_session_atomic', {
+    const { error } = await this.supabaseClient.supabase.rpc('close_cash_session_atomic', rpcArgs('close_cash_session_atomic', {
       p_session_id: input.sessionId,
       p_tienda_id: input.tiendaId,
       p_closed_by: input.closedBy,
@@ -273,7 +252,7 @@ export class CashRegisterRepository extends CashRegisterRepositoryContract {
         total: p.total,
       })),
       p_notas_cierre: input.notasCierre ?? null,
-    })
+    }))
 
     if (error) {
       // Reintento tras perder la respuesta: la RPC ya cerró la caja y ahora
@@ -304,8 +283,7 @@ export class CashRegisterRepository extends CashRegisterRepositoryContract {
   }
 
   async correctMovement(input: CorrectMovementInput): Promise<void> {
-    const rpc = this.supabaseClient.supabase as unknown as RpcClient
-    const { error } = await rpc.rpc<string>('correct_cash_movement_atomic', {
+    const { error } = await this.supabaseClient.supabase.rpc('correct_cash_movement_atomic', {
       p_movement_id: input.movementId,
       p_tienda_id: input.tiendaId,
       p_new_amount: input.newAmount,
@@ -324,8 +302,7 @@ export class CashRegisterRepository extends CashRegisterRepositoryContract {
   }
 
   async correctOpening(input: CorrectOpeningInput): Promise<CashSession> {
-    const rpc = this.supabaseClient.supabase as unknown as RpcClient
-    const { error } = await rpc.rpc<string>('correct_cash_session_opening_atomic', {
+    const { error } = await this.supabaseClient.supabase.rpc('correct_cash_session_opening_atomic', {
       p_session_id: input.sessionId,
       p_tienda_id: input.tiendaId,
       p_new_amount: input.newAmount,

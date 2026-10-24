@@ -16,29 +16,10 @@ import {
   toWriteValues,
   type ClienteRow,
 } from '@angular-app/features/customers/data/models/customer.mapper'
+import type { TablesInsert, TablesUpdate } from '@/infrastructure/supabase/database.types'
 
-interface UntypedClient {
-  from(table: string): {
-    insert(values: Record<string, unknown>): {
-      select(cols: string): {
-        single<T>(): Promise<{ data: T | null; error: { message: string } | null }>
-      }
-    }
-    update(values: Record<string, unknown>): {
-      eq(col: string, value: unknown): {
-        eq(col: string, value: unknown): {
-          select(cols: string): {
-            single<T>(): Promise<{ data: T | null; error: { message: string } | null }>
-          }
-        }
-      }
-    }
-  }
-  rpc<T>(
-    fn: string,
-    args: Record<string, unknown>,
-  ): Promise<{ data: T | null; error: { message: string } | null }>
-}
+/** `toWriteValues` devuelve Record<string, unknown>; sus claves son columnas de `clientes`. */
+type ClienteWriteValues = Omit<TablesInsert<'clientes'>, 'tienda_id'>
 
 @Injectable({ providedIn: 'root' })
 export class CustomersRepository extends CustomerRepositoryContract {
@@ -95,10 +76,9 @@ export class CustomersRepository extends CustomerRepositoryContract {
   }
 
   async create(tiendaId: string, input: ClienteInput): Promise<Cliente> {
-    const client = this.supabaseClient.supabase as unknown as UntypedClient
-    const { data, error } = await client
+    const { data, error } = await this.supabaseClient.supabase
       .from('clientes')
-      .insert({ tienda_id: tiendaId, ...toWriteValues(input) })
+      .insert({ tienda_id: tiendaId, ...(toWriteValues(input) as ClienteWriteValues) })
       .select(CLIENTE_COLS)
       .single<ClienteRow>()
     if (error) throw mapWriteError(error.message)
@@ -116,10 +96,9 @@ export class CustomersRepository extends CustomerRepositoryContract {
   }
 
   async update(id: string, tiendaId: string, input: ClienteInput): Promise<Cliente> {
-    const client = this.supabaseClient.supabase as unknown as UntypedClient
-    const { data, error } = await client
+    const { data, error } = await this.supabaseClient.supabase
       .from('clientes')
-      .update(toWriteValues(input))
+      .update(toWriteValues(input) as TablesUpdate<'clientes'>)
       .eq('id', id)
       .eq('tienda_id', tiendaId)
       .select(CLIENTE_COLS)
@@ -147,8 +126,7 @@ export class CustomersRepository extends CustomerRepositoryContract {
   async delete(id: string, tiendaId: string): Promise<void> {
     const auth = await this.session.getAuthContext()
     if (!auth) throw new Error('Sesión expirada')
-    const client = this.supabaseClient.supabase as unknown as UntypedClient
-    const { error } = await client.rpc<string>('delete_customer_atomic', {
+    const { error } = await this.supabaseClient.supabase.rpc('delete_customer_atomic', {
       p_cliente_id: id,
       p_tienda_id: tiendaId,
       p_deleted_by: auth.userId,

@@ -369,6 +369,8 @@ export type Database = {
           autoriza_fidelizacion: boolean
           celular_normalizado: string | null
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           email: string | null
           id: string
           nombre: string
@@ -384,6 +386,8 @@ export type Database = {
           autoriza_fidelizacion?: boolean
           celular_normalizado?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           email?: string | null
           id?: string
           nombre: string
@@ -399,6 +403,8 @@ export type Database = {
           autoriza_fidelizacion?: boolean
           celular_normalizado?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           email?: string | null
           id?: string
           nombre?: string
@@ -411,62 +417,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "clientes_tienda_id_fkey"
-            columns: ["tienda_id"]
-            isOneToOne: false
-            referencedRelation: "tiendas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      combos_semana: {
-        Row: {
-          created_at: string
-          descripcion: string | null
-          etiqueta: string | null
-          id: string
-          is_active: boolean
-          items: string[]
-          nombre: string
-          orden: number
-          precio: number
-          precio_original: number | null
-          tienda_id: string
-          updated_at: string
-          vigente_hasta: string | null
-        }
-        Insert: {
-          created_at?: string
-          descripcion?: string | null
-          etiqueta?: string | null
-          id?: string
-          is_active?: boolean
-          items?: string[]
-          nombre: string
-          orden?: number
-          precio: number
-          precio_original?: number | null
-          tienda_id: string
-          updated_at?: string
-          vigente_hasta?: string | null
-        }
-        Update: {
-          created_at?: string
-          descripcion?: string | null
-          etiqueta?: string | null
-          id?: string
-          is_active?: boolean
-          items?: string[]
-          nombre?: string
-          orden?: number
-          precio?: number
-          precio_original?: number | null
-          tienda_id?: string
-          updated_at?: string
-          vigente_hasta?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "combos_semana_tienda_id_fkey"
             columns: ["tienda_id"]
             isOneToOne: false
             referencedRelation: "tiendas"
@@ -1720,6 +1670,34 @@ export type Database = {
       }
     }
     Functions: {
+      add_cash_movement_atomic: {
+        Args: {
+          p_amount: number
+          p_cash_session_id: string
+          p_created_by: string
+          p_motivo: string
+          p_tipo: Database["public"]["Enums"]["cash_movement_type"]
+        }
+        Returns: {
+          amount: number
+          cash_session_id: string
+          created_at: string
+          created_by: string
+          id: string
+          motivo: string
+          status: Database["public"]["Enums"]["cash_movement_status"]
+          tipo: Database["public"]["Enums"]["cash_movement_type"]
+          voided_at: string | null
+          voided_by: string | null
+          voided_reason: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "cash_movements"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       adjust_loyalty_stamps: {
         Args: {
           p_cliente_id: string
@@ -1729,6 +1707,36 @@ export type Database = {
           p_tienda_id: string
         }
         Returns: number
+      }
+      adjust_stock_atomic: {
+        Args: {
+          p_cantidad_delta: number
+          p_created_by: string
+          p_motivo: string
+          p_producto_id: string
+          p_tienda_id: string
+          p_ubicacion: Database["public"]["Enums"]["inventory_location"]
+        }
+        Returns: {
+          cantidad: number
+          costo_unitario: number | null
+          created_at: string
+          created_by: string
+          id: string
+          motivo: string | null
+          producto_id: string
+          referencia_id: string | null
+          referencia_tipo: string | null
+          tienda_id: string
+          tipo: Database["public"]["Enums"]["inventory_movement_type"]
+          ubicacion: Database["public"]["Enums"]["inventory_location"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "inventory_movements"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       close_cash_session_atomic: {
         Args: {
@@ -1760,6 +1768,17 @@ export type Database = {
           p_reason: string
           p_session_id: string
           p_tienda_id: string
+        }
+        Returns: string
+      }
+      correct_inventory_entry_cost_atomic: {
+        Args: {
+          p_corrected_by: string
+          p_movement_id: string
+          p_new_cost: number
+          p_reason: string
+          p_tienda_id: string
+          p_update_product_cost: boolean
         }
         Returns: string
       }
@@ -1824,6 +1843,14 @@ export type Database = {
           p_tax_total: number
           p_tienda_id: string
           p_total: number
+        }
+        Returns: string
+      }
+      delete_customer_atomic: {
+        Args: {
+          p_cliente_id: string
+          p_deleted_by: string
+          p_tienda_id: string
         }
         Returns: string
       }
@@ -1937,17 +1964,25 @@ export type Database = {
           vigencia_dias: number
         }[]
       }
+      owner_cash_session_summary: {
+        Args: { p_session_id?: string; p_tienda_id: string }
+        Returns: Json
+      }
+      owner_sales_summary: {
+        Args: { p_from: string; p_tienda_id: string; p_to: string }
+        Returns: Json
+      }
       register_expense_atomic: {
         Args: {
           p_category_id: string
           p_concepto: string
           p_empleado_id?: string
           p_fecha_gasto?: string
+          p_idempotency_key?: string
           p_metodo_pago: string
           p_monto: number
           p_notas?: string
           p_periodo?: string
-          p_idempotency_key?: string
           p_tienda_id: string
         }
         Returns: {
@@ -1959,6 +1994,7 @@ export type Database = {
           empleado_id: string | null
           fecha_gasto: string
           id: string
+          idempotency_key: string | null
           metodo_pago: string
           monto: number
           notas: string | null
@@ -1975,6 +2011,26 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      register_inventory_entry_atomic: {
+        Args: {
+          p_cantidad: number
+          p_costo_unitario: number
+          p_created_by: string
+          p_motivo: string
+          p_producto_id: string
+          p_tienda_id: string
+          p_ubicacion: Database["public"]["Enums"]["inventory_location"]
+        }
+        Returns: string
+      }
+      save_product_components_atomic: {
+        Args: { p_components: Json; p_producto_id: string; p_tienda_id: string }
+        Returns: number
+      }
+      save_product_options_atomic: {
+        Args: { p_options: Json; p_producto_id: string; p_tienda_id: string }
+        Returns: number
       }
       storefront_club_progress: {
         Args: { p_celular: string }
@@ -2230,3 +2286,4 @@ export const Constants = {
     },
   },
 } as const
+

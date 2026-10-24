@@ -1,6 +1,8 @@
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
 import { fetchAllPages } from '@angular-app/core/supabase/fetch-all-pages'
+import { rpcArgs } from '@angular-app/core/supabase/rpc-args'
+import type { Json, TablesUpdate } from '@/infrastructure/supabase/database.types'
 import { AuditLogRepository } from '@angular-app/features/audit/domain/repositories/audit-log.repository'
 import {
   rowToCategoria,
@@ -40,60 +42,6 @@ const PRODUCT_COLS =
 const PRODUCT_SEARCH_LIMIT = 200
 const CATEGORIA_COLS = 'id, tienda_id, nombre, orden, is_active, created_at, updated_at'
 const PROVEEDOR_COLS = 'id, tienda_id, nombre, is_active, created_at, updated_at'
-
-interface UntypedClient {
-  from(table: string): {
-    insert(values: Record<string, unknown>): { select(cols: string): { single<T>(): Promise<{ data: T | null; error: { message: string } | null }> } }
-    update(values: Record<string, unknown>): {
-      eq(col: string, value: unknown): {
-        eq(col: string, value: unknown): {
-          select(cols: string): { single<T>(): Promise<{ data: T | null; error: { message: string } | null }> }
-        }
-      }
-    }
-  }
-}
-
-interface RpcClient {
-  rpc<T>(
-    fn: string,
-    args: Record<string, unknown>,
-  ): Promise<{ data: T | null; error: { message: string } | null }>
-}
-
-interface ProductComponentsClient {
-  from(table: 'product_components'): {
-    select(cols: string): {
-      eq(col: 'producto_id', value: string): {
-        eq(col: 'tienda_id', value: string): Promise<{
-          data: ProductComponentRow[] | null
-          error: { message: string } | null
-        }>
-      }
-    }
-  }
-}
-
-interface ProductOptionsClient {
-  from(table: 'product_options'): {
-    select(cols: string): {
-      eq(
-        col: 'producto_id',
-        value: string,
-      ): {
-        eq(
-          col: 'tienda_id',
-          value: string,
-        ): {
-          order(col: 'orden'): Promise<{
-            data: ProductOptionRow[] | null
-            error: { message: string } | null
-          }>
-        }
-      }
-    }
-  }
-}
 
 @Injectable({ providedIn: 'root' })
 export class ProductsRepository extends ProductRepositoryContract {
@@ -165,8 +113,7 @@ export class ProductsRepository extends ProductRepositoryContract {
   }
 
   async createProveedor(dto: CreateProveedorDto, tiendaId: string): Promise<Proveedor> {
-    const client = this.supabaseClient.supabase as unknown as UntypedClient
-    const { data, error } = await client
+    const { data, error } = await this.supabaseClient.supabase
       .from('proveedores')
       .insert({ tienda_id: tiendaId, nombre: dto.nombre, is_active: true })
       .select(PROVEEDOR_COLS)
@@ -177,10 +124,9 @@ export class ProductsRepository extends ProductRepositoryContract {
   }
 
   async createProduct(dto: CreateProductDto, initialStock: InitialStockInput): Promise<Product> {
-    const client = this.supabaseClient.supabase as unknown as RpcClient
-    const { data: productId, error } = await client.rpc<string>(
+    const { data: productId, error } = await this.supabaseClient.supabase.rpc(
       'create_product_with_initial_stock',
-      {
+      rpcArgs('create_product_with_initial_stock', {
         p_tienda_id: dto.tiendaId,
         p_nombre: dto.nombre,
         p_sku: dto.sku ?? null,
@@ -200,7 +146,7 @@ export class ProductsRepository extends ProductRepositoryContract {
         p_initial_stock: initialStock.cantidad,
         p_initial_location: initialStock.ubicacion,
         p_participa_fidelizacion: dto.participaFidelizacion ?? false,
-      },
+      }),
     )
 
     if (error) throw new Error(error.message)
@@ -231,26 +177,25 @@ export class ProductsRepository extends ProductRepositoryContract {
     tiendaId: string,
     dto: UpdateProductDto,
   ): Promise<Product> {
-    const patch: Record<string, unknown> = {}
-    if (dto.nombre !== undefined) patch['nombre'] = dto.nombre
-    if (dto.sku !== undefined) patch['sku'] = dto.sku ?? null
-    if (dto.codigoBarras !== undefined) patch['codigo_barras'] = dto.codigoBarras ?? null
-    if (dto.categoriaId !== undefined) patch['categoria_id'] = dto.categoriaId ?? null
-    if (dto.proveedorId !== undefined) patch['proveedor_id'] = dto.proveedorId ?? null
-    if (dto.paraQueSirve !== undefined) patch['para_que_sirve'] = dto.paraQueSirve ?? null
-    if (dto.recomendadoPara !== undefined) patch['recomendado_para'] = dto.recomendadoPara ?? null
-    if (dto.imageUrl !== undefined) patch['image_url'] = dto.imageUrl ?? null
-    if (dto.tipo !== undefined) patch['tipo'] = dto.tipo
-    if (dto.unidad !== undefined) patch['unidad'] = dto.unidad
-    if (dto.precioVenta !== undefined) patch['precio_venta'] = dto.precioVenta
-    if (dto.costo !== undefined) patch['costo'] = dto.costo ?? null
-    if (dto.ivaTasa !== undefined) patch['iva_tasa'] = dto.ivaTasa
-    if (dto.stockMinimo !== undefined) patch['stock_minimo'] = dto.stockMinimo
-    if (dto.participaFidelizacion !== undefined) patch['participa_fidelizacion'] = dto.participaFidelizacion
-    if (dto.isActive !== undefined) patch['is_active'] = dto.isActive
+    const patch: TablesUpdate<'productos'> = {}
+    if (dto.nombre !== undefined) patch.nombre = dto.nombre
+    if (dto.sku !== undefined) patch.sku = dto.sku ?? null
+    if (dto.codigoBarras !== undefined) patch.codigo_barras = dto.codigoBarras ?? null
+    if (dto.categoriaId !== undefined) patch.categoria_id = dto.categoriaId ?? null
+    if (dto.proveedorId !== undefined) patch.proveedor_id = dto.proveedorId ?? null
+    if (dto.paraQueSirve !== undefined) patch.para_que_sirve = dto.paraQueSirve ?? null
+    if (dto.recomendadoPara !== undefined) patch.recomendado_para = dto.recomendadoPara ?? null
+    if (dto.imageUrl !== undefined) patch.image_url = dto.imageUrl ?? null
+    if (dto.tipo !== undefined) patch.tipo = dto.tipo
+    if (dto.unidad !== undefined) patch.unidad = dto.unidad
+    if (dto.precioVenta !== undefined) patch.precio_venta = dto.precioVenta
+    if (dto.costo !== undefined) patch.costo = dto.costo ?? null
+    if (dto.ivaTasa !== undefined) patch.iva_tasa = dto.ivaTasa
+    if (dto.stockMinimo !== undefined) patch.stock_minimo = dto.stockMinimo
+    if (dto.participaFidelizacion !== undefined) patch.participa_fidelizacion = dto.participaFidelizacion
+    if (dto.isActive !== undefined) patch.is_active = dto.isActive
 
-    const client = this.supabaseClient.supabase as unknown as UntypedClient
-    const { data, error } = await client
+    const { data, error } = await this.supabaseClient.supabase
       .from('productos')
       .update(patch)
       .eq('id', id)
@@ -275,8 +220,7 @@ export class ProductsRepository extends ProductRepositoryContract {
   }
 
   async deleteProduct(id: string, tiendaId: string): Promise<void> {
-    const client = this.supabaseClient.supabase as unknown as UntypedClient
-    const result = await client
+    const result = await this.supabaseClient.supabase
       .from('productos')
       .update({ deleted_at: new Date().toISOString() })
       .eq('id', id)
@@ -289,8 +233,7 @@ export class ProductsRepository extends ProductRepositoryContract {
   }
 
   async deactivateProduct(id: string, tiendaId: string): Promise<void> {
-    const client = this.supabaseClient.supabase as unknown as UntypedClient
-    const result = await client
+    const result = await this.supabaseClient.supabase
       .from('productos')
       .update({ is_active: false })
       .eq('id', id)
@@ -303,8 +246,7 @@ export class ProductsRepository extends ProductRepositoryContract {
   }
 
   async createCategoria(dto: CreateCategoriaDto, tiendaId: string): Promise<Categoria> {
-    const client = this.supabaseClient.supabase as unknown as UntypedClient
-    const { data, error } = await client
+    const { data, error } = await this.supabaseClient.supabase
       .from('categorias')
       .insert({
         tienda_id: tiendaId,
@@ -324,8 +266,7 @@ export class ProductsRepository extends ProductRepositoryContract {
     tiendaId: string,
     dto: UpdateCategoriaDto,
   ): Promise<Categoria> {
-    const client = this.supabaseClient.supabase as unknown as UntypedClient
-    const { data, error } = await client
+    const { data, error } = await this.supabaseClient.supabase
       .from('categorias')
       .update({ nombre: dto.nombre })
       .eq('id', id)
@@ -338,8 +279,7 @@ export class ProductsRepository extends ProductRepositoryContract {
   }
 
   async getComponents(productId: string, tiendaId: string): Promise<ProductComponent[]> {
-    const client = this.supabaseClient.supabase as unknown as ProductComponentsClient
-    const { data, error } = await client
+    const { data, error } = await this.supabaseClient.supabase
       .from('product_components')
       .select('componente_id, cantidad, productos!componente_id(nombre)')
       .eq('producto_id', productId)
@@ -371,18 +311,17 @@ export class ProductsRepository extends ProductRepositoryContract {
     tiendaId: string,
     components: { componenteId: string; cantidad: number }[],
   ): Promise<void> {
-    const rpc = this.supabaseClient.supabase as unknown as RpcClient
-    const { error } = await rpc.rpc<number>('save_product_components_atomic', {
+    const { error } = await this.supabaseClient.supabase.rpc('save_product_components_atomic', {
       p_producto_id: productId,
       p_tienda_id: tiendaId,
-      p_components: buildComponentInsertRows(productId, tiendaId, components),
+      // El mapper tipa las filas como Record<string, unknown>; son JSON plano.
+      p_components: buildComponentInsertRows(productId, tiendaId, components) as Json,
     })
     if (error) throw new Error(error.message)
   }
 
   async getOptions(productId: string, tiendaId: string): Promise<ProductOption[]> {
-    const db = this.supabaseClient.supabase as unknown as ProductOptionsClient
-    const { data, error } = await db
+    const { data, error } = await this.supabaseClient.supabase
       .from('product_options')
       .select(
         'id, grupo, nombre, precio_extra, componente_id, componente_cantidad, es_default, orden, is_active, productos!componente_id(nombre)',
@@ -390,6 +329,7 @@ export class ProductsRepository extends ProductRepositoryContract {
       .eq('producto_id', productId)
       .eq('tienda_id', tiendaId)
       .order('orden')
+      .returns<ProductOptionRow[]>()
 
     if (error) throw new Error(error.message)
     return (data ?? []).filter((row) => row.is_active).map(rowToProductOption)
@@ -425,18 +365,17 @@ export class ProductsRepository extends ProductRepositoryContract {
     tiendaId: string,
     options: ProductOption[],
   ): Promise<void> {
-    const rpc = this.supabaseClient.supabase as unknown as RpcClient
-    const { error } = await rpc.rpc<number>('save_product_options_atomic', {
+    const { error } = await this.supabaseClient.supabase.rpc('save_product_options_atomic', {
       p_producto_id: productId,
       p_tienda_id: tiendaId,
-      p_options: buildOptionUpsertRows(productId, tiendaId, options),
+      // El mapper tipa las filas como Record<string, unknown>; son JSON plano.
+      p_options: buildOptionUpsertRows(productId, tiendaId, options) as Json,
     })
     if (error) throw new Error(error.message)
   }
 
   async deactivateCategoria(id: string, tiendaId: string): Promise<void> {
-    const client = this.supabaseClient.supabase as unknown as UntypedClient
-    const result = await client
+    const result = await this.supabaseClient.supabase
       .from('categorias')
       .update({ is_active: false })
       .eq('id', id)

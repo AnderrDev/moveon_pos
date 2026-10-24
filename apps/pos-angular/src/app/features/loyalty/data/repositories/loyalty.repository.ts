@@ -14,19 +14,7 @@ import {
   REWARD_COLS,
   rowToReward,
   rowToTransaction,
-  type AccountRow,
-  type RewardRow,
-  type TransactionRow,
 } from '@angular-app/features/loyalty/data/models/loyalty.mapper'
-
-interface RpcClient {
-  rpc<T>(
-    fn: string,
-    args: Record<string, unknown>
-  ): Promise<{ data: T | null; error: { message: string } | null }>
-}
-
-type QueryResult<T> = Promise<{ data: T | null; error: { message: string } | null }>
 
 interface AccountProgressRow {
   cliente_id: string
@@ -38,128 +26,14 @@ interface RewardProgressRow {
   cliente_id: string
 }
 
-interface AccountProgressOrderedQuery {
-  range(from: number, to: number): QueryResult<AccountProgressRow[]>
-}
-
-interface RewardProgressOrderedQuery {
-  order(col: string, opts: { ascending: boolean }): RewardProgressOrderedQuery
-  range(from: number, to: number): QueryResult<RewardProgressRow[]>
-}
-
-interface LoyaltyProgressDbClient {
-  from(table: 'loyalty_accounts'): {
-    select(cols: string): {
-      eq(
-        col: string,
-        value: unknown
-      ): {
-        order(col: string, opts: { ascending: boolean }): AccountProgressOrderedQuery
-      }
-    }
-  }
-  from(table: 'loyalty_rewards'): {
-    select(cols: string): {
-      eq(
-        col: string,
-        value: unknown
-      ): {
-        eq(
-          col: string,
-          value: unknown
-        ): {
-          gt(
-            col: string,
-            value: unknown
-          ): {
-            order(col: string, opts: { ascending: boolean }): RewardProgressOrderedQuery
-          }
-        }
-      }
-    }
-  }
-}
-
-/**
- * Las tablas de fidelización aún no existen en database.types.ts generado;
- * cliente estructural mientras se corre `pnpm db:types` tras aplicar la
- * migración 20260714_001 (mismo patrón que los demás repositorios).
- */
-interface LoyaltyDbClient {
-  from(table: 'loyalty_accounts'): {
-    select(cols: string): {
-      eq(
-        col: string,
-        value: unknown
-      ): {
-        eq(
-          col: string,
-          value: unknown
-        ): {
-          maybeSingle(): QueryResult<AccountRow>
-        }
-      }
-    }
-  }
-  from(table: 'loyalty_rewards'): {
-    select(cols: string): {
-      eq(
-        col: string,
-        value: unknown
-      ): {
-        eq(
-          col: string,
-          value: unknown
-        ): {
-          eq(
-            col: string,
-            value: unknown
-          ): {
-            gt(
-              col: string,
-              value: unknown
-            ): {
-              order(col: string, opts: { ascending: boolean }): QueryResult<RewardRow[]>
-            }
-          }
-        }
-      }
-    }
-  }
-  from(table: 'loyalty_transactions'): {
-    select(cols: string): {
-      eq(
-        col: string,
-        value: unknown
-      ): {
-        eq(
-          col: string,
-          value: unknown
-        ): {
-          order(
-            col: string,
-            opts: { ascending: boolean }
-          ): {
-            limit(n: number): QueryResult<TransactionRow[]>
-          }
-        }
-      }
-    }
-  }
-}
-
 @Injectable({ providedIn: 'root' })
 export class LoyaltyRepository extends LoyaltyRepositoryContract {
   private readonly session = inject(SessionService)
   private readonly supabaseClient = inject(SupabaseClientService)
 
-  private get db(): LoyaltyDbClient {
-    return this.supabaseClient.supabase as unknown as LoyaltyDbClient
-  }
-
   /** Dos lecturas paginadas para todo el directorio; evita el patrón N+1 por cliente. */
   async listCustomerProgress(tiendaId: string): Promise<LoyaltyCustomerProgress[]> {
-    const db = this.supabaseClient.supabase as unknown as LoyaltyProgressDbClient
+    const db = this.supabaseClient.supabase
     const [accounts, rewards] = await Promise.all([
       fetchAllPages<AccountProgressRow>(async (from, to) => {
         const { data, error } = await db
@@ -208,13 +82,13 @@ export class LoyaltyRepository extends LoyaltyRepositoryContract {
   /** Progreso + recompensas vigentes del cliente. Cliente sin cuenta = 0 sellos. */
   async getSummary(tiendaId: string, clienteId: string): Promise<LoyaltySummary> {
     const [accountResult, rewardsResult] = await Promise.all([
-      this.db
+      this.supabaseClient.supabase
         .from('loyalty_accounts')
         .select('stamps_balance, total_stamps_earned, total_rewards_redeemed')
         .eq('tienda_id', tiendaId)
         .eq('cliente_id', clienteId)
         .maybeSingle(),
-      this.db
+      this.supabaseClient.supabase
         .from('loyalty_rewards')
         .select(REWARD_COLS)
         .eq('tienda_id', tiendaId)
@@ -241,7 +115,7 @@ export class LoyaltyRepository extends LoyaltyRepositoryContract {
     clienteId: string,
     limit = 50
   ): Promise<LoyaltyTransaction[]> {
-    const { data, error } = await this.db
+    const { data, error } = await this.supabaseClient.supabase
       .from('loyalty_transactions')
       .select(
         'id, tienda_id, cliente_id, sale_id, type, stamps_delta, balance_after, reason, created_by, created_at'
@@ -261,8 +135,7 @@ export class LoyaltyRepository extends LoyaltyRepositoryContract {
    * RPC aún no existe en el entorno — el caller decide si lo ignora.
    */
   async expireRewards(tiendaId: string): Promise<number> {
-    const rpcClient = this.supabaseClient.supabase as unknown as RpcClient
-    const { data, error } = await rpcClient.rpc<number>('expire_loyalty_rewards', {
+    const { data, error } = await this.supabaseClient.supabase.rpc('expire_loyalty_rewards', {
       p_tienda_id: tiendaId,
     })
     if (error) throw new Error(error.message)
@@ -275,8 +148,7 @@ export class LoyaltyRepository extends LoyaltyRepositoryContract {
     if (!auth || !canAdjustLoyaltyStamps(auth.rol) || auth.tiendaId !== input.tiendaId || auth.userId !== input.createdBy) {
       throw new Error('No autorizado para ajustar sellos en esta tienda')
     }
-    const rpcClient = this.supabaseClient.supabase as unknown as RpcClient
-    const { data, error } = await rpcClient.rpc<number>('adjust_loyalty_stamps', {
+    const { data, error } = await this.supabaseClient.supabase.rpc('adjust_loyalty_stamps', {
       p_tienda_id: input.tiendaId,
       p_cliente_id: input.clienteId,
       p_delta: input.delta,
