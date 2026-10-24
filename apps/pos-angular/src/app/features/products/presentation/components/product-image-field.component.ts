@@ -9,6 +9,7 @@ import {
 import { NG_VALUE_ACCESSOR, type ControlValueAccessor } from '@angular/forms'
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { ProductImageStorage } from '@angular-app/features/products/domain/repositories/product-image-storage.repository'
+import { uploadProductImage } from '@angular-app/features/products/domain/usecases/upload-product-image.use-case'
 
 /**
  * Campo de imagen de producto para el formulario del admin.
@@ -144,17 +145,15 @@ export class ProductImageFieldComponent implements ControlValueAccessor {
     input.value = '' // permite re-seleccionar el mismo archivo
     if (!file) return
 
-    const validationError = this.storage.validate(file)
-    if (validationError) {
-      this.error.set(validationError)
-      return
-    }
-
     this.error.set(null)
     this.uploading.set(true)
     try {
-      const url = await this.storage.upload(file, this.tiendaId())
-      this.setValue(url)
+      const result = await uploadProductImage({ storage: this.storage }, file, this.tiendaId())
+      if (!result.ok) {
+        this.error.set(result.error.message)
+        return
+      }
+      this.setValue(result.value)
     } catch (err) {
       this.error.set(getErrorMessage(err, 'No se pudo subir la imagen'))
     } finally {
