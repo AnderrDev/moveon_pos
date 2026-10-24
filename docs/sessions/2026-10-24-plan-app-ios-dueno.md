@@ -249,6 +249,21 @@ Hecho en `moveon-owner-ios` (commit `e125945`, sin push). Detalle en `docs/modul
 - **Verificación funcional en producción sin dejar datos:** un bloque `DO` actúa como un admin real (`set local role authenticated` + `request.jwt.claims`), llama a `create_product_with_initial_stock` con 3 unidades en bodega y termina siempre con una excepción, que revierte todo. Resultado: "VERIFICACION_OK … movimientos_entry=1 bodega=3.000". Comprobado después: 0 productos y 0 movimientos con ese id o nombre.
 - **Typecheck:** `tests/integration/ios-payloads.contract.test.ts` tipa el error de `send` (`code`/`message`); `tsc --noEmit` vuelve a 0 errores (lo había señalado la sesión de auditoría). No se corrió `pnpm typecheck` completo porque su hook reapunta `runtime-config.json` a producción.
 
+## 24. Continuación — PLAN-90 (anular venta)
+
+- `moveon-owner-ios`: `main` con PLAN-89 subido (`1f47d84`).
+- **POS** (`837e402`): fixtures `void_sale.json` y `audit_log_void_sale.json`. El caso de contrato siembra una venta completada de 2 unidades y verifica que quede anulada con su motivo, que el stock del punto de venta suba 2 y que repetir dé "Venta no encontrada o ya anulada". La siembra fija `request.jwt.claim.sub` por el trigger `sales_enforce_cashier_identity`. `pnpm test:parity` → 33 en verde.
+- **iOS:**
+  - Piezas: `SaleVoiding`, `VoidSaleUseCase`, `VoidSaleParams`, `SupabaseSalesRepository.voidSale`, `VoidSaleFormViewModel` y `VoidSaleSheet`; el detalle tiene `voidableSale`, `didVoid` y el aviso.
+  - `SecondaryButton(isDestructive:)` usa el rojo de error.
+  - Pasan 193 tests unitarios y 20 de interfaz (nuevo: anular con motivo).
+- **QA contra el Supabase local** (V-000002, 1 QA Creatina en efectivo; antes: punto de venta de Creatina 12 y el día en $1.265.000 / 7 ventas / 1 anulada):
+  - Un motivo de 5 caracteres muestra "El motivo debe tener al menos 10 caracteres" y no envía nada.
+  - Con "Error de cobro, QA iOS" la venta queda `voided` con su motivo y `voided_by` del admin. Hay movimiento `void_return` +1 en el punto de venta (13), el resumen del día queda en $1.180.000 / 6 ventas / 2 anuladas, y la auditoría registra `void` con `{reason}` y la etiqueta V-000002.
+  - La app muestra el aviso y la tarjeta "Venta anulada"; la lista marca "Anulada" con el total tachado.
+  - El efectivo esperado del turno abierto no cambió porque V-000002 no es de ese turno; el efecto en la caja lo cubre la regla del servidor, que excluye las ventas anuladas (paridad de PLAN-81).
+  - Nota: V-000002 venía de los datos de prueba de la otra sesión (solo en local).
+
 ## 8. Notas adicionales
 
 - Fuentes de datos ya existentes para la app: `get_stock_levels`, `get_monthly_sales_totals`, `get_monthly_expense_totals`, `get_reinvestment_fund_totals`, `list_cash_history_days`.
