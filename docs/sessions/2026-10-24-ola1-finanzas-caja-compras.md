@@ -10,7 +10,7 @@
 | Sprint | Post-MVP (mejoras de flujo) |
 | Agente | Claude Code |
 | HUs trabajadas | Ola 1 de la revisión de productos/inventario/finanzas |
-| Estado | Completada en local (prod pendiente de OK) |
+| Estado | Completada y en producción |
 
 ---
 
@@ -60,7 +60,7 @@ Regla: pruebas solo en Supabase local; ninguna migración va a producción sin O
 
 ## 4. Pendientes
 
-- **Producción (requiere OK del dueño):** aplicar `20261024160000` y `20261024180000` (esquema/RPC) y, aparte, decidir el backfill `20261024170000` (146 movimientos / $2.338.646 al 2026-10-24).
+- ~~Producción~~ **Hecho 2026-10-24 con OK del dueño:** `20261024160000`, `20261024170000` (backfill: 146 gastos / $2.338.646 recuperados, 0 movimientos sin gasto) y `20261024180000` aplicadas con `db query --linked` y versión registrada; funciones DEFINER, sin EXECUTE para anon, `expenses` solo lectura para authenticated. Frontend publicado en `main` adead04, Netlify ready en POS y catálogo.
 - Elegir categoría al registrar un gasto desde caja, o reclasificar gastos en Finanzas (hoy algunos son nómina: "pago Danelis", "pago Gustavo").
 - Inventario muestra "+ Entrada", "Ajustar" y "Trasladar" en productos preparados y combos, que la RPC rechaza (Ola 2).
 - Decisión pendiente: ¿el stock inicial de un producto nuevo cuenta como compra en el fondo?
