@@ -19,7 +19,19 @@ import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import type { Product } from '@angular-app/features/products/domain/entities/product.entity'
 import type { StockLevel } from '@angular-app/features/inventory/domain/entities/inventory.entity'
-import { isOutOfStock } from '@angular-app/features/inventory/domain/services/low-stock'
+import { RegisterEntryDialog } from '@angular-app/features/inventory/presentation/dialogs/register-entry.dialog'
+import { AdjustStockDialog } from '@angular-app/features/inventory/presentation/dialogs/adjust-stock.dialog'
+import { TransferStockDialog } from '@angular-app/features/inventory/presentation/dialogs/transfer-stock.dialog'
+import {
+  KardexDialog,
+  type EntryCostCorrectionRequest,
+} from '@angular-app/features/inventory/presentation/dialogs/kardex.dialog'
+import { CorrectEntryCostDialog } from '@angular-app/features/inventory/presentation/dialogs/correct-entry-cost.dialog'
+import {
+  buildProductStock,
+  isMissingStock,
+  type ProductStock,
+} from '@angular-app/features/products/presentation/services/product-stock'
 import { ExcelExportService } from '@angular-app/shared/services/export/excel-export.service'
 import { buildProductsWorkbook } from '@angular-app/features/products/presentation/services/product-export'
 import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
@@ -41,10 +53,15 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
     TableShellComponent,
     MO_TABLE,
     ...MO_MENU,
+    RegisterEntryDialog,
+    AdjustStockDialog,
+    TransferStockDialog,
+    KardexDialog,
+    CorrectEntryCostDialog,
   ],
   template: `
     <section class="flex h-full min-h-0 flex-col">
-      <mo-page-header title="Productos" subtitle="Catálogo y precios">
+      <mo-page-header title="Productos" subtitle="Catálogo, precios y stock">
         <mo-button
           variant="outline"
           [loading]="exporting()"
@@ -73,18 +90,19 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
         >
       </nav>
 
-      <div class="mb-4 flex flex-col gap-2 sm:flex-row">
+      <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <input
           type="search"
           [value]="query()"
           (input)="onQueryInput($event)"
           placeholder="Buscar por nombre, SKU o código de barras"
-          class="border-input bg-card focus:ring-ring h-10 flex-1 rounded-lg border px-3 text-sm focus:ring-2 focus:outline-none"
+          class="border-input bg-card focus:ring-ring h-10 min-w-56 flex-1 rounded-lg border px-3 text-sm focus:ring-2 focus:outline-none"
         />
         <select
           [value]="filterCategoria()"
           (change)="filterCategoria.set(getSelectValue($event))"
           class="border-input bg-card focus:ring-ring h-10 rounded-lg border px-3 text-sm focus:ring-2 focus:outline-none"
+          aria-label="Filtrar por categoría"
         >
           <option value="all">Todas las categorías</option>
           @for (cat of categorias(); track cat.id) {
@@ -107,11 +125,23 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
           [value]="filterEstado()"
           (change)="onEstadoChange($event)"
           class="border-input bg-card focus:ring-ring h-10 rounded-lg border px-3 text-sm focus:ring-2 focus:outline-none"
+          aria-label="Filtrar por estado"
         >
           <option value="active">Solo activos</option>
           <option value="inactive">Solo inactivos</option>
           <option value="all">Todos</option>
         </select>
+        <label
+          class="border-input bg-card flex h-10 cursor-pointer items-center gap-2 rounded-lg border px-3 text-sm select-none"
+        >
+          <input
+            type="checkbox"
+            [checked]="soloFaltantes()"
+            (change)="soloFaltantes.set(!soloFaltantes())"
+            class="accent-primary h-4 w-4"
+          />
+          Solo faltantes
+        </label>
       </div>
 
       @if (loading()) {
@@ -121,12 +151,19 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
           <mo-button (click)="load()">Reintentar</mo-button>
         </mo-empty-state>
       } @else if (filteredProducts().length === 0) {
-        <mo-empty-state
-          title="Sin productos"
-          description="Crea tu primer producto para empezar a vender."
-        >
-          <mo-button (click)="openCreate()">Nuevo producto</mo-button>
-        </mo-empty-state>
+        @if (products().length === 0) {
+          <mo-empty-state
+            title="Sin productos"
+            description="Crea tu primer producto para empezar a vender."
+          >
+            <mo-button (click)="openCreate()">Nuevo producto</mo-button>
+          </mo-empty-state>
+        } @else {
+          <mo-empty-state
+            title="Ningún producto coincide"
+            description="Cambia la búsqueda o los filtros."
+          />
+        }
       } @else {
         <mo-table-shell class="flex-1">
           <table moTable>
@@ -134,32 +171,31 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
               <tr>
                 <th moTh>Producto</th>
                 <th moTh>Tipo</th>
-                <th moTh>SKU</th>
                 <th moTh class="text-right">Costo</th>
                 <th moTh class="text-right">Precio</th>
-                <th moTh class="text-right">Stock min.</th>
                 <th moTh class="text-right">Pto. venta</th>
                 <th moTh class="text-right">Bodega</th>
+                <th moTh class="text-right">Mín.</th>
                 <th moTh></th>
                 <th moTh></th>
               </tr>
             </thead>
             <tbody class="divide-y">
               @for (product of filteredProducts(); track product.id) {
-                <tr class="hover:bg-muted/30" [class.bg-red-50]="isOut(product)">
+                @let stock = stockOf(product);
+                <tr
+                  class="hover:bg-muted/30"
+                  [class.bg-red-50]="stock.isOut"
+                  [class.bg-amber-50]="stock.isLow && !stock.isOut"
+                >
                   <td moTd>
                     <div class="font-semibold">{{ product.nombre }}</div>
-                    @if (categoriaName(product.categoriaId)) {
-                      <div class="text-muted-foreground text-xs">
-                        {{ categoriaName(product.categoriaId) }}
-                      </div>
-                    }
+                    <div class="text-muted-foreground text-xs">
+                      {{ productMeta(product) }}
+                    </div>
                   </td>
                   <td moTd class="text-muted-foreground text-xs">
                     {{ tipoLabel(product.tipo) }}
-                  </td>
-                  <td moTd class="text-muted-foreground font-mono text-xs">
-                    {{ product.sku ?? '—' }}
                   </td>
                   <td moTd class="text-muted-foreground text-right tabular-nums">
                     {{ product.costo !== null ? (product.costo | money) : '—' }}
@@ -167,23 +203,31 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
                   <td moTd class="text-right font-semibold tabular-nums">
                     {{ (product.precioVenta | money) }}
                   </td>
-                  <td moTd class="text-muted-foreground text-right tabular-nums">
-                    {{ product.stockMinimo }}
-                  </td>
-                  <td
-                    moTd
-                    class="text-right tabular-nums font-semibold"
-                    [class.text-destructive]="isOut(product)"
-                  >
-                    {{ stockMap().get(product.id)?.puntoVentaStock ?? '—' }}
-                  </td>
-                  <td moTd class="text-muted-foreground text-right tabular-nums">
-                    {{ stockMap().get(product.id)?.bodegaStock ?? '—' }}
-                  </td>
+                  @if (stock.tracksStock) {
+                    <td
+                      moTd
+                      class="text-right font-bold tabular-nums"
+                      [class.text-destructive]="stock.isOut"
+                    >
+                      {{ stock.puntoVentaStock }}
+                    </td>
+                    <td moTd class="text-right font-semibold tabular-nums">
+                      {{ stock.bodegaStock }}
+                    </td>
+                    <td moTd class="text-muted-foreground text-right tabular-nums">
+                      {{ product.stockMinimo }}
+                    </td>
+                  } @else {
+                    <td moTd colspan="3" class="text-muted-foreground text-right text-xs">
+                      Sin stock propio
+                    </td>
+                  }
                   <td moTd>
                     <div class="flex flex-wrap gap-1">
-                      @if (isOut(product)) {
+                      @if (stock.isOut) {
                         <mo-badge variant="destructive">Agotado</mo-badge>
+                      } @else if (stock.isLow) {
+                        <mo-badge variant="warning">Stock bajo</mo-badge>
                       }
                       @if (!product.isActive) {
                         <mo-badge variant="warning">Inactivo</mo-badge>
@@ -192,10 +236,28 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
                   </td>
                   <td moTd class="text-right">
                     <div class="flex items-center justify-end gap-1.5">
+                      @if (canMoveStock(product)) {
+                        <mo-button size="sm" variant="outline" (click)="openEntry(product)">
+                          + Entrada
+                        </mo-button>
+                      }
                       <mo-button size="sm" variant="outline" (click)="openEdit(product)">
                         Editar
                       </mo-button>
                       <mo-menu size="sm" [label]="'Más acciones para ' + product.nombre">
+                        @if (canMoveStock(product)) {
+                          <button type="button" moMenuItem (click)="openAdjust(product)">
+                            Ajustar stock
+                          </button>
+                          <button type="button" moMenuItem (click)="openTransfer(product)">
+                            Trasladar
+                          </button>
+                        }
+                        @if (stock.tracksStock) {
+                          <button type="button" moMenuItem (click)="openKardex(product)">
+                            Kardex
+                          </button>
+                        }
                         @if (product.isActive) {
                           <button type="button" moMenuItem (click)="confirmDeactivate(product)">
                             Desactivar
@@ -214,6 +276,43 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
         </mo-table-shell>
       }
     </section>
+
+    <mo-register-entry-dialog
+      [open]="entryOpen()"
+      [product]="stockTarget()"
+      (closed)="entryOpen.set(false)"
+      (saved)="onStockChanged({ costChanged: true })"
+    />
+
+    <mo-adjust-stock-dialog
+      [open]="adjustOpen()"
+      [product]="stockTarget()"
+      (closed)="adjustOpen.set(false)"
+      (saved)="onStockChanged()"
+    />
+
+    <mo-transfer-stock-dialog
+      [open]="transferOpen()"
+      [product]="stockTarget()"
+      (closed)="transferOpen.set(false)"
+      (saved)="onStockChanged()"
+    />
+
+    <mo-kardex-dialog
+      [open]="kardexOpen()"
+      [product]="stockTarget()"
+      (closed)="kardexOpen.set(false)"
+      (correctCostRequested)="openCostCorrection($event)"
+    />
+
+    <mo-correct-entry-cost-dialog
+      [open]="costCorrection() !== null"
+      [movement]="costCorrection()?.movement ?? null"
+      [isLatestEntry]="costCorrection()?.isLatestEntry ?? false"
+      [product]="stockTarget()"
+      (closed)="costCorrection.set(null)"
+      (saved)="onStockChanged({ costChanged: true })"
+    />
 
     <mo-product-form-dialog
       [open]="dialogOpen()"
@@ -284,7 +383,36 @@ export class ProductosPage {
   readonly editingProduct = signal<Product | null>(null)
   readonly exporting = signal(false)
 
-  readonly stockMap = computed(() => new Map(this.stockLevels().map((s) => [s.productId, s])))
+  /** Stock por producto: una sola pasada por render en vez de buscar en cada celda. */
+  readonly stockById = computed(() => {
+    const levels = new Map(this.stockLevels().map((s) => [s.productId, s]))
+    return new Map(this.products().map((p) => [p.id, buildProductStock(p, levels.get(p.id))]))
+  })
+
+  readonly soloFaltantes = signal(false)
+
+  // --- Diálogos de stock (antes en /inventario) ---
+  readonly entryOpen = signal(false)
+  readonly adjustOpen = signal(false)
+  readonly transferOpen = signal(false)
+  readonly kardexOpen = signal(false)
+  readonly costCorrection = signal<EntryCostCorrectionRequest | null>(null)
+  readonly stockProduct = signal<Product | null>(null)
+
+  /** Lo que necesitan los diálogos de inventario del producto elegido. */
+  readonly stockTarget = computed(() => {
+    const product = this.stockProduct()
+    if (!product) return null
+    const stock = this.stockById().get(product.id)
+    return {
+      id: product.id,
+      nombre: product.nombre,
+      costo: product.costo,
+      puntoVentaStock: stock?.puntoVentaStock ?? 0,
+      bodegaStock: stock?.bodegaStock ?? 0,
+    }
+  })
+  // -------------------------------------------------
 
   readonly filterCategoria = signal<string>('all')
   readonly filterProveedor = signal<string>('all')
@@ -299,6 +427,8 @@ export class ProductosPage {
     const cat = this.filterCategoria()
     const prov = this.filterProveedor()
     const estado = this.filterEstado()
+    const soloFaltantes = this.soloFaltantes()
+    const stockById = this.stockById()
     return this.products().filter((p) => {
       if (q && !([p.nombre, p.sku ?? '', p.codigoBarras ?? ''].join(' ').toLowerCase().includes(q))) return false
       if (cat !== 'all' && p.categoriaId !== cat) return false
@@ -306,6 +436,10 @@ export class ProductosPage {
       if (prov !== 'all' && prov !== '__sin__' && p.proveedorId !== prov) return false
       if (estado === 'active' && !p.isActive) return false
       if (estado === 'inactive' && p.isActive) return false
+      if (soloFaltantes) {
+        const stock = stockById.get(p.id)
+        if (!stock || !isMissingStock(stock)) return false
+      }
       return true
     })
   })
@@ -325,14 +459,69 @@ export class ProductosPage {
     return labels[tipo] ?? tipo
   }
 
-  isOut(product: Product): boolean {
-    const puntoVentaStock = this.stockMap().get(product.id)?.puntoVentaStock ?? 0
-    return isOutOfStock({ tipo: product.tipo, currentStock: puntoVentaStock })
+  stockOf(product: Product): ProductStock {
+    return this.stockById().get(product.id) ?? buildProductStock(product, undefined)
+  }
+
+  /** Entradas, ajustes y traslados: solo productos activos con stock propio (la RPC rechaza el resto). */
+  canMoveStock(product: Product): boolean {
+    return product.isActive && this.stockOf(product).tracksStock
   }
 
   categoriaName(id: string | null): string | null {
     if (!id) return null
     return this.categorias().find((c) => c.id === id)?.nombre ?? null
+  }
+
+  /** Línea secundaria: categoría · SKU · proveedor, lo que exista. */
+  productMeta(product: Product): string {
+    return [this.categoriaName(product.categoriaId), product.sku, product.proveedorNombre]
+      .filter((part): part is string => !!part)
+      .join(' · ')
+  }
+
+  openEntry(product: Product): void {
+    this.stockProduct.set(product)
+    this.entryOpen.set(true)
+  }
+
+  openAdjust(product: Product): void {
+    this.stockProduct.set(product)
+    this.adjustOpen.set(true)
+  }
+
+  openTransfer(product: Product): void {
+    this.stockProduct.set(product)
+    this.transferOpen.set(true)
+  }
+
+  openKardex(product: Product): void {
+    this.stockProduct.set(product)
+    this.kardexOpen.set(true)
+  }
+
+  openCostCorrection(request: EntryCostCorrectionRequest): void {
+    this.kardexOpen.set(false)
+    this.costCorrection.set(request)
+  }
+
+  /**
+   * Tras mover stock se releen los niveles; una entrada con costo o una
+   * corrección también cambian `productos.costo`, así que se refresca el
+   * catálogo.
+   */
+  async onStockChanged(options: { costChanged?: boolean } = {}): Promise<void> {
+    try {
+      const auth = await this.session.getAuthContext()
+      if (!auth) return
+      const [stockLevels] = await Promise.all([
+        this.inventoryRepo.getStockLevels(auth.tiendaId),
+        options.costChanged ? this.store.ensureProducts(auth.tiendaId, { force: true }) : Promise.resolve(),
+      ])
+      this.stockLevels.set(stockLevels)
+    } catch (error) {
+      this.toast.error(getErrorMessage(error, 'No se pudo actualizar el stock'))
+    }
   }
 
   onQueryInput(event: Event): void {
@@ -392,7 +581,7 @@ export class ProductosPage {
     this.exporting.set(true)
     try {
       await this.excel.download(
-        buildProductsWorkbook(this.filteredProducts(), this.categorias(), this.query())
+        buildProductsWorkbook(this.filteredProducts(), this.categorias(), this.query(), this.stockById())
       )
       this.toast.success('Archivo de productos descargado')
     } catch (error) {

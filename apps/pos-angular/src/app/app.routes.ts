@@ -40,12 +40,9 @@ export const routes: Routes = [
         loadComponent: () =>
           import('@angular-app/features/products/presentation/pages/categorias.page').then((m) => m.CategoriasPage),
       },
-      {
-        path: 'inventario',
-        canActivate: [roleGuard('admin')],
-        loadComponent: () =>
-          import('@angular-app/features/inventory/presentation/pages/inventario.page').then((m) => m.InventarioPage),
-      },
+      // Inventario se unificó con Productos (Ola 2, 2026-10-24): stock,
+      // entradas, ajustes, traslados y kardex viven en /productos.
+      { path: 'inventario', pathMatch: 'full', redirectTo: 'productos' },
       {
         path: 'caja',
         loadComponent: () =>

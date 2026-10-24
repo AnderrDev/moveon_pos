@@ -124,14 +124,13 @@ Para cargar stock inicial desde Siigo, se usa el importador CSV. Cada fila gener
 - La corrección cambia solo `costo_unitario`, permite decidir si sincroniza el costo vigente y deja old/new/reason en auditoría.
 - Stock bulk de N productos en una sola query.
 
-## Filtros de la página de inventario
+## Pantalla: unificada con Productos (Ola 2, 2026-10-24)
 
-- Búsqueda por nombre/SKU, filtro por proveedor (incluye "Sin proveedor") y toggle **Solo faltantes** (stock bajo o agotado).
-- Combinando proveedor + solo faltantes se obtiene la lista de qué ordenar en el siguiente pedido a ese proveedor.
+`/inventario` ya no existe como página: redirige a `/productos`, que muestra stock por ubicación, mínimo y alertas junto al catálogo. Las acciones de inventario (**+ Entrada**, **Ajustar stock**, **Trasladar**, **Kardex** y **Corregir costo**) se abren desde cada fila con los diálogos de `features/inventory/presentation/dialogs` (permitido por ADR 0015: Productos usa `domain` y `dialogs` de Inventario; el grafo sigue acíclico). Solo se ofrecen en productos activos con stock propio. Filtros: búsqueda, categoría, proveedor (incluye "Sin proveedor"), estado y **Solo faltantes** (stock bajo o agotado); proveedor + solo faltantes da la lista del siguiente pedido.
 
 ## Exportación Excel
 
-- Inventario descarga las filas filtradas con stock por ubicación, proveedor, total, mínimo y alerta.
+- El Excel de Productos incluye proveedor, stock por ubicación, total, mínimo y estado del stock (reemplaza al Excel de inventario).
 - El kardex descarga todos los movimientos cargados del producto, con fecha, ubicación, cantidad, costo y motivo.
-- El Kardex visible muestra costo unitario y costo total; las filas `entry` ofrecen **Corregir costo**.
-- La funcionalidad permanece restringida a `admin` porque el módulo de inventario usa `roleGuard('admin')`.
+- El Kardex visible muestra costo unitario y costo total; las filas `entry` ofrecen **Corregir costo** (vuelto a cablear el 2026-10-24: el botón existía pero ninguna pantalla abría el diálogo).
+- La funcionalidad permanece restringida a `admin` porque `/productos` usa `roleGuard('admin')`.

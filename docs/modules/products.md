@@ -105,6 +105,12 @@ El script lee `SUPABASE_URL` (con fallback a `NEXT_PUBLIC_SUPABASE_URL`) y
 - Orden de escritura: categorías → productos → movimientos, en lotes de ~100. Sin
   transacción única: ante un error se detiene y reporta lo ya escrito.
 
+## Pantalla única de catálogo y stock (Ola 2, 2026-10-24)
+
+- `/productos` reúne lo que antes estaba repartido con `/inventario` (que ahora redirige aquí): costo, precio, stock en punto de venta y bodega, mínimo y alertas (Agotado / Stock bajo / Inactivo). Preparados y combos muestran "Sin stock propio" y no ofrecen acciones de stock.
+- Lógica de stock por fila en `presentation/services/product-stock.ts` (pura, con tests en `tests/unit/features/products/product-stock.test.ts`).
+- **Costo bloqueado en edición** para productos con stock propio que ya tienen costo: solo cambia con una entrada con costo o con la corrección de costo del kardex (ambas auditadas). Si el producto no tiene costo registrado, o es preparado o combo, el costo se sigue editando en el formulario.
+
 ## Filtros de la página de productos
 
 - Búsqueda por nombre/SKU/código de barras, filtro por categoría, filtro por proveedor
