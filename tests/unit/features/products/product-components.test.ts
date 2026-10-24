@@ -88,9 +88,24 @@ describe('filterComponentCandidates', () => {
 
   const allProducts = [vaso, leche, whey, batido, inactivo]
 
-  it('devuelve solo ingredientes activos', () => {
+  it('devuelve los productos activos que rastrean stock propio', () => {
     const result = filterComponentCandidates(allProducts, new Set(), undefined)
-    expect(result).toEqual([vaso, leche])
+    expect(result).toEqual([vaso, leche, whey])
+  })
+
+  // Regresión: el filtro solo aceptaba `ingredient`, así que un preparado cuyo
+  // insumo es un producto de catálogo (el cereal de "Nutra Pops + leche") no
+  // tenía forma de descontar nada y la venta no movía inventario.
+  it('incluye productos simple que además se venden sueltos', () => {
+    const result = filterComponentCandidates(allProducts, new Set(), undefined)
+    expect(result.map((p) => p.id)).toContain('whey-1')
+  })
+
+  it('excluye preparados y combos: no rastrean stock propio', () => {
+    const combo = makeProduct({ id: 'combo-1', tipo: 'combo', nombre: 'Combo' })
+    const result = filterComponentCandidates([...allProducts, combo], new Set(), undefined)
+    expect(result.map((p) => p.id)).not.toContain('batido-1')
+    expect(result.map((p) => p.id)).not.toContain('combo-1')
   })
 
   it('excluye el producto que se está editando (selfId)', () => {
@@ -110,15 +125,9 @@ describe('filterComponentCandidates', () => {
     expect(result.map((p) => p.id)).not.toContain('inac-1')
   })
 
-  it('no incluye productos simple ni prepared', () => {
-    const result = filterComponentCandidates(allProducts, new Set(), undefined)
-    const tipos = result.map((p) => p.tipo)
-    expect(tipos.every((t) => t === 'ingredient')).toBe(true)
-  })
-
-  it('devuelve lista vacía si no hay ingredientes disponibles', () => {
-    const sinIngredientes = [whey, batido]
-    expect(filterComponentCandidates(sinIngredientes, new Set(), undefined)).toEqual([])
+  it('devuelve lista vacía si no hay candidatos con stock propio', () => {
+    const soloPreparados = [batido, makeProduct({ id: 'combo-2', tipo: 'combo' })]
+    expect(filterComponentCandidates(soloPreparados, new Set(), undefined)).toEqual([])
   })
 })
 
