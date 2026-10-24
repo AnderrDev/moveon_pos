@@ -43,6 +43,27 @@ pnpm db:migrate
 pnpm dev
 ```
 
+## Docker
+
+La imagen de producción compila y sirve las tres aplicaciones Angular:
+
+- POS: `http://localhost:8080/`
+- Landing: `http://localhost:8080/catalogo/`
+- Enlaces: `http://localhost:8080/links/`
+
+```bash
+docker build -t moveonapp-pos .
+docker run --rm -p 8080:80 \
+  -e SUPABASE_URL=https://tu-proyecto.supabase.co \
+  -e SUPABASE_ANON_KEY=tu-clave-publica-anon \
+  moveonapp-pos
+```
+
+Variables opcionales: `APP_ENV`, `SENTRY_DSN`, `APP_NAME` y
+`LANDING_APP_NAME`. La configuración se escribe en `runtime-config.json` al
+arrancar el contenedor, por lo que la misma imagen puede promoverse entre
+entornos sin recompilarse.
+
 ## Licencia
 
 Propietario. Uso interno de MOVEONAPP.

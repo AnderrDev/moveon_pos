@@ -28,7 +28,7 @@
 | Linter           | ESLint + @angular-eslint | Cableado; hace cumplir las fronteras de arquitectura (§2.5) |
 | Formatter        | Prettier               | Config estándar                                   |
 | Package manager  | pnpm                   | Obligatorio (no npm/yarn)                         |
-| Hosting frontend | Netlify                | Dos sitios: `pos-angular` (ADR 0009) y `landing-web` (ADR 0012), mismo repo |
+| Hosting frontend | Netlify                | Apps separadas: `pos-angular`, `landing-web` y `links-web` (ADR 0009, 0012 y 0020), mismo repo |
 | CI/CD            | GitHub Actions         | Deploy automático en main (re-cablear post-cleanup)|
 
 **Justificación de elecciones clave:** ver ADRs en `/docs/adr/`.
