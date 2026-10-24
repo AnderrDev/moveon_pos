@@ -178,18 +178,15 @@ export class CashRegisterRepository extends CashRegisterRepositoryContract {
   }
 
   async addMovement(input: AddMovementInput): Promise<CashMovement> {
-    const client = this.supabaseClient.supabase as unknown as UntypedClient
-    const { data, error } = await client
-      .from('cash_movements')
-      .insert({
-        cash_session_id: input.cashSessionId,
-        tipo: input.tipo,
-        amount: input.amount,
-        motivo: input.motivo,
-        created_by: input.createdBy,
-      })
-      .select(MOV_COLS)
-      .single<CashMovementRow>()
+    // cash_movements no admite INSERT directo: la RPC exige sesión abierta.
+    const rpc = this.supabaseClient.supabase as unknown as RpcClient
+    const { data, error } = await rpc.rpc<CashMovementRow>('add_cash_movement_atomic', {
+      p_cash_session_id: input.cashSessionId,
+      p_tipo: input.tipo,
+      p_amount: input.amount,
+      p_motivo: input.motivo,
+      p_created_by: input.createdBy,
+    })
     if (error) throw new Error(error.message)
     if (!data) throw new Error('Movimiento sin respuesta')
     return rowToCashMovement(data)
