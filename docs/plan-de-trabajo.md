@@ -220,6 +220,39 @@ siempre en local) + commit propio en `dev`. Nunca dos PLANs mezclados en un comm
 PLAN-62 y 63 son deliberadamente ANTES del cableado: primero existe el contrato y el linter
 que lo protege, después se cablea feature por feature sin poder regresar al atajo.
 
+### Bloque activo — App iOS del dueño en SwiftUI (ADR 0021, planeado 2026-10-24)
+
+Diseño en **`docs/adr/0021-app-ios-dueno-swift.md`** — leerlo antes de cualquier PLAN de este
+bloque. v1 = iPhone, solo rol `admin`, **solo lectura**: dashboard de ventas, caja, stock y
+finanzas. Regla central del ADR §4: la app **no reimplementa reducciones de negocio**; todo
+número comparable con el web sale de una RPC SQL `owner_*` (`security invoker`, `stable`) con
+test de paridad contra el servicio TS que hoy calcula lo mismo.
+
+**Regla de ejecución:** cada PLAN cierra con `xcodebuild test` en verde (paquete `MoveOnKit` +
+view models), QA en el simulador contra Supabase LOCAL, y — si tocó SQL — la migración probada
+en local con su test de paridad y `pnpm test` en verde. Las migraciones `owner_*` se aplican al
+remoto solo con confirmación del dueño. Un commit por PLAN en `dev`.
+
+| ID | Título | Prioridad | Esfuerzo | Criterio de cierre |
+|---|---|---|---|---|
+| PLAN-75 | ✅ Hecho (2026-10-24) — Aprobación del ADR 0021 y documentación | P0 | S | Dueño aprueba ADR 0021 (estado → Aceptado); nota "Modificado por ADR 0021" en ADR 0004; fila "App móvil nativa" de `01-mvp-scope.md` pasa a "v1 iOS del dueño (ADR 0021)"; `docs/modules/ios-owner.md` creado con pantallas, fuentes de datos y reglas; decisión sobre la cuenta Apple Developer registrada |
+| PLAN-76 | ✅ Hecho (2026-10-24, verificado en simulador; movido a repo propio `moveon-owner-ios`, ADR 0021 §7) — Scaffold del proyecto Xcode + `MoveOnKit` | P0 | M | Proyecto iOS con app target SwiftUI (iOS 17+, Swift 6 estricto) y Swift Package local con targets `Domain` (sin dependencias) y `Data` (depende de `supabase-swift`); `AppContainer` como composition root; config por `.xcconfig` (`App.xcconfig` versionado apunta a Supabase local; `Local.xcconfig` opcional fuera de git; `Example.xcconfig` como plantilla); proyecto definido en `project.yml` (XcodeGen), el `.xcodeproj` no se versiona; formateadores COP y fechas `America/Bogota` en `Domain` con tests; `scripts/test.sh` (en el repo iOS) corre `xcodebuild test`; `.gitignore` para `DerivedData`/`xcuserdata`; arranca en simulador mostrando una pantalla vacía |
+| PLAN-77 | Login, gate de rol y Face ID | P0 | M | Login email + contraseña contra Supabase Auth; tras login se lee `user_tiendas` y si el rol no es `admin` se muestra "Acceso solo para el dueño" y se cierra sesión; sesión persistida por el SDK (Keychain) y restaurada al abrir; bloqueo con Face ID/código al volver de segundo plano; "Olvidé mi contraseña" con `resetPasswordForEmail`; cerrar sesión; mensajes de error genéricos en español (como PLAN-08). Tests del gate de rol y del mapeo de errores |
+| PLAN-78 | RPC `owner_sales_summary` + test de paridad | P0 | L | Migración con `owner_sales_summary(p_tienda_id, p_from date, p_to date)` → JSON: total, nº ventas, nº anuladas, ticket promedio, descuentos, desglose por método de pago, por cajero, por hora y por día, top productos (unidades y facturación) y utilidad solo con costo conocido (ADR 0019); rango calculado con `tiendas.timezone`; `security invoker`, `stable`. Test que compara su salida con `getDailyReport` + `groupSalesBy*` + `groupSalesByProduct` sobre el seed local (incluye venta anulada, pago mixto, combo y canje Club) |
+| PLAN-79 | Dashboard "Hoy" y selector de período | P0 | M | Pantalla inicial con: total vendido, nº ventas, ticket promedio, utilidad; estado de caja (abierta/cerrada, desde qué hora); gráfica de ventas por hora (Swift Charts); desglose por método de pago; top 5 productos; alerta con el nº de productos sin stock/stock bajo. Selector Hoy / Ayer / 7 días / Mes / rango. Pull-to-refresh y hora de última actualización. Estados de carga, vacío y error |
+| PLAN-80 | Ventas: lista y detalle | P1 | M | Lista de ventas del período (número, hora, total, cajero, método, estado; anuladas marcadas) con búsqueda por número; detalle con líneas (opción del batido, descuentos, canje Club), pagos, cliente y motivo/autor si fue anulada. Lectura directa de `sales`/`sale_items`/`payments` con RLS (lectura simple, ADR 0015 §6.3) y paginación |
+| PLAN-81 | Caja: turno actual e historial de cierres | P1 | L | RPC `owner_cash_session_summary(p_session_id)` que replica `cash-closure.ts` y `cash-movement-summary.ts` (base, ventas por método, entradas/salidas, efectivo esperado) con test de paridad; vista del turno abierto con movimientos; historial por día con `list_cash_history_days` mostrando esperado vs. contado y diferencias resaltadas (como la conciliación de `/reportes`) |
+| PLAN-82 | Stock: niveles y alertas | P1 | M | Lista desde `get_stock_levels` con stock en punto de venta y bodega; filtros "Sin stock" / "Stock bajo" / todos (excluye `prepared` y `combo`, igual que PLAN-14/73) con la misma regla de `low-stock.ts` portada y testeada; búsqueda por nombre/SKU; detalle con últimos movimientos (`inventory_movements`, solo lectura) |
+| PLAN-83 | Finanzas: mes actual y tendencia | P1 | L | RPC `owner_finance_summary(p_tienda_id, p_month)` que replica `buildFinancialSummary` (entradas, costo de lo vendido, gastos por categoría, utilidad neta, margen) con test de paridad; vista del mes con gastos por categoría y fondo de reinversión (`get_reinvestment_fund_totals`); tendencia de 6 meses con `get_monthly_sales_totals` + `get_monthly_expense_totals` en Swift Charts |
+| PLAN-84 | QA integral, ícono y distribución | P1 | M | QA en simulador y en el iPhone del dueño contra Supabase local (login admin/cajero, los 4 dashboards con el seed); cifras del iPhone = cifras del web para el mismo día; ícono y pantalla de arranque con la marca (negro + amarillo #F9D128, Montserrat); migraciones `owner_*` aplicadas al remoto con confirmación del dueño; build en TestFlight (o firma personal si aún no hay cuenta); sesión documentada |
+
+**Orden:** 75 → 76 → 77 → 78 → 79 (primer entregable usable: login + dashboard "Hoy") → 80 →
+81 → 82 → 83 → 84. PLAN-80, 82 y 83 no dependen entre sí y pueden ir en paralelo después de 79.
+
+**Fuera de v1 (candidatos a v2, cada uno con su PLAN):** registrar gastos, ajustar o trasladar
+stock, anular ventas, notificaciones push (cierre de caja con diferencia, stock agotado), widget
+de pantalla de inicio, iPad, migrar `/reportes` web a las RPC `owner_*`.
+
 ---
 
 ## Resumen ejecutivo histórico — bloque QA 2026-05-27

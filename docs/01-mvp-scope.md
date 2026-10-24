@@ -100,7 +100,7 @@
 | Reportes comparativos (semana vs. semana, mes vs. mes) y margen con costo histórico | v1.4 | Requieren más histórico de datos y, para margen, capturar costo en `sale_items` al momento de venta. |
 | Modo contingencia offline | v1.5 | Internet estable, no es prioridad inicial. |
 | UI multi-sede (selector, transferencias) | v2.0 | Cuando abran segunda tienda. |
-| App móvil nativa | No planeado | PWA cubre el caso. |
+| App móvil nativa del POS (vender desde el teléfono) | No planeado | La PWA cubre la operación de caja. **Excepción:** app iOS de consulta para el dueño, bloque PLAN-75..84 (ADR 0021, aprobado 2026-10-24), fuera del MVP v1.0. |
 | E-commerce | No planeado | Fuera de alcance. |
 | Integración con datáfono | No planeado en MVP | Datáfono opera independiente, se registra referencia manual. |
 | Vencimientos y lotes | No planeado | Negocio rota rápido, no aplica. |
