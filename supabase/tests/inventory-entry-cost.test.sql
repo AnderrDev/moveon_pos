@@ -136,8 +136,8 @@ select is(
 select is(
   (select count(*)::int from public.audit_logs
    where action = 'inventory.entry_cost_corrected'
-     and changes->>'old_unit_cost' = '21000'
-     and changes->>'new_unit_cost' = '22000'
+     and (changes->>'old_unit_cost')::numeric = 21000
+     and (changes->>'new_unit_cost')::numeric = 22000
      and changes->>'reason' = 'La factura tenia un costo diferente'),
   1,
   'la corrección conserva old/new/reason en auditoría'

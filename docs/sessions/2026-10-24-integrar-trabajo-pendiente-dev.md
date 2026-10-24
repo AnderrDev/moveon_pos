@@ -62,3 +62,11 @@ Revisar los cambios sin confirmar acumulados en `dev` (sesiones 2026-08-08 a 202
 `fe50754` auth refresh token · `5785a31` corrección de costo de entradas · `8236b89` migraciones vitrina/pagos legacy · `0322fde` refactor landing · `3770d6b` componentes simple en preparados · `c7e852a` ocultar IVA · `87c0fe0` Docker · `176f630` specs y script de análisis.
 
 `outputs/` (Excel de análisis) quedó sin versionar a propósito. Tests tras los commits: 768/768.
+
+## 9. Migración 20260814000100 en remoto (autorizada por el dueño)
+
+- Pre-chequeo: en remoto `inventory_movements` solo tenía `tenant_isolation` (ALL para todo usuario de la tienda) y `register_inventory_entry_atomic` no existía. Producción (`origin/main`) inserta entradas/ajustes directo en la tabla solo desde `/inventario` (`roleGuard('admin')`); ventas, anulaciones, traslados y stock inicial usan RPC DEFINER → la nueva policy de insert solo-admin no rompe flujos vivos.
+- Aplicada con `db query --linked` en una transacción junto con el registro en `schema_migrations`. Verificado: policies `inventory_movements_select` + `inventory_movements_admin_insert`; ambas RPC `SECURITY DEFINER`, ejecutables por `authenticated`, no por `anon`.
+- **Bug encontrado al correr el pgTAP en local:** ambas RPC insertaban `<id>::text` en `audit_logs.entity_id`, que es `uuid` (local y remoto) → error 42804, la entrada/corrección completa abortaba. No afecta producción hoy porque el frontend publicado no llama estas RPC.
+- Fix: `20261024000100_fix_inventory_entry_audit_entity_id.sql` (redefine ambas funciones sin el cast). La prueba `inventory-entry-cost.test.sql` además comparaba `numeric(14,2)` como texto (`'21000'` vs `21000.00`); se ajustó a comparación numérica. pgTAP local: 14/14.
+- **Pendiente:** aplicar `20261024000100` en remoto (bloqueado por permisos; requiere OK explícito del dueño). Hasta entonces no publicar el frontend de `dev` con el registro de entradas por RPC.
