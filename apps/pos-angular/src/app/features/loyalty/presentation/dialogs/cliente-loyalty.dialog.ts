@@ -34,7 +34,7 @@ import type {
   LoyaltyTransaction,
   LoyaltyTransactionType,
 } from '@angular-app/features/loyalty/domain/entities/loyalty.entity'
-import type { Cliente } from '@angular-app/features/customers/domain/entities/cliente.entity'
+import type { LoyaltyCustomerRef } from '@angular-app/features/loyalty/domain/entities/loyalty.entity'
 import { DEFAULT_LOYALTY_CONFIG, type LoyaltyConfig } from '@angular-app/features/loyalty/domain/loyalty-config'
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
@@ -319,7 +319,7 @@ export class ClienteLoyaltyDialog {
   private readonly toast = inject(ToastService)
 
   readonly open = input<boolean>(false)
-  readonly cliente = input<Cliente | null>(null)
+  readonly cliente = input<LoyaltyCustomerRef | null>(null)
 
   readonly closed = output<void>()
 

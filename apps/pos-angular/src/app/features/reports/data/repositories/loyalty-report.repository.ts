@@ -3,7 +3,7 @@ import { SupabaseClientService } from '@angular-app/core/supabase/supabase-clien
 import { TiendaInfoService } from '@angular-app/core/tienda/tienda-info.service'
 import { LoyaltyRepository } from '@angular-app/features/loyalty/domain/repositories/loyalty.repository'
 import { expireRewards } from '@angular-app/features/loyalty/domain/usecases/expire-rewards.use-case'
-import { getStoreRangeUtc } from '@angular-app/features/reports/domain/services/day-range'
+import { getStoreRangeUtc } from '@/shared/lib/day-range'
 import { LoyaltyReportRepository } from '@angular-app/features/reports/domain/repositories/loyalty-report.repository'
 import {
   buildLoyaltyProgramReport,

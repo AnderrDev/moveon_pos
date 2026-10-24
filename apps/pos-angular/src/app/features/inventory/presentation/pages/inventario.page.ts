@@ -8,13 +8,12 @@ import { EmptyStateComponent } from '@angular-app/shared/molecules/empty-state.c
 import { TableShellComponent } from '@angular-app/shared/molecules/table/table-shell.component'
 import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
 import { InventoryRepository } from '@angular-app/features/inventory/domain/repositories/inventory.repository'
-import { ProductRepository } from '@angular-app/features/products/domain/repositories/product.repository'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { RegisterEntryDialog } from '@angular-app/features/inventory/presentation/dialogs/register-entry.dialog'
 import { AdjustStockDialog } from '@angular-app/features/inventory/presentation/dialogs/adjust-stock.dialog'
 import { TransferStockDialog } from '@angular-app/features/inventory/presentation/dialogs/transfer-stock.dialog'
 import { KardexDialog } from '@angular-app/features/inventory/presentation/dialogs/kardex.dialog'
-import type { Product } from '@angular-app/features/products/domain/entities/product.entity'
+import { ProductsCacheStore, type CatalogProduct } from '@angular-app/core/catalog/products-cache.store'
 import type { StockLevel } from '@angular-app/features/inventory/domain/entities/inventory.entity'
 import { isLowStock, isOutOfStock } from '@angular-app/features/inventory/domain/services/low-stock'
 import { ExcelExportService } from '@angular-app/shared/services/export/excel-export.service'
@@ -229,12 +228,12 @@ interface StockRow {
 })
 export class InventarioPage {
   private readonly inventoryRepo = inject(InventoryRepository)
-  private readonly productsRepo = inject(ProductRepository)
+  private readonly catalog = inject(ProductsCacheStore)
   private readonly session = inject(SessionService)
   private readonly excel = inject(ExcelExportService)
   private readonly toast = inject(ToastService)
 
-  readonly products = signal<Product[]>([])
+  readonly products = signal<CatalogProduct[]>([])
   readonly stockLevels = signal<StockLevel[]>([])
   readonly loading = signal(true)
   readonly loadError = signal<string | null>(null)
@@ -360,7 +359,10 @@ export class InventarioPage {
       if (!auth) throw new Error('No autenticado')
 
       const [products, stockLevels] = await Promise.all([
-        this.productsRepo.listProducts({ tiendaId: auth.tiendaId, soloActivos: true }),
+        // Lectura fresca (force) como antes; la caché del catálogo vive en core.
+        this.catalog
+          .ensureProducts(auth.tiendaId, { force: true })
+          .then((products) => products.filter((p) => p.isActive)),
         this.inventoryRepo.getStockLevels(auth.tiendaId),
       ])
 

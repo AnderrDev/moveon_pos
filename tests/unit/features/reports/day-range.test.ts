@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_TIMEZONE,
   getStoreDayRangeUtc,
-} from '@angular-app/features/reports/domain/services/day-range'
+} from '@/shared/lib/day-range'
 
 // Colombia (America/Bogota) no observa DST: offset fijo −5 todo el año.
 describe('getStoreDayRangeUtc', () => {

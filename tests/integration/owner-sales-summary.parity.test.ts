@@ -14,7 +14,7 @@ import path from 'node:path'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildSalesSummary, type SalesSummary } from '@angular-app/features/reports/domain/services/sales-summary'
-import { getStoreRangeUtc } from '@angular-app/features/reports/domain/services/day-range'
+import { getStoreRangeUtc } from '@/shared/lib/day-range'
 import { rowToSale, type SaleRow } from '@angular-app/features/sales/data/models/sale.mapper'
 import {
   CLEANUP_SQL,

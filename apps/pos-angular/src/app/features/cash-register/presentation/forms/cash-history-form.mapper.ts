@@ -1,4 +1,4 @@
-import { getStoreRangeUtc } from '@angular-app/features/reports/domain/services/day-range'
+import { getStoreRangeUtc } from '@/shared/lib/day-range'
 import type { CashHistoryQuery } from '../../domain/services/cash-history'
 import type { CashHistoryFormValue } from './cash-history-form.factory'
 export function toCashHistoryQuery(value: CashHistoryFormValue, context: { tiendaId: string; timezone: string; page: number }): CashHistoryQuery {
