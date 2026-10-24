@@ -3,7 +3,7 @@
 **Fecha:** 2026-10-24
 **Estado:** Aceptado (aprobado por el dueño el 2026-10-24)
 **Decisor:** Dueño del producto
-**Enmendado:** 2026-10-24 §6 (punto de venta completo, propuesto)
+**Enmendado:** 2026-10-24 §6 (punto de venta completo, aceptado por el dueño el 2026-10-24)
 **Modifica:** ADR 0021 §1 ("v1 de solo lectura", nombre "MOVE ON Dueño", "un POS móvil queda fuera de alcance")
 
 ## Contexto
@@ -100,7 +100,7 @@ ADR 0021 §2 (stack), §5 (seguridad: solo anon key, nunca service role), §7 (r
 2. Cada escritura nueva lleva su fixture de payload y su test en ambos repos.
 3. Venta del iPhone: idempotencia, caja abierta y comprobante con los datos del servidor.
 
-## 6. Enmienda (2026-10-24): punto de venta completo — **propuesta**
+## 6. Enmienda (2026-10-24): punto de venta completo — **aceptada**
 
 **Contexto.** PLAN-91 entregó un carrito simple (sin descuentos, cliente ni canje, §3). El dueño aclaró que lo que quiere es **el punto de venta del web en el iPhone**: "donde están todos los productos, podemos agregarlos y finiquitar la venta incluido descuento, asociar cliente y esas cosas". Sus respuestas:
 - todo lo del POS web: descuentos, asociar cliente, crear cliente y MOVE ON Club;
