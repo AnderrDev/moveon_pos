@@ -38,7 +38,7 @@ Un solo target de app, como `gym_ios` (sin paquetes SPM locales hasta el dispara
 | Pantalla | Fuente de datos | PLAN |
 |---|---|---|
 | Login, gate de rol, Face ID | Supabase Auth + `user_tiendas` | 77 |
-| Dashboard "Hoy" + selector de período | RPC `owner_sales_summary` (hecha, PLAN-78), `cash_sessions`, `get_stock_levels` | 78, 79 |
+| Dashboard "Hoy" + selector de período (hecho) | RPC `owner_sales_summary`, `cash_sessions` abierta, `get_stock_levels` + `productos` activos | 78, 79 |
 | Ventas: lista y detalle | `sales`, `sale_items`, `payments` (lectura directa, RLS) | 80 |
 | Caja: turno actual e historial | RPC `owner_cash_session_summary` (nueva), `list_cash_history_days` | 81 |
 | Stock | `get_stock_levels`, `inventory_movements` | 82 |
@@ -52,6 +52,15 @@ Un solo target de app, como `gym_ios` (sin paquetes SPM locales hasta el dispara
 - **Regla del dueño (2026-10-24): basta con contraseña o Face ID.** Con sesión guardada se pide Face ID (sin respaldo con el código del iPhone); "Entrar con contraseña" vuelve al login. Si el teléfono no tiene Face ID, la sesión guardada se cierra y se pide la contraseña. No se bloquea al pasar a segundo plano.
 - "¿Olvidaste tu contraseña?" envía el enlace a `PASSWORD_RESET_URL` (la página `/restablecer-contrasena` del POS web); la contraseña nueva se define allá. Mensaje genérico para no revelar si el correo existe.
 - Usuario de prueba local adicional: `cajero@moveon.local` / `Test1234!` (rol `cajero`, solo en el stack local) para verificar el rechazo.
+
+## Dashboard "Hoy" (PLAN-79)
+
+- `Features/Dashboard`: `LoadDashboardUseCase` lee en paralelo el resumen de ventas del período (`owner_sales_summary`), la caja abierta (`cash_sessions` con `status = 'open'`) y el stock (`get_stock_levels` cruzado con `productos` activos, igual que `getStockLevels` del web).
+- Pantalla: cifras (total vendido, ventas y anuladas, ticket promedio, utilidad con costo conocido), caja ("abierta desde las 9:05 a. m."; si se abrió otro día, con la fecha), stock (agotados y con stock bajo según `low-stock.ts`, sin batidos ni combos), ventas por hora (Swift Charts), métodos de pago y los 5 productos que más facturaron.
+- Períodos: control segmentado Hoy · Ayer · 7 días · Mes y botón de calendario para un rango de hasta un año. Días en la zona de la tienda (`LocalDate`, America/Bogota).
+- Estados: carga, error con reintento, sin ventas en el período, y refresco al tirar (conserva los datos y avisa si falla).
+- Modo demo `-demo` (solo DEBUG) y 6 tests de UI sobre él; 81 tests unitarios.
+- Verificado en el simulador contra el Supabase local: las cifras de la app coinciden con la RPC consultada directamente (total $ 645.000, 5 ventas, utilidad $ 270.000).
 
 ## RPC `owner_sales_summary` (PLAN-78)
 
