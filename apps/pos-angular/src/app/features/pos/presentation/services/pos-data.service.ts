@@ -1,80 +1,33 @@
 import { inject, Injectable } from '@angular/core'
 import { ProductsCacheStore } from '@angular-app/core/catalog/products-cache.store'
 import { InventoryRepository } from '@angular-app/features/inventory/domain/repositories/inventory.repository'
-import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
+import { ProductRepository } from '@angular-app/features/products/domain/repositories/product.repository'
+import { CashRegisterRepository } from '@angular-app/features/cash-register/domain/repositories/cash-register.repository'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import type { OpenCashSession, PosCategory, PosProduct, PosProductComponent, PosProductOption } from '@angular-app/features/pos/presentation/services/pos.types'
 import { deriveComboStock } from '@angular-app/features/pos/presentation/services/combo-stock'
 
-interface CashSessionRow {
-  id: string
-  opening_amount: number
-}
-
-interface ComponentRow {
-  producto_id: string
-  componente_id: string
-  cantidad: number
-  componente: { nombre: string }
-}
-
-interface ProductComponentsClient {
-  from(table: 'product_components'): {
-    select(cols: string): {
-      eq(col: 'tienda_id', value: string): Promise<{
-        data: ComponentRow[] | null
-        error: { message: string } | null
-      }>
-    }
-  }
-}
-
-interface OptionRow {
-  id: string
-  producto_id: string
-  grupo: string
-  nombre: string
-  precio_extra: number
-  es_default: boolean
-  orden: number
-}
-
-interface ProductOptionsClient {
-  from(table: 'product_options'): {
-    select(cols: string): {
-      eq(
-        col: 'tienda_id',
-        value: string,
-      ): {
-        eq(
-          col: 'is_active',
-          value: boolean,
-        ): {
-          order(col: 'orden'): Promise<{
-            data: OptionRow[] | null
-            error: { message: string } | null
-          }>
-        }
-      }
-    }
-  }
-}
-
+/**
+ * Arma el catálogo del POS (productos + stock + componentes + opciones) y la
+ * caja abierta. Solo lee por las abstracciones de cada feature: no conoce
+ * Supabase (ADR 0015).
+ */
 @Injectable({ providedIn: 'root' })
 export class PosDataService {
-  private readonly supabaseClient = inject(SupabaseClientService)
   private readonly session = inject(SessionService)
   private readonly cache = inject(ProductsCacheStore)
   private readonly inventoryRepo = inject(InventoryRepository)
+  private readonly productRepo = inject(ProductRepository)
+  private readonly cashRepo = inject(CashRegisterRepository)
 
   async listProducts(tiendaId: string): Promise<PosProduct[]> {
     const canViewCost = (await this.session.getRole()) === 'admin'
 
-    const [products, stockLevels, componentRows, optionRows] = await Promise.all([
+    const [products, stockLevels, componentLinks, optionLinks] = await Promise.all([
       this.cache.ensureProducts(tiendaId),
       this.inventoryRepo.getStockLevels(tiendaId),
-      this.fetchComponents(tiendaId),
-      this.fetchOptions(tiendaId),
+      this.productRepo.listComponentsByTienda(tiendaId),
+      this.productRepo.listActiveOptionsByTienda(tiendaId),
     ])
 
     const stockByProduct = new Map(
@@ -82,27 +35,27 @@ export class PosDataService {
     )
 
     const componentsByProduct = new Map<string, PosProductComponent[]>()
-    for (const row of componentRows) {
-      const list = componentsByProduct.get(row.producto_id) ?? []
+    for (const link of componentLinks) {
+      const list = componentsByProduct.get(link.productoId) ?? []
       list.push({
-        componenteId: row.componente_id,
-        nombre: row.componente.nombre,
-        cantidad: row.cantidad,
+        componenteId: link.componenteId,
+        nombre: link.componenteNombre,
+        cantidad: link.cantidad,
       })
-      componentsByProduct.set(row.producto_id, list)
+      componentsByProduct.set(link.productoId, list)
     }
 
     const optionsByProduct = new Map<string, PosProductOption[]>()
-    for (const row of optionRows) {
-      const list = optionsByProduct.get(row.producto_id) ?? []
+    for (const link of optionLinks) {
+      const list = optionsByProduct.get(link.productoId) ?? []
       list.push({
-        id: row.id,
-        grupo: row.grupo,
-        nombre: row.nombre,
-        precioExtra: Number(row.precio_extra),
-        esDefault: row.es_default,
+        id: link.id,
+        grupo: link.grupo,
+        nombre: link.nombre,
+        precioExtra: link.precioExtra,
+        esDefault: link.esDefault,
       })
-      optionsByProduct.set(row.producto_id, list)
+      optionsByProduct.set(link.productoId, list)
     }
 
     return products
@@ -157,51 +110,13 @@ export class PosDataService {
     return Math.max(0, stockByProduct.get(productId) ?? 0)
   }
 
-  private async fetchComponents(tiendaId: string): Promise<ComponentRow[]> {
-    const db = this.supabaseClient.supabase as unknown as ProductComponentsClient
-    const { data, error } = await db
-      .from('product_components')
-      .select('producto_id, componente_id, cantidad, componente:componente_id(nombre)')
-      .eq('tienda_id', tiendaId)
-
-    if (error) throw new Error((error as { message: string }).message)
-    return (data ?? []) as ComponentRow[]
-  }
-
-  /** Opciones activas de venta (ADR 0017), ordenadas como se muestran al cajero. */
-  private async fetchOptions(tiendaId: string): Promise<OptionRow[]> {
-    const db = this.supabaseClient.supabase as unknown as ProductOptionsClient
-    const { data, error } = await db
-      .from('product_options')
-      .select('id, producto_id, grupo, nombre, precio_extra, es_default, orden')
-      .eq('tienda_id', tiendaId)
-      .eq('is_active', true)
-      .order('orden')
-
-    if (error) throw new Error((error as { message: string }).message)
-    return (data ?? []) as OptionRow[]
-  }
-
   async listCategories(tiendaId: string): Promise<PosCategory[]> {
     const categorias = await this.cache.ensureCategorias(tiendaId)
     return categorias.filter((c) => c.isActive).map((c) => ({ id: c.id, nombre: c.nombre }))
   }
 
   async getOpenCashSession(tiendaId: string): Promise<OpenCashSession | null> {
-    const { data, error } = await this.supabaseClient.supabase
-      .from('cash_sessions')
-      .select('id, opening_amount')
-      .eq('tienda_id', tiendaId)
-      .eq('status', 'open')
-      .maybeSingle()
-      .returns<CashSessionRow>()
-
-    if (error) throw new Error(error.message)
-    if (!data) return null
-
-    return {
-      id: data.id,
-      openingAmount: data.opening_amount,
-    }
+    const session = await this.cashRepo.getOpenSession(tiendaId)
+    return session ? { id: session.id, openingAmount: session.openingAmount } : null
   }
 }

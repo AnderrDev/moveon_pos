@@ -117,6 +117,17 @@ El dueño pidió que las reglas del proyecto sean iguales a las de `gym_ios` (`~
 
 **Pendiente:** tests de UI y modo demo (`-demo`) con PLAN-79; VoiceOver no se revisó.
 
+## 13. Continuación — push del repo iOS y PLAN-78
+
+- `moveon-owner-ios`: `main` subido a GitHub (`1a8ee5b`).
+- **PLAN-78 (POS):**
+  - `reports/domain/services/sales-summary.ts`: `buildSalesSummary(sales, timezone)` con la parte pura de `getDailyReport`. `reports.repository.ts` la usa sin cambiar su salida. 6 tests unitarios nuevos.
+  - Migración `20261024120000_owner_sales_summary.sql`: RPC de solo lectura, solo admin, con rango en la zona de la tienda (contrato en `docs/modules/ios-owner.md`).
+  - Paridad: `pnpm test:parity` → 10 tests en verde contra el Supabase local; deja la base como estaba.
+- **Verificación:** `pnpm test` 786 en verde; `pnpm lint` en verde; `tsc --noEmit` y `ng build --configuration development` sin errores. El typecheck se corrió sin el hook `pretypecheck` para no reapuntar `runtime-config.json` a producción: había un servidor de desarrollo de otra sesión usando esta carpeta.
+- **Base local:** estaba atrasada; `supabase migration up --local --include-all` aplicó hasta `20261024000200`. Se detuvo en `20261024000300_lock_direct_writes…` (de otra sesión) porque sus políticas ya estaban aplicadas a mano en local sin registro; no se tocó. `20261024000400/500` siguen sin registrar en local. La RPC nueva se aplicó con psql y se registró en `schema_migrations`.
+- **Remoto:** `owner_sales_summary` NO está aplicada en producción; pendiente de confirmación del dueño.
+
 ## 8. Notas adicionales
 
 - Fuentes de datos ya existentes para la app: `get_stock_levels`, `get_monthly_sales_totals`, `get_monthly_expense_totals`, `get_reinvestment_fund_totals`, `list_cash_history_days`.

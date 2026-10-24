@@ -18,7 +18,9 @@ import {
   ProductRepository as ProductRepositoryContract,
   type InitialStockInput,
   type ProductComponent,
+  type ProductComponentLink,
   type ProductOption,
+  type ProductOptionLink,
   type SearchProductsParams,
 } from '@angular-app/features/products/domain/repositories/product.repository'
 import {
@@ -360,6 +362,22 @@ export class ProductsRepository extends ProductRepositoryContract {
     return (data ?? [] as ProductComponentRow[]).map(rowToProductComponent)
   }
 
+  async listComponentsByTienda(tiendaId: string): Promise<ProductComponentLink[]> {
+    const rows = await fetchAllPages<ProductComponentRow & { producto_id: string }>(async (from, to) => {
+      const { data, error } = await this.supabaseClient.supabase
+        .from('product_components')
+        .select('producto_id, componente_id, cantidad, productos!componente_id(nombre)')
+        .eq('tienda_id', tiendaId)
+        .order('producto_id', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, to)
+        .returns<(ProductComponentRow & { producto_id: string })[]>()
+      if (error) throw new Error(error.message)
+      return data ?? []
+    })
+    return rows.map((row) => ({ productoId: row.producto_id, ...rowToProductComponent(row) }))
+  }
+
   async saveComponents(
     productId: string,
     tiendaId: string,
@@ -396,6 +414,25 @@ export class ProductsRepository extends ProductRepositoryContract {
 
     if (error) throw new Error(error.message)
     return (data ?? []).filter((row) => row.is_active).map(rowToProductOption)
+  }
+
+  async listActiveOptionsByTienda(tiendaId: string): Promise<ProductOptionLink[]> {
+    const rows = await fetchAllPages<ProductOptionRow & { producto_id: string }>(async (from, to) => {
+      const { data, error } = await this.supabaseClient.supabase
+        .from('product_options')
+        .select(
+          'id, producto_id, grupo, nombre, precio_extra, componente_id, componente_cantidad, es_default, orden, is_active, productos!componente_id(nombre)',
+        )
+        .eq('tienda_id', tiendaId)
+        .eq('is_active', true)
+        .order('orden', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, to)
+        .returns<(ProductOptionRow & { producto_id: string })[]>()
+      if (error) throw new Error(error.message)
+      return data ?? []
+    })
+    return rows.map((row) => ({ ...rowToProductOption(row), id: row.id, productoId: row.producto_id }))
   }
 
   /**

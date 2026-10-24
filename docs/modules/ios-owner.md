@@ -38,7 +38,7 @@ Un solo target de app, como `gym_ios` (sin paquetes SPM locales hasta el dispara
 | Pantalla | Fuente de datos | PLAN |
 |---|---|---|
 | Login, gate de rol, Face ID | Supabase Auth + `user_tiendas` | 77 |
-| Dashboard "Hoy" + selector de período | RPC `owner_sales_summary` (nueva), `cash_sessions`, `get_stock_levels` | 78, 79 |
+| Dashboard "Hoy" + selector de período | RPC `owner_sales_summary` (hecha, PLAN-78), `cash_sessions`, `get_stock_levels` | 78, 79 |
 | Ventas: lista y detalle | `sales`, `sale_items`, `payments` (lectura directa, RLS) | 80 |
 | Caja: turno actual e historial | RPC `owner_cash_session_summary` (nueva), `list_cash_history_days` | 81 |
 | Stock | `get_stock_levels`, `inventory_movements` | 82 |
@@ -53,10 +53,21 @@ Un solo target de app, como `gym_ios` (sin paquetes SPM locales hasta el dispara
 - "¿Olvidaste tu contraseña?" envía el enlace a `PASSWORD_RESET_URL` (la página `/restablecer-contrasena` del POS web); la contraseña nueva se define allá. Mensaje genérico para no revelar si el correo existe.
 - Usuario de prueba local adicional: `cajero@moveon.local` / `Test1234!` (rol `cajero`, solo en el stack local) para verificar el rechazo.
 
+## RPC `owner_sales_summary` (PLAN-78)
+
+Migración `20261024120000_owner_sales_summary.sql`. `owner_sales_summary(p_tienda_id uuid, p_from date, p_to date) → jsonb`.
+
+- **Acceso:** `security invoker` + `stable` (RLS sigue filtrando); exige sesión y rol `admin` activo en la tienda, si no `42501`. Rango `p_to ≥ p_from` y como máximo un año, si no `22023`. `execute` solo para `authenticated`.
+- **Período:** `[p_from 00:00, p_to + 1 00:00)` en `tiendas.timezone` (igual que `getStoreRangeUtc`).
+- **Salida (snake_case):** `from`, `to`, `timezone`, `total_ventas`, `count_ventas`, `count_anuladas`, `subtotal_ventas`, `tax_total`, `discount_total`, `item_discount_total`, `global_discount_total`, `discounted_sales_count`, `average_discount_percentage`, `avg_venta`, `utilidad_total`, y las listas `payment_breakdown` (`metodo`, `count`, `total`), `product_sales` (`product_id`, `nombre`, `sku`, `num_ventas`, `qty`, `total`, `avg_price`, `costo_unitario`, `costo_total`, `utilidad`, `margen_pct`), `cashier_breakdown` (`cashier_id`, `cashier_email`, `count_completed`, `count_voided`, `total_ventas`, `tax_total`), `hourly_sales` y `daily_sales` (`hour`/`date`, `count`, `total`, `avg_ticket`).
+- **Semántica = web:** totales solo de completadas; el canje del Club cuenta como descuento (`discount_total` lo incluye, como en el web); utilidad solo con costo conocido (un producto con alguna línea sin costo queda en `null`); una línea canjeada en 0 con costo da utilidad negativa, igual que en `/reportes`.
+- **Paridad:** `pnpm test:parity` (`tests/integration/owner-sales-summary.parity.test.ts`, config `vitest.integration.config.ts`). Necesita el Supabase local corriendo; crea dos usuarios y una tienda de prueba, carga `tests/integration/fixtures/owner-sales-summary.sql` con psql en el contenedor, compara la RPC con `buildSalesSummary` sobre las mismas filas y borra todo al final. Cubre: venta a las 23:30 local, anulada, pago mixto, descuento global, combo con costo fraccionario, canje del Club, línea sin costo, cambio de nombre del producto, ventas fuera del período y de otra tienda, cajero rechazado, sin sesión, rango inválido. No corre en `pnpm test`.
+- **Estado:** aplicada solo en el Supabase local. Al remoto se aplica con confirmación del dueño (antes de publicar la app, PLAN-84).
+
 ## Reglas
 
 1. **No se reimplementan reducciones de negocio en Swift** (totales, utilidad, cuadres). Salen de RPC `owner_*` (`security invoker`, `stable`), cada una con un test de paridad contra el servicio TS que hoy calcula lo mismo:
-   - `owner_sales_summary` ↔ `reports.repository.ts#getDailyReport` + `reports/domain/services/*`
+   - `owner_sales_summary` ↔ `buildSalesSummary` (`reports/domain/services/sales-summary.ts`, la parte pura de `getDailyReport`)
    - `owner_cash_session_summary` ↔ `cash-register/domain/services/cash-closure.ts` y `cash-movement-summary.ts`
    - `owner_finance_summary` ↔ `expenses/domain/services/financial-summary.ts`
 2. Sí se portan a Swift (con tests) reglas de presentación pequeñas: formato COP sin decimales (`es_CO`), fechas en `tiendas.timezone` (`America/Bogota`) y la regla de stock bajo de `low-stock.ts`.

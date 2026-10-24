@@ -39,6 +39,17 @@ export interface ProductOption {
   esDefault: boolean
 }
 
+/** Componente fijo junto con el producto al que pertenece (lectura por tienda). */
+export interface ProductComponentLink extends ProductComponent {
+  productoId: string
+}
+
+/** Opción guardada junto con el producto al que pertenece (lectura por tienda). */
+export interface ProductOptionLink extends ProductOption {
+  id: string
+  productoId: string
+}
+
 /**
  * Contrato de persistencia de productos y categorías. Abstract class
  * (ADR 0015 §6.1). Reescrito desde el uso real (2026-07-17): la
@@ -66,7 +77,11 @@ export abstract class ProductRepository {
     tiendaId: TiendaId,
     components: { componenteId: string; cantidad: number }[],
   ): Promise<void>
+  /** Componentes fijos de TODOS los productos de la tienda (catálogo del POS). */
+  abstract listComponentsByTienda(tiendaId: TiendaId): Promise<ProductComponentLink[]>
   abstract getOptions(productId: string, tiendaId: TiendaId): Promise<ProductOption[]>
+  /** Opciones de venta activas de TODOS los productos, en el orden en que se muestran al cajero. */
+  abstract listActiveOptionsByTienda(tiendaId: TiendaId): Promise<ProductOptionLink[]>
   abstract saveOptions(
     productId: string,
     tiendaId: TiendaId,
