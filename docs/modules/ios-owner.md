@@ -1,11 +1,12 @@
-# Módulo: App iOS del dueño
+# Módulo: App iOS "MOVE ON Admin"
 
 ## Qué es
 
-App nativa para iPhone con la que el dueño consulta el negocio fuera de la tienda: ventas, caja, stock y finanzas. Decisión y reglas en **ADR 0021**; plan en `docs/plan-de-trabajo.md` (PLAN-75..84).
+App nativa para iPhone con la que el admin consulta el negocio (ventas, caja, stock y finanzas) y lo gestiona: registrar y anular ventas, entradas, ajustes y traslados de inventario, y crear y editar productos. Decisión y reglas en **ADR 0021** (lectura) y **ADR 0022** (nombre "Admin" y escrituras); plan en `docs/plan-de-trabajo.md` (PLAN-75..91).
 
-- **Usuario:** solo rol `admin`. Un `cajero` que inicie sesión ve "Acceso solo para el dueño" y se cierra su sesión.
-- **v1 de solo lectura.** No vende, no anula, no ajusta inventario ni registra gastos.
+- **Usuario:** solo rol `admin`. Un `cajero` que inicie sesión ve "Acceso solo para administradores" y se cierra su sesión.
+- **Nombre:** "MOVE ON Admin" en la app, "MOVE ON" bajo el ícono. Los identificadores de código (`MoveOnOwner`, `co.moveon.owner`, RPC `owner_*`) no cambian.
+- **Escrituras (ADR 0022):** solo por las RPC `*_atomic` existentes o el mismo `update` de productos del web; sin escritura offline; confirmación antes de lo irreversible. Ver "Escrituras" más abajo.
 - **Backend:** el mismo proyecto Supabase del POS. Sin service role; solo URL + anon key.
 
 ## Dónde vive
@@ -52,6 +53,21 @@ Un solo target de app, como `gym_ios` (sin paquetes SPM locales hasta el dispara
 - **Regla del dueño (2026-10-24): basta con contraseña o Face ID.** Con sesión guardada se pide Face ID (sin respaldo con el código del iPhone); "Entrar con contraseña" vuelve al login. Si el teléfono no tiene Face ID, la sesión guardada se cierra y se pide la contraseña. No se bloquea al pasar a segundo plano.
 - "¿Olvidaste tu contraseña?" envía el enlace a `PASSWORD_RESET_URL` (la página `/restablecer-contrasena` del POS web); la contraseña nueva se define allá. Mensaje genérico para no revelar si el correo existe.
 - Usuario de prueba local adicional: `cajero@moveon.local` / `Test1234!` (rol `cajero`, solo en el stack local) para verificar el rechazo.
+
+## Escrituras (ADR 0022)
+
+| Operación | Camino | PLAN |
+|---|---|---|
+| Base: validación, mensajes de rechazo, auditoría, confirmación, envío único, sin conexión (hecho) | — | 86 |
+| Entrada de mercancía | `register_inventory_entry_atomic` | 87 |
+| Ajuste / traslado | `adjust_stock_atomic` / `transfer_stock_atomic` (+ auditoría como el web) | 88 |
+| Crear / editar producto | `create_product_with_initial_stock` / `update` de `productos` | 89 |
+| Anular venta | `void_sale_atomic` | 90 |
+| Registrar venta | `create_sale_atomic` (caja abierta, idempotencia) | 91 |
+
+- **Contrato de payloads (PLAN-85):** `tests/integration/fixtures/ios-payloads/*.json` es exactamente lo que la app envía (`kind` `rpc` o `insert`, `target`, `payload` con marcadores `"{{id}}"`; formato en el `README.md` de esa carpeta). `tests/integration/ios-payloads.contract.test.ts` envía cada uno al Supabase local y verifica el efecto, y falla si un fixture no tiene caso. Los tests Swift comparan el JSON de la app con una copia en `MoveOnOwnerTests/Fixtures/Payloads/` que mantiene `scripts/sync_payload_fixtures.sh` (repo iOS; `--check` compara). Corre con `pnpm test:parity`.
+- **Base (PLAN-86, repo iOS):** `Submission` (`Core/Forms`: una escritura a la vez, nada sin conexión, error de `UserMessages`), `ConfirmationSheet` (`Core/Components`), `ConnectivityChecking` (`NWPathMonitor`), `AuditLogging` + `SupabaseAuditLogger` (`Domain/Audit`, `Data/Audit`) y `ServerRejectionMapper`: los `raise exception` de las RPC (`P0001`) se reconocen por el mensaje y se muestran con textos propios (`AppError.rejected`); uno desconocido da el mensaje genérico. Patrón: el view model valida los campos con los textos de los schemas del web y el caso de uso de escritura revalida, llama al repositorio y audita.
+- **Auditoría:** el web registra en `audit_logs` algunos cambios desde el cliente (ajuste, traslado, productos, anulación…) además de los triggers. La app registra los mismos eventos con los mismos campos (`entity_type`, `action`, `changes`); la política `audit_logs_insert_own` solo deja insertar con el propio `user_id`. Un fallo de auditoría nunca rompe la escritura (igual que el web).
 
 ## Dashboard "Hoy" (PLAN-79)
 

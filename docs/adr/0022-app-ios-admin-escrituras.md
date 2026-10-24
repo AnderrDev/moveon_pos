@@ -1,7 +1,7 @@
 # ADR 0022 — App iOS "MOVE ON Admin": ventas, inventario y productos desde el iPhone
 
 **Fecha:** 2026-10-24
-**Estado:** Propuesto (pendiente de aprobación del dueño)
+**Estado:** Aceptado (aprobado por el dueño el 2026-10-24)
 **Decisor:** Dueño del producto
 **Modifica:** ADR 0021 §1 ("v1 de solo lectura", nombre "MOVE ON Dueño", "un POS móvil queda fuera de alcance")
 

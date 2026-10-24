@@ -179,6 +179,22 @@ Hecho en `moveon-owner-ios` (commit `e125945`, sin push). Detalle en `docs/modul
 - **ADR 0022 propuesto** (`docs/adr/0022-app-ios-admin-escrituras.md`) y **PLAN-85..91** agregados. PLAN-84 (QA final, migraciones remotas y TestFlight) queda para después de PLAN-91.
 - **Pendiente:** aprobación del ADR 0022 por el dueño antes de escribir código de escrituras. Montserrat no está en el repo (el web la carga de Google Fonts); incluirla en la app requiere descargar los TTF (licencia OFL), así que se pregunta al dueño.
 
+## 20. Continuación — ADR 0022 aprobado, PLAN-85 y PLAN-86
+
+- El dueño aprobó el ADR 0022 ("Apruebo el ADR 0022…"). Estado → Aceptado; ADR 0021 anota "Modificado por ADR 0022". `moveon-owner-ios` `main` con la marca subido (`895998a`).
+- **PLAN-85 (POS):**
+  - `tests/integration/fixtures/ios-payloads/` con `README.md` (formato `kind`/`target`/`payload` y marcadores `{{id}}`), `register_inventory_entry.json` (lo usará PLAN-87) y `audit_log_adjust.json`.
+  - `tests/integration/support/ios-payloads.ts` y `tests/integration/ios-payloads.contract.test.ts`: envía cada fixture al Supabase local y verifica el efecto (movimiento `entry` en bodega y stock 12; la fila de auditoría pasa la política `audit_logs_insert_own`). Falla si hay un fixture sin caso. `pnpm test:parity` → 24 en verde.
+  - `docs/modules/ios-owner.md` pasa a "MOVE ON Admin" con la sección Escrituras.
+- **PLAN-86 (iOS):**
+  - Piezas nuevas: `AppError.offline` y `.rejected(RejectionReason)`, `ServerRejectionMapper` (mensajes reales de las RPC sacados de la base local), textos en `UserMessages`, `Domain/Audit` (`AuditEvent`, `AuditActor`, `AuditValue`, `AuditLogging`), `Data/Audit` (`AuditLogRowDTO`, `SupabaseAuditLogger`), `Core/Connectivity` (`NWPathMonitor`), `Core/Forms/Submission` y `Core/Components/ConfirmationSheet` (con vistas previas).
+  - `AppDependencies` incluye `audit`, `connectivity` y `makeSubmission()`. El modo demo agrega el escenario `offline`.
+  - Contrato del lado Swift: `scripts/sync_payload_fixtures.sh` copia los fixtures a `MoveOnOwnerTests/Fixtures/Payloads`, y `AuditLogRowDTOTests` compara el JSON (con el encoder de PostgREST) contra `audit_log_adjust.json`.
+  - 142 tests unitarios en verde.
+- **Verificación contra el Supabase local:** `adjust_stock_atomic` con delta 0 y `transfer_stock_atomic` con el mismo origen y destino devuelven `P0001` con "El ajuste no puede ser cero" y "El origen y destino del traslado deben ser diferentes", que el mapeo reconoce; no se escribió nada. La app real arranca y carga con normalidad.
+- **Hallazgo:** el web solo audita desde el cliente algunos cambios. Por ejemplo, la entrada de mercancía no se audita y el ajuste y el traslado sí. La app replica exactamente esos eventos, ni más ni menos.
+- Aún no hay pantalla que escriba: `ConfirmationSheet` y `Submission` se verán en uso con PLAN-87 (entrada de mercancía).
+
 ## 8. Notas adicionales
 
 - Fuentes de datos ya existentes para la app: `get_stock_levels`, `get_monthly_sales_totals`, `get_monthly_expense_totals`, `get_reinvestment_fund_totals`, `list_cash_history_days`.
