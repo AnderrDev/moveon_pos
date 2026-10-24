@@ -1,0 +1,20 @@
+{
+  "description": "Auditoría de la creación de un producto, con las claves que registra el web (PLAN-89)",
+  "kind": "insert",
+  "target": "audit_logs",
+  "payload": {
+    "tienda_id": "{{tienda_id}}",
+    "user_id": "{{user_id}}",
+    "user_email": "{{user_email}}",
+    "entity_type": "producto",
+    "entity_id": "{{entity_id}}",
+    "entity_label": "Creatina contrato iOS",
+    "action": "create",
+    "changes": {
+      "tipo": "simple",
+      "precioVenta": 95000,
+      "costo": 47000,
+      "ivaTasa": 0
+    }
+  }
+}

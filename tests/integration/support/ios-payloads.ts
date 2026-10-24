@@ -9,8 +9,10 @@ export const PAYLOADS_DIR = path.join(__dirname, '../fixtures/ios-payloads')
 
 export interface IosPayload {
   description: string
-  kind: 'rpc' | 'insert'
+  kind: 'rpc' | 'insert' | 'update'
   target: string
+  /** Solo en `update`: columnas que identifican la fila. */
+  match?: Record<string, string>
   payload: Record<string, unknown>
 }
 

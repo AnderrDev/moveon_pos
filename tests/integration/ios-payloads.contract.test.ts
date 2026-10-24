@@ -16,9 +16,20 @@ const TIENDA = randomUUID()
 const PRODUCTO = randomUUID()
 /** Producto con 20 en bodega para el ajuste y el traslado. */
 const CON_STOCK = randomUUID()
+const CATEGORIA = randomUUID()
 
 /** Fixtures con caso en este archivo. Uno nuevo sin caso hace fallar el primer test. */
-const COVERED = ['adjust_stock', 'audit_log_adjust', 'audit_log_transfer', 'register_inventory_entry', 'transfer_stock']
+const COVERED = [
+  'adjust_stock',
+  'audit_log_adjust',
+  'audit_log_product_create',
+  'audit_log_product_update',
+  'audit_log_transfer',
+  'create_product',
+  'register_inventory_entry',
+  'transfer_stock',
+  'update_product',
+]
 
 const SEED_SQL = `
   insert into public.tiendas (id, nombre, timezone) values (:'tienda', 'Paridad payloads iOS', 'America/Bogota');
@@ -26,6 +37,7 @@ const SEED_SQL = `
   insert into public.productos (id, tienda_id, nombre, tipo, precio_venta, costo, iva_tasa, stock_minimo, is_active)
     values (:'producto', :'tienda', 'Proteína contrato', 'simple', 100000, 60000, 0, 0, true),
            (:'con_stock', :'tienda', 'Creatina contrato', 'simple', 80000, 40000, 0, 0, true);
+  insert into public.categorias (id, tienda_id, nombre, orden, is_active) values (:'categoria', :'tienda', 'Creatinas', 0, true);
   insert into public.inventory_movements (tienda_id, producto_id, tipo, cantidad, ubicacion, motivo, created_by)
     values (:'tienda', :'con_stock', 'entry', 20, 'bodega', 'Inventario inicial', :'admin');
 `
@@ -38,6 +50,9 @@ async function levelOf(client: SupabaseClient, productId: string): Promise<{ pun
 
 async function send(client: SupabaseClient, fixture: IosPayload): Promise<{ data: unknown; error: unknown }> {
   if (fixture.kind === 'rpc') return client.rpc(fixture.target, fixture.payload)
+  if (fixture.kind === 'update') {
+    return client.from(fixture.target).update(fixture.payload).match(fixture.match ?? {}).select().single()
+  }
   return client.from(fixture.target).insert(fixture.payload).select().single()
 }
 
@@ -51,7 +66,7 @@ describe('payloads de escritura de la app iOS contra el Supabase local', () => {
     stack = localStack()
     ;[adminId] = await createUsers(stack, [adminEmail])
     psql(stack, CLEANUP_SQL)
-    psql(stack, SEED_SQL, { tienda: TIENDA, admin: adminId, producto: PRODUCTO, con_stock: CON_STOCK })
+    psql(stack, SEED_SQL, { tienda: TIENDA, admin: adminId, producto: PRODUCTO, con_stock: CON_STOCK, categoria: CATEGORIA })
     admin = await signIn(stack, adminEmail)
   })
 
@@ -131,6 +146,62 @@ describe('payloads de escritura de la app iOS contra el Supabase local', () => {
       user_email: adminEmail,
       entity_id: entityId,
     })
+    const { data, error } = await send(admin, fixture)
+    expect(error).toBeNull()
+    expect(data).toMatchObject({ ...fixture.payload, entity_id: entityId })
+  })
+
+  it('create_product: crea el producto con su categoría y el stock inicial en bodega', async () => {
+    const fixture = loadPayload('create_product', { tienda_id: TIENDA, categoria_id: CATEGORIA })
+    const { data: productId, error } = await send(admin, fixture)
+    expect(error, JSON.stringify(error)).toBeNull()
+    const { data: product } = await admin
+      .from('productos')
+      .select('nombre, sku, codigo_barras, categoria_id, tipo, unidad, precio_venta, costo, iva_tasa, stock_minimo, is_active')
+      .eq('id', productId as string)
+      .single()
+    expect(product).toEqual({
+      nombre: 'Creatina contrato iOS',
+      sku: 'IOS-CREA-300',
+      codigo_barras: '7700000000017',
+      categoria_id: CATEGORIA,
+      tipo: 'simple',
+      unidad: 'und',
+      precio_venta: 95000,
+      costo: 47000,
+      iva_tasa: 0,
+      stock_minimo: 2,
+      is_active: true,
+    })
+    expect(await levelOf(admin, productId as string)).toEqual({ punto_venta_stock: 0, bodega_stock: 10 })
+
+    // El SKU es único por tienda: repetirlo choca con ux_productos_tienda_sku (la app lo traduce).
+    const again = await send(admin, loadPayload('create_product', { tienda_id: TIENDA, categoria_id: CATEGORIA }))
+    expect(again.error?.code).toBe('23505')
+    expect(again.error?.message).toContain('ux_productos_tienda_sku')
+  })
+
+  it('update_product: cambia solo lo enviado, vacía con null y el trigger audita el precio', async () => {
+    const priceAudits = async () =>
+      (await admin.from('audit_logs').select('id').eq('entity_id', PRODUCTO).eq('action', 'product.price_changed')).data ?? []
+    const before = (await priceAudits()).length
+    const fixture = loadPayload('update_product', { tienda_id: TIENDA, producto_id: PRODUCTO })
+    const { data, error } = await send(admin, fixture)
+    expect(error).toBeNull()
+    expect(data).toMatchObject({
+      nombre: 'Proteína contrato',
+      precio_venta: 105000,
+      costo: null,
+      codigo_barras: null,
+      stock_minimo: 3,
+      iva_tasa: 0,
+    })
+    expect((await priceAudits()).length).toBe(before + 1)
+  })
+
+  it.each(['audit_log_product_create', 'audit_log_product_update'])('%s: la auditoría del producto se guarda tal cual', async (name) => {
+    const entityId = randomUUID()
+    const fixture = loadPayload(name, { tienda_id: TIENDA, user_id: adminId, user_email: adminEmail, entity_id: entityId })
     const { data, error } = await send(admin, fixture)
     expect(error).toBeNull()
     expect(data).toMatchObject({ ...fixture.payload, entity_id: entityId })
