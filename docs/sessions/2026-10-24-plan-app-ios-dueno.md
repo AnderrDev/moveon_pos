@@ -195,6 +195,22 @@ Hecho en `moveon-owner-ios` (commit `e125945`, sin push). Detalle en `docs/modul
 - **Hallazgo:** el web solo audita desde el cliente algunos cambios. Por ejemplo, la entrada de mercancía no se audita y el ajuste y el traslado sí. La app replica exactamente esos eventos, ni más ni menos.
 - Aún no hay pantalla que escriba: `ConfirmationSheet` y `Submission` se verán en uso con PLAN-87 (entrada de mercancía).
 
+## 21. Continuación — PLAN-87 (entrada de mercancía)
+
+- `moveon-owner-ios`: `main` con PLAN-86 subido (`01fd762`).
+- **iOS:**
+  - `Features/Stock/Domain`: `InventoryEntry`, `InventoryWriting` y `RegisterInventoryEntryUseCase`. El caso de uso revalida: producto con stock propio, cantidad > 0, costo > 0 o nulo, motivo de 1 a 200 caracteres o nulo.
+  - `Features/Stock/Data`: `RegisterInventoryEntryParams`, con `null` explícitos y comparado contra el fixture `register_inventory_entry.json`, y `SupabaseInventoryWriter`.
+  - `Features/Stock/Presentation`: `InventoryEntryFormViewModel`, `InventoryEntrySheet` y el `NoticeBox` (Core) que hace las veces del toast del web.
+  - `InventoryLocation` pasa a `Domain/Inventory`; `ProductStock` lleva `cost`; `Core/Forms/NumberInput` y validadores nuevos.
+  - Pasan los tests unitarios (incluidos los de la entrada, el contrato y `NumberInput`) y los 15 de interfaz (2 nuevos: entrada con costo y sin conexión).
+- **QA contra el Supabase local** (QA Creatina 300g; antes: costo 45.000, punto de venta 6, bodega 0, invertido en octubre 1.150.000):
+  - Desde la lista, deslizando, se guardó por accidente una entrada de 1 unidad a 45.000 (los valores precargados). Las capturas del simulador iban un paso atrasadas y un toque cayó en el botón. Es una entrada real en los datos locales de prueba, coherente con lo enviado.
+  - Desde el detalle se registraron 10 unidades a bodega a 47.000 con motivo "QA iOS entrada". La base muestra `entry` / `bodega` / 10 / 47000 / "QA iOS entrada", el costo del producto pasa a 47.000 y la bodega a 11.
+  - `owner_finance_summary` da invertido del mes 1.665.000 (1.150.000 + 45.000 + 470.000), igual que la pestaña Finanzas.
+  - La app mostró "Entrada registrada y costo de QA Creatina 300g actualizado" y recargó el stock y el kardex.
+- Sin cambios en el POS para este PLAN, aparte de los docs: el fixture y el test de contrato son de PLAN-85.
+
 ## 8. Notas adicionales
 
 - Fuentes de datos ya existentes para la app: `get_stock_levels`, `get_monthly_sales_totals`, `get_monthly_expense_totals`, `get_reinvestment_fund_totals`, `list_cash_history_days`.

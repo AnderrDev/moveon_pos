@@ -59,7 +59,7 @@ Un solo target de app, como `gym_ios` (sin paquetes SPM locales hasta el dispara
 | Operación | Camino | PLAN |
 |---|---|---|
 | Base: validación, mensajes de rechazo, auditoría, confirmación, envío único, sin conexión (hecho) | — | 86 |
-| Entrada de mercancía | `register_inventory_entry_atomic` | 87 |
+| Entrada de mercancía (hecho) | `register_inventory_entry_atomic` | 87 |
 | Ajuste / traslado | `adjust_stock_atomic` / `transfer_stock_atomic` (+ auditoría como el web) | 88 |
 | Crear / editar producto | `create_product_with_initial_stock` / `update` de `productos` | 89 |
 | Anular venta | `void_sale_atomic` | 90 |
@@ -67,6 +67,7 @@ Un solo target de app, como `gym_ios` (sin paquetes SPM locales hasta el dispara
 
 - **Contrato de payloads (PLAN-85):** `tests/integration/fixtures/ios-payloads/*.json` es exactamente lo que la app envía (`kind` `rpc` o `insert`, `target`, `payload` con marcadores `"{{id}}"`; formato en el `README.md` de esa carpeta). `tests/integration/ios-payloads.contract.test.ts` envía cada uno al Supabase local y verifica el efecto, y falla si un fixture no tiene caso. Los tests Swift comparan el JSON de la app con una copia en `MoveOnOwnerTests/Fixtures/Payloads/` que mantiene `scripts/sync_payload_fixtures.sh` (repo iOS; `--check` compara). Corre con `pnpm test:parity`.
 - **Base (PLAN-86, repo iOS):** `Submission` (`Core/Forms`: una escritura a la vez, nada sin conexión, error de `UserMessages`), `ConfirmationSheet` (`Core/Components`), `ConnectivityChecking` (`NWPathMonitor`), `AuditLogging` + `SupabaseAuditLogger` (`Domain/Audit`, `Data/Audit`) y `ServerRejectionMapper`: los `raise exception` de las RPC (`P0001`) se reconocen por el mensaje y se muestran con textos propios (`AppError.rejected`); uno desconocido da el mensaje genérico. Patrón: el view model valida los campos con los textos de los schemas del web y el caso de uso de escritura revalida, llama al repositorio y audita.
+- **Entrada de mercancía (PLAN-87):** botón "Registrar entrada" en el detalle del producto y acción "Entrada" al deslizar la fila en Stock (solo productos con stock propio). Cantidad (1 por defecto, decimales permitidos como el schema), ubicación (bodega por defecto), costo por unidad precargado con el vigente (0 o vacío = sin costo; con costo, la RPC actualiza el costo del producto y la compra entra al fondo de reinversión) y motivo opcional (≤ 200). Muestra el total de la compra y, al guardar, los avisos del web; el stock, el kardex y la lista se recargan del servidor. Sin auditoría desde el cliente (el web tampoco la hace para entradas).
 - **Auditoría:** el web registra en `audit_logs` algunos cambios desde el cliente (ajuste, traslado, productos, anulación…) además de los triggers. La app registra los mismos eventos con los mismos campos (`entity_type`, `action`, `changes`); la política `audit_logs_insert_own` solo deja insertar con el propio `user_id`. Un fallo de auditoría nunca rompe la escritura (igual que el web).
 
 ## Dashboard "Hoy" (PLAN-79)
