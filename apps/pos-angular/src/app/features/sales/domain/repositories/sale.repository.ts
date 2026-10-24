@@ -22,6 +22,11 @@ export abstract class SaleRepository {
    */
   abstract create(request: CreateSaleRequest): Promise<string>
   abstract findById(id: string, tiendaId: string): Promise<Sale | null>
+  /** Venta registrada con esa clave de idempotencia (recuperación tras perder la respuesta). */
+  abstract findByIdempotencyKey(
+    idempotencyKey: string,
+    tiendaId: string,
+  ): Promise<{ id: string; saleNumber: string; total: number } | null>
   abstract listBySession(cashSessionId: string, tiendaId: string): Promise<Sale[]>
   abstract listByDate(tiendaId: string, start: Date, end: Date): Promise<Sale[]>
   abstract voidSale(saleId: string, tiendaId: string, reason: string): Promise<void>

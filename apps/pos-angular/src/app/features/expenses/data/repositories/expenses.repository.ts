@@ -145,6 +145,7 @@ export class ExpensesRepository extends ExpenseRepository {
       p_fecha_gasto: dto.fechaGasto,
       p_metodo_pago: dto.metodoPago,
       p_periodo: dto.periodo ?? undefined,
+      p_idempotency_key: dto.idempotencyKey ?? undefined,
     })
     if (error) {
       if (error.message.includes('NO_OPEN_CASH_SESSION')) {

@@ -37,6 +37,8 @@ export const createExpenseSchema = z.object({
   fechaGasto: fechaLocalSchema,
   metodoPago: expenseMetodoPagoSchema,
   periodo: periodoSchema.optional(),
+  /** Una por apertura del formulario: un reintento devuelve el gasto ya registrado. */
+  idempotencyKey: z.string().min(1).max(100).optional(),
 })
 
 export type CreateExpenseDto = z.infer<typeof createExpenseSchema>

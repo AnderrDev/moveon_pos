@@ -627,6 +627,7 @@ export type Database = {
           empleado_id: string | null
           fecha_gasto: string
           id: string
+          idempotency_key: string | null
           metodo_pago: string
           monto: number
           notas: string | null
@@ -646,6 +647,7 @@ export type Database = {
           empleado_id?: string | null
           fecha_gasto?: string
           id?: string
+          idempotency_key?: string | null
           metodo_pago: string
           monto: number
           notas?: string | null
@@ -665,6 +667,7 @@ export type Database = {
           empleado_id?: string | null
           fecha_gasto?: string
           id?: string
+          idempotency_key?: string | null
           metodo_pago?: string
           monto?: number
           notas?: string | null
@@ -1944,6 +1947,7 @@ export type Database = {
           p_monto: number
           p_notas?: string
           p_periodo?: string
+          p_idempotency_key?: string
           p_tienda_id: string
         }
         Returns: {

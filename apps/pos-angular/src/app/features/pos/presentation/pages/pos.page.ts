@@ -18,6 +18,13 @@ import { SpinnerComponent } from '@angular-app/shared/atoms/spinner.component'
 import { PosCartStore } from '@angular-app/features/pos/presentation/services/pos-cart.store'
 import { PosDataService } from '@angular-app/features/pos/presentation/services/pos-data.service'
 import { PosSaleService } from '@angular-app/features/pos/presentation/services/pos-sale.service'
+import {
+  clearPendingSale,
+  pendingSaleMessage,
+  readPendingSale,
+  savePendingSale,
+} from '@angular-app/features/pos/presentation/services/pending-sale'
+import { SaleRepository } from '@angular-app/features/sales/domain/repositories/sale.repository'
 import { ReceiptPrintService } from '@angular-app/core/printing/receipt-print.service'
 import { SalesHistoryDialog } from '@angular-app/features/pos/presentation/dialogs/sales-history.dialog'
 import { CustomerPickerDialog } from '@angular-app/features/pos/presentation/dialogs/customer-picker.dialog'
@@ -965,6 +972,7 @@ export class PosPage {
   private readonly tiendaInfo = inject(TiendaInfoService)
   private readonly dataService = inject(PosDataService)
   private readonly saleService = inject(PosSaleService)
+  private readonly saleRepo = inject(SaleRepository)
   private readonly loyaltyRepo = inject(LoyaltyRepository)
   private readonly receiptPrint = inject(ReceiptPrintService)
   private readonly toast = inject(ToastService)
@@ -1130,6 +1138,7 @@ export class PosPage {
       this.imprimirAlFinalizarVenta.set(tienda.receipt.imprimirAlFinalizarVenta)
       this.abrirCajonEnEfectivo.set(tienda.receipt.abrirCajonEnEfectivo)
       this.stampsPerReward.set(tienda.fidelizacion.sellosParaRecompensa)
+      void this.recoverPendingSale(auth.tiendaId)
     } catch (error) {
       this.loadError.set(getErrorMessage(error, 'No se pudo cargar el POS'))
     } finally {
@@ -1531,6 +1540,16 @@ export class PosPage {
     this.isSaving.set(true)
 
     try {
+      const auth = await this.sessionService.getAuthContext()
+      if (auth) {
+        savePendingSale(this.storage(), {
+          idempotencyKey: this.cart.idempotencyKey(),
+          tiendaId: auth.tiendaId,
+          total: this.cart.totals().total,
+          startedAt: new Date().toISOString(),
+        })
+      }
+
       const redemption = this.cart.loyaltyRedemption()
       const result = await this.saleService.createSale({
         cashSessionId: cashSession.id,
@@ -1549,6 +1568,10 @@ export class PosPage {
           : [],
       })
 
+      // La venta en curso solo se descarta al confirmarse: una caída de red
+      // también llega como error (postgrest no lanza) y no se distingue de un
+      // rechazo, así que ante cualquier error se conserva y, si el cajero
+      // recarga, recoverPendingSale consulta por la clave si se registró.
       if (!result.ok) {
         this.saleError.set(
           result.error.kind === 'unauthenticated' ? 'Sesion expirada' : result.error.message
@@ -1562,6 +1585,7 @@ export class PosPage {
       const shouldOpenCashDrawer =
         this.abrirCajonEnEfectivo() &&
         this.cart.payments().some((payment) => payment.metodo === 'cash' && payment.amount > 0)
+      clearPendingSale(this.storage())
       this.cart.clearCart()
       this.loyaltySummary.set(null)
       this.globalDiscountInput.set('')
@@ -1589,6 +1613,42 @@ export class PosPage {
       this.saleError.set(getErrorMessage(error, 'No se pudo completar la venta'))
     } finally {
       this.isSaving.set(false)
+    }
+  }
+
+  /**
+   * Si se recargó o cayó la red mientras se cobraba, avisa si esa venta sí
+   * alcanzó a registrarse para que no se cobre dos veces. Si no se puede
+   * consultar (sin red), la venta en curso se conserva para la próxima carga.
+   */
+  private async recoverPendingSale(tiendaId: string): Promise<void> {
+    const pending = readPendingSale(this.storage(), tiendaId)
+    if (!pending) return
+    try {
+      const sale = await this.saleRepo.findByIdempotencyKey(pending.idempotencyKey, tiendaId)
+      clearPendingSale(this.storage())
+      const message = pendingSaleMessage(
+        sale
+          ? { kind: 'registered', saleNumber: sale.saleNumber, total: sale.total }
+          : { kind: 'not_registered', total: pending.total },
+        formatCurrency,
+      )
+      this.toast.show({
+        message,
+        title: sale ? 'Venta registrada' : 'Venta sin registrar',
+        variant: sale ? 'info' : 'warning',
+        durationMs: 15000,
+      })
+    } catch {
+      // Sin conexión: se reintenta en la próxima carga del POS.
+    }
+  }
+
+  private storage(): Storage | null {
+    try {
+      return typeof sessionStorage === 'undefined' ? null : sessionStorage
+    } catch {
+      return null
     }
   }
 

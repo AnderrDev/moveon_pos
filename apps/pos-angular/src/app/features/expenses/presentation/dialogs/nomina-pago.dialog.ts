@@ -7,6 +7,7 @@ import {
   output,
   signal,
 } from '@angular/core'
+import { generateIdempotencyKey } from '@/shared/lib/idempotency-key'
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms'
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { formatCurrency } from '@/shared/lib/format'
@@ -138,6 +139,11 @@ type FormErrors = Partial<Record<keyof NominaPagoFormValue | 'root', string>>
 export class NominaPagoDialog {
   private readonly fb = inject(NonNullableFormBuilder)
   private readonly repo = inject(ExpenseRepository)
+  /**
+   * Una por apertura del diálogo (se regenera al abrir): los reintentos del
+   * mismo gasto no lo duplican, y un gasto nuevo nunca reutiliza la anterior.
+   */
+  private idempotencyKey = generateIdempotencyKey()
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
 
@@ -163,6 +169,7 @@ export class NominaPagoDialog {
   constructor() {
     effect(() => {
       if (this.open() && this.empleado()) {
+        this.idempotencyKey = generateIdempotencyKey()
         this.form.reset(createNominaPagoFormDefaults())
         this.errors.set({})
         this.applySugerido('mes')
@@ -220,7 +227,10 @@ export class NominaPagoDialog {
         empleado: emp,
         month: parsed.data.fechaGasto.slice(0, 7),
       })
-      const result = await registerExpense({ repo: this.repo, userId: auth.userId }, dto)
+      const result = await registerExpense(
+        { repo: this.repo, userId: auth.userId },
+        { ...dto, idempotencyKey: this.idempotencyKey },
+      )
       if (!result.ok) {
         this.errors.update((e) => ({ ...e, root: result.error.message }))
         return
