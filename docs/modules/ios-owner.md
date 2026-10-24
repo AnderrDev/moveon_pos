@@ -40,7 +40,7 @@ Un solo target de app, como `gym_ios` (sin paquetes SPM locales hasta el dispara
 | Login, gate de rol, Face ID | Supabase Auth + `user_tiendas` | 77 |
 | Dashboard "Hoy" + selector de período (hecho) | RPC `owner_sales_summary`, `cash_sessions` abierta, `get_stock_levels` + `productos` activos | 78, 79 |
 | Ventas: lista y detalle (hecho) | `sales`, `sale_items`, `payments`, `clientes(nombre)` (lectura directa, RLS) | 80 |
-| Caja: turno actual e historial | RPC `owner_cash_session_summary` (nueva), `list_cash_history_days` | 81 |
+| Caja: turno actual e historial (hecho) | RPC `owner_cash_session_summary`, `cash_movements`, `cash_sessions` cerradas | 81 |
 | Stock | `get_stock_levels`, `inventory_movements` | 82 |
 | Finanzas | RPC `owner_finance_summary` (nueva), `get_monthly_sales_totals`, `get_monthly_expense_totals`, `get_reinvestment_fund_totals` | 83 |
 
@@ -61,6 +61,13 @@ Un solo target de app, como `gym_ios` (sin paquetes SPM locales hasta el dispara
 - Estados: carga, error con reintento, sin ventas en el período, y refresco al tirar (conserva los datos y avisa si falla).
 - Modo demo `-demo` (solo DEBUG) y 6 tests de UI sobre él; 81 tests unitarios.
 - Verificado en el simulador contra el Supabase local: las cifras de la app coinciden con la RPC consultada directamente (total $ 645.000, 5 ventas, utilidad $ 270.000).
+
+## Caja (PLAN-81)
+
+- **Turno actual:** RPC `owner_cash_session_summary(p_tienda_id, p_session_id default null)` (migración `20261024130000`): sin sesión devuelve el turno abierto o `null` si la caja está cerrada. Salida: `session_id`, `status`, `opened_at`, `opening_amount`, `sales_total`, `cash_sales_amount`, `cash_in_amount`, `expense_amount`, `cash_out_amount`, `correction_amount`, `movements_total`, `expected_cash_amount` y `payment_breakdown` (`metodo`, `count`, `total`). Efectivo esperado = base + ventas en efectivo + entradas − gastos − retiros − correcciones (la fórmula de `computeCashTurnSummary` y de `close_cash_session_atomic`). Solo admin, `security invoker`, `stable`. Movimientos: lectura directa de `cash_movements` (anulados tachados).
+- **Paridad:** `tests/integration/owner-cash-session-summary.parity.test.ts` contra `getPaymentBreakdown` + `computeCashTurnSummary` (turno abierto, por id, cerrado; venta anulada y gasto anulado excluidos; caja cerrada → `null`; cajero y otra tienda rechazados). Las utilidades compartidas de las paridades están en `tests/integration/support/local-stack.ts`; corren una a la vez.
+- **Historial:** lectura directa de `cash_sessions` cerradas en el período (por `closed_at`), paginada de 30, con esperado, contado y diferencias **guardados por `close_cash_session_atomic`**; no se usa `list_cash_history_days` (agrupa por día y no trae esperado vs. contado). La diferencia se resalta con la regla de `cash-closure.ts` (0 = cuadrada; más de $5.000 en rojo). **Signo:** el servidor guarda esperado − contado (positivo = faltan, negativo = sobran), igual que lo pinta el web.
+- Verificado contra el Supabase local: esperado $ 740.000 = base 125.000 + efectivo 595.000 + entrada 20.000 (idéntico a la RPC), movimientos iguales a la base, y el historial de septiembre con los cierres guardados y su sobrante/faltante correcto.
 
 ## Ventas (PLAN-80)
 

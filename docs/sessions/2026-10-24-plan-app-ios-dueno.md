@@ -145,6 +145,14 @@ Hecho en `moveon-owner-ios` (commit `e125945`, sin push). Detalle en `docs/modul
 - **QA real (Supabase local):** se anuló `IOS-QA-2` con psql (solo local) para ver el caso de venta anulada. La lista de hoy coincidió con `sales` (6 filas). El detalle de `IOS-QA-3` muestra el pago mixto, y el de `IOS-QA-2` el motivo de anulación. La búsqueda "qa-2" la encontró en todas las fechas.
 - **Ojo:** la otra sesión está creando ventas de prueba (`V-000001`, `V-000002`) en el mismo Supabase local mientras trabaja; por eso el total de hoy pasó de $ 645.000 a $ 700.000 entre pruebas.
 
+## 16. Continuación — PLAN-81 (caja)
+
+- `moveon-owner-ios`: `main` con PLAN-80 subido (`04fdf5a`); PLAN-81 en commit local, sin push.
+- POS (commit `5da148e`): migración `20261024130000_owner_cash_session_summary.sql` (solo local) y paridad (7 tests). Las paridades comparten `tests/integration/support/local-stack.ts` y corren en serie (`fileParallelism: false`); `pnpm test:parity` → 17 en verde.
+- iOS: pestaña Caja con turno actual (esperado y desglose, ventas por método, movimientos) e historial de cierres con detalle. 112 unitarios + 10 de UI en verde.
+- **Desviación del plan:** el historial no usa `list_cash_history_days` sino los cierres guardados en `cash_sessions`, porque esa RPC agrupa por día y no trae esperado vs. contado.
+- **Hallazgo con datos reales:** la diferencia guardada es esperado − contado (positivo = faltan). La primera versión decía "Faltan" donde sobraba; corregido y cubierto con un test con el caso real (esperado 380.000, contado 382.000, `difference` −2.000).
+
 ## 8. Notas adicionales
 
 - Fuentes de datos ya existentes para la app: `get_stock_levels`, `get_monthly_sales_totals`, `get_monthly_expense_totals`, `get_reinvestment_fund_totals`, `list_cash_history_days`.
