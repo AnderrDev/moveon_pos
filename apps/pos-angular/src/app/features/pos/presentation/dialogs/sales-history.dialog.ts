@@ -31,7 +31,7 @@ import { CorrectSaleCustomerDialog } from '@angular-app/features/pos/presentatio
 import type { Cliente } from '@angular-app/features/customers/domain/entities/cliente.entity'
 import { selectSessionSales } from '@angular-app/features/pos/presentation/services/sales-history-session-filter'
 import { formatShortDate, formatTime } from '@/shared/lib/format'
-import { PAYMENT_METHOD_CLOSURE_OPTIONS, getPaymentMethodLabel } from '@/shared/lib/payment-methods'
+import { PAYMENT_FILTER_OPTIONS, getPaymentMethodLabel } from '@/shared/lib/payment-methods'
 import type { Sale } from '@angular-app/features/sales/domain/entities/sale.entity'
 import type { PaymentMethod } from '@/shared/types'
 import type { CashMovement } from '@angular-app/features/cash-register/domain/entities/cash-session.entity'
@@ -39,13 +39,14 @@ import { CashRegisterRepository } from '@angular-app/features/cash-register/doma
 import { ExcelExportService } from '@angular-app/shared/services/export/excel-export.service'
 import { buildTurnSalesWorkbook } from '@angular-app/shared/services/export/turn-sales-export'
 import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
-import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
+import { SaleDetailBodyComponent } from '@angular-app/shared/organisms/sale-detail-body.component'
+import { SegmentedComponent } from '@angular-app/shared/molecules/segmented.component'
 
 @Component({
   selector: 'mo-sales-history-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [PaymentLabelPipe, MoneyPipe, 
+  imports: [SegmentedComponent, SaleDetailBodyComponent, MoneyPipe, 
     DialogComponent,
     ButtonComponent,
     BadgeComponent,
@@ -135,17 +136,7 @@ import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
         </div>
 
         <div class="mb-4 flex flex-wrap items-center gap-2">
-          <div class="flex flex-wrap gap-1">
-            @for (m of paymentMethodOptions; track m.value) {
-              <button
-                type="button"
-                (click)="paymentFilter.set(m.value)"
-                [class]="paymentFilterClass(m.value)"
-              >
-                {{ m.label }}
-              </button>
-            }
-          </div>
+          <mo-segmented [options]="paymentMethodOptions" [(value)]="paymentFilter" />
           @if (paymentFilter()) {
             <button
               type="button"
@@ -251,179 +242,11 @@ import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
                   [id]="'sale-detail-' + sale.id"
                   class="border-border bg-muted/20 border-t p-4 sm:p-5"
                 >
-                  <div class="grid gap-4 md:grid-cols-[minmax(0,1.3fr)_minmax(16rem,0.7fr)]">
-                    <section class="border-border bg-card overflow-hidden rounded-2xl border">
-                      <div
-                        class="border-border flex items-center justify-between border-b px-4 py-3"
-                      >
-                        <h3 class="text-sm font-black">Productos vendidos</h3>
-                        <span class="text-muted-foreground text-xs"
-                          >{{ sale.items.length }} líneas</span
-                        >
-                      </div>
-                      <div class="divide-border divide-y">
-                        @for (item of sale.items; track item.id) {
-                          <div class="flex items-start gap-3 px-4 py-3.5">
-                            <span
-                              class="bg-primary/10 text-primary inline-flex h-8 min-w-8 shrink-0 items-center justify-center rounded-lg px-2 text-xs font-black tabular-nums"
-                            >
-                              {{ item.quantity }}×
-                            </span>
-                            <div class="min-w-0 flex-1">
-                              <p class="text-sm leading-snug font-bold">
-                                {{ item.productoNombre }}
-                              </p>
-                              @if (item.optionNombre) {
-                                <p class="text-primary text-[11px] font-semibold">
-                                  {{ item.optionNombre }}
-                                </p>
-                              }
-                              <p class="text-muted-foreground mt-1 text-xs">
-                                {{ (item.unitPrice | money) }} c/u
-                                @if (item.productoSku) {
-                                  · SKU {{ item.productoSku }}
-                                }
-                              </p>
-                              <div class="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11px]">
-                                @if (item.discountAmount > 0) {
-                                  <span class="text-emerald-700">
-                                    Desc. producto −{{ (itemDiscountTotal(item) | money) }}
-                                  </span>
-                                }
-                                @if (item.globalDiscountAmount > 0) {
-                                  <span class="text-amber-700">
-                                    Desc. global −{{ (item.globalDiscountAmount | money) }}
-                                  </span>
-                                }
-                              </div>
-                            </div>
-                            <p class="shrink-0 text-sm font-black tabular-nums">
-                              {{ (item.total | money) }}
-                            </p>
-                          </div>
-                        }
-                      </div>
-                    </section>
-
-                    <div class="space-y-4">
-                      <section class="border-border bg-card rounded-2xl border p-4">
-                        <h3 class="text-sm font-black">Resumen de la venta</h3>
-                        <dl class="mt-3 space-y-2 text-sm">
-                          <div class="flex justify-between gap-3">
-                            <dt class="text-muted-foreground">Subtotal</dt>
-                            <dd class="font-semibold tabular-nums">{{ (sale.subtotal | money) }}</dd>
-                          </div>
-                          <div class="flex justify-between gap-3">
-                            <dt class="text-muted-foreground">Descuentos por producto</dt>
-                            <dd class="font-semibold tabular-nums">
-                              {{ sale.itemDiscountTotal > 0 ? '−' : ''
-                              }}{{ (sale.itemDiscountTotal | money) }}
-                            </dd>
-                          </div>
-                          @if (sale.globalDiscountTotal > 0) {
-                            <div class="flex justify-between gap-3">
-                              <dt class="text-muted-foreground">Descuento global</dt>
-                              <dd class="font-semibold tabular-nums">
-                                −{{ (sale.globalDiscountTotal | money) }}
-                              </dd>
-                            </div>
-                          }
-                          @if (sale.discountReason) {
-                            <div class="border-border border-t pt-2">
-                              <dt class="text-muted-foreground text-xs">Motivo del descuento</dt>
-                              <dd class="mt-1 text-xs font-semibold">{{ sale.discountReason }}</dd>
-                            </div>
-                          }
-                          <div class="border-border flex justify-between gap-3 border-t pt-3">
-                            <dt class="font-black">Total</dt>
-                            <dd class="text-primary text-lg font-black tabular-nums">
-                              {{ (sale.total | money) }}
-                            </dd>
-                          </div>
-                        </dl>
-                      </section>
-
-                      <section class="border-border bg-card rounded-2xl border p-4">
-                        <h3 class="text-sm font-black">Pagos recibidos</h3>
-                        <div class="mt-3 space-y-2.5">
-                          @for (payment of sale.payments; track payment.id) {
-                            <div class="flex items-start justify-between gap-3 text-sm">
-                              <div class="min-w-0 flex-1">
-                                <p class="font-semibold">{{ (payment.metodo | paymentLabel) }}</p>
-                                @if (payment.referencia) {
-                                  <p class="text-muted-foreground mt-0.5 text-[11px]">
-                                    Ref. {{ payment.referencia }}
-                                  </p>
-                                }
-                              </div>
-                              <div class="flex shrink-0 items-center gap-2">
-                                <span class="font-bold tabular-nums">{{
-                                  (payment.amount | money)
-                                }}</span>
-                                @if (
-                                  sale.status === 'completed' &&
-                                  canCorrectPaymentComputed() &&
-                                  cashSessionIsOpen()
-                                ) {
-                                  <button
-                                    type="button"
-                                    class="text-muted-foreground hover:text-primary border-border hover:border-primary rounded-lg border px-2 py-1 text-[11px] font-semibold transition-colors"
-                                    (click)="openCorrectPayment(sale, payment.id, payment.metodo)"
-                                  >
-                                    Corregir
-                                  </button>
-                                }
-                              </div>
-                            </div>
-                          }
-                        </div>
-                        <dl class="border-border mt-3 space-y-2 border-t pt-3 text-sm">
-                          <div class="flex justify-between gap-3">
-                            <dt class="text-muted-foreground">Total recibido</dt>
-                            <dd class="font-bold tabular-nums">{{ (totalPaid(sale) | money) }}</dd>
-                          </div>
-                          <div class="flex justify-between gap-3">
-                            <dt class="font-bold">Cambio entregado</dt>
-                            <dd class="text-primary font-black tabular-nums">
-                              {{ (sale.change | money) }}
-                            </dd>
-                          </div>
-                        </dl>
-                      </section>
-
-                      <section class="border-border bg-card rounded-2xl border p-4">
-                        <h3 class="text-sm font-black">Registro</h3>
-                        <dl class="mt-3 space-y-2 text-xs">
-                          <div class="flex justify-between gap-3">
-                            <dt class="text-muted-foreground">Usuario</dt>
-                            <dd class="max-w-44 truncate text-right font-semibold">
-                              {{ cashierLabel(sale) }}
-                            </dd>
-                          </div>
-                          <div class="flex justify-between gap-3">
-                            <dt class="text-muted-foreground">Cliente</dt>
-                            <dd class="max-w-44 truncate text-right font-semibold">
-                              {{ customerLabel(sale) }}
-                            </dd>
-                          </div>
-                          <div class="flex justify-between gap-3">
-                            <dt class="text-muted-foreground">Fecha y hora</dt>
-                            <dd class="text-right font-semibold">
-                              {{ date(sale.createdAt) }} · {{ time(sale.createdAt) }}
-                            </dd>
-                          </div>
-                          @if (sale.status === 'voided') {
-                            <div class="border-destructive/20 mt-3 border-t pt-3">
-                              <dt class="text-destructive font-bold">Motivo de anulación</dt>
-                              <dd class="text-muted-foreground mt-1 leading-relaxed">
-                                {{ sale.voidedReason || 'Sin motivo registrado' }}
-                              </dd>
-                            </div>
-                          }
-                        </dl>
-                      </section>
-                    </div>
-                  </div>
+                  <mo-sale-detail-body
+                    [sale]="sale"
+                    [canCorrectPayment]="canCorrectPaymentComputed() && cashSessionIsOpen()"
+                    (correctPayment)="openCorrectPayment(sale, $event.paymentId, $event.metodo)"
+                  />
 
                   <div class="border-border mt-4 flex flex-wrap justify-end gap-2 border-t pt-4">
                     <mo-button
@@ -516,10 +339,7 @@ export class SalesHistoryDialog {
   readonly exporting = signal(false)
   readonly paymentFilter = signal('')
 
-  readonly paymentMethodOptions = [
-    { value: '', label: 'Todos los métodos' },
-    ...PAYMENT_METHOD_CLOSURE_OPTIONS,
-  ]
+  readonly paymentMethodOptions = PAYMENT_FILTER_OPTIONS
 
   readonly filteredSales = computed<Sale[]>(() => {
     const method = this.paymentFilter()
@@ -591,7 +411,6 @@ export class SalesHistoryDialog {
     })
   }
 
-
   time(d: Date): string {
     return formatTime(d)
   }
@@ -626,32 +445,8 @@ export class SalesHistoryDialog {
   }
 
 
-  paymentFilterClass(value: string): string {
-    return [
-      'rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors',
-      this.paymentFilter() === value
-        ? 'bg-secondary text-secondary-foreground'
-        : 'hover:bg-muted text-muted-foreground',
-    ].join(' ')
-  }
-
-  totalPaid(sale: Sale): number {
-    return sale.payments.reduce((sum, payment) => sum + payment.amount, 0)
-  }
-
-  itemDiscountTotal(item: Sale['items'][number]): number {
-    return item.discountAmount * item.quantity
-  }
-
   cashierLabel(sale: Sale): string {
     return sale.cashierEmail || `Usuario ${sale.cashierId.slice(0, 8)}`
-  }
-
-  customerLabel(sale: Sale): string {
-    return (
-      sale.clienteNombre ||
-      (sale.clienteId ? `Cliente ${sale.clienteId.slice(0, 8)}` : 'Consumidor final')
-    )
   }
 
   isExpanded(sale: Sale): boolean {

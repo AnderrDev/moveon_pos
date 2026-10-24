@@ -24,7 +24,7 @@ import { CorrectOpeningDialog } from '@angular-app/features/cash-register/presen
 import { CorrectMovementDialog } from '@angular-app/features/cash-register/presentation/dialogs/correct-movement.dialog'
 import { SaleDetailListComponent } from '@angular-app/shared/organisms/sale-detail-list.component'
 import { formatCurrency, formatTime, formatShortDate } from '@/shared/lib/format'
-import { PAYMENT_METHOD_CLOSURE_OPTIONS } from '@/shared/lib/payment-methods'
+import { PAYMENT_FILTER_OPTIONS } from '@/shared/lib/payment-methods'
 import type {
   CashMovement,
   CashSession,
@@ -43,12 +43,13 @@ import { computeCashTurnSummary } from '@angular-app/features/cash-register/doma
 import type { CashMovementType } from '@/shared/types'
 import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
+import { SegmentedComponent } from '@angular-app/shared/molecules/segmented.component'
 
 @Component({
   selector: 'mo-caja-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [PaymentLabelPipe, MoneyPipe, 
+  imports: [SegmentedComponent, PaymentLabelPipe, MoneyPipe, 
     ReactiveFormsModule,
     RouterLink,
     PageHeaderComponent,
@@ -325,17 +326,7 @@ import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
 
         <mo-card padding="sm">
           <div class="flex flex-wrap items-center gap-2">
-            <div class="flex flex-wrap gap-1">
-              @for (m of paymentMethodOptions; track m.value) {
-                <button
-                  type="button"
-                  (click)="paymentFilter.set(m.value)"
-                  [class]="paymentFilterClass(m.value)"
-                >
-                  {{ m.label }}
-                </button>
-              }
-            </div>
+            <mo-segmented [options]="paymentMethodOptions" [(value)]="paymentFilter" />
             @if (paymentFilter()) {
               <button
                 type="button"
@@ -431,10 +422,7 @@ export class CajaPage {
   readonly openingDrawer = signal(false)
   readonly paymentFilter = signal('')
 
-  readonly paymentMethodOptions = [
-    { value: '', label: 'Todos los métodos' },
-    ...PAYMENT_METHOD_CLOSURE_OPTIONS,
-  ]
+  readonly paymentMethodOptions = PAYMENT_FILTER_OPTIONS
 
   readonly filteredSales = computed<Sale[]>(() => {
     const method = this.paymentFilter()
@@ -508,14 +496,6 @@ export class CajaPage {
   }
 
 
-  paymentFilterClass(value: string): string {
-    return [
-      'rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors',
-      this.paymentFilter() === value
-        ? 'bg-secondary text-secondary-foreground'
-        : 'hover:bg-muted text-muted-foreground',
-    ].join(' ')
-  }
 
   salesEmptyMessage(): string {
     return this.paymentFilter()

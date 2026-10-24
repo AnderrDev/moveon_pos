@@ -34,13 +34,14 @@ import {
   type SalesSubTabId,
   type SalesStatusFilter,
 } from '@angular-app/features/reports/presentation/services/report-period.helpers'
-import { PAYMENT_METHOD_CLOSURE_OPTIONS, getPaymentMethodLabel } from '@/shared/lib/payment-methods'
+import { PAYMENT_FILTER_OPTIONS, getPaymentMethodLabel } from '@/shared/lib/payment-methods'
+import { SegmentedComponent } from '@angular-app/shared/molecules/segmented.component'
 
 @Component({
   selector: 'mo-reportes-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
+  imports: [SegmentedComponent, 
     PageHeaderComponent,
     ButtonComponent,
     CardComponent,
@@ -96,15 +97,7 @@ import { PAYMENT_METHOD_CLOSURE_OPTIONS, getPaymentMethodLabel } from '@/shared/
               />
             </div>
             <div class="ml-auto flex gap-1">
-              @for (p of presets; track p.id) {
-                <button
-                  type="button"
-                  (click)="applyPreset(p.id)"
-                  [class]="presetClass(p.id)"
-                >
-                  {{ p.label }}
-                </button>
-              }
+              <mo-segmented [options]="presets" [value]="activePreset() ?? ''" (valueChange)="onPresetChange($event)" />
               <mo-button size="sm" variant="outline" (click)="reload()">Actualizar</mo-button>
             </div>
           </div>
@@ -168,20 +161,8 @@ import { PAYMENT_METHOD_CLOSURE_OPTIONS, getPaymentMethodLabel } from '@/shared/
                   placeholder="Buscar por # venta, cajero, cliente..."
                   class="border-input bg-background focus:ring-ring h-9 min-w-48 flex-1 rounded-lg border px-2.5 text-sm focus:ring-2 focus:outline-none"
                 />
-                <div class="flex flex-wrap gap-1">
-                  @for (f of salesStatusFilters; track f.id) {
-                    <button type="button" (click)="salesFilter.set(f.id)" [class]="salesFilterClass(f.id)">
-                      {{ f.label }}
-                    </button>
-                  }
-                </div>
-                <div class="flex flex-wrap gap-1">
-                  @for (m of paymentMethodOptions; track m.value) {
-                    <button type="button" (click)="paymentFilter.set(m.value)" [class]="paymentFilterClass(m.value)">
-                      {{ m.label }}
-                    </button>
-                  }
-                </div>
+                <mo-segmented [options]="salesStatusFilters" [(value)]="salesFilter" />
+                <mo-segmented [options]="paymentMethodOptions" [(value)]="paymentFilter" />
                 @if (hasActiveFilters()) {
                   <button
                     type="button"
@@ -269,10 +250,7 @@ export class ReportesPage {
     this.salesFilter() !== 'all' || this.salesSearch() !== '' || this.paymentFilter() !== '',
   )
 
-  readonly paymentMethodOptions = [
-    { value: '', label: 'Todos los métodos' },
-    ...PAYMENT_METHOD_CLOSURE_OPTIONS,
-  ]
+  readonly paymentMethodOptions = PAYMENT_FILTER_OPTIONS
 
   readonly salesSubTabs: { id: SalesSubTabId; label: string }[] = [
     { id: 'resumen', label: 'Resumen' },
@@ -281,17 +259,17 @@ export class ReportesPage {
     { id: 'ventas', label: 'Ventas' },
   ]
 
-  readonly salesStatusFilters: { id: SalesStatusFilter; label: string }[] = [
-    { id: 'all', label: 'Todas' },
-    { id: 'completed', label: 'Completadas' },
-    { id: 'voided', label: 'Anuladas' },
+  readonly salesStatusFilters: { value: SalesStatusFilter; label: string }[] = [
+    { value: 'all', label: 'Todas' },
+    { value: 'completed', label: 'Completadas' },
+    { value: 'voided', label: 'Anuladas' },
   ]
 
-  readonly presets: { id: Preset; label: string }[] = [
-    { id: 'today', label: 'Hoy' },
-    { id: 'week', label: 'Semana' },
-    { id: 'month', label: 'Este mes' },
-    { id: 'prev-month', label: 'Mes anterior' },
+  readonly presets: { value: Preset; label: string }[] = [
+    { value: 'today', label: 'Hoy' },
+    { value: 'week', label: 'Semana' },
+    { value: 'month', label: 'Este mes' },
+    { value: 'prev-month', label: 'Mes anterior' },
   ]
 
   constructor() {
@@ -313,12 +291,6 @@ export class ReportesPage {
     ].join(' ')
   }
 
-  presetClass(id: Preset): string {
-    return [
-      'rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors',
-      this.activePreset() === id ? 'bg-secondary text-secondary-foreground' : 'hover:bg-muted text-muted-foreground',
-    ].join(' ')
-  }
 
   subTabClass(value: SalesSubTabId): string {
     return [
@@ -327,12 +299,6 @@ export class ReportesPage {
     ].join(' ')
   }
 
-  salesFilterClass(id: SalesStatusFilter): string {
-    return [
-      'rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors',
-      this.salesFilter() === id ? 'bg-secondary text-secondary-foreground' : 'hover:bg-muted text-muted-foreground',
-    ].join(' ')
-  }
 
   salesListTitle(): string {
     return this.salesFilter() === 'voided' ? 'Ventas anuladas' : 'Detalle de ventas'
@@ -343,12 +309,6 @@ export class ReportesPage {
     return this.salesFilter() === 'voided' ? 'No hay ventas anuladas en el período.' : 'Sin ventas en el período.'
   }
 
-  paymentFilterClass(value: string): string {
-    return [
-      'rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors',
-      this.paymentFilter() === value ? 'bg-secondary text-secondary-foreground' : 'hover:bg-muted text-muted-foreground',
-    ].join(' ')
-  }
 
   onSalesSearchInput(event: Event): void {
     this.salesSearch.set((event.target as HTMLInputElement).value)
@@ -368,6 +328,11 @@ export class ReportesPage {
     if (this.tab() === 'loyalty') return false
     if (this.tab() === 'stock') return this.stock().length > 0
     return this.daily() !== null
+  }
+
+  onPresetChange(value: string): void {
+    const preset = this.presets.find((p) => p.value === value)
+    if (preset) this.applyPreset(preset.value)
   }
 
   applyPreset(preset: Preset): void {
