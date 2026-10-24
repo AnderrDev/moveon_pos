@@ -18,6 +18,17 @@ Manejar sesión de usuarios, roles y permisos. Wrapper sobre Supabase Auth.
 ## Tabla `user_tiendas`
 Ver `/docs/03-data-model.md`.
 
+## Resiliencia de `getSession()` (bugfix 2026-08-29)
+
+`authGuard` bloquea la activación de rutas en `await sessionService.getSession()`.
+`@supabase/auth-js` no aplica timeout a su propio fetch de
+`/auth/v1/token?grant_type=refresh_token`, así que si esa petición de red se
+cuelga, la promesa nunca resuelve y la app queda en blanco para siempre
+(el Router nunca activa ninguna ruta). `SessionService.getSession()` ahora
+envuelve la llamada en un timeout de 10s (`GET_SESSION_TIMEOUT_MS`); si se
+agota, se trata como sesión inválida (misma rama que "no hay sesión" →
+redirige a `/login`). Ver `docs/sessions/2026-08-29-bug-blank-screen-refresh-token.md`.
+
 ## Reglas de negocio
 - RN-A01: solo usuarios `is_active = true` en `user_tiendas` pueden acceder.
 - RN-A02: si un usuario tiene múltiples tiendas activas (futuro), debe haber un selector. En v1.0 solo se permite 1.

@@ -10,6 +10,16 @@ export interface AngularAuthContext {
   email: string | null
 }
 
+/**
+ * `supabase-js` no aplica timeout al fetch de `/auth/v1/token`: si esa
+ * petición de red se cuelga (blip de red, proxy), `getSession()` nunca
+ * resuelve y como `authGuard` la espera, el Router nunca activa ninguna
+ * ruta y la app queda en blanco para siempre. Este límite evita ese
+ * bloqueo tratando el timeout como "sesión inválida" (misma rama que
+ * "no hay sesión" en el guard).
+ */
+const GET_SESSION_TIMEOUT_MS = 10_000
+
 @Injectable({ providedIn: 'root' })
 export class SessionService {
   private readonly supabaseClient = inject(SupabaseClientService)
@@ -36,12 +46,32 @@ export class SessionService {
   }
 
   async getSession(): Promise<Session | null> {
-    const {
-      data: { session },
-    } = await this.supabaseClient.supabase.auth.getSession()
+    const session = await this.getSessionWithTimeout()
     const nextUser = session?.user ?? null
     if ((this.user()?.id ?? null) !== (nextUser?.id ?? null)) {
       this.user.set(nextUser)
+    }
+    return session
+  }
+
+  private async getSessionWithTimeout(): Promise<Session | null> {
+    let timedOut = false
+    const sessionPromise = this.supabaseClient.supabase.auth
+      .getSession()
+      .then(({ data }) => data.session)
+    const timeoutPromise = new Promise<null>((resolve) => {
+      setTimeout(() => {
+        timedOut = true
+        resolve(null)
+      }, GET_SESSION_TIMEOUT_MS)
+    })
+
+    const session = await Promise.race([sessionPromise, timeoutPromise])
+    if (timedOut) {
+      console.warn(
+        `[SessionService] getSession() no respondió en ${GET_SESSION_TIMEOUT_MS}ms ` +
+          '(probable refresh_token colgado); se trata como sesión inválida.',
+      )
     }
     return session
   }
