@@ -62,6 +62,18 @@ export class CustomersRepository extends CustomerRepositoryContract {
     return null
   }
 
+  async findById(id: string, tiendaId: string): Promise<Cliente | null> {
+    const { data, error } = await this.supabaseClient.supabase
+      .from('clientes')
+      .select(CLIENTE_COLS)
+      .eq('tienda_id', tiendaId)
+      .eq('id', id)
+      .maybeSingle()
+      .returns<ClienteRow>()
+    if (error) throw new Error(error.message)
+    return data ? rowToCliente(data) : null
+  }
+
   private async findOne(tiendaId: string, column: string, value: string): Promise<Cliente | null> {
     const { data, error } = await this.supabaseClient.supabase
       .from('clientes')
