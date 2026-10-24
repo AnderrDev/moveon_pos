@@ -10,7 +10,6 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { getErrorMessage } from '@/shared/lib/error-message'
-import { formatCurrency } from '@/shared/lib/format'
 import { ReactiveFormsModule } from '@angular/forms'
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
@@ -46,6 +45,7 @@ import {
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import type { InventoryLocation } from '@/shared/types'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 
 const TIPO_OPTIONS: FormSelectOption<string>[] = [
   { value: 'simple', label: 'Simple' },
@@ -64,7 +64,7 @@ const INITIAL_STOCK_LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [ProductFormPresenter],
-  imports: [
+  imports: [MoneyPipe, 
     ReactiveFormsModule,
     DialogComponent,
     ButtonComponent,
@@ -235,17 +235,17 @@ const INITIAL_STOCK_LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
                 <dl class="flex flex-wrap items-baseline gap-x-5 gap-y-1 text-xs">
                   <div class="flex items-baseline gap-1.5">
                     <dt class="text-muted-foreground">Suma normal</dt>
-                    <dd class="font-semibold tabular-nums">{{ money(savings().sumaNormal) }}</dd>
+                    <dd class="font-semibold tabular-nums">{{ (savings().sumaNormal | money) }}</dd>
                   </div>
                   <div class="flex items-baseline gap-1.5">
                     <dt class="text-muted-foreground">Precio del combo</dt>
-                    <dd class="font-semibold tabular-nums">{{ money(precioVenta()) }}</dd>
+                    <dd class="font-semibold tabular-nums">{{ (precioVenta() | money) }}</dd>
                   </div>
                   @if (savings().ahorro > 0) {
                     <div class="flex items-baseline gap-1.5">
                       <dt class="text-muted-foreground">Ahorro</dt>
                       <dd class="text-primary font-semibold tabular-nums">
-                        {{ money(savings().ahorro) }} ({{ savings().porcentaje }}%)
+                        {{ (savings().ahorro | money) }} ({{ savings().porcentaje }}%)
                       </dd>
                     </div>
                   } @else {
@@ -905,9 +905,6 @@ export class ProductFormDialog {
     }
   }
 
-  money(amount: number): string {
-    return formatCurrency(amount)
-  }
 
   onClose(): void {
     if (this.saving()) return

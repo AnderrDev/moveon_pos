@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core'
-import { formatCurrency } from '@/shared/lib/format'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 import type { ReinvestmentFund } from '@angular-app/features/expenses/domain/services/reinvestment-fund'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 
 /**
  * Fondo de reinversión de mercancía: cuánto del dinero recibido corresponde a
@@ -12,7 +12,7 @@ import type { ReinvestmentFund } from '@angular-app/features/expenses/domain/ser
   selector: 'mo-reinvestment-fund',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ButtonComponent],
+  imports: [MoneyPipe, ButtonComponent],
   template: `
     <div class="bg-card rounded-xl border p-4">
       <div class="flex items-center justify-between gap-2">
@@ -33,18 +33,18 @@ import type { ReinvestmentFund } from '@angular-app/features/expenses/domain/ser
               [class.text-emerald-600]="f.disponible > 0"
               [class.text-destructive]="f.disponible < 0"
             >
-              {{ money(f.disponible) }}
+              {{ (f.disponible | money) }}
             </p>
             <p class="text-muted-foreground mt-1 text-xs">Acumulado, arrastra entre meses</p>
           </div>
           <div>
             <p class="text-muted-foreground text-xs tracking-wide uppercase">Apartado este mes</p>
-            <p class="mt-1 text-2xl font-bold">{{ money(f.apartadoMes) }}</p>
+            <p class="mt-1 text-2xl font-bold">{{ (f.apartadoMes | money) }}</p>
             <p class="text-muted-foreground mt-1 text-xs">Costo de lo vendido en el mes</p>
           </div>
           <div>
             <p class="text-muted-foreground text-xs tracking-wide uppercase">Invertido este mes</p>
-            <p class="mt-1 text-2xl font-bold">{{ money(f.invertidoMes) }}</p>
+            <p class="mt-1 text-2xl font-bold">{{ (f.invertidoMes | money) }}</p>
             <p class="text-muted-foreground mt-1 text-xs">Compras de mercancía registradas</p>
           </div>
         </div>
@@ -52,15 +52,15 @@ import type { ReinvestmentFund } from '@angular-app/features/expenses/domain/ser
         <dl class="mt-4 space-y-2 border-t pt-3 text-sm">
           <div class="flex items-center justify-between">
             <dt class="text-muted-foreground">Saldo inicial</dt>
-            <dd class="font-semibold">{{ money(f.saldoInicial) }}</dd>
+            <dd class="font-semibold">{{ (f.saldoInicial | money) }}</dd>
           </div>
           <div class="flex items-center justify-between">
             <dt class="text-muted-foreground">+ Apartado por ventas (costo de lo vendido)</dt>
-            <dd class="font-semibold">{{ money(f.apartadoAcumulado) }}</dd>
+            <dd class="font-semibold">{{ (f.apartadoAcumulado | money) }}</dd>
           </div>
           <div class="flex items-center justify-between">
             <dt class="text-muted-foreground">− Invertido en mercancía (entradas con costo)</dt>
-            <dd class="font-semibold">{{ money(f.invertidoAcumulado) }}</dd>
+            <dd class="font-semibold">{{ (f.invertidoAcumulado | money) }}</dd>
           </div>
           <div class="flex items-center justify-between border-t pt-2">
             <dt class="font-semibold">= Disponible para reinvertir</dt>
@@ -69,7 +69,7 @@ import type { ReinvestmentFund } from '@angular-app/features/expenses/domain/ser
               [class.text-emerald-600]="f.disponible > 0"
               [class.text-destructive]="f.disponible < 0"
             >
-              {{ money(f.disponible) }}
+              {{ (f.disponible | money) }}
             </dd>
           </div>
         </dl>
@@ -108,7 +108,4 @@ export class ReinvestmentFundComponent {
 
   readonly configureRequested = output<void>()
 
-  money(v: number): string {
-    return formatCurrency(v)
-  }
 }

@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core'
 import { Gift, LucideAngularModule, UserRound } from 'lucide-angular'
-import { formatCurrency } from '@/shared/lib/format'
-import { getPaymentMethodLabel, PAYMENT_METHOD_OPTIONS } from '@/shared/lib/payment-methods'
+import { PAYMENT_METHOD_OPTIONS } from '@/shared/lib/payment-methods'
 import type { PaymentMethod } from '@/shared/types'
 import { SpinnerComponent } from '@angular-app/shared/atoms/spinner.component'
 import { PosCartStore } from '@angular-app/features/pos/presentation/services/pos-cart.store'
 import { PosCheckoutStore } from '@angular-app/features/pos/presentation/services/pos-checkout.store'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
+import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
 
 /**
  * Diálogo de cobro del POS: resumen, cliente, descuento global, pagos,
@@ -16,7 +17,7 @@ import { PosCheckoutStore } from '@angular-app/features/pos/presentation/service
 @Component({
   selector: 'mo-pos-checkout-dialog',
   standalone: true,
-  imports: [LucideAngularModule, SpinnerComponent],
+  imports: [PaymentLabelPipe, MoneyPipe, LucideAngularModule, SpinnerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'contents' },
   template: `
@@ -49,10 +50,10 @@ import { PosCheckoutStore } from '@angular-app/features/pos/presentation/service
                     <span class="text-muted-foreground">&nbsp;×&nbsp;{{ item.quantity }}</span>
                   </span>
                   <div class="shrink-0 text-right">
-                    <span class="text-sm font-semibold tabular-nums">{{ money(item.total) }}</span>
+                    <span class="text-sm font-semibold tabular-nums">{{ (item.total | money) }}</span>
                     @if (item.descuentoTotal > 0) {
                       <span class="text-destructive ml-1.5 text-[11px] tabular-nums">
-                        −{{ money(item.descuentoTotal) }}
+                        −{{ (item.descuentoTotal | money) }}
                       </span>
                     }
                   </div>
@@ -63,30 +64,30 @@ import { PosCheckoutStore } from '@angular-app/features/pos/presentation/service
               <div class="flex justify-between text-sm">
                 <span class="text-muted-foreground">Descuentos</span>
                 <span class="text-destructive font-medium"
-                  >−{{ money(cart.totals().discountTotal) }}</span
+                  >−{{ (cart.totals().discountTotal | money) }}</span
                 >
               </div>
             }
             <div class="flex justify-between text-sm">
               <span class="text-muted-foreground">Total venta</span>
-              <span class="font-semibold">{{ money(cart.totals().total) }}</span>
+              <span class="font-semibold">{{ (cart.totals().total | money) }}</span>
             </div>
             @if (cart.totalPaid() > 0) {
               <div class="flex justify-between text-sm">
                 <span class="text-muted-foreground">Pagado</span>
-                <span class="font-semibold text-emerald-600">{{ money(cart.totalPaid()) }}</span>
+                <span class="font-semibold text-emerald-600">{{ (cart.totalPaid() | money) }}</span>
               </div>
             }
             @if (cart.remainingAmount() > 0) {
               <div class="mt-1 flex justify-between text-sm font-semibold">
                 <span>Falta</span>
-                <span class="text-destructive">{{ money(cart.remainingAmount()) }}</span>
+                <span class="text-destructive">{{ (cart.remainingAmount() | money) }}</span>
               </div>
             }
             @if (cart.change() > 0) {
               <div class="mt-1 flex justify-between font-bold">
                 <span>Cambio</span>
-                <span class="text-primary">{{ money(cart.change()) }}</span>
+                <span class="text-primary">{{ (cart.change() | money) }}</span>
               </div>
             }
           </div>
@@ -130,7 +131,7 @@ import { PosCheckoutStore } from '@angular-app/features/pos/presentation/service
                   class="bg-background flex items-center justify-between rounded-lg border px-3 py-2 text-sm"
                 >
                   <span class="min-w-0">
-                    <span class="block font-medium">{{ paymentLabel(payment.metodo) }}</span>
+                    <span class="block font-medium">{{ (payment.metodo | paymentLabel) }}</span>
                     @if (payment.referencia) {
                       <span class="text-muted-foreground block truncate text-[11px]">
                         Ref: {{ payment.referencia }}
@@ -139,7 +140,7 @@ import { PosCheckoutStore } from '@angular-app/features/pos/presentation/service
                   </span>
                   <div class="flex shrink-0 items-center gap-3">
                     <span class="font-mono font-semibold tabular-nums">{{
-                      money(payment.amount)
+                      (payment.amount | money)
                     }}</span>
                     <button
                       type="button"
@@ -212,7 +213,7 @@ import { PosCheckoutStore } from '@angular-app/features/pos/presentation/service
               @if (checkout.discountMode() === 'amount') {
                 Monto en pesos distribuido entre los productos.
               } @else {
-                Porcentaje sobre el subtotal ({{ money(cart.totals().subtotal) }}), distribuido entre los productos.
+                Porcentaje sobre el subtotal ({{ (cart.totals().subtotal | money) }}), distribuido entre los productos.
               }
             </p>
           </div>
@@ -224,7 +225,7 @@ import { PosCheckoutStore } from '@angular-app/features/pos/presentation/service
                 Canje MOVE ON Club
               </span>
               <span class="text-xs font-semibold text-emerald-700 tabular-nums">
-                −{{ money(redemption.amount) }}
+                −{{ (redemption.amount | money) }}
               </span>
             </div>
           }
@@ -234,7 +235,7 @@ import { PosCheckoutStore } from '@angular-app/features/pos/presentation/service
               <div class="flex items-center justify-between gap-3">
                 <p class="text-xs font-bold tracking-wide uppercase">Control del descuento</p>
                 <span class="text-muted-foreground text-[11px] tabular-nums">
-                  {{ money(checkout.discretionaryDiscountTotal()) }} · {{ checkout.discountPercentage() }}%
+                  {{ (checkout.discretionaryDiscountTotal() | money) }} · {{ checkout.discountPercentage() }}%
                 </span>
               </div>
               <input
@@ -306,7 +307,7 @@ import { PosCheckoutStore } from '@angular-app/features/pos/presentation/service
                 (click)="checkout.addExactPayment()"
                 class="text-muted-foreground hover:border-primary hover:text-primary w-full rounded-lg border border-dashed py-2 text-xs transition-colors"
               >
-                Monto exacto: {{ money(cart.remainingAmount()) }}
+                Monto exacto: {{ (cart.remainingAmount() | money) }}
               </button>
             }
           </div>
@@ -377,7 +378,7 @@ import { PosCheckoutStore } from '@angular-app/features/pos/presentation/service
                 <mo-spinner size="sm" class="mr-2 inline-block align-[-2px]" />
                 Guardando venta...
               } @else {
-                Confirmar · {{ money(cart.totals().total) }}
+                Confirmar · {{ (cart.totals().total | money) }}
               }
             </button>
           </div>
@@ -401,13 +402,7 @@ export class PosCheckoutDialogComponent {
   readonly paymentMethods = PAYMENT_METHOD_OPTIONS
   readonly String = String
 
-  money(amount: number): string {
-    return formatCurrency(amount)
-  }
 
-  paymentLabel(method: PaymentMethod): string {
-    return getPaymentMethodLabel(method)
-  }
 
   discountModeClass(mode: 'amount' | 'percent'): string {
     const active = this.checkout.discountMode() === mode

@@ -1,15 +1,15 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core'
-import { formatCurrency } from '@/shared/lib/format'
 import { TableShellComponent } from '@angular-app/shared/molecules/table/table-shell.component'
 import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
 import type { MonthlyComparisonRow } from '@angular-app/features/expenses/domain/services/monthly-comparison'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 
 /** Tendencia mensual entradas vs. gastos. Presentacional. */
 @Component({
   selector: 'mo-monthly-comparison',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TableShellComponent, MO_TABLE],
+  imports: [MoneyPipe, TableShellComponent, MO_TABLE],
   template: `
     <mo-table-shell>
       <div class="border-b px-4 py-3">
@@ -37,8 +37,8 @@ import type { MonthlyComparisonRow } from '@angular-app/features/expenses/domain
               <td moTd class="font-semibold capitalize whitespace-nowrap">
                 {{ monthLabel(row.month) }}
               </td>
-              <td moTd class="text-right whitespace-nowrap">{{ money(row.entradas) }}</td>
-              <td moTd class="text-right whitespace-nowrap">{{ money(row.gastos) }}</td>
+              <td moTd class="text-right whitespace-nowrap">{{ (row.entradas | money) }}</td>
+              <td moTd class="text-right whitespace-nowrap">{{ (row.gastos | money) }}</td>
               <td moTd class="text-muted-foreground text-right whitespace-nowrap">
                 @if (row.pctGastos !== null) {
                   {{ row.pctGastos }}%
@@ -52,7 +52,7 @@ import type { MonthlyComparisonRow } from '@angular-app/features/expenses/domain
                 [class.text-emerald-600]="row.balance > 0"
                 [class.text-destructive]="row.balance < 0"
               >
-                {{ money(row.balance) }}
+                {{ (row.balance | money) }}
               </td>
             </tr>
           }
@@ -69,7 +69,4 @@ export class MonthlyComparisonComponent {
     return new Date(y, m - 1, 1).toLocaleDateString('es-CO', { month: 'short', year: 'numeric' })
   }
 
-  money(v: number): string {
-    return formatCurrency(v)
-  }
 }

@@ -45,6 +45,9 @@ apps/pos-angular/src/app/shared/
 │   ├── toast/                     (mo-toast-host + ToastService)
 │   ├── void-reason/               (mo-void-reason-dialog + constantes)
 │   └── sale-detail-list.component.ts (mo-sale-detail-list)
+├── pipes/          # Transformaciones de presentación puras (ADR 0023)
+│   ├── money.pipe.ts              (| money → formatCurrency)
+│   └── payment-label.pipe.ts      (| paymentLabel → getPaymentMethodLabel)
 └── services/       # Utilidades no visuales compartidas
     └── export/                    (ExcelExportService, export-filename)
 ```
@@ -70,6 +73,7 @@ Criterio de nivel: **atom** = un elemento estilizado; **molecule** = composició
 | `mo-empty-state` | `title`*, `description` + slot de acción |
 | `mo-page-header` | `title`*, `subtitle` + slot de acciones |
 | `mo-stat-card`, `mo-sale-detail-list`, `mo-toast-host` | ver archivo fuente |
+| `| money`, `| paymentLabel` | Pipes puros (ADR 0023). En plantillas usar el pipe, no un método `money()` local |
 
 ---
 

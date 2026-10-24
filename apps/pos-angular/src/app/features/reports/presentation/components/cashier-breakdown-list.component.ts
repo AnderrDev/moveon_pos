@@ -1,14 +1,14 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core'
-import { formatCurrency } from '@/shared/lib/format'
 import { CardComponent } from '@angular-app/shared/atoms/card.component'
 import type { CashierSalesSummary } from '@angular-app/features/reports/domain/services/group-sales-by-cashier'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 
 /** Lista "Por cajero": ventas/IVA agregados por cajero. */
 @Component({
   selector: 'mo-cashier-breakdown-list',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CardComponent],
+  imports: [MoneyPipe, CardComponent],
   template: `
     <mo-card>
       <h3 class="font-display mb-3 text-sm font-bold tracking-wide uppercase">Por cajero</h3>
@@ -30,7 +30,7 @@ import type { CashierSalesSummary } from '@angular-app/features/reports/domain/s
               </span>
               <span class="text-right">
                 <span class="font-mono font-semibold tabular-nums">{{
-                  money(c.totalVentas)
+                  (c.totalVentas | money)
                 }}</span>
               </span>
             </li>
@@ -43,9 +43,6 @@ import type { CashierSalesSummary } from '@angular-app/features/reports/domain/s
 export class CashierBreakdownListComponent {
   readonly cashierBreakdown = input.required<CashierSalesSummary[]>()
 
-  money(v: number): string {
-    return formatCurrency(v)
-  }
 
   cashierLabel(id: string): string {
     return `Cajero ${id.slice(0, 8)}`

@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core'
-import { formatCurrency } from '@/shared/lib/format'
 import { CardComponent } from '@angular-app/shared/atoms/card.component'
 import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
 import type { DailyProductSale } from '@angular-app/features/reports/domain/entities/report.entity'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 
 type SortCriterion = 'qty' | 'total'
 
@@ -19,7 +19,7 @@ type SortCriterion = 'qty' | 'total'
   selector: 'mo-top-products-table',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CardComponent, MO_TABLE],
+  imports: [MoneyPipe, CardComponent, MO_TABLE],
   template: `
     <mo-card>
       <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -67,8 +67,8 @@ type SortCriterion = 'qty' | 'total'
                   </td>
                   <td moTd class="text-right tabular-nums">{{ p.numVentas }}</td>
                   <td moTd class="text-right tabular-nums">{{ p.qty }}</td>
-                  <td moTd class="text-right font-semibold tabular-nums">{{ money(p.total) }}</td>
-                  <td moTd class="text-right tabular-nums">{{ money(p.avgPrice) }}</td>
+                  <td moTd class="text-right font-semibold tabular-nums">{{ (p.total | money) }}</td>
+                  <td moTd class="text-right tabular-nums">{{ (p.avgPrice | money) }}</td>
                 </tr>
               }
             </tbody>
@@ -98,7 +98,4 @@ export class TopProductsTableComponent {
     ].join(' ')
   }
 
-  money(v: number): string {
-    return formatCurrency(v)
-  }
 }

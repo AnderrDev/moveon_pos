@@ -1,11 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core'
-import { formatCurrency } from '@/shared/lib/format'
 import {
   filterCatalog,
   isOutOfStock,
   productStockLabel,
 } from '@angular-app/features/pos/presentation/services/pos-catalog'
 import type { PosCategory, PosProduct } from '@angular-app/features/pos/presentation/services/pos.types'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 
 /**
  * Catálogo del POS: búsqueda (nombre, SKU o código de barras), chips de
@@ -15,6 +15,7 @@ import type { PosCategory, PosProduct } from '@angular-app/features/pos/presenta
 @Component({
   selector: 'mo-pos-catalog',
   standalone: true,
+  imports: [MoneyPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex min-h-0 flex-1 flex-col overflow-hidden' },
   template: `
@@ -105,7 +106,7 @@ import type { PosCategory, PosProduct } from '@angular-app/features/pos/presenta
                       <span
                         class="font-display text-primary mt-0.5 block text-lg leading-none font-bold tabular-nums"
                       >
-                        {{ money(product.precioVenta) }}
+                        {{ (product.precioVenta | money) }}
                       </span>
                       @if (product.components.length > 0) {
                         <span class="text-amber-600 mt-1.5 flex items-center gap-1 text-[10px] font-semibold">
@@ -198,9 +199,6 @@ export class PosCatalogComponent {
 
   readonly isOutOfStock = isOutOfStock
 
-  money(amount: number): string {
-    return formatCurrency(amount)
-  }
 
   componentLabel(components: { nombre: string; cantidad: number }[]): string {
     return components

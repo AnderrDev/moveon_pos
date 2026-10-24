@@ -27,6 +27,7 @@ import { InventoryRepository } from '@angular-app/features/inventory/domain/repo
 import { correctEntryCost } from '@angular-app/features/inventory/domain/usecases/correct-entry-cost.use-case'
 import { entryCostCorrectionFormMapper } from '@angular-app/features/inventory/presentation/forms/entry-cost-correction-form.mapper'
 import { EntryCostCorrectionFormPresenter } from '@angular-app/features/inventory/presentation/presenters/entry-cost-correction-form.presenter'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 
 interface ProductSummary {
   id: string
@@ -39,7 +40,7 @@ interface ProductSummary {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [EntryCostCorrectionFormPresenter],
-  imports: [
+  imports: [MoneyPipe, 
     ReactiveFormsModule,
     ButtonComponent,
     FormCheckboxComponent,
@@ -91,7 +92,7 @@ interface ProductSummary {
             class="border-primary/20 bg-primary/5 flex items-center justify-between rounded-lg border px-3.5 py-3"
           >
             <span class="text-sm font-medium">Nuevo total de la compra</span>
-            <span class="text-primary text-lg font-bold tabular-nums">{{ money(newTotal()) }}</span>
+            <span class="text-primary text-lg font-bold tabular-nums">{{ (newTotal() | money) }}</span>
           </div>
 
           <mo-form-checkbox
@@ -221,9 +222,6 @@ export class CorrectEntryCostDialog {
     this.closed.emit()
   }
 
-  money(value: number): string {
-    return formatCurrency(value)
-  }
 
   moneyOrDash(value: number | null): string {
     return value == null ? '—' : formatCurrency(value)

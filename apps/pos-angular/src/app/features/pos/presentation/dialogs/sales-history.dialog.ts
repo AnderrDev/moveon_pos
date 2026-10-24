@@ -30,7 +30,7 @@ import { CustomerPickerDialog } from '@angular-app/features/pos/presentation/dia
 import { CorrectSaleCustomerDialog } from '@angular-app/features/pos/presentation/dialogs/correct-sale-customer.dialog'
 import type { Cliente } from '@angular-app/features/customers/domain/entities/cliente.entity'
 import { selectSessionSales } from '@angular-app/features/pos/presentation/services/sales-history-session-filter'
-import { formatCurrency, formatShortDate, formatTime } from '@/shared/lib/format'
+import { formatShortDate, formatTime } from '@/shared/lib/format'
 import { PAYMENT_METHOD_CLOSURE_OPTIONS, getPaymentMethodLabel } from '@/shared/lib/payment-methods'
 import type { Sale } from '@angular-app/features/sales/domain/entities/sale.entity'
 import type { PaymentMethod } from '@/shared/types'
@@ -38,12 +38,14 @@ import type { CashMovement } from '@angular-app/features/cash-register/domain/en
 import { CashRegisterRepository } from '@angular-app/features/cash-register/domain/repositories/cash-register.repository'
 import { ExcelExportService } from '@angular-app/shared/services/export/excel-export.service'
 import { buildTurnSalesWorkbook } from '@angular-app/shared/services/export/turn-sales-export'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
+import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
 
 @Component({
   selector: 'mo-sales-history-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
+  imports: [PaymentLabelPipe, MoneyPipe, 
     DialogComponent,
     ButtonComponent,
     BadgeComponent,
@@ -111,7 +113,7 @@ import { buildTurnSalesWorkbook } from '@angular-app/shared/services/export/turn
           >
             <p class="text-primary text-[10px] font-bold tracking-wide uppercase">Total vendido</p>
             <p class="font-display text-primary mt-1 text-xl font-black tabular-nums">
-              {{ money(completedSalesTotal()) }}
+              {{ (completedSalesTotal() | money) }}
             </p>
           </div>
           <div class="border-border bg-card rounded-2xl border p-3.5">
@@ -209,7 +211,7 @@ import { buildTurnSalesWorkbook } from '@angular-app/shared/services/export/turn
                         [class.text-muted-foreground]="sale.status === 'voided'"
                         [class.line-through]="sale.status === 'voided'"
                       >
-                        {{ money(sale.total) }}
+                        {{ (sale.total | money) }}
                       </p>
                     </div>
                     <svg
@@ -277,7 +279,7 @@ import { buildTurnSalesWorkbook } from '@angular-app/shared/services/export/turn
                                 </p>
                               }
                               <p class="text-muted-foreground mt-1 text-xs">
-                                {{ money(item.unitPrice) }} c/u
+                                {{ (item.unitPrice | money) }} c/u
                                 @if (item.productoSku) {
                                   · SKU {{ item.productoSku }}
                                 }
@@ -285,18 +287,18 @@ import { buildTurnSalesWorkbook } from '@angular-app/shared/services/export/turn
                               <div class="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11px]">
                                 @if (item.discountAmount > 0) {
                                   <span class="text-emerald-700">
-                                    Desc. producto −{{ money(itemDiscountTotal(item)) }}
+                                    Desc. producto −{{ (itemDiscountTotal(item) | money) }}
                                   </span>
                                 }
                                 @if (item.globalDiscountAmount > 0) {
                                   <span class="text-amber-700">
-                                    Desc. global −{{ money(item.globalDiscountAmount) }}
+                                    Desc. global −{{ (item.globalDiscountAmount | money) }}
                                   </span>
                                 }
                               </div>
                             </div>
                             <p class="shrink-0 text-sm font-black tabular-nums">
-                              {{ money(item.total) }}
+                              {{ (item.total | money) }}
                             </p>
                           </div>
                         }
@@ -309,20 +311,20 @@ import { buildTurnSalesWorkbook } from '@angular-app/shared/services/export/turn
                         <dl class="mt-3 space-y-2 text-sm">
                           <div class="flex justify-between gap-3">
                             <dt class="text-muted-foreground">Subtotal</dt>
-                            <dd class="font-semibold tabular-nums">{{ money(sale.subtotal) }}</dd>
+                            <dd class="font-semibold tabular-nums">{{ (sale.subtotal | money) }}</dd>
                           </div>
                           <div class="flex justify-between gap-3">
                             <dt class="text-muted-foreground">Descuentos por producto</dt>
                             <dd class="font-semibold tabular-nums">
                               {{ sale.itemDiscountTotal > 0 ? '−' : ''
-                              }}{{ money(sale.itemDiscountTotal) }}
+                              }}{{ (sale.itemDiscountTotal | money) }}
                             </dd>
                           </div>
                           @if (sale.globalDiscountTotal > 0) {
                             <div class="flex justify-between gap-3">
                               <dt class="text-muted-foreground">Descuento global</dt>
                               <dd class="font-semibold tabular-nums">
-                                −{{ money(sale.globalDiscountTotal) }}
+                                −{{ (sale.globalDiscountTotal | money) }}
                               </dd>
                             </div>
                           }
@@ -335,7 +337,7 @@ import { buildTurnSalesWorkbook } from '@angular-app/shared/services/export/turn
                           <div class="border-border flex justify-between gap-3 border-t pt-3">
                             <dt class="font-black">Total</dt>
                             <dd class="text-primary text-lg font-black tabular-nums">
-                              {{ money(sale.total) }}
+                              {{ (sale.total | money) }}
                             </dd>
                           </div>
                         </dl>
@@ -347,7 +349,7 @@ import { buildTurnSalesWorkbook } from '@angular-app/shared/services/export/turn
                           @for (payment of sale.payments; track payment.id) {
                             <div class="flex items-start justify-between gap-3 text-sm">
                               <div class="min-w-0 flex-1">
-                                <p class="font-semibold">{{ paymentLabel(payment.metodo) }}</p>
+                                <p class="font-semibold">{{ (payment.metodo | paymentLabel) }}</p>
                                 @if (payment.referencia) {
                                   <p class="text-muted-foreground mt-0.5 text-[11px]">
                                     Ref. {{ payment.referencia }}
@@ -356,7 +358,7 @@ import { buildTurnSalesWorkbook } from '@angular-app/shared/services/export/turn
                               </div>
                               <div class="flex shrink-0 items-center gap-2">
                                 <span class="font-bold tabular-nums">{{
-                                  money(payment.amount)
+                                  (payment.amount | money)
                                 }}</span>
                                 @if (
                                   sale.status === 'completed' &&
@@ -378,12 +380,12 @@ import { buildTurnSalesWorkbook } from '@angular-app/shared/services/export/turn
                         <dl class="border-border mt-3 space-y-2 border-t pt-3 text-sm">
                           <div class="flex justify-between gap-3">
                             <dt class="text-muted-foreground">Total recibido</dt>
-                            <dd class="font-bold tabular-nums">{{ money(totalPaid(sale)) }}</dd>
+                            <dd class="font-bold tabular-nums">{{ (totalPaid(sale) | money) }}</dd>
                           </div>
                           <div class="flex justify-between gap-3">
                             <dt class="font-bold">Cambio entregado</dt>
                             <dd class="text-primary font-black tabular-nums">
-                              {{ money(sale.change) }}
+                              {{ (sale.change | money) }}
                             </dd>
                           </div>
                         </dl>
@@ -589,9 +591,6 @@ export class SalesHistoryDialog {
     })
   }
 
-  money(v: number): string {
-    return formatCurrency(v)
-  }
 
   time(d: Date): string {
     return formatTime(d)
@@ -626,9 +625,6 @@ export class SalesHistoryDialog {
     return methods.join(' + ') || 'Sin pago registrado'
   }
 
-  paymentLabel(method: string): string {
-    return getPaymentMethodLabel(method)
-  }
 
   paymentFilterClass(value: string): string {
     return [

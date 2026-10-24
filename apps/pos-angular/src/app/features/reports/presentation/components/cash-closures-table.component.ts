@@ -1,8 +1,9 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core'
-import { formatCurrency, formatTime } from '@/shared/lib/format'
+import { formatTime } from '@/shared/lib/format'
 import { BadgeComponent } from '@angular-app/shared/atoms/badge.component'
 import { CardComponent } from '@angular-app/shared/atoms/card.component'
 import type { DailySession } from '@angular-app/features/reports/domain/entities/report.entity'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 
 /**
  * Tabla "Cierres de caja": ventas/caja esperado vs real por sesión del
@@ -13,7 +14,7 @@ import type { DailySession } from '@angular-app/features/reports/domain/entities
   selector: 'mo-cash-closures-table',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BadgeComponent, CardComponent],
+  imports: [MoneyPipe, BadgeComponent, CardComponent],
   template: `
     @if (sessions().length > 0) {
       <mo-card>
@@ -50,30 +51,30 @@ import type { DailySession } from '@angular-app/features/reports/domain/entities
                     {{ cashierLabel(s.openedBy) }}
                   </td>
                   <td class="px-2 py-2 text-right tabular-nums">
-                    {{ money(s.expectedSalesAmount) }}
+                    {{ (s.expectedSalesAmount | money) }}
                   </td>
                   <td class="px-2 py-2 text-right tabular-nums">
-                    {{ s.actualSalesAmount !== null ? money(s.actualSalesAmount) : '—' }}
+                    {{ s.actualSalesAmount !== null ? (s.actualSalesAmount | money) : '—' }}
                   </td>
                   <td
                     class="px-2 py-2 text-right tabular-nums"
                     [class.text-destructive]="(s.salesDifference ?? 0) > 0"
                     [class.text-emerald-600]="(s.salesDifference ?? 0) < 0"
                   >
-                    {{ s.salesDifference !== null ? money(s.salesDifference) : '—' }}
+                    {{ s.salesDifference !== null ? (s.salesDifference | money) : '—' }}
                   </td>
                   <td class="hidden px-2 py-2 text-right tabular-nums sm:table-cell">
-                    {{ money(s.expectedCashAmount) }}
+                    {{ (s.expectedCashAmount | money) }}
                   </td>
                   <td class="px-2 py-2 text-right tabular-nums">
-                    {{ s.actualCashAmount !== null ? money(s.actualCashAmount) : '—' }}
+                    {{ s.actualCashAmount !== null ? (s.actualCashAmount | money) : '—' }}
                   </td>
                   <td
                     class="px-2 py-2 text-right tabular-nums"
                     [class.text-destructive]="(s.cashDifference ?? 0) > 0"
                     [class.text-emerald-600]="(s.cashDifference ?? 0) < 0"
                   >
-                    {{ s.cashDifference !== null ? money(s.cashDifference) : '—' }}
+                    {{ s.cashDifference !== null ? (s.cashDifference | money) : '—' }}
                   </td>
                   <td class="text-muted-foreground hidden max-w-48 truncate px-2 py-2 text-xs sm:table-cell">
                     {{ s.notasCierre || '—' }}
@@ -90,9 +91,6 @@ import type { DailySession } from '@angular-app/features/reports/domain/entities
 export class CashClosuresTableComponent {
   readonly sessions = input.required<DailySession[]>()
 
-  money(v: number): string {
-    return formatCurrency(v)
-  }
 
   time(d: Date): string {
     return formatTime(d)

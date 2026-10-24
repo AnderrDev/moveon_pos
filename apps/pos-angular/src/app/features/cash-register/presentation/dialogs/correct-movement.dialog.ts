@@ -8,7 +8,6 @@ import {
   signal,
 } from '@angular/core'
 import { getErrorMessage } from '@/shared/lib/error-message'
-import { formatCurrency } from '@/shared/lib/format'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
@@ -23,6 +22,7 @@ import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import type { CashMovement } from '@angular-app/features/cash-register/domain/entities/cash-session.entity'
 import { VOID_MOVEMENT_REASON_MIN_LENGTH } from '@angular-app/features/cash-register/domain/dtos/cash-register.dto'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 
 /**
  * Corrección de un movimiento del turno (RN-C16): monto y motivo. El tipo no se
@@ -32,7 +32,7 @@ import { VOID_MOVEMENT_REASON_MIN_LENGTH } from '@angular-app/features/cash-regi
   selector: 'mo-correct-movement-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
+  imports: [MoneyPipe, 
     ReactiveFormsModule,
     DialogComponent,
     ButtonComponent,
@@ -54,7 +54,7 @@ import { VOID_MOVEMENT_REASON_MIN_LENGTH } from '@angular-app/features/cash-regi
         <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
           <div class="bg-muted/50 rounded-lg px-3.5 py-2.5">
             <p class="text-muted-foreground text-xs">
-              {{ tipoLabel(m) }} registrado por {{ money(m.amount) }}
+              {{ tipoLabel(m) }} registrado por {{ (m.amount | money) }}
             </p>
             <p class="truncate text-sm font-semibold">{{ m.motivo }}</p>
           </div>
@@ -192,7 +192,4 @@ export class CorrectMovementDialog {
     return labels[movement.tipo] ?? movement.tipo
   }
 
-  money(value: number): string {
-    return formatCurrency(value)
-  }
 }

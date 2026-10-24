@@ -24,7 +24,7 @@ import { CorrectOpeningDialog } from '@angular-app/features/cash-register/presen
 import { CorrectMovementDialog } from '@angular-app/features/cash-register/presentation/dialogs/correct-movement.dialog'
 import { SaleDetailListComponent } from '@angular-app/shared/organisms/sale-detail-list.component'
 import { formatCurrency, formatTime, formatShortDate } from '@/shared/lib/format'
-import { PAYMENT_METHOD_CLOSURE_OPTIONS, getPaymentMethodLabel } from '@/shared/lib/payment-methods'
+import { PAYMENT_METHOD_CLOSURE_OPTIONS } from '@/shared/lib/payment-methods'
 import type {
   CashMovement,
   CashSession,
@@ -41,12 +41,14 @@ import {
 } from '@angular-app/core/auth/role-policy'
 import { computeCashTurnSummary } from '@angular-app/features/cash-register/domain/services/cash-closure'
 import type { CashMovementType } from '@/shared/types'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
+import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
 
 @Component({
   selector: 'mo-caja-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
+  imports: [PaymentLabelPipe, MoneyPipe, 
     ReactiveFormsModule,
     RouterLink,
     PageHeaderComponent,
@@ -114,7 +116,7 @@ import type { CashMovementType } from '@/shared/types'
             <p
               class="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
             >
-              Sugerencia del último cierre: {{ money(suggestedOpeningAmount()!) }}.
+              Sugerencia del último cierre: {{ (suggestedOpeningAmount()! | money) }}.
             </p>
           }
 
@@ -137,7 +139,7 @@ import type { CashMovementType } from '@/shared/types'
               Caja abierta
             </p>
             <h2 class="font-display mt-1 text-2xl font-bold">
-              {{ money(openSession()!.openingAmount) }}
+              {{ (openSession()!.openingAmount | money) }}
             </h2>
             <p class="text-muted-foreground text-xs">
               {{ shortDate(openSession()!.openedAt) }} · {{ time(openSession()!.openedAt) }}
@@ -148,19 +150,19 @@ import type { CashMovementType } from '@/shared/types'
                 <p class="text-muted-foreground text-[11px] font-semibold uppercase">
                   Total ventas
                 </p>
-                <p class="font-bold tabular-nums">{{ money(totalSales()) }}</p>
+                <p class="font-bold tabular-nums">{{ (totalSales() | money) }}</p>
               </div>
               <div class="rounded-lg border px-3 py-2">
                 <p class="text-muted-foreground text-[11px] font-semibold uppercase">Movimientos</p>
                 <p class="font-bold tabular-nums">
-                  {{ movementsTotal() >= 0 ? '+' : '' }}{{ money(movementsTotal()) }}
+                  {{ movementsTotal() >= 0 ? '+' : '' }}{{ (movementsTotal() | money) }}
                 </p>
               </div>
               <div class="rounded-lg border px-3 py-2">
                 <p class="text-muted-foreground text-[11px] font-semibold uppercase">
                   Esperado en caja
                 </p>
-                <p class="font-bold tabular-nums">{{ money(expectedCashInDrawer()) }}</p>
+                <p class="font-bold tabular-nums">{{ (expectedCashInDrawer() | money) }}</p>
               </div>
             </div>
 
@@ -173,44 +175,44 @@ import type { CashMovementType } from '@/shared/types'
                   </p>
                 </div>
                 <p class="font-display text-lg font-bold tabular-nums">
-                  {{ money(cashTurnSummary().expectedCashAmount) }}
+                  {{ (cashTurnSummary().expectedCashAmount | money) }}
                 </p>
               </div>
               <dl class="mt-3 grid grid-cols-1 gap-x-5 gap-y-1.5 text-sm sm:grid-cols-2">
                 <div class="flex justify-between gap-3">
                   <dt>Base de apertura</dt>
                   <dd class="font-mono tabular-nums">
-                    {{ money(cashTurnSummary().openingAmount) }}
+                    {{ (cashTurnSummary().openingAmount | money) }}
                   </dd>
                 </div>
                 <div class="flex justify-between gap-3">
                   <dt>Ventas en efectivo</dt>
                   <dd class="font-mono tabular-nums">
-                    +{{ money(cashTurnSummary().cashSalesAmount) }}
+                    +{{ (cashTurnSummary().cashSalesAmount | money) }}
                   </dd>
                 </div>
                 <div class="flex justify-between gap-3">
                   <dt>Entradas</dt>
                   <dd class="font-mono tabular-nums">
-                    +{{ money(cashTurnSummary().cashInAmount) }}
+                    +{{ (cashTurnSummary().cashInAmount | money) }}
                   </dd>
                 </div>
                 <div class="flex justify-between gap-3">
                   <dt>Gastos</dt>
                   <dd class="font-mono tabular-nums">
-                    −{{ money(cashTurnSummary().expenseAmount) }}
+                    −{{ (cashTurnSummary().expenseAmount | money) }}
                   </dd>
                 </div>
                 <div class="flex justify-between gap-3">
                   <dt>Retiros</dt>
                   <dd class="font-mono tabular-nums">
-                    −{{ money(cashTurnSummary().cashOutAmount) }}
+                    −{{ (cashTurnSummary().cashOutAmount | money) }}
                   </dd>
                 </div>
                 <div class="flex justify-between gap-3">
                   <dt>Correcciones</dt>
                   <dd class="font-mono tabular-nums">
-                    −{{ money(cashTurnSummary().correctionAmount) }}
+                    −{{ (cashTurnSummary().correctionAmount | money) }}
                   </dd>
                 </div>
               </dl>
@@ -225,8 +227,8 @@ import type { CashMovementType } from '@/shared/types'
               @for (item of primaryPaymentSummary(); track item.metodo) {
                 <div class="rounded-xl border p-3">
                   <div class="flex items-center justify-between gap-3">
-                    <span class="text-sm font-semibold">{{ paymentLabel(item.metodo) }}</span>
-                    <span class="font-mono font-bold tabular-nums">{{ money(item.total) }}</span>
+                    <span class="text-sm font-semibold">{{ (item.metodo | paymentLabel) }}</span>
+                    <span class="font-mono font-bold tabular-nums">{{ (item.total | money) }}</span>
                   </div>
                   <p class="text-muted-foreground mt-1 text-xs">
                     {{ item.count }} {{ item.count === 1 ? 'venta' : 'ventas' }}
@@ -289,7 +291,7 @@ import type { CashMovementType } from '@/shared/types'
                         [class.text-emerald-600]="mov.tipo === 'cash_in' && mov.status === 'active'"
                         [class.text-destructive]="mov.tipo !== 'cash_in' && mov.status === 'active'"
                       >
-                        {{ mov.tipo === 'cash_in' ? '+' : '−' }}{{ money(mov.amount) }}
+                        {{ mov.tipo === 'cash_in' ? '+' : '−' }}{{ (mov.amount | money) }}
                       </td>
                       <td class="px-4 py-2 text-right">
                         @if (mov.status === 'active') {
@@ -505,9 +507,6 @@ export class CajaPage {
     return formatShortDate(d)
   }
 
-  paymentLabel(metodo: string): string {
-    return getPaymentMethodLabel(metodo)
-  }
 
   paymentFilterClass(value: string): string {
     return [

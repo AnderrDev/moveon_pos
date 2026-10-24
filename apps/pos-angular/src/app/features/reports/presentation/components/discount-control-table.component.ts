@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core'
-import { formatCurrency } from '@/shared/lib/format'
 import type { DailyReport } from '@angular-app/features/reports/domain/entities/report.entity'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 
 /** Tabla "Control de descuentos": ventas completadas con descuento > 0, por venta/usuario/motivo. */
 @Component({
   selector: 'mo-discount-control-table',
   standalone: true,
+  imports: [MoneyPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="bg-card rounded-xl border border-amber-500/25 p-5">
@@ -21,11 +22,11 @@ import type { DailyReport } from '@angular-app/features/reports/domain/entities/
         <div class="flex gap-4 text-right text-xs">
           <div>
             <p class="text-muted-foreground">Por productos</p>
-            <p class="font-mono font-bold tabular-nums">{{ money(report().itemDiscountTotal) }}</p>
+            <p class="font-mono font-bold tabular-nums">{{ (report().itemDiscountTotal | money) }}</p>
           </div>
           <div>
             <p class="text-muted-foreground">Globales</p>
-            <p class="font-mono font-bold tabular-nums">{{ money(report().globalDiscountTotal) }}</p>
+            <p class="font-mono font-bold tabular-nums">{{ (report().globalDiscountTotal | money) }}</p>
           </div>
         </div>
       </div>
@@ -53,13 +54,13 @@ import type { DailyReport } from '@angular-app/features/reports/domain/entities/
                     {{ sale.cashierEmail ?? cashierLabel(sale.cashierId) }}
                   </td>
                   <td class="px-2 py-2 text-right tabular-nums">
-                    {{ money(sale.itemDiscountTotal) }}
+                    {{ (sale.itemDiscountTotal | money) }}
                   </td>
                   <td class="px-2 py-2 text-right tabular-nums">
-                    {{ money(sale.globalDiscountTotal) }}
+                    {{ (sale.globalDiscountTotal | money) }}
                   </td>
                   <td class="px-2 py-2 text-right font-bold tabular-nums">
-                    {{ money(sale.discountTotal) }}
+                    {{ (sale.discountTotal | money) }}
                   </td>
                   <td class="px-2 py-2 text-right tabular-nums">
                     {{ percent(sale.discountPercentage) }}
@@ -85,9 +86,6 @@ export class DiscountControlTableComponent {
     ),
   )
 
-  money(v: number): string {
-    return formatCurrency(v)
-  }
 
   percent(value: number): string {
     return `${value.toFixed(2)}%`

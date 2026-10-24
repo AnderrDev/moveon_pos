@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, effect, input, output, signal } from '@angular/core'
-import { formatCurrency } from '@/shared/lib/format'
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 import type { PosProduct, PosProductOption } from '@angular-app/features/pos/presentation/services/pos.types'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 
 export interface ProductOptionResult {
   product: PosProduct
@@ -19,7 +19,7 @@ export interface ProductOptionResult {
   selector: 'mo-product-option-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DialogComponent, ButtonComponent],
+  imports: [MoneyPipe, DialogComponent, ButtonComponent],
   template: `
     <mo-dialog [open]="open()" [title]="title()" width="sm" (closed)="onClose()">
       @if (product(); as p) {
@@ -27,7 +27,7 @@ export interface ProductOptionResult {
           <div class="bg-muted/50 rounded-lg px-3.5 py-2.5">
             <p class="truncate text-sm font-semibold">{{ p.nombre }}</p>
             <p class="text-muted-foreground text-xs tabular-nums">
-              Precio base {{ money(p.precioVenta) }}
+              Precio base {{ (p.precioVenta | money) }}
             </p>
           </div>
 
@@ -45,7 +45,7 @@ export interface ProductOptionResult {
                 </span>
                 <span class="shrink-0 text-xs font-semibold tabular-nums">
                   @if (option.precioExtra > 0) {
-                    +{{ money(option.precioExtra) }}
+                    +{{ (option.precioExtra | money) }}
                   } @else {
                     Sin recargo
                   }
@@ -58,7 +58,7 @@ export interface ProductOptionResult {
             <span class="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
               Precio final
             </span>
-            <span class="text-base font-bold tabular-nums">{{ money(finalPrice()) }}</span>
+            <span class="text-base font-bold tabular-nums">{{ (finalPrice() | money) }}</span>
           </div>
 
           <div class="flex justify-end gap-2">
@@ -128,7 +128,4 @@ export class ProductOptionDialog {
     this.closed.emit()
   }
 
-  money(value: number): string {
-    return formatCurrency(value)
-  }
 }

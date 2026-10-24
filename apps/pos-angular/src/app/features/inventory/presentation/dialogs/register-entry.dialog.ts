@@ -10,7 +10,6 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { getErrorMessage } from '@/shared/lib/error-message'
-import { formatCurrency } from '@/shared/lib/format'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
@@ -28,6 +27,7 @@ import { registerEntry } from '@angular-app/features/inventory/domain/usecases/r
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import type { InventoryLocation } from '@/shared/types'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 
 interface ProductSummary {
   id: string
@@ -45,7 +45,7 @@ const LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
   selector: 'mo-register-entry-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
+  imports: [MoneyPipe, 
     ReactiveFormsModule,
     DialogComponent,
     ButtonComponent,
@@ -91,7 +91,7 @@ const LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
           >
             <span class="text-sm font-medium">Total de la compra</span>
             <span class="text-primary text-lg font-bold tabular-nums">{{
-              money(entryTotal())
+              (entryTotal() | money)
             }}</span>
           </div>
         }
@@ -214,7 +214,4 @@ export class RegisterEntryDialog {
     this.closed.emit()
   }
 
-  money(value: number): string {
-    return formatCurrency(value)
-  }
 }

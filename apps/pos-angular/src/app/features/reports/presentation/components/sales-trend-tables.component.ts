@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core'
-import { formatCurrency } from '@/shared/lib/format'
 import { CardComponent } from '@angular-app/shared/atoms/card.component'
 import type { DailySalesSummary, HourlySalesSummary } from '@angular-app/features/reports/domain/services/sales-trend'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 
 /**
  * Sección "Tendencia" del tab Ventas: dos tablas, "Ventas por hora" (suma
@@ -14,7 +14,7 @@ import type { DailySalesSummary, HourlySalesSummary } from '@angular-app/feature
   selector: 'mo-sales-trend-tables',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CardComponent],
+  imports: [MoneyPipe, CardComponent],
   template: `
     <div class="grid gap-4 md:grid-cols-2">
       <mo-card>
@@ -37,8 +37,8 @@ import type { DailySalesSummary, HourlySalesSummary } from '@angular-app/feature
                   <tr>
                     <td class="px-2 py-2">{{ hourLabel(row.hour) }}</td>
                     <td class="px-2 py-2 text-right tabular-nums">{{ row.count }}</td>
-                    <td class="px-2 py-2 text-right tabular-nums">{{ money(row.total) }}</td>
-                    <td class="px-2 py-2 text-right tabular-nums">{{ money(row.avgTicket) }}</td>
+                    <td class="px-2 py-2 text-right tabular-nums">{{ (row.total | money) }}</td>
+                    <td class="px-2 py-2 text-right tabular-nums">{{ (row.avgTicket | money) }}</td>
                   </tr>
                 }
               </tbody>
@@ -69,8 +69,8 @@ import type { DailySalesSummary, HourlySalesSummary } from '@angular-app/feature
                   <tr>
                     <td class="px-2 py-2">{{ row.date }}</td>
                     <td class="px-2 py-2 text-right tabular-nums">{{ row.count }}</td>
-                    <td class="px-2 py-2 text-right tabular-nums">{{ money(row.total) }}</td>
-                    <td class="px-2 py-2 text-right tabular-nums">{{ money(row.avgTicket) }}</td>
+                    <td class="px-2 py-2 text-right tabular-nums">{{ (row.total | money) }}</td>
+                    <td class="px-2 py-2 text-right tabular-nums">{{ (row.avgTicket | money) }}</td>
                   </tr>
                 }
               </tbody>
@@ -87,9 +87,6 @@ export class SalesTrendTablesComponent {
   readonly hourlySales = input.required<HourlySalesSummary[]>()
   readonly dailySales = input.required<DailySalesSummary[]>()
 
-  money(v: number): string {
-    return formatCurrency(v)
-  }
 
   /** Formatea una hora `0..23` como `HH:00` (ej. `9` → `09:00`). */
   hourLabel(hour: number): string {

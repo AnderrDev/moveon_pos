@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core'
 import { Gift, LucideAngularModule } from 'lucide-angular'
-import { formatCurrency } from '@/shared/lib/format'
 import { PosCartStore, type PosCartItem } from '@angular-app/features/pos/presentation/services/pos-cart.store'
 import type { LoyaltySummary } from '@angular-app/features/loyalty/domain/repositories/loyalty.repository'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 
 /**
  * Panel del carrito del POS: cliente asociado y su tarjeta MOVE ON Club,
@@ -13,7 +13,7 @@ import type { LoyaltySummary } from '@angular-app/features/loyalty/domain/reposi
 @Component({
   selector: 'mo-pos-cart-panel',
   standalone: true,
-  imports: [LucideAngularModule],
+  imports: [MoneyPipe, LucideAngularModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   // `contents`: el <aside> participa directo en el layout flex de la página.
   host: { class: 'contents' },
@@ -99,7 +99,7 @@ import type { LoyaltySummary } from '@angular-app/features/loyalty/domain/reposi
                       >
                         <span class="flex items-center gap-1 text-[11px] font-semibold text-emerald-700">
                           <lucide-angular [img]="icons.gift" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                          Premio aplicado · −{{ money(redemption.amount) }}
+                          Premio aplicado · −{{ (redemption.amount | money) }}
                         </span>
                         <button
                           type="button"
@@ -152,7 +152,7 @@ import type { LoyaltySummary } from '@angular-app/features/loyalty/domain/reposi
                         >
                           {{ option.nombre }}
                           @if (option.precioExtra > 0) {
-                            · +{{ money(option.precioExtra) }}
+                            · +{{ (option.precioExtra | money) }}
                           }
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="h-3 w-3 shrink-0"><path d="m6 9 6 6 6-6"/></svg>
                         </button>
@@ -201,9 +201,9 @@ import type { LoyaltySummary } from '@angular-app/features/loyalty/domain/reposi
                       </button>
                     </div>
                     <div class="text-right">
-                      <p class="text-sm font-bold tabular-nums">{{ money(item.total) }}</p>
+                      <p class="text-sm font-bold tabular-nums">{{ (item.total | money) }}</p>
                       <p class="text-muted-foreground text-[11px] tabular-nums">
-                        {{ money(item.unitPrice) }} × {{ item.quantity }}
+                        {{ (item.unitPrice | money) }} × {{ item.quantity }}
                       </p>
                     </div>
                   </div>
@@ -222,7 +222,7 @@ import type { LoyaltySummary } from '@angular-app/features/loyalty/domain/reposi
                     </button>
                     @if (item.descuentoTotal > 0) {
                       <span class="text-destructive text-[11px] font-medium tabular-nums">
-                        −{{ money(item.descuentoTotal) }}
+                        −{{ (item.descuentoTotal | money) }}
                       </span>
                     }
                   </div>
@@ -238,7 +238,7 @@ import type { LoyaltySummary } from '@angular-app/features/loyalty/domain/reposi
               <div class="mb-1.5 flex justify-between text-sm">
                 <span class="text-muted-foreground">Descuentos</span>
                 <span class="text-destructive font-medium"
-                  >−{{ money(cart.totals().discountTotal) }}</span
+                  >−{{ (cart.totals().discountTotal | money) }}</span
                 >
               </div>
             }
@@ -248,7 +248,7 @@ import type { LoyaltySummary } from '@angular-app/features/loyalty/domain/reposi
               <span
                 class="font-display text-primary text-xl font-bold tabular-nums sm:text-2xl"
               >
-                {{ money(cart.totals().total) }}
+                {{ (cart.totals().total | money) }}
               </span>
             </div>
 
@@ -258,7 +258,7 @@ import type { LoyaltySummary } from '@angular-app/features/loyalty/domain/reposi
               [disabled]="!canCheckout()"
               class="bg-primary text-primary-foreground mt-3 h-12 w-full rounded-lg text-base font-bold tracking-wide transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Cobrar {{ money(cart.totals().total) }}
+              Cobrar {{ (cart.totals().total | money) }}
             </button>
           </div>
         </div>
@@ -285,9 +285,6 @@ export class PosCartPanelComponent {
 
   readonly icons = { gift: Gift }
 
-  money(amount: number): string {
-    return formatCurrency(amount)
-  }
 
   componentLabel(components: { nombre: string; cantidad: number }[]): string {
     return components

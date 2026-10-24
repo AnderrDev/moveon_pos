@@ -42,6 +42,7 @@ import {
 import type { PosCartItem } from '@angular-app/features/pos/presentation/services/pos-cart.store'
 import type { OpenCashSession, PosCategory, PosProduct } from '@angular-app/features/pos/presentation/services/pos.types'
 import type { Cliente } from '@angular-app/features/customers/domain/entities/cliente.entity'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 
 interface PostSaleOutputJob {
   saleId: string
@@ -55,7 +56,7 @@ interface PostSaleOutputJob {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [PosCartStore, PosCheckoutStore],
-  imports: [
+  imports: [MoneyPipe, 
     PosCheckoutDialogComponent,
     PosCartPanelComponent,
     PosCatalogComponent,
@@ -77,7 +78,7 @@ interface PostSaleOutputJob {
           <h1 class="font-display text-2xl font-bold">Punto de Venta</h1>
           <p class="text-muted-foreground text-sm">
             @if (cashSession()) {
-              Turno abierto · Caja {{ money(cashSession()!.openingAmount) }}
+              Turno abierto · Caja {{ (cashSession()!.openingAmount | money) }}
             } @else {
               No hay caja abierta
             }
@@ -352,9 +353,6 @@ export class PosPage {
     void this.refreshProducts()
   }
 
-  money(amount: number): string {
-    return formatCurrency(amount)
-  }
 
   selectProduct(product: PosProduct): void {
     // Vender es un toque: el producto entra con su opción por defecto (CH+ en

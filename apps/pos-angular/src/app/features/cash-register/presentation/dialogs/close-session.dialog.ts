@@ -35,6 +35,7 @@ import type { CashSession } from '@angular-app/features/cash-register/domain/ent
 import type { PaymentMethod } from '@/shared/types'
 import { CloseSessionFormPresenter } from '@angular-app/features/cash-register/presentation/presenters/close-session-form.presenter'
 import { closeSessionFormMapper } from '@angular-app/features/cash-register/presentation/forms/close-session-form.mapper'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 
 /** Esperado por método, tipo simple del dominio (sin acoplar a Supabase). */
 export interface ExpectedByMethod {
@@ -65,7 +66,7 @@ const NON_CASH_METHODS: { metodo: Exclude<PaymentMethod, 'cash'>; controlName: s
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [CloseSessionFormPresenter],
-  imports: [
+  imports: [MoneyPipe, 
     ReactiveFormsModule,
     DialogComponent,
     ButtonComponent,
@@ -91,7 +92,7 @@ const NON_CASH_METHODS: { metodo: Exclude<PaymentMethod, 'cash'>; controlName: s
               <div class="flex items-center justify-between gap-3">
                 <span class="text-sm font-semibold">{{ row.label }}</span>
                 <span class="text-muted-foreground text-[11px] font-semibold uppercase tracking-wide">
-                  Esperado {{ money(row.expected) }} ({{ row.expectedCount }}
+                  Esperado {{ (row.expected | money) }} ({{ row.expectedCount }}
                   {{ row.expectedCount === 1 ? 'pago' : 'pagos' }})
                 </span>
               </div>
@@ -131,17 +132,17 @@ const NON_CASH_METHODS: { metodo: Exclude<PaymentMethod, 'cash'>; controlName: s
               <div>
                 <p class="text-muted-foreground text-xs">Retiro calculado</p>
                 <p class="font-display text-lg font-bold tabular-nums">
-                  {{ money(closingWithdrawal()) }}
+                  {{ (closingWithdrawal() | money) }}
                 </p>
               </div>
               <div class="sm:text-right">
                 <p class="text-muted-foreground text-xs">Quedará en el cajón</p>
-                <p class="font-semibold tabular-nums">{{ money(cashLeftAfterClosing()) }}</p>
+                <p class="font-semibold tabular-nums">{{ (cashLeftAfterClosing() | money) }}</p>
               </div>
             </div>
           } @else {
             <p class="text-muted-foreground text-xs">
-              Se dejará todo el efectivo contado: {{ money(cashLeftAfterClosing()) }}.
+              Se dejará todo el efectivo contado: {{ (cashLeftAfterClosing() | money) }}.
             </p>
           }
         </div>
@@ -292,9 +293,6 @@ export class CloseSessionDialog {
     })
   }
 
-  money(v: number): string {
-    return formatCurrency(v)
-  }
 
   /** Etiqueta legible de la diferencia con signo y rótulo Sobra/Falta. */
   differenceLabel(difference: number): string {

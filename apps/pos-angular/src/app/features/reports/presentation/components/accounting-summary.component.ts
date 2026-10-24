@@ -1,15 +1,15 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core'
-import { formatCurrency } from '@/shared/lib/format'
-import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
 import { ProductMarginTableComponent } from '@angular-app/features/reports/presentation/components/product-margin-table.component'
 import type { DailyReport } from '@angular-app/features/reports/domain/entities/report.entity'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
+import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
 
 /** Contenido del tab "Resumen contable": ingresos, IVA por tasa, pagos para cuadre y utilidad. */
 @Component({
   selector: 'mo-accounting-summary',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ProductMarginTableComponent],
+  imports: [PaymentLabelPipe, MoneyPipe, ProductMarginTableComponent],
   template: `
     <div class="grid gap-4 lg:grid-cols-2">
       <!-- Bloque de ingresos -->
@@ -22,16 +22,16 @@ import type { DailyReport } from '@angular-app/features/reports/domain/entities/
         <dl class="space-y-3 text-sm">
           <div class="flex justify-between gap-3">
             <dt class="text-muted-foreground">Ingresos brutos</dt>
-            <dd class="font-semibold tabular-nums">{{ money(report().subtotalVentas) }}</dd>
+            <dd class="font-semibold tabular-nums">{{ (report().subtotalVentas | money) }}</dd>
           </div>
           <div class="flex justify-between gap-3 text-amber-800">
             <dt>− Descuentos</dt>
-            <dd class="font-semibold tabular-nums">{{ money(report().discountTotal) }}</dd>
+            <dd class="font-semibold tabular-nums">{{ (report().discountTotal | money) }}</dd>
           </div>
           <div class="border-border flex justify-between gap-3 border-t pt-3">
             <dt class="font-black">Ingresos netos</dt>
             <dd class="text-primary text-xl font-black tabular-nums">
-              {{ money(report().totalVentas) }}
+              {{ (report().totalVentas | money) }}
             </dd>
           </div>
         </dl>
@@ -57,18 +57,18 @@ import type { DailyReport } from '@angular-app/features/reports/domain/entities/
             @for (p of report().paymentBreakdown; track p.metodo) {
               <li class="flex items-center justify-between gap-3">
                 <div>
-                  <p class="font-semibold">{{ paymentLabel(p.metodo) }}</p>
+                  <p class="font-semibold">{{ (p.metodo | paymentLabel) }}</p>
                   <p class="text-muted-foreground text-xs">{{ p.count }} transacciones</p>
                 </div>
                 <span class="font-mono text-base font-bold tabular-nums">
-                  {{ money(p.total) }}
+                  {{ (p.total | money) }}
                 </span>
               </li>
             }
           </ul>
           <div class="border-border mt-4 flex justify-between border-t pt-3 text-sm">
             <span class="font-black">Total recaudado</span>
-            <span class="font-mono font-black tabular-nums">{{ money(report().totalVentas) }}</span>
+            <span class="font-mono font-black tabular-nums">{{ (report().totalVentas | money) }}</span>
           </div>
         }
       </div>
@@ -92,11 +92,5 @@ export class AccountingSummaryComponent {
   readonly fromIso = input.required<string>()
   readonly toIso = input.required<string>()
 
-  money(v: number): string {
-    return formatCurrency(v)
-  }
 
-  paymentLabel(metodo: string): string {
-    return getPaymentMethodLabel(metodo)
-  }
 }

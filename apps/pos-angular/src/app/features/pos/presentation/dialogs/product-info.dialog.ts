@@ -1,13 +1,13 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core'
-import { formatCurrency } from '@/shared/lib/format'
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
 import type { PosProduct } from '@angular-app/features/pos/presentation/services/pos.types'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 
 @Component({
   selector: 'mo-product-info-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DialogComponent],
+  imports: [MoneyPipe, DialogComponent],
   template: `
     <mo-dialog
       [open]="open()"
@@ -26,7 +26,7 @@ import type { PosProduct } from '@angular-app/features/pos/presentation/services
                 </p>
                 @if (!isAdmin()) {
                   <p class="text-primary mt-0.5 text-lg font-bold tabular-nums">
-                    {{ money(product.precioVenta) }}
+                    {{ (product.precioVenta | money) }}
                   </p>
                 }
               </div>
@@ -44,13 +44,13 @@ import type { PosProduct } from '@angular-app/features/pos/presentation/services
                     Precio de venta
                   </p>
                   <p class="text-primary mt-1 text-base font-bold tabular-nums">
-                    {{ money(product.precioVenta) }}
+                    {{ (product.precioVenta | money) }}
                   </p>
                 </div>
                 <div class="bg-card rounded-lg border px-3 py-2.5">
                   <p class="text-muted-foreground text-[11px] font-semibold uppercase">Costo</p>
                   <p class="mt-1 text-base font-bold tabular-nums">
-                    {{ product.costo === null ? 'No registrado' : money(product.costo) }}
+                    {{ product.costo === null ? 'No registrado' : (product.costo | money) }}
                   </p>
                 </div>
               </div>
@@ -113,9 +113,6 @@ export class ProductInfoDialog {
     return Boolean(product?.paraQueSirve || product?.recomendadoPara)
   })
 
-  money(amount: number): string {
-    return formatCurrency(amount)
-  }
 
   stockLabel(product: PosProduct): string {
     return product.stockDisponible === null

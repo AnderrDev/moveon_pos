@@ -6,10 +6,11 @@ import { TableShellComponent } from '@angular-app/shared/molecules/table/table-s
 import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
 import { formatCurrency } from '@/shared/lib/format'
 import type { CashHistoryDay, CashHistoryDaysPage } from '../../domain/services/cash-history'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 
 @Component({
  selector: 'mo-cash-history-days', standalone: true, changeDetection: ChangeDetectionStrategy.OnPush,
- imports: [ButtonComponent, CardComponent, EmptyStateComponent, TableShellComponent, MO_TABLE],
+ imports: [MoneyPipe, ButtonComponent, CardComponent, EmptyStateComponent, TableShellComponent, MO_TABLE],
  template: `
   <p class="text-muted-foreground mb-3 text-xs">Agrupado por fecha de cierre. El efectivo final corresponde al último cierre del día, después de retirar efectivo.</p>
   @if (!page().items.length) { <mo-empty-state title="No hay cierres en este rango" description="Cambia las fechas o limpia los filtros." /> }
@@ -19,13 +20,13 @@ import type { CashHistoryDay, CashHistoryDaysPage } from '../../domain/services/
     <thead moThead><tr><th moTh>Fecha</th><th moTh class="text-right">Venta total</th><th moTh class="text-right">Efectivo</th><th moTh class="text-right">Transferencia</th><th moTh class="text-right">Gastos</th><th moTh class="text-right">Ingreso extra</th><th moTh class="text-right">Efectivo final</th><th moTh>Observaciones</th><th moTh><span class="sr-only">Turnos</span></th></tr></thead>
     <tbody>@for (d of page().items; track d.day) {
      <tr moTr [hover]="true"><td moTd class="whitespace-nowrap"><p class="font-semibold">{{ date(d.day) }}</p><p class="text-muted-foreground text-xs">{{ d.turnCount }} turnos</p></td>
-      <td moTd class="text-right font-semibold tabular-nums">{{ money(d.salesTotal) }}</td><td moTd class="text-right tabular-nums">{{ money(d.cashTotal) }}</td><td moTd class="text-right tabular-nums">{{ money(d.transferTotal) }}</td><td moTd class="text-right tabular-nums">{{ money(d.expensesTotal) }}</td><td moTd class="text-right tabular-nums">{{ money(d.extraIncomeTotal) }}</td><td moTd class="text-right tabular-nums"><p class="font-semibold">{{ money(d.finalCashLeft) }}</p><p class="text-muted-foreground mt-1 whitespace-nowrap text-xs">Retiros {{ money(d.withdrawalsTotal) }}</p></td><td moTd class="max-w-48 break-words text-xs">{{ d.notes.join(' · ') || '—' }}</td><td moTd><mo-button size="xs" variant="outline" (click)="selected.emit(d.day)">{{ selectedDay() === d.day ? 'Ocultar turnos' : 'Ver turnos' }}</mo-button></td>
+      <td moTd class="text-right font-semibold tabular-nums">{{ (d.salesTotal | money) }}</td><td moTd class="text-right tabular-nums">{{ (d.cashTotal | money) }}</td><td moTd class="text-right tabular-nums">{{ (d.transferTotal | money) }}</td><td moTd class="text-right tabular-nums">{{ (d.expensesTotal | money) }}</td><td moTd class="text-right tabular-nums">{{ (d.extraIncomeTotal | money) }}</td><td moTd class="text-right tabular-nums"><p class="font-semibold">{{ (d.finalCashLeft | money) }}</p><p class="text-muted-foreground mt-1 whitespace-nowrap text-xs">Retiros {{ (d.withdrawalsTotal | money) }}</p></td><td moTd class="max-w-48 break-words text-xs">{{ d.notes.join(' · ') || '—' }}</td><td moTd><mo-button size="xs" variant="outline" (click)="selected.emit(d.day)">{{ selectedDay() === d.day ? 'Ocultar turnos' : 'Ver turnos' }}</mo-button></td>
      </tr>
     }</tbody>
    </table></mo-table-shell></div>
    <div class="space-y-3 lg:hidden">@for (d of page().items; track d.day) {
     <mo-card><div class="flex items-center justify-between gap-2"><h2 class="font-semibold">{{ date(d.day) }}</h2><span class="text-muted-foreground text-xs">{{ d.turnCount }} turnos</span></div>
-     <dl class="mt-3 grid grid-cols-2 gap-3 text-sm">@for (field of fields(d); track field.label) { <div><dt class="text-muted-foreground text-xs">{{ field.label }}</dt><dd class="font-semibold tabular-nums">{{ money(field.value) }}</dd></div> }</dl>
+     <dl class="mt-3 grid grid-cols-2 gap-3 text-sm">@for (field of fields(d); track field.label) { <div><dt class="text-muted-foreground text-xs">{{ field.label }}</dt><dd class="font-semibold tabular-nums">{{ (field.value | money) }}</dd></div> }</dl>
      @if (d.notes.length) { <p class="text-muted-foreground mt-3 break-words text-xs">{{ d.notes.join(' · ') }}</p> }
      <mo-button class="mt-3 block" size="sm" variant="outline" (click)="selected.emit(d.day)">{{ selectedDay() === d.day ? 'Ocultar turnos' : 'Ver turnos' }}</mo-button>
     </mo-card>

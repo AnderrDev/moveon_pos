@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core'
-import { formatCurrency } from '@/shared/lib/format'
 import { BadgeComponent } from '@angular-app/shared/atoms/badge.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 import { TableShellComponent } from '@angular-app/shared/molecules/table/table-shell.component'
@@ -9,6 +8,7 @@ import type {
   ExpenseCategory,
   ExpenseMetodoPago,
 } from '@angular-app/features/expenses/domain/entities/expense.entity'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 
 const METODO_LABEL: Record<ExpenseMetodoPago, string> = {
   efectivo_caja: 'Efectivo (caja)',
@@ -22,7 +22,7 @@ const METODO_LABEL: Record<ExpenseMetodoPago, string> = {
   selector: 'mo-expense-list',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BadgeComponent, ButtonComponent, TableShellComponent, MO_TABLE],
+  imports: [MoneyPipe, BadgeComponent, ButtonComponent, TableShellComponent, MO_TABLE],
   template: `
     <mo-table-shell>
       <table moTable>
@@ -57,7 +57,7 @@ const METODO_LABEL: Record<ExpenseMetodoPago, string> = {
                 class="text-right font-semibold whitespace-nowrap"
                 [class.line-through]="g.status === 'voided'"
               >
-                {{ money(g.monto) }}
+                {{ (g.monto | money) }}
               </td>
               <td moTd class="text-right">
                 @if (g.status === 'active') {
@@ -91,7 +91,4 @@ export class ExpenseListComponent {
     return METODO_LABEL[metodo]
   }
 
-  money(v: number): string {
-    return formatCurrency(v)
-  }
 }

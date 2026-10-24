@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core'
-import { formatCurrency } from '@/shared/lib/format'
 import { BadgeComponent } from '@angular-app/shared/atoms/badge.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 import { CardComponent } from '@angular-app/shared/atoms/card.component'
 import type { Empleado } from '@angular-app/features/expenses/domain/entities/expense.entity'
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 
 /**
  * Sección de nómina: empleados con salario acordado y lo pagado en el mes
@@ -13,7 +13,7 @@ import type { Empleado } from '@angular-app/features/expenses/domain/entities/ex
   selector: 'mo-nomina-section',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BadgeComponent, ButtonComponent, CardComponent],
+  imports: [MoneyPipe, BadgeComponent, ButtonComponent, CardComponent],
   template: `
     <mo-card padding="none">
       <div class="flex items-center justify-between border-b px-4 py-3">
@@ -42,7 +42,7 @@ import type { Empleado } from '@angular-app/features/expenses/domain/entities/ex
                   }
                 </p>
                 <p class="text-muted-foreground text-xs">
-                  {{ emp.cargo ?? 'Sin cargo' }} · Acordado: {{ money(emp.salarioMensual) }}/mes
+                  {{ emp.cargo ?? 'Sin cargo' }} · Acordado: {{ (emp.salarioMensual | money) }}/mes
                 </p>
               </div>
               <div class="flex items-center gap-3">
@@ -52,7 +52,7 @@ import type { Empleado } from '@angular-app/features/expenses/domain/entities/ex
                     class="text-sm font-semibold"
                     [class.text-emerald-600]="pagadoDe(emp) >= emp.salarioMensual && emp.salarioMensual > 0"
                   >
-                    {{ money(pagadoDe(emp)) }}
+                    {{ (pagadoDe(emp) | money) }}
                   </p>
                 </div>
                 <div class="flex gap-1">
@@ -84,7 +84,4 @@ export class NominaSectionComponent {
     return this.pagado().get(emp.id) ?? 0
   }
 
-  money(v: number): string {
-    return formatCurrency(v)
-  }
 }
