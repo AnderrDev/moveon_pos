@@ -64,3 +64,23 @@ Regla: pruebas solo en Supabase local; ninguna migración va a producción sin O
 - Elegir categoría al registrar un gasto desde caja, o reclasificar gastos en Finanzas (hoy algunos son nómina: "pago Danelis", "pago Gustavo").
 - Inventario muestra "+ Entrada", "Ajustar" y "Trasladar" en productos preparados y combos, que la RPC rechaza (Ola 2).
 - Decisión pendiente: ¿el stock inicial de un producto nuevo cuenta como compra en el fondo?
+
+---
+
+## 5. Ola 2 — Productos e Inventario en una sola pantalla (local)
+
+**Qué se hizo**
+- `/productos` muestra catálogo y stock juntos: costo, precio, punto de venta, bodega, mínimo y alertas; filtros de búsqueda, categoría, proveedor, estado y **Solo faltantes**. Acciones por fila: **+ Entrada**, **Editar** y menú con **Ajustar stock**, **Trasladar**, **Kardex**, Desactivar y Eliminar. Preparados y combos muestran "Sin stock propio" y no ofrecen acciones de stock (antes /inventario las ofrecía y la RPC las rechazaba).
+- `/inventario` redirige a `/productos`; se quitó del menú lateral y se borró `inventario.page.ts` y `buildInventoryWorkbook` (el Excel de Productos ahora trae proveedor, stock por ubicación y estado del stock).
+- **Corregir costo vuelve a funcionar:** el botón del kardex emitía la petición pero ninguna pantalla abría `CorrectEntryCostDialog` (el cableado se perdió en un commit de limpieza). Ahora se abre desde el kardex en Productos.
+- **Costo bloqueado en edición** para productos con stock propio que ya tienen costo: solo cambia por entrada o corrección (auditadas). Preparados, combos y productos sin costo siguen editables.
+- Helper puro `features/products/presentation/services/product-stock.ts` + `tests/unit/features/products/product-stock.test.ts`.
+
+**Verificación**
+- 875 pruebas unitarias, lint, typecheck (build Angular) OK.
+- Navegador local (4210): `/inventario` → `/productos`; "Solo faltantes" deja solo la barra agotada; entrada de 3 unidades actualiza la fila sin recargar (0 → 3, "Stock bajo"); kardex → Corregir costo a $4.800 actualiza el costo en la tabla; en Editar el costo sale bloqueado con su explicación y en el combo sigue editable; 375 px sin scroll horizontal de página; sin errores de consola.
+
+**Pendiente (no se hizo en esta ola)**
+- Ficha del producto con pestañas (Datos / Stock y kardex / Opciones) — la tabla ya concentra las acciones; evaluar si hace falta.
+- Bodega opcional por tienda (ocultar columnas y traslado si no se usa).
+- Ola 3: compra en lote por proveedor, motivos de ajuste fijos, anular ajustes, pérdidas de inventario en Finanzas.

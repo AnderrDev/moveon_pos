@@ -3,7 +3,6 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { filter } from 'rxjs'
 import {
-  Boxes,
   ChartColumn,
   Ellipsis,
   History,
@@ -50,7 +49,6 @@ const NAV_GROUPS: readonly NavGroup[] = [
     label: 'Mercancía',
     items: [
       { label: 'Productos', short: 'Productos', href: '/productos', icon: Package, adminOnly: true },
-      { label: 'Inventario', short: 'Inventario', href: '/inventario', icon: Boxes, adminOnly: true },
     ],
   },
   {

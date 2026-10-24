@@ -55,12 +55,15 @@ const TIPO_OPTIONS: FormSelectOption<string>[] = [
   { value: 'combo', label: 'Combo' },
 ]
 
+import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
+import { tracksOwnStock } from '@/shared/lib/product-type'
 @Component({
   selector: 'mo-product-form-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [ProductFormPresenter],
   imports: [
+    MoneyPipe,
     ReactiveFormsModule,
     DialogComponent,
     ButtonComponent,
@@ -211,12 +214,24 @@ const TIPO_OPTIONS: FormSelectOption<string>[] = [
             [required]="true"
             [error]="presenter.errors().precioVenta ?? null"
           />
-          <mo-form-currency-input
-            controlName="costo"
-            label="Costo"
-            [description]="comboCostHint()"
-            [error]="presenter.errors().costo ?? null"
-          />
+          @if (costLocked()) {
+            <div>
+              <p class="text-sm font-semibold">Costo</p>
+              <p class="bg-muted/50 mt-1.5 flex h-10 items-center rounded-lg border px-3 text-sm font-semibold tabular-nums">
+                {{ (product()!.costo! | money) }}
+              </p>
+              <p class="text-muted-foreground mt-1.5 text-xs">
+                Cambia al registrar una entrada con costo o al corregir el costo de una entrada en el kardex.
+              </p>
+            </div>
+          } @else {
+            <mo-form-currency-input
+              controlName="costo"
+              label="Costo"
+              [description]="comboCostHint()"
+              [error]="presenter.errors().costo ?? null"
+            />
+          }
         </div>
 
         <div class="grid gap-x-4 gap-y-5 sm:grid-cols-2">
@@ -370,6 +385,22 @@ export class ProductFormDialog {
     ...this.proveedores().map((p) => ({ value: p.id, label: p.nombre })),
     { value: PROVEEDOR_NUEVO, label: '+ Nuevo proveedor...' },
   ])
+
+  /**
+   * En un producto con stock propio y costo ya registrado, el costo solo
+   * cambia por una entrada o una corrección de costo (ambas auditadas y
+   * enlazadas a la compra). El control conserva el valor actual, así que el
+   * guardado lo reenvía sin cambios.
+   */
+  readonly costLocked = computed(() => {
+    const product = this.product()
+    return (
+      !!product &&
+      product.costo !== null &&
+      tracksOwnStock(product.tipo) &&
+      tracksOwnStock(this.selectedType())
+    )
+  })
 
   readonly dialogTitle = computed(() => (this.product() ? 'Editar producto' : 'Nuevo producto'))
 

@@ -2,18 +2,6 @@ import type { InventoryMovement } from '@angular-app/features/inventory/domain/e
 import type { ExcelWorkbookDefinition } from '@angular-app/shared/services/export/excel-export.service'
 import { buildExportFilename } from '@angular-app/shared/services/export/export-filename'
 
-export interface InventoryExportRow {
-  nombre: string
-  sku: string | null
-  proveedor: string | null
-  puntoVentaStock: number
-  bodegaStock: number
-  totalStock: number
-  minimumStock: number
-  isLow: boolean
-  isOut: boolean
-}
-
 const MOVEMENT_LABELS: Record<string, string> = {
   entry: 'Entrada',
   sale_exit: 'Venta',
@@ -26,45 +14,6 @@ const MOVEMENT_LABELS: Record<string, string> = {
 const LOCATION_LABELS: Record<string, string> = {
   punto_venta: 'Punto de venta',
   bodega: 'Bodega',
-}
-
-export function buildInventoryWorkbook(
-  rows: readonly InventoryExportRow[],
-  query: string
-): ExcelWorkbookDefinition {
-  const normalizedQuery = query.trim()
-  return {
-    filename: buildExportFilename('inventario'),
-    sheets: [
-      {
-        name: 'Inventario',
-        title: 'Inventario actual',
-        subtitle: normalizedQuery
-          ? `${rows.length} productos · Filtro: ${normalizedQuery}`
-          : `${rows.length} productos`,
-        columns: [
-          { header: 'Producto', width: 36 },
-          { header: 'SKU', width: 16 },
-          { header: 'Proveedor', width: 24 },
-          { header: 'Punto de venta', width: 18, format: 'integer' },
-          { header: 'Bodega', width: 14, format: 'integer' },
-          { header: 'Stock total', width: 15, format: 'integer' },
-          { header: 'Stock mínimo', width: 16, format: 'integer' },
-          { header: 'Estado', width: 16 },
-        ],
-        rows: rows.map((row) => [
-          row.nombre,
-          row.sku,
-          row.proveedor,
-          row.puntoVentaStock,
-          row.bodegaStock,
-          row.totalStock,
-          row.minimumStock,
-          row.isOut ? 'Agotado' : row.isLow ? 'Stock bajo' : 'Disponible',
-        ]),
-      },
-    ],
-  }
 }
 
 export function buildKardexWorkbook(
