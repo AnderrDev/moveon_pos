@@ -41,7 +41,7 @@ Un solo target de app, como `gym_ios` (sin paquetes SPM locales hasta el dispara
 | Dashboard "Hoy" + selector de período (hecho) | RPC `owner_sales_summary`, `cash_sessions` abierta, `get_stock_levels` + `productos` activos | 78, 79 |
 | Ventas: lista y detalle (hecho) | `sales`, `sale_items`, `payments`, `clientes(nombre)` (lectura directa, RLS) | 80 |
 | Caja: turno actual e historial (hecho) | RPC `owner_cash_session_summary`, `cash_movements`, `cash_sessions` cerradas | 81 |
-| Stock | `get_stock_levels`, `inventory_movements` | 82 |
+| Stock (hecho) | `productos` activos + `get_stock_levels`, `inventory_movements` | 82 |
 | Finanzas | RPC `owner_finance_summary` (nueva), `get_monthly_sales_totals`, `get_monthly_expense_totals`, `get_reinvestment_fund_totals` | 83 |
 
 ## Autenticación (PLAN-77)
@@ -61,6 +61,13 @@ Un solo target de app, como `gym_ios` (sin paquetes SPM locales hasta el dispara
 - Estados: carga, error con reintento, sin ventas en el período, y refresco al tirar (conserva los datos y avisa si falla).
 - Modo demo `-demo` (solo DEBUG) y 6 tests de UI sobre él; 81 tests unitarios.
 - Verificado en el simulador contra el Supabase local: las cifras de la app coinciden con la RPC consultada directamente (total $ 645.000, 5 ventas, utilidad $ 270.000).
+
+## Stock (PLAN-82)
+
+- Pestaña **Stock**: productos activos con stock en punto de venta y bodega y su mínimo, leídos como `getStockLevels` del web (`productos` activos + `get_stock_levels`; sin movimientos = 0). Filtros Todos · Bajo (n) · Agotados (n) y búsqueda por nombre o SKU sin tildes ni mayúsculas, ambos locales. Orden del reporte de stock del web: agotados, bajos, nombre.
+- Regla de `low-stock.ts`: agotado = punto de venta ≤ 0; bajo = punto de venta ≤ mínimo; batidos y combos nunca alertan. "Bajo" no repite los agotados (mismas cuentas que la alerta del dashboard).
+- Detalle: stock por ubicación y los últimos 100 movimientos de `inventory_movements` (como `getKardex`), con las etiquetas del web (Entrada, Venta, Ajuste, Anulación, Traslado de salida/entrada) y la cantidad con signo.
+- Verificado contra el Supabase local: niveles iguales a `get_stock_levels` (Creatina 7, Whey 9, batido y combo sin stock propio) y kardex de Creatina igual a `inventory_movements`.
 
 ## Caja (PLAN-81)
 

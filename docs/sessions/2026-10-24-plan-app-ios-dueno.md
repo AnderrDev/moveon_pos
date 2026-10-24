@@ -153,6 +153,13 @@ Hecho en `moveon-owner-ios` (commit `e125945`, sin push). Detalle en `docs/modul
 - **Desviación del plan:** el historial no usa `list_cash_history_days` sino los cierres guardados en `cash_sessions`, porque esa RPC agrupa por día y no trae esperado vs. contado.
 - **Hallazgo con datos reales:** la diferencia guardada es esperado − contado (positivo = faltan). La primera versión decía "Faltan" donde sobraba; corregido y cubierto con un test con el caso real (esperado 380.000, contado 382.000, `difference` −2.000).
 
+## 17. Continuación — PLAN-82 (stock)
+
+- `moveon-owner-ios`: `main` con PLAN-81 subido (`41eaf71`); PLAN-82 en commit local, sin push.
+- Pestaña Stock con filtros, búsqueda y kardex; la regla y la lectura de stock pasan a `Domain/Inventory` y `Data/Inventory`, compartidas con el dashboard. 121 unitarios + 12 de UI en verde.
+- QA real: niveles y kardex de Creatina idénticos a la base. Nota: las ventas `IOS-QA-*` se cargaron directo con psql y no generaron salidas de inventario (no pasaron por `create_sale_atomic`); las `V-00000x` de la otra sesión sí aparecen en el kardex.
+- Sin cambios en el POS para este PLAN (solo lectura de tablas y RPC existentes).
+
 ## 8. Notas adicionales
 
 - Fuentes de datos ya existentes para la app: `get_stock_levels`, `get_monthly_sales_totals`, `get_monthly_expense_totals`, `get_reinvestment_fund_totals`, `list_cash_history_days`.
