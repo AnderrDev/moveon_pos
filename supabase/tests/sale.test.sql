@@ -2,7 +2,7 @@
 -- pgTAP: create_sale_atomic & void_sale_atomic
 -- =====================================================
 -- Cómo correr (requiere Supabase CLI + Docker):
---   supabase test db --file supabase/tests/sale.test.sql
+--   supabase test db --local supabase/tests/sale.test.sql
 --
 -- pgTAP no está instalado por defecto en proyectos Supabase.
 -- Si la primera ejecución falla con "extension pgtap not found":
@@ -51,11 +51,14 @@ begin
   values (v_tienda_id, v_producto, 'entry', 10, v_user_id);
 end $$;
 
+-- El cliente llama la RPC con su JWT: auth.uid() = cajero y rol authenticated.
+select set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', true);
+set local role authenticated;
+
 -- ----------------- Tests -----------------
 
 -- 1. Venta básica retorna un UUID
-prepare crear_venta_basica as
-  select public.create_sale_atomic(
+select isnt((public.create_sale_atomic(
     '11111111-1111-1111-1111-111111111111'::uuid,
     '33333333-3333-3333-3333-333333333333'::uuid,
     'TST-001',
@@ -75,9 +78,7 @@ prepare crear_venta_basica as
       'total', 5000
     )),
     jsonb_build_array(jsonb_build_object('metodo', 'cash', 'amount', 5000))
-  );
-
-select isnt(execute('crear_venta_basica')::text, '', 'create_sale_atomic retorna un UUID no vacío');
+  , 0, null))::text, '', 'create_sale_atomic retorna un UUID no vacío');
 
 -- 2. La venta queda persistida con status completed
 select is(
@@ -108,7 +109,7 @@ select is(
       'total', 5000
     )),
     jsonb_build_array(jsonb_build_object('metodo', 'cash', 'amount', 5000))
-  ),
+  , 0, null),
   (select id from public.sales where idempotency_key = 'idem-key-1'),
   'idempotencia: misma key devuelve la misma venta'
 );
@@ -146,7 +147,7 @@ select throws_ok(
         'total', 5000
       )),
       jsonb_build_array(jsonb_build_object('metodo', 'cash', 'amount', 1000))
-    )
+    , 0, null)
   $$,
   'La suma de pagos no cubre el total de la venta'
 );
@@ -174,7 +175,7 @@ select throws_ok(
         'total', 500000
       )),
       jsonb_build_array(jsonb_build_object('metodo', 'cash', 'amount', 500000))
-    )
+    , 0, null)
   $$,
   'Stock insuficiente'
 );
@@ -202,7 +203,7 @@ select throws_ok(
         'total', 5000
       )),
       jsonb_build_array(jsonb_build_object('metodo', 'card', 'amount', 6000))
-    )
+    , 0, null)
   $$,
   'El cambio solo puede generarse desde pagos en efectivo'
 );
@@ -210,8 +211,7 @@ select throws_ok(
 -- 8. Pago en efectivo con vuelto: el monto persistido es neto, no el bruto
 -- recibido (regresión del descuadre de caja del 2026-06-16 / venta V-000021:
 -- total 26000 pagado con 50000 en efectivo, payments.amount quedaba en 50000).
-prepare crear_venta_con_cambio as
-  select public.create_sale_atomic(
+select isnt((public.create_sale_atomic(
     '11111111-1111-1111-1111-111111111111'::uuid,
     '33333333-3333-3333-3333-333333333333'::uuid,
     'TST-006',
@@ -231,9 +231,7 @@ prepare crear_venta_con_cambio as
       'total', 5000
     )),
     jsonb_build_array(jsonb_build_object('metodo', 'cash', 'amount', 8000))
-  );
-
-select isnt(execute('crear_venta_con_cambio')::text, '', 'create_sale_atomic con vuelto retorna un UUID no vacío');
+  , 0, null))::text, '', 'create_sale_atomic con vuelto retorna un UUID no vacío');
 
 -- 9. El pago guardado es 5000 (neto), no 8000 (bruto recibido)
 select is(
@@ -248,12 +246,12 @@ select is(
 );
 
 -- 10. Caja cerrada: nueva venta falla
-do $$
-begin
-  update public.cash_sessions
-  set status = 'closed', closed_at = now()
-  where id = '33333333-3333-3333-3333-333333333333';
-end $$;
+-- Cerrar la caja es una escritura directa que authenticated ya no tiene (P0).
+reset role;
+update public.cash_sessions
+set status = 'closed', closed_at = now(), actual_cash_amount = 0, closing_withdrawal_amount = 0, cash_left_amount = 0
+where id = '33333333-3333-3333-3333-333333333333';
+set local role authenticated;
 
 select throws_ok(
   $$
@@ -277,7 +275,7 @@ select throws_ok(
         'total', 5000
       )),
       jsonb_build_array(jsonb_build_object('metodo', 'cash', 'amount', 5000))
-    )
+    , 0, null)
   $$,
   'No hay caja abierta para esta venta'
 );

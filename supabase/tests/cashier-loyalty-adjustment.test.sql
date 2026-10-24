@@ -1,5 +1,17 @@
--- Ejecutar con psql -v ON_ERROR_STOP=1. Todo se revierte al terminar.
+-- =====================================================
+-- pgTAP: el cajero puede ajustar sellos del club (20261010004041)
+-- =====================================================
+--   supabase test db --local supabase/tests/cashier-loyalty-adjustment.test.sql
+-- El bloque lanza una excepción en la primera comprobación que falle
+-- (saldo, ledger, auditoría, otra tienda, inactivo, suplantación, motivo, admin).
+
 begin;
+
+create extension if not exists pgtap;
+
+select plan(1);
+
+select lives_ok($test$
 do $$
 declare
   t uuid := gen_random_uuid();
@@ -52,5 +64,9 @@ begin
   update public.user_tiendas set rol='admin' where user_id=u and tienda_id=t;
   balance := public.adjust_loyalty_stamps(t,c,1,'Prueba admin',u);
   if balance <> 3 then raise exception 'Regresión permiso admin'; end if;
-end $$;
+end $$
+$test$, 'ajuste de sellos: cajero suma/resta con ledger y auditoría; se rechazan otra tienda, inactivo, suplantación y motivo corto');
+
+select * from finish();
+
 rollback;
