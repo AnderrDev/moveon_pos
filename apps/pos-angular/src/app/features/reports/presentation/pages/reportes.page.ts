@@ -74,7 +74,7 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
       </mo-page-header>
 
       <!-- Tabs -->
-      <nav class="-mt-1 flex gap-6 overflow-x-auto border-b text-sm [scrollbar-width:none]" aria-label="Tipo de reporte">
+      <nav class="flex gap-6 overflow-x-auto border-b text-sm [scrollbar-width:none]" aria-label="Tipo de reporte">
         <button type="button" (click)="tab.set('daily')" [class]="tabClass('daily')">
           Ventas
         </button>
@@ -113,8 +113,8 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
                 class="border-input bg-background focus:ring-ring h-9 rounded-lg border px-2.5 text-sm focus:ring-2 focus:outline-none"
               />
             </div>
-            <div class="ml-auto flex gap-1">
-              <mo-segmented [options]="presets" [value]="activePreset() ?? ''" (valueChange)="onPresetChange($event)" />
+            <div class="flex w-full min-w-0 items-center gap-1 lg:ml-auto lg:w-auto">
+              <mo-segmented class="min-w-0 flex-1" [options]="presets" [value]="activePreset() ?? ''" (valueChange)="onPresetChange($event)" />
               <mo-button size="sm" variant="outline" (click)="reload()">Actualizar</mo-button>
             </div>
           </div>

@@ -16,7 +16,7 @@ interface FeaturedLoyaltyCustomer {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
-      class="border-primary/20 bg-primary/5 mb-3 flex items-center gap-3 rounded-xl border px-4 py-3"
+      class="border-primary/20 bg-primary/5 flex items-center gap-3 rounded-xl border px-4 py-3"
       role="status"
       aria-live="polite"
     >

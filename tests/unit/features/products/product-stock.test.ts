@@ -3,7 +3,10 @@ import type { Product } from '@angular-app/features/products/domain/entities/pro
 import type { StockLevel } from '@angular-app/features/inventory/domain/entities/inventory.entity'
 import {
   buildProductStock,
+  countProductViews,
   isMissingStock,
+  marginPercent,
+  matchesProductView,
   productStockStatus,
 } from '@angular-app/features/products/presentation/services/product-stock'
 import { buildProductsWorkbook } from '@angular-app/features/products/presentation/services/product-export'
@@ -99,5 +102,37 @@ describe('Excel de productos con stock', () => {
 
     expect(sheet.rows[1][col('Punto de venta')]).toBeNull()
     expect(sheet.rows[1][col('Estado del stock')]).toBe('Sin stock propio')
+  })
+})
+
+describe('vistas rápidas de productos', () => {
+  const level = (productId: string, puntoVentaStock: number): StockLevel =>
+    ({ productId, puntoVentaStock, bodegaStock: 0, totalStock: puntoVentaStock }) as StockLevel
+
+  it('"Por reponer" incluye activos agotados o en el mínimo, nunca inactivos ni preparados', () => {
+    const items = [
+      product({ id: 'ok' }),
+      product({ id: 'low' }),
+      product({ id: 'out' }),
+      product({ id: 'off', isActive: false }),
+      product({ id: 'batido', tipo: 'prepared' }),
+    ]
+    const levels = new Map([
+      ['ok', level('ok', 10)],
+      ['low', level('low', 2)],
+      ['out', level('out', 0)],
+      ['off', level('off', 0)],
+    ])
+    const stockById = new Map(items.map((p) => [p.id, buildProductStock(p, levels.get(p.id))]))
+
+    expect(countProductViews(items, stockById)).toEqual({ active: 4, restock: 2, inactive: 1, all: 5 })
+    const restock = items.filter((p) => matchesProductView(p, stockById.get(p.id)!, 'restock'))
+    expect(restock.map((p) => p.id)).toEqual(['low', 'out'])
+  })
+
+  it('calcula el margen sobre el precio de venta', () => {
+    expect(marginPercent(110000, 70000)).toBe(36)
+    expect(marginPercent(110000, null)).toBeNull()
+    expect(marginPercent(0, 5000)).toBeNull()
   })
 })

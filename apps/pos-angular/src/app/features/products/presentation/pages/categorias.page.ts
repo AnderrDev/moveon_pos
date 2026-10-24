@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { RouterLink, RouterLinkActive } from '@angular/router'
+import { MO_MENU } from '@angular-app/shared/molecules/menu.component'
 import { PageHeaderComponent } from '@angular-app/shared/molecules/page-header.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 import { BadgeComponent } from '@angular-app/shared/atoms/badge.component'
@@ -22,7 +23,8 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
   selector: 'mo-categorias-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SkeletonComponent, 
+  imports: [SkeletonComponent,
+    ...MO_MENU,
     RouterLink,
     RouterLinkActive,
     PageHeaderComponent,
@@ -34,21 +36,22 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
     MO_TABLE,
   ],
   template: `
-    <section class="flex h-full min-h-0 flex-col">
-      <mo-page-header title="Productos" subtitle="Catálogo y precios">
-        <mo-button
-          variant="outline"
-          [loading]="exporting()"
-          loadingText="Generando..."
-          [disabled]="categorias().length === 0"
-          (click)="exportCategories()"
-        >
-          Descargar Excel
-        </mo-button>
+    <section class="flex h-full min-h-0 flex-col gap-4">
+      <mo-page-header title="Productos" subtitle="Categorías del catálogo">
         <mo-button (click)="openCreate()">Nueva categoría</mo-button>
+        <mo-menu>
+          <button
+            type="button"
+            moMenuItem
+            [disabled]="exporting() || categorias().length === 0"
+            (click)="exportCategories()"
+          >
+            {{ exporting() ? 'Generando Excel…' : 'Descargar Excel' }}
+          </button>
+        </mo-menu>
       </mo-page-header>
 
-      <nav class="-mt-1 mb-4 flex gap-6 border-b text-sm" aria-label="Secciones de productos">
+      <nav class="flex gap-6 border-b text-sm" aria-label="Secciones de productos">
         <a
           routerLink="/productos"
           routerLinkActive="border-primary! text-foreground!"

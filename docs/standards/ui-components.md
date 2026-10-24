@@ -159,6 +159,9 @@ El POS usa la identidad MOVE ON (la misma del catálogo/landing):
 
 - **Prohibido `text-primary` sobre fondo claro**: el amarillo como texto es ilegible (~1.4:1). Para énfasis usa `text-foreground` + peso. No crear tonos derivados del amarillo (decisión del dueño): un solo amarillo, sin "dorados".
 - **Sin etiquetas en MAYÚSCULAS** (`uppercase`/`tracking-wide`): etiquetas en tamaño oración, `text-sm font-medium text-muted-foreground`; cifras en `font-display font-extrabold tabular-nums`.
+- **Espaciado de página:** toda página es `<section class="flex flex-col gap-4">` (más `h-full min-h-0` si tiene tabla que llena). `mo-page-header` NO tiene margen propio: el `gap-4` separa cabecera, pestañas, filtros y contenido. No agregar `mb-*`/`-mt-*` a los hijos directos.
+- **Filtros en móvil:** buscador a ancho completo; selects en `grid-cols-[minmax(0,1fr)_minmax(0,1fr)]` con `w-full min-w-0` (con `grid-cols-2` se desbordan). `mo-segmented` es una sola fila que se desplaza en horizontal.
+- **Listas en móvil:** una tabla con más de ~3 columnas se muestra como tarjetas bajo `md` (ejemplo: Productos).
 - **Pestañas principales** (Reportes, Productos/Categorías): barra con `border-b` y subrayado amarillo de 3px en la activa. Sub-vistas y filtros: píldoras negras (`mo-segmented` o equivalente).
 - `amber-*` queda reservado para avisos (warning), no como color de marca.
 - Logo oficial (blanco + amarillo, para fondo negro): `apps/pos-angular/public/assets/brand/moveon-logo.png`.

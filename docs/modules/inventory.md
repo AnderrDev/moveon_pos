@@ -126,7 +126,7 @@ Para cargar stock inicial desde Siigo, se usa el importador CSV. Cada fila gener
 
 ## Pantalla: unificada con Productos (Ola 2, 2026-10-24)
 
-`/inventario` ya no existe como página: redirige a `/productos`, que muestra stock por ubicación, mínimo y alertas junto al catálogo. Las acciones de inventario (**+ Entrada**, **Ajustar stock**, **Trasladar**, **Kardex** y **Corregir costo**) se abren desde cada fila con los diálogos de `features/inventory/presentation/dialogs` (permitido por ADR 0015: Productos usa `domain` y `dialogs` de Inventario; el grafo sigue acíclico). Solo se ofrecen en productos activos con stock propio. Filtros: búsqueda, categoría, proveedor (incluye "Sin proveedor"), estado y **Solo faltantes** (stock bajo o agotado); proveedor + solo faltantes da la lista del siguiente pedido.
+`/inventario` ya no existe como página: redirige a `/productos`, que muestra stock por ubicación, mínimo y alertas junto al catálogo. Las acciones de inventario (**Entrada**, **Ajustar stock**, **Trasladar**, **Kardex** y **Corregir costo**) se abren desde cada fila con los diálogos de `features/inventory/presentation/dialogs` (permitido por ADR 0015: Productos usa `domain` y `dialogs` de Inventario; el grafo sigue acíclico). Solo se ofrecen en productos activos con stock propio. Filtros: vistas rápidas con conteo (**Activos**, **Por reponer** = activos con stock bajo o agotado, **Inactivos**, **Todos**), búsqueda, categoría y proveedor (incluye "Sin proveedor"); proveedor + Por reponer da la lista del siguiente pedido.
 
 ## Exportación Excel
 

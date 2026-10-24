@@ -1,6 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { getErrorMessage } from '@/shared/lib/error-message'
+import { NgTemplateOutlet } from '@angular/common'
 import { RouterLink, RouterLinkActive } from '@angular/router'
+import { LucideAngularModule, PackagePlus, Search } from 'lucide-angular'
+import { SegmentedComponent, type SegmentedOption } from '@angular-app/shared/molecules/segmented.component'
 import { PageHeaderComponent } from '@angular-app/shared/molecules/page-header.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 import { BadgeComponent } from '@angular-app/shared/atoms/badge.component'
@@ -29,19 +32,26 @@ import {
 import { CorrectEntryCostDialog } from '@angular-app/features/inventory/presentation/dialogs/correct-entry-cost.dialog'
 import {
   buildProductStock,
-  isMissingStock,
+  countProductViews,
+  marginPercent,
+  matchesProductView,
   type ProductStock,
+  type ProductView,
 } from '@angular-app/features/products/presentation/services/product-stock'
 import { ExcelExportService } from '@angular-app/shared/services/export/excel-export.service'
 import { buildProductsWorkbook } from '@angular-app/features/products/presentation/services/product-export'
 import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
+import { formatCurrency } from '@/shared/lib/format'
 import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
 
 @Component({
   selector: 'mo-productos-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SkeletonComponent, MoneyPipe, 
+  imports: [SkeletonComponent, MoneyPipe,
+    NgTemplateOutlet,
+    LucideAngularModule,
+    SegmentedComponent,
     RouterLink,
     RouterLinkActive,
     PageHeaderComponent,
@@ -60,21 +70,22 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
     CorrectEntryCostDialog,
   ],
   template: `
-    <section class="flex h-full min-h-0 flex-col">
-      <mo-page-header title="Productos" subtitle="Catálogo, precios y stock">
-        <mo-button
-          variant="outline"
-          [loading]="exporting()"
-          loadingText="Generando..."
-          [disabled]="filteredProducts().length === 0"
-          (click)="exportProducts()"
-        >
-          Descargar Excel
-        </mo-button>
+    <section class="flex h-full min-h-0 flex-col gap-4">
+      <mo-page-header title="Productos" [subtitle]="headerSubtitle()">
         <mo-button (click)="openCreate()">Nuevo producto</mo-button>
+        <mo-menu>
+          <button
+            type="button"
+            moMenuItem
+            [disabled]="exporting() || filteredProducts().length === 0"
+            (click)="exportProducts()"
+          >
+            {{ exporting() ? 'Generando Excel…' : 'Descargar Excel' }}
+          </button>
+        </mo-menu>
       </mo-page-header>
 
-      <nav class="-mt-1 mb-4 flex gap-6 border-b text-sm" aria-label="Secciones de productos">
+      <nav class="flex gap-6 border-b text-sm" aria-label="Secciones de productos">
         <a
           routerLink="/productos"
           routerLinkActive="border-primary! text-foreground!"
@@ -90,58 +101,47 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
         >
       </nav>
 
-      <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-        <input
-          type="search"
-          [value]="query()"
-          (input)="onQueryInput($event)"
-          placeholder="Buscar por nombre, SKU o código de barras"
-          class="border-input bg-card focus:ring-ring h-10 min-w-56 flex-1 rounded-lg border px-3 text-sm focus:ring-2 focus:outline-none"
-        />
-        <select
-          [value]="filterCategoria()"
-          (change)="filterCategoria.set(getSelectValue($event))"
-          class="border-input bg-card focus:ring-ring h-10 rounded-lg border px-3 text-sm focus:ring-2 focus:outline-none"
-          aria-label="Filtrar por categoría"
-        >
-          <option value="all">Todas las categorías</option>
-          @for (cat of categorias(); track cat.id) {
-            <option [value]="cat.id">{{ cat.nombre }}</option>
-          }
-        </select>
-        <select
-          [value]="filterProveedor()"
-          (change)="filterProveedor.set(getSelectValue($event))"
-          class="border-input bg-card focus:ring-ring h-10 rounded-lg border px-3 text-sm focus:ring-2 focus:outline-none"
-          aria-label="Filtrar por proveedor"
-        >
-          <option value="all">Todos los proveedores</option>
-          @for (prov of proveedores(); track prov.id) {
-            <option [value]="prov.id">{{ prov.nombre }}</option>
-          }
-          <option value="__sin__">Sin proveedor</option>
-        </select>
-        <select
-          [value]="filterEstado()"
-          (change)="onEstadoChange($event)"
-          class="border-input bg-card focus:ring-ring h-10 rounded-lg border px-3 text-sm focus:ring-2 focus:outline-none"
-          aria-label="Filtrar por estado"
-        >
-          <option value="active">Solo activos</option>
-          <option value="inactive">Solo inactivos</option>
-          <option value="all">Todos</option>
-        </select>
-        <label
-          class="border-input bg-card flex h-10 cursor-pointer items-center gap-2 rounded-lg border px-3 text-sm select-none"
-        >
-          <input
-            type="checkbox"
-            [checked]="soloFaltantes()"
-            (change)="soloFaltantes.set(!soloFaltantes())"
-            class="accent-primary h-4 w-4"
-          />
-          Solo faltantes
-        </label>
+      <div class="flex flex-col gap-3">
+        <mo-segmented [options]="viewOptions()" [value]="view()" (valueChange)="setView($event)" />
+
+        <div class="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2 lg:flex">
+          <label class="relative col-span-2 block lg:min-w-0 lg:flex-1">
+            <span class="sr-only">Buscar producto</span>
+            <span class="text-muted-foreground pointer-events-none absolute inset-y-0 left-3 flex items-center" aria-hidden="true">
+              <lucide-angular [img]="icons.search" class="h-4 w-4" />
+            </span>
+            <input
+              type="search"
+              [value]="query()"
+              (input)="onQueryInput($event)"
+              placeholder="Buscar por nombre, SKU o código de barras"
+              class="border-input bg-card focus:border-foreground h-10 w-full rounded-lg border pr-3 pl-9 text-sm outline-none"
+            />
+          </label>
+          <select
+            [value]="filterCategoria()"
+            (change)="filterCategoria.set(getSelectValue($event))"
+            class="border-input bg-card focus:border-foreground h-10 w-full min-w-0 rounded-lg border px-3 text-sm outline-none lg:w-52"
+            aria-label="Filtrar por categoría"
+          >
+            <option value="all">Todas las categorías</option>
+            @for (cat of categorias(); track cat.id) {
+              <option [value]="cat.id">{{ cat.nombre }}</option>
+            }
+          </select>
+          <select
+            [value]="filterProveedor()"
+            (change)="filterProveedor.set(getSelectValue($event))"
+            class="border-input bg-card focus:border-foreground h-10 w-full min-w-0 rounded-lg border px-3 text-sm outline-none lg:w-52"
+            aria-label="Filtrar por proveedor"
+          >
+            <option value="all">Todos los proveedores</option>
+            @for (prov of proveedores(); track prov.id) {
+              <option [value]="prov.id">{{ prov.nombre }}</option>
+            }
+            <option value="__sin__">Sin proveedor</option>
+          </select>
+        </div>
       </div>
 
       @if (loading()) {
@@ -153,129 +153,176 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
       } @else if (filteredProducts().length === 0) {
         @if (products().length === 0) {
           <mo-empty-state
-            title="Sin productos"
+            title="Aún no hay productos"
             description="Crea tu primer producto para empezar a vender."
           >
             <mo-button (click)="openCreate()">Nuevo producto</mo-button>
           </mo-empty-state>
+        } @else if (view() === 'restock' && !hasNarrowingFilters()) {
+          <mo-empty-state
+            title="Nada por reponer"
+            description="Todos los productos activos están por encima de su stock mínimo."
+          />
         } @else {
           <mo-empty-state
             title="Ningún producto coincide"
-            description="Cambia la búsqueda o los filtros."
-          />
+            description="Cambia la búsqueda, la categoría o el proveedor."
+          >
+            <mo-button variant="outline" (click)="clearFilters()">Limpiar filtros</mo-button>
+          </mo-empty-state>
         }
       } @else {
-        <mo-table-shell class="flex-1">
+        <!-- Escritorio: tabla -->
+        <mo-table-shell class="hidden flex-1 md:block">
           <table moTable>
             <thead moThead>
               <tr>
                 <th moTh>Producto</th>
-                <th moTh>Tipo</th>
-                <th moTh class="text-right">Costo</th>
                 <th moTh class="text-right">Precio</th>
-                <th moTh class="text-right">Pto. venta</th>
-                <th moTh class="text-right">Bodega</th>
-                <th moTh class="text-right">Mín.</th>
-                <th moTh></th>
-                <th moTh></th>
+                <th moTh>Stock en punto de venta</th>
+                <th moTh class="w-px"><span class="sr-only">Acciones</span></th>
               </tr>
             </thead>
             <tbody class="divide-y">
               @for (product of filteredProducts(); track product.id) {
                 @let stock = stockOf(product);
-                <tr
-                  class="hover:bg-muted/30"
-                  [class.bg-red-50]="stock.isOut"
-                  [class.bg-amber-50]="stock.isLow && !stock.isOut"
-                >
+                @let margin = marginOf(product);
+                <tr moTr [hover]="true">
                   <td moTd>
-                    <div class="font-semibold">{{ product.nombre }}</div>
-                    <div class="text-muted-foreground text-xs">
-                      {{ productMeta(product) }}
+                    <div class="flex items-center gap-3">
+                      <ng-container *ngTemplateOutlet="thumb; context: { $implicit: product }" />
+                      <div class="min-w-0">
+                        <div class="flex items-center gap-2">
+                          <span class="font-semibold">{{ product.nombre }}</span>
+                          @if (!product.isActive) {
+                            <mo-badge variant="outline">Inactivo</mo-badge>
+                          }
+                        </div>
+                        <div class="text-muted-foreground mt-0.5 truncate text-xs">{{ productMeta(product) }}</div>
+                      </div>
                     </div>
                   </td>
-                  <td moTd class="text-muted-foreground text-xs">
-                    {{ tipoLabel(product.tipo) }}
+                  <td moTd class="text-right whitespace-nowrap">
+                    <div class="font-display font-extrabold tabular-nums">{{ (product.precioVenta | money) }}</div>
+                    <div class="text-muted-foreground mt-0.5 text-xs tabular-nums">
+                      @if (product.costo !== null) {
+                        Costo {{ (product.costo | money) }}
+                        @if (margin !== null) {
+                          · margen {{ margin }}%
+                        }
+                      } @else {
+                        Sin costo registrado
+                      }
+                    </div>
                   </td>
-                  <td moTd class="text-muted-foreground text-right tabular-nums">
-                    {{ product.costo !== null ? (product.costo | money) : '—' }}
-                  </td>
-                  <td moTd class="text-right font-semibold tabular-nums">
-                    {{ (product.precioVenta | money) }}
-                  </td>
-                  @if (stock.tracksStock) {
-                    <td
-                      moTd
-                      class="text-right font-bold tabular-nums"
-                      [class.text-destructive]="stock.isOut"
-                    >
-                      {{ stock.puntoVentaStock }}
-                    </td>
-                    <td moTd class="text-right font-semibold tabular-nums">
-                      {{ stock.bodegaStock }}
-                    </td>
-                    <td moTd class="text-muted-foreground text-right tabular-nums">
-                      {{ product.stockMinimo }}
-                    </td>
-                  } @else {
-                    <td moTd colspan="3" class="text-muted-foreground text-right text-xs">
-                      Sin stock propio
-                    </td>
-                  }
                   <td moTd>
-                    <div class="flex flex-wrap gap-1">
-                      @if (stock.isOut) {
-                        <mo-badge variant="destructive">Agotado</mo-badge>
-                      } @else if (stock.isLow) {
-                        <mo-badge variant="warning">Stock bajo</mo-badge>
-                      }
-                      @if (!product.isActive) {
-                        <mo-badge variant="warning">Inactivo</mo-badge>
-                      }
-                    </div>
+                    <ng-container *ngTemplateOutlet="stockCell; context: { $implicit: product, stock: stock }" />
                   </td>
-                  <td moTd class="text-right">
-                    <div class="flex items-center justify-end gap-1.5">
-                      @if (canMoveStock(product)) {
-                        <mo-button size="sm" variant="outline" (click)="openEntry(product)">
-                          + Entrada
-                        </mo-button>
-                      }
-                      <mo-button size="sm" variant="outline" (click)="openEdit(product)">
-                        Editar
-                      </mo-button>
-                      <mo-menu size="sm" [label]="'Más acciones para ' + product.nombre">
-                        @if (canMoveStock(product)) {
-                          <button type="button" moMenuItem (click)="openAdjust(product)">
-                            Ajustar stock
-                          </button>
-                          <button type="button" moMenuItem (click)="openTransfer(product)">
-                            Trasladar
-                          </button>
-                        }
-                        @if (stock.tracksStock) {
-                          <button type="button" moMenuItem (click)="openKardex(product)">
-                            Kardex
-                          </button>
-                        }
-                        @if (product.isActive) {
-                          <button type="button" moMenuItem (click)="confirmDeactivate(product)">
-                            Desactivar
-                          </button>
-                        }
-                        <button type="button" moMenuItem class="text-destructive" (click)="openDeleteConfirm(product)">
-                          Eliminar
-                        </button>
-                      </mo-menu>
-                    </div>
+                  <td moTd>
+                    <ng-container *ngTemplateOutlet="actions; context: { $implicit: product, stock: stock }" />
                   </td>
                 </tr>
               }
             </tbody>
           </table>
         </mo-table-shell>
+
+        <!-- Móvil: tarjetas -->
+        <ul class="space-y-2 md:hidden">
+          @for (product of filteredProducts(); track product.id) {
+            @let stock = stockOf(product);
+            <li class="bg-card rounded-xl border p-3">
+              <div class="flex items-start gap-3">
+                <ng-container *ngTemplateOutlet="thumb; context: { $implicit: product }" />
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-start justify-between gap-2">
+                    <p class="leading-snug font-semibold">{{ product.nombre }}</p>
+                    <p class="font-display shrink-0 font-extrabold tabular-nums">{{ (product.precioVenta | money) }}</p>
+                  </div>
+                  <p class="text-muted-foreground mt-0.5 text-xs">{{ productMeta(product) }}</p>
+                  <div class="mt-2">
+                    <ng-container *ngTemplateOutlet="stockCell; context: { $implicit: product, stock: stock }" />
+                  </div>
+                </div>
+              </div>
+              <div class="mt-3 border-t pt-3">
+                <ng-container *ngTemplateOutlet="actions; context: { $implicit: product, stock: stock }" />
+              </div>
+            </li>
+          }
+        </ul>
       }
     </section>
+
+    <ng-template #thumb let-product>
+      @if (product.imageUrl) {
+        <img
+          [src]="product.imageUrl"
+          alt=""
+          class="bg-muted h-11 w-11 shrink-0 rounded-lg border object-cover"
+          loading="lazy"
+        />
+      } @else {
+        <span
+          class="bg-muted text-muted-foreground font-display flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-sm font-extrabold"
+          aria-hidden="true"
+        >
+          {{ product.nombre.slice(0, 1).toUpperCase() }}
+        </span>
+      }
+    </ng-template>
+
+    <ng-template #stockCell let-product let-stock="stock">
+      @if (stock.tracksStock) {
+        <div class="flex items-center gap-2">
+          <span
+            class="font-display text-lg leading-none font-extrabold tabular-nums"
+            [class.text-destructive]="stock.isOut"
+          >
+            {{ stock.puntoVentaStock }}
+          </span>
+          @if (stock.isOut) {
+            <mo-badge variant="destructive">Agotado</mo-badge>
+          } @else if (stock.isLow) {
+            <mo-badge variant="warning">Stock bajo</mo-badge>
+          }
+        </div>
+        <div class="text-muted-foreground mt-1 text-xs tabular-nums">
+          Bodega {{ stock.bodegaStock }} · mínimo {{ product.stockMinimo }}
+        </div>
+      } @else {
+        <span class="text-muted-foreground text-xs">{{ noStockLabel(product) }}</span>
+      }
+    </ng-template>
+
+    <ng-template #actions let-product let-stock="stock">
+      <div class="flex items-center justify-end gap-1.5">
+        @if (canMoveStock(product)) {
+          <mo-button size="sm" variant="outline" (click)="openEntry(product)">
+            <span class="flex items-center gap-1.5 whitespace-nowrap">
+              <lucide-angular [img]="icons.entry" class="h-4 w-4" aria-hidden="true" />
+              Entrada
+            </span>
+          </mo-button>
+        }
+        <mo-button size="sm" variant="outline" (click)="openEdit(product)">Editar</mo-button>
+        <mo-menu size="sm" [label]="'Más acciones para ' + product.nombre">
+          @if (canMoveStock(product)) {
+            <button type="button" moMenuItem (click)="openAdjust(product)">Ajustar stock</button>
+            <button type="button" moMenuItem (click)="openTransfer(product)">Trasladar entre bodega y punto de venta</button>
+          }
+          @if (stock.tracksStock) {
+            <button type="button" moMenuItem (click)="openKardex(product)">Ver movimientos (kardex)</button>
+          }
+          @if (product.isActive) {
+            <button type="button" moMenuItem (click)="confirmDeactivate(product)">Desactivar</button>
+          }
+          <button type="button" moMenuItem class="text-destructive" (click)="openDeleteConfirm(product)">
+            Eliminar
+          </button>
+        </mo-menu>
+      </div>
+    </ng-template>
 
     <mo-register-entry-dialog
       [open]="entryOpen()"
@@ -389,7 +436,43 @@ export class ProductosPage {
     return new Map(this.products().map((p) => [p.id, buildProductStock(p, levels.get(p.id))]))
   })
 
-  readonly soloFaltantes = signal(false)
+  readonly icons = { entry: PackagePlus, search: Search }
+
+  /** Vista rápida (Activos / Por reponer / Inactivos / Todos); reemplaza el select de estado y "Solo faltantes". */
+  readonly view = signal<ProductView>('active')
+
+  readonly viewCounts = computed(() => countProductViews(this.products(), this.stockById()))
+
+  readonly viewOptions = computed<SegmentedOption[]>(() => {
+    const counts = this.viewCounts()
+    return [
+      { value: 'active', label: `Activos ${counts.active}` },
+      { value: 'restock', label: `Por reponer ${counts.restock}` },
+      { value: 'inactive', label: `Inactivos ${counts.inactive}` },
+      { value: 'all', label: `Todos ${counts.all}` },
+    ]
+  })
+
+  /** Valor del inventario a costo: stock total × costo de los activos con stock propio. */
+  readonly inventoryValue = computed(() => {
+    const stockById = this.stockById()
+    return this.products().reduce((sum, p) => {
+      const stock = stockById.get(p.id)
+      if (!p.isActive || !stock?.tracksStock || p.costo === null) return sum
+      return sum + Math.max(stock.totalStock, 0) * p.costo
+    }, 0)
+  })
+
+  readonly headerSubtitle = computed(() => {
+    const active = this.viewCounts().active
+    const value = this.inventoryValue()
+    const base = `${active} ${active === 1 ? 'producto activo' : 'productos activos'}`
+    return value > 0 ? `${base} · inventario a costo ${formatCurrency(value)}` : base
+  })
+
+  readonly hasNarrowingFilters = computed(
+    () => this.query().trim() !== '' || this.filterCategoria() !== 'all' || this.filterProveedor() !== 'all',
+  )
 
   // --- Diálogos de stock (antes en /inventario) ---
   readonly entryOpen = signal(false)
@@ -416,7 +499,6 @@ export class ProductosPage {
 
   readonly filterCategoria = signal<string>('all')
   readonly filterProveedor = signal<string>('all')
-  readonly filterEstado = signal<'all' | 'active' | 'inactive'>('active')
   readonly deleteConfirmOpen = signal(false)
   readonly deletingProduct = signal<Product | null>(null)
   readonly deleteConfirmInput = signal('')
@@ -426,21 +508,14 @@ export class ProductosPage {
     const q = this.query().trim().toLowerCase()
     const cat = this.filterCategoria()
     const prov = this.filterProveedor()
-    const estado = this.filterEstado()
-    const soloFaltantes = this.soloFaltantes()
+    const view = this.view()
     const stockById = this.stockById()
     return this.products().filter((p) => {
       if (q && !([p.nombre, p.sku ?? '', p.codigoBarras ?? ''].join(' ').toLowerCase().includes(q))) return false
       if (cat !== 'all' && p.categoriaId !== cat) return false
       if (prov === '__sin__' && p.proveedorId) return false
       if (prov !== 'all' && prov !== '__sin__' && p.proveedorId !== prov) return false
-      if (estado === 'active' && !p.isActive) return false
-      if (estado === 'inactive' && p.isActive) return false
-      if (soloFaltantes) {
-        const stock = stockById.get(p.id)
-        if (!stock || !isMissingStock(stock)) return false
-      }
-      return true
+      return matchesProductView(p, stockById.get(p.id) ?? buildProductStock(p, undefined), view)
     })
   })
 
@@ -468,14 +543,36 @@ export class ProductosPage {
     return product.isActive && this.stockOf(product).tracksStock
   }
 
+  marginOf(product: Product): number | null {
+    return marginPercent(product.precioVenta, product.costo)
+  }
+
+  /** Preparados y combos: su stock sale de los ingredientes o productos incluidos. */
+  noStockLabel(product: Product): string {
+    return product.tipo === 'combo' ? 'Según los productos incluidos' : 'Se prepara al vender'
+  }
+
+  setView(value: string): void {
+    if (value === 'active' || value === 'restock' || value === 'inactive' || value === 'all') {
+      this.view.set(value)
+    }
+  }
+
+  clearFilters(): void {
+    this.query.set('')
+    this.filterCategoria.set('all')
+    this.filterProveedor.set('all')
+  }
+
   categoriaName(id: string | null): string | null {
     if (!id) return null
     return this.categorias().find((c) => c.id === id)?.nombre ?? null
   }
 
-  /** Línea secundaria: categoría · SKU · proveedor, lo que exista. */
+  /** Línea secundaria: tipo (si no es simple) · categoría · SKU · proveedor, lo que exista. */
   productMeta(product: Product): string {
-    return [this.categoriaName(product.categoriaId), product.sku, product.proveedorNombre]
+    const tipo = product.tipo === 'simple' ? null : this.tipoLabel(product.tipo)
+    return [tipo, this.categoriaName(product.categoriaId), product.sku, product.proveedorNombre]
       .filter((part): part is string => !!part)
       .join(' · ')
   }
@@ -567,13 +664,6 @@ export class ProductosPage {
       this.toast.error(getErrorMessage(error, 'No se pudo eliminar el producto'))
     } finally {
       this.deleting.set(false)
-    }
-  }
-
-  onEstadoChange(event: Event): void {
-    const val = (event.target as HTMLSelectElement).value
-    if (val === 'active' || val === 'inactive' || val === 'all') {
-      this.filterEstado.set(val)
     }
   }
 
