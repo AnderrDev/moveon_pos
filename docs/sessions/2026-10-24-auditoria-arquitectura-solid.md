@@ -141,3 +141,9 @@ Sin cambios de código en esta sesión. Consultas remotas solo de lectura (`pg_p
 - Tests: `pos-data-service.test.ts` (agrupación/orden de componentes y opciones, stock real/preparado/combo, costo oculto a cajero, caja abierta) y `tienda-wide-reads.test.ts` (paginación 1200 filas y mapeo).
 - Prueba local en el navegador (runtime-config verificado en local): catálogo con batido "Bajo pedido", combo "8 disponibles" derivado (Creatina 8 / Whey 9) con sus componentes, batido agregado con su opción por defecto "Whey QA · +$3.000" (total $18.000), "Caja abierta".
 - `pnpm lint`, `pnpm test` (792), typecheck OK. Sin publicar.
+
+## 13. Publicación de P1 #7 (autorizado por el dueño)
+
+- Merge `dev→main` `f876689`. Incluyó `829624f` de la sesión iOS (PLAN-78): refactor web de `reports.repository.ts` hacia la función pura `buildSalesSummary` (no llama a la RPC nueva), script `test:parity` y la migración `20261024120000_owner_sales_summary.sql`, **que NO está aplicada en el remoto** (`owner_sales_summary` no existe; versión no registrada) — queda pendiente de esa sesión/dueño.
+- Verificado antes del push sobre el árbol exacto de `dev`: lint, 792 tests, build de producción; diff sin secretos.
+- Netlify `moveon-client` `6adce6c2cd11ef8c0a82c1e0` y `moveon-catalogo-web` `6adce6c2da6e5fd93e7d5718` ready. Bundle sin la consulta directa vieja del POS y sin llamadas web a `owner_sales_summary`; `/`, `/pos`, `/reportes`, `/inventario`, `/catalogo` → 200; runtime → Supabase POS.
