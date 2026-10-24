@@ -264,6 +264,30 @@ Hecho en `moveon-owner-ios` (commit `e125945`, sin push). Detalle en `docs/modul
   - El efectivo esperado del turno abierto no cambió porque V-000002 no es de ese turno; el efecto en la caja lo cubre la regla del servidor, que excluye las ventas anuladas (paridad de PLAN-81).
   - Nota: V-000002 venía de los datos de prueba de la otra sesión (solo en local).
 
+## 25. Continuación — PLAN-91 (registrar venta)
+
+- `moveon-owner-ios`: `main` con PLAN-90 subido (`06629cb`).
+- **Lectura de `create_sale_atomic`:**
+  - **Lo que calcula el servidor:** ignora número y totales; recalcula precio, recargo de la opción (si no llega opción, aplica la de por defecto), IVA incluido y total.
+  - **Pagos:** exige que cubran el total y que el cambio salga solo del efectivo; guarda los pagos netos de cambio.
+  - **Inventario:** saca el stock de los productos con stock propio; un trigger consume los componentes de batidos y combos.
+  - **Idempotencia:** devuelve la misma venta con la misma clave.
+  - **Medios de pago:** el web solo ofrece efectivo y transferencia (`PAYMENT_METHOD_OPTIONS`), así que el iPhone no ofrece tarjeta aunque el plan la mencionaba.
+- **POS** (`425d141`): fixtures `create_sale.json` (producto + batido con opción, pago mixto con cambio) y `audit_log_create_sale.json`. El contrato verifica el número `V-…`, el total recalculado, los pagos netos (efectivo 90.000 + transferencia 20.000 con referencia), las líneas con su opción, el stock (5 → 4) y que el reintento con la misma clave devuelve la misma venta. `pnpm test:parity` → 35 en verde.
+- **iOS:**
+  - **Feature `Checkout`:**
+    - Dominio: `SellableProduct`, `ProductOption`, `Cart`, `CartLine`, `PaymentEntry`, `PaymentRules`, `NewSaleRequest`, `SaleReceipt`, `SaleCatalogReading`, `SaleCreating` y `CreateSaleUseCase`.
+    - Datos: `CreateSaleParams` y `SupabaseCheckoutRepository`.
+    - Presentación: `SellViewModel`, `SellView`, `CheckoutView` y `ReceiptView`.
+  - Se abre desde Ventas mediante un presentador del Shell. `AuditValue.list` y `PaymentMethod.rawValue` van en el dominio compartido.
+  - Pasan 210 tests unitarios (carrito, reglas de pago, contrato, auditoría, reintento con la misma clave y recuperación) y 22 de interfaz (nuevos: venta de un batido con opción y "sin caja abierta").
+- **QA contra el Supabase local:**
+  - **Venta:** QA Creatina 300g + QA Batido proteico con "Whey QA" (+3.000) = $103.000. Pagos: efectivo 50.000 + transferencia 60.000 "QA-TRX-1"; cambio 7.000.
+  - **Comprobante:** V-000005 por $103.000, con efectivo 43.000 y transferencia 60.000.
+  - **Base:** venta `completed` en la caja abierta, con las líneas (batido 18.000 con "Whey QA") y los pagos netos. Salen 1 Creatina (13 → 12) y 0,03 de QA Whey 2lb por la opción. El resumen del día pasa de $1.180.000 a $1.283.000 (7 ventas) y la auditoría registra `create` con `{items: 2, total: 103000, payments: [cash, transfer]}`.
+  - **Caja:** las ventas en efectivo del turno quedan en 43.000. La otra sesión registró a la vez un gasto de 18.000 y retiros por 140.000 en la misma caja, así que el esperado es 125.000 + 43.000 − 18.000 − 140.000 = 10.000.
+  - **Visto en QA y corregido:** los campos del cobro no se veían dentro de la tarjeta (mismo fondo).
+
 ## 8. Notas adicionales
 
 - Fuentes de datos ya existentes para la app: `get_stock_levels`, `get_monthly_sales_totals`, `get_monthly_expense_totals`, `get_reinvestment_fund_totals`, `list_cash_history_days`.
