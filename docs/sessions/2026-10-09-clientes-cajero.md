@@ -42,11 +42,11 @@ ADR 0013 actualizado: ajustes para admin y cajero.
 
 ## 6. Bloqueos y preguntas pendientes
 
-Sin bloqueos de implementación. Frontend todavía sin publicar.
+Sin bloqueos de implementación. Frontend publicado; ver sesión 2026-10-11-publicar-sellos-cajero.md.
 
 ## 7. Próximos pasos
 
-Publicar el frontend actualizado para que el cajero vea el formulario en producción. No se hizo commit ni push.
+Frontend publicado en https://moveon-client.netlify.app (commit 30bc661, deploy 6acc61b521f9d0dc98a82520).
 
 ## 8. Notas adicionales
 
