@@ -3,30 +3,46 @@ import { z } from 'zod'
 export const inventoryLocationSchema = z.enum(['punto_venta', 'bodega'])
 
 export const registerEntrySchema = z.object({
-  productId:      z.string().uuid('ID de producto inválido'),
-  cantidad:       z.number().positive('La cantidad debe ser mayor a 0'),
-  ubicacion:      inventoryLocationSchema.default('bodega'),
-  costoUnitario:  z.number().nonnegative().optional(),
-  motivo:         z.string().max(200).optional(),
+  productId: z.string().uuid('ID de producto inválido'),
+  cantidad: z.number().positive('La cantidad debe ser mayor a 0'),
+  ubicacion: inventoryLocationSchema.default('bodega'),
+  costoUnitario: z.number().nonnegative().optional(),
+  motivo: z.string().max(200).optional(),
+})
+
+export const INVENTORY_COST_CORRECTION_REASON_MIN_LENGTH = 10
+export const INVENTORY_COST_CORRECTION_REASON_MAX_LENGTH = 200
+
+export const correctEntryCostSchema = z.object({
+  movementId: z.string().uuid('ID de movimiento inválido'),
+  newCost: z.number().positive('El nuevo costo debe ser mayor a 0'),
+  updateProductCost: z.boolean(),
+  reason: z
+    .string()
+    .trim()
+    .min(
+      INVENTORY_COST_CORRECTION_REASON_MIN_LENGTH,
+      `El motivo debe tener al menos ${INVENTORY_COST_CORRECTION_REASON_MIN_LENGTH} caracteres`
+    )
+    .max(INVENTORY_COST_CORRECTION_REASON_MAX_LENGTH),
 })
 
 export const adjustStockSchema = z.object({
-  productId:     z.string().uuid('ID de producto inválido'),
+  productId: z.string().uuid('ID de producto inválido'),
   cantidadDelta: z.number().refine((n) => n !== 0, 'El ajuste no puede ser cero'),
-  ubicacion:     inventoryLocationSchema,
-  motivo:        z.string().min(3, 'Describe el motivo del ajuste').max(200),
+  ubicacion: inventoryLocationSchema,
+  motivo: z.string().min(3, 'Describe el motivo del ajuste').max(200),
 })
 
 export const transferStockSchema = z
   .object({
-    productId:       z.string().uuid('ID de producto inválido'),
-    fromUbicacion:   inventoryLocationSchema,
-    toUbicacion:     inventoryLocationSchema,
-    cantidad:        z.number().positive('La cantidad debe ser mayor a 0'),
-    motivo:          z.string().min(3, 'Describe el motivo del traslado').max(200),
+    productId: z.string().uuid('ID de producto inválido'),
+    fromUbicacion: inventoryLocationSchema,
+    toUbicacion: inventoryLocationSchema,
+    cantidad: z.number().positive('La cantidad debe ser mayor a 0'),
+    motivo: z.string().min(3, 'Describe el motivo del traslado').max(200),
   })
   .refine((value) => value.fromUbicacion !== value.toUbicacion, {
     message: 'El origen y destino deben ser diferentes',
-    path:    ['toUbicacion'],
+    path: ['toUbicacion'],
   })
-

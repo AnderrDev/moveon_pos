@@ -35,6 +35,8 @@ Implementado como función `get_stock(producto_id, tienda_id, ubicacion default 
 
 La mercancía nueva (`entry`) entra por defecto a `bodega`; las ventas (`sale_exit`) descuentan de `punto_venta`; anulaciones (`void_return`) reponen a `punto_venta`.
 
+Una entrada puede registrar `costo_unitario`. Cuando lo hace, `register_inventory_entry_atomic` crea el movimiento y actualiza `productos.costo` en la misma transacción: el valor representa tanto el costo real de esa compra para el fondo de reinversión como el costo vigente que usarán las ventas futuras. Si la entrada no lleva costo, el costo vigente del producto no cambia.
+
 El alta de producto puede crear opcionalmente un movimiento `entry` inicial mediante `create_product_with_initial_stock`. La creación del producto y el movimiento son atómicos y quedan asociados por `referencia_tipo = 'product_initial_stock'`.
 
 ### RN-I08: Traslados
@@ -64,11 +66,22 @@ Los tipos `prepared` (batidos) y `combo` (promociones, ADR 0018) no llevan inven
 
 Para los combos el POS muestra una disponibilidad **derivada**: `min(floor(stock / cantidad))` sobre los productos incluidos, es decir cuántos combos alcanzan a armarse con el más escaso. Es un tope de cliente: el servidor mantiene la política de advertir sin bloquear, así que el stock de un componente puede quedar negativo si el catálogo cacheado está desactualizado.
 
+### RN-I10: Corrección auditada del costo de una entrada
+
+El costo de una entrada existente se corrige mediante `correct_inventory_entry_cost_atomic`; nunca se modifica cantidad, ubicación ni tipo desde este flujo. Solo un admin activo de la tienda puede hacerlo y debe registrar un motivo de al menos 10 caracteres. `audit_logs` conserva costo unitario y total anterior/nuevo, usuario, motivo y si también se actualizó el costo vigente del producto.
+
+La corrección recalcula automáticamente el fondo de reinversión porque este agrega `cantidad × costo_unitario` directamente desde `inventory_movements`. Para una entrada antigua, actualizar `productos.costo` es opcional: la UI lo sugiere solo para la entrada más reciente, evitando reemplazar accidentalmente el costo de una compra posterior.
+
+### RN-I11: Permisos de escritura de movimientos
+
+Los usuarios activos de la tienda pueden leer el Kardex. Las inserciones manuales (`entry`, `adjustment`) están restringidas por RLS a `admin`; ventas, anulaciones y traslados escriben mediante sus RPC `SECURITY DEFINER`, que vuelven a validar identidad, tienda y rol. No existen policies públicas de `UPDATE`/`DELETE`; la única corrección admitida es la RPC acotada al costo de un `entry`.
+
 ---
 
 ## Use cases
 
 - `RegisterEntryUseCase` — admin registra entrada de mercancía.
+- `CorrectEntryCostUseCase` — admin corrige el costo de una entrada con motivo auditado.
 - `AdjustInventoryUseCase` — admin ajusta stock con motivo.
 - `GetStockUseCase` — calcula stock actual por ubicación.
 - `ListLowStockUseCase` — productos con stock < stock_minimo.
@@ -104,6 +117,8 @@ Para cargar stock inicial desde Siigo, se usa el importador CSV. Cada fila gener
 - Suma correcta de movimientos mixtos.
 - Ajustes negativos funcionan.
 - Permisos: cajero no puede crear `entry`.
+- Una entrada con costo actualiza `productos.costo` atómicamente.
+- La corrección cambia solo `costo_unitario`, permite decidir si sincroniza el costo vigente y deja old/new/reason en auditoría.
 - Stock bulk de N productos en una sola query.
 
 ## Filtros de la página de inventario
@@ -115,4 +130,5 @@ Para cargar stock inicial desde Siigo, se usa el importador CSV. Cada fila gener
 
 - Inventario descarga las filas filtradas con stock por ubicación, proveedor, total, mínimo y alerta.
 - El kardex descarga todos los movimientos cargados del producto, con fecha, ubicación, cantidad, costo y motivo.
+- El Kardex visible muestra costo unitario y costo total; las filas `entry` ofrecen **Corregir costo**.
 - La funcionalidad permanece restringida a `admin` porque el módulo de inventario usa `roleGuard('admin')`.

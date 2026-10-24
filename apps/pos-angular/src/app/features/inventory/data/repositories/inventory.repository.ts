@@ -5,11 +5,15 @@ import {
   rowToInventoryMovement,
   type InventoryMovementRow,
 } from '@angular-app/features/inventory/data/models/inventory.mapper'
-import type { InventoryMovement, StockLevel } from '@angular-app/features/inventory/domain/entities/inventory.entity'
+import type {
+  InventoryMovement,
+  StockLevel,
+} from '@angular-app/features/inventory/domain/entities/inventory.entity'
 import { isLowStock } from '@angular-app/features/inventory/domain/services/low-stock'
 import {
   InventoryRepository as InventoryRepositoryContract,
   type AdjustStockInput,
+  type CorrectEntryCostInput,
   type RegisterEntryInput,
   type TransferStockInput,
 } from '@angular-app/features/inventory/domain/repositories/inventory.repository'
@@ -21,7 +25,7 @@ const MOV_COLS =
 interface RpcClient {
   rpc<T>(
     fn: string,
-    args: Record<string, unknown>,
+    args: Record<string, unknown>
   ): Promise<{ data: T | null; error: { message: string } | null }>
 }
 
@@ -43,7 +47,7 @@ export class InventoryRepository extends InventoryRepositoryContract {
   async getStock(
     productId: string,
     tiendaId: string,
-    ubicacion: InventoryLocation = 'punto_venta',
+    ubicacion: InventoryLocation = 'punto_venta'
   ): Promise<number> {
     const client = this.supabaseClient.supabase as unknown as RpcClient
     const { data, error } = await client.rpc<number>('get_stock', {
@@ -118,34 +122,40 @@ export class InventoryRepository extends InventoryRepositoryContract {
   }
 
   async registerEntry(input: RegisterEntryInput): Promise<InventoryMovement> {
-    const client = this.supabaseClient.supabase as unknown as UntypedClient
-    const { data, error } = await client
-      .from('inventory_movements')
-      .insert({
-        tienda_id: input.tiendaId,
-        producto_id: input.productId,
-        tipo: 'entry',
-        ubicacion: input.ubicacion,
-        cantidad: input.cantidad,
-        costo_unitario: input.costoUnitario ?? null,
-        motivo: input.motivo ?? null,
-        created_by: input.createdBy,
-      })
-      .select(MOV_COLS)
-      .single<InventoryMovementRow>()
-
+    const client = this.supabaseClient.supabase as unknown as RpcClient
+    const { data: movementId, error } = await client.rpc<string>(
+      'register_inventory_entry_atomic',
+      {
+        p_tienda_id: input.tiendaId,
+        p_producto_id: input.productId,
+        p_ubicacion: input.ubicacion,
+        p_cantidad: input.cantidad,
+        p_costo_unitario: input.costoUnitario ?? null,
+        p_motivo: input.motivo ?? null,
+        p_created_by: input.createdBy,
+      }
+    )
     if (error) throw new Error(error.message)
-    if (!data) throw new Error('Movimiento creado sin respuesta')
-    const movement = rowToInventoryMovement(data)
-    void this.audit.log({
-      tiendaId: input.tiendaId,
-      entityType: 'movimiento_inventario',
-      entityId: movement.id,
-      entityLabel: input.productName ?? input.productId,
-      action: 'entry',
-      changes: { cantidad: input.cantidad, ubicacion: input.ubicacion, motivo: input.motivo ?? null },
-    })
-    return movement
+    if (!movementId) throw new Error('Movimiento creado sin respuesta')
+    return this.getMovementById(movementId, input.tiendaId)
+  }
+
+  async correctEntryCost(input: CorrectEntryCostInput): Promise<InventoryMovement> {
+    const client = this.supabaseClient.supabase as unknown as RpcClient
+    const { data: movementId, error } = await client.rpc<string>(
+      'correct_inventory_entry_cost_atomic',
+      {
+        p_movement_id: input.movementId,
+        p_tienda_id: input.tiendaId,
+        p_new_cost: input.newCost,
+        p_update_product_cost: input.updateProductCost,
+        p_corrected_by: input.correctedBy,
+        p_reason: input.reason,
+      }
+    )
+    if (error) throw new Error(error.message)
+    if (!movementId) throw new Error('Corrección guardada sin respuesta')
+    return this.getMovementById(movementId, input.tiendaId)
   }
 
   async adjustStock(input: AdjustStockInput): Promise<InventoryMovement> {
@@ -173,7 +183,11 @@ export class InventoryRepository extends InventoryRepositoryContract {
       entityId: movement.id,
       entityLabel: input.productName ?? input.productId,
       action: 'adjust',
-      changes: { cantidadDelta: input.cantidadDelta, ubicacion: input.ubicacion, motivo: input.motivo },
+      changes: {
+        cantidadDelta: input.cantidadDelta,
+        ubicacion: input.ubicacion,
+        motivo: input.motivo,
+      },
     })
     return movement
   }
@@ -197,8 +211,26 @@ export class InventoryRepository extends InventoryRepositoryContract {
       entityId: data,
       entityLabel: input.productName ?? input.productId,
       action: 'transfer',
-      changes: { from: input.fromUbicacion, to: input.toUbicacion, cantidad: input.cantidad, motivo: input.motivo },
+      changes: {
+        from: input.fromUbicacion,
+        to: input.toUbicacion,
+        cantidad: input.cantidad,
+        motivo: input.motivo,
+      },
     })
     return data
+  }
+
+  private async getMovementById(movementId: string, tiendaId: string): Promise<InventoryMovement> {
+    const { data, error } = await this.supabaseClient.supabase
+      .from('inventory_movements')
+      .select(MOV_COLS)
+      .eq('id', movementId)
+      .eq('tienda_id', tiendaId)
+      .single<InventoryMovementRow>()
+
+    if (error) throw new Error(error.message)
+    if (!data) throw new Error('Movimiento no encontrado después de guardar')
+    return rowToInventoryMovement(data)
   }
 }

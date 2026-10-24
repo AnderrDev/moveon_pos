@@ -1,5 +1,8 @@
 import type { InventoryLocation } from '@/shared/types'
-import type { InventoryMovement, StockLevel } from '@angular-app/features/inventory/domain/entities/inventory.entity'
+import type {
+  InventoryMovement,
+  StockLevel,
+} from '@angular-app/features/inventory/domain/entities/inventory.entity'
 
 export interface RegisterEntryInput {
   tiendaId: string
@@ -22,6 +25,15 @@ export interface AdjustStockInput {
   createdBy: string
 }
 
+export interface CorrectEntryCostInput {
+  movementId: string
+  tiendaId: string
+  newCost: number
+  updateProductCost: boolean
+  correctedBy: string
+  reason: string
+}
+
 export interface TransferStockInput {
   tiendaId: string
   productId: string
@@ -39,10 +51,19 @@ export interface TransferStockInput {
  * en `Result<T>`; la implementación real lanza (`throw`) y no lo hacía.
  */
 export abstract class InventoryRepository {
-  abstract getStock(productId: string, tiendaId: string, ubicacion?: InventoryLocation): Promise<number>
+  abstract getStock(
+    productId: string,
+    tiendaId: string,
+    ubicacion?: InventoryLocation
+  ): Promise<number>
   abstract getStockLevels(tiendaId: string): Promise<StockLevel[]>
-  abstract getKardex(productId: string, tiendaId: string, limit?: number): Promise<InventoryMovement[]>
+  abstract getKardex(
+    productId: string,
+    tiendaId: string,
+    limit?: number
+  ): Promise<InventoryMovement[]>
   abstract registerEntry(input: RegisterEntryInput): Promise<InventoryMovement>
+  abstract correctEntryCost(input: CorrectEntryCostInput): Promise<InventoryMovement>
   abstract adjustStock(input: AdjustStockInput): Promise<InventoryMovement>
   abstract transferStock(input: TransferStockInput): Promise<string>
 }

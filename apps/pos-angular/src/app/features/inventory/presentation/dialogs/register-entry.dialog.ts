@@ -1,19 +1,25 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   effect,
   inject,
   input,
   output,
   signal,
 } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { getErrorMessage } from '@/shared/lib/error-message'
+import { formatCurrency } from '@/shared/lib/format'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 import { FormNumberInputComponent } from '@angular-app/shared/molecules/form-number-input.component'
 import { FormCurrencyInputComponent } from '@angular-app/shared/molecules/form-currency-input.component'
-import { FormSelectComponent, type FormSelectOption } from '@angular-app/shared/molecules/form-select.component'
+import {
+  FormSelectComponent,
+  type FormSelectOption,
+} from '@angular-app/shared/molecules/form-select.component'
 import { FormTextareaComponent } from '@angular-app/shared/molecules/form-textarea.component'
 import { FormErrorComponent } from '@angular-app/shared/molecules/form-error.component'
 import { DialogFooterComponent } from '@angular-app/shared/molecules/dialog-footer.component'
@@ -73,7 +79,22 @@ const LOCATION_OPTIONS: FormSelectOption<InventoryLocation>[] = [
           [options]="locationOptions"
           [placeholder]="null"
         />
-        <mo-form-currency-input controlName="costoUnitario" label="Costo unitario" />
+        <mo-form-currency-input
+          controlName="costoUnitario"
+          label="Costo de compra por unidad"
+          description="Si lo registras, también será el nuevo costo vigente del producto."
+        />
+
+        @if (entryTotal() > 0) {
+          <div
+            class="border-primary/20 bg-primary/5 flex items-center justify-between rounded-lg border px-3.5 py-3"
+          >
+            <span class="text-sm font-medium">Total de la compra</span>
+            <span class="text-primary text-lg font-bold tabular-nums">{{
+              money(entryTotal())
+            }}</span>
+          </div>
+        }
         <mo-form-textarea controlName="motivo" label="Motivo (opcional)" [rows]="2" />
 
         <mo-form-error [message]="rootError()" />
@@ -106,11 +127,25 @@ export class RegisterEntryDialog {
   readonly locationOptions = LOCATION_OPTIONS
 
   readonly form = new FormGroup({
-    cantidad: new FormControl<number>(1, { nonNullable: true, validators: [Validators.required, Validators.min(1)] }),
-    ubicacion: new FormControl<InventoryLocation>('bodega', { nonNullable: true, validators: [Validators.required] }),
+    cantidad: new FormControl<number>(1, {
+      nonNullable: true,
+      validators: [Validators.required, Validators.min(1)],
+    }),
+    ubicacion: new FormControl<InventoryLocation>('bodega', {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
     costoUnitario: new FormControl<number>(0, { nonNullable: true }),
     motivo: new FormControl<string>('', { nonNullable: true }),
   })
+
+  private readonly formValue = toSignal(this.form.valueChanges, {
+    initialValue: this.form.getRawValue(),
+  })
+
+  readonly entryTotal = computed(
+    () => Number(this.formValue().cantidad ?? 0) * Number(this.formValue().costoUnitario ?? 0)
+  )
 
   constructor() {
     effect(() => {
@@ -153,13 +188,17 @@ export class RegisterEntryDialog {
           ubicacion: value.ubicacion,
           costoUnitario: value.costoUnitario > 0 ? value.costoUnitario : undefined,
           motivo: value.motivo.trim() || undefined,
-        },
+        }
       )
       if (!result.ok) {
         this.rootError.set(result.error.message)
         return
       }
-      this.toast.success(`Entrada registrada (+${value.cantidad} ${product.nombre})`)
+      this.toast.success(
+        value.costoUnitario > 0
+          ? `Entrada registrada y costo de ${product.nombre} actualizado`
+          : `Entrada registrada (+${value.cantidad} ${product.nombre})`
+      )
       this.saved.emit()
       this.closed.emit()
     } catch (error) {
@@ -173,5 +212,9 @@ export class RegisterEntryDialog {
   onClose(): void {
     if (this.saving()) return
     this.closed.emit()
+  }
+
+  money(value: number): string {
+    return formatCurrency(value)
   }
 }
