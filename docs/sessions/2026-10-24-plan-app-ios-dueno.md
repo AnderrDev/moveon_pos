@@ -168,6 +168,17 @@ Hecho en `moveon-owner-ios` (commit `e125945`, sin push). Detalle en `docs/modul
 - QA real (octubre, Supabase local): cifras de la app idénticas a la RPC. Datos de QA creados: categorías `ios-qa-arriendo` / `ios-qa-servicios`, gastos "IOS-QA" de $ 150.000 y $ 45.000 y fondo con saldo inicial $ 300.000 desde 2026-09-01 en la tienda local.
 - Pendiente para PLAN-84: aplicar en remoto `owner_sales_summary`, `owner_cash_session_summary` y `owner_finance_summary` con confirmación del dueño.
 
+## 19. Continuación — PLAN-84 (marca) y giro a escrituras (ADR 0022)
+
+- `moveon-owner-ios`: `main` con PLAN-83 subido (`0bfb29a`).
+- **Marca:** asset catalog con `AppIcon` (logo oficial `moveon-logo-brand.png` sobre negro, 1024 px, misma composición que `moveon-icon.png` del catálogo), `BrandLogo` y `LaunchBackground`; pantalla de arranque con el logo sobre negro; el login y el desbloqueo con Face ID muestran el logo oficial en vez del texto. Nombre bajo el ícono: "MOVE ON" ("MOVE ON Dueño" se cortaba).
+- **Pedido del dueño a mitad de PLAN-84:** "Que diga Admin no dueño y también debe ser funcional para gestión de inventario y ventas".
+  - Todos los textos visibles pasan de "Dueño" a "Admin" (los identificadores de código no cambian).
+  - Respuestas del dueño: registrar y anular ventas; entradas, ajustes, traslados y crear/editar productos; las escrituras van antes de publicar.
+- **Hallazgo:** todas esas escrituras ya existen como RPC `*_atomic`, y `create_sale_atomic` recalcula precios, descuentos, IVA y número de venta en el servidor (ignora los totales del cliente). Editar un producto es un `update` directo sobre `productos`, como en el web.
+- **ADR 0022 propuesto** (`docs/adr/0022-app-ios-admin-escrituras.md`) y **PLAN-85..91** agregados. PLAN-84 (QA final, migraciones remotas y TestFlight) queda para después de PLAN-91.
+- **Pendiente:** aprobación del ADR 0022 por el dueño antes de escribir código de escrituras. Montserrat no está en el repo (el web la carga de Google Fonts); incluirla en la app requiere descargar los TTF (licencia OFL), así que se pregunta al dueño.
+
 ## 8. Notas adicionales
 
 - Fuentes de datos ya existentes para la app: `get_stock_levels`, `get_monthly_sales_totals`, `get_monthly_expense_totals`, `get_reinvestment_fund_totals`, `list_cash_history_days`.
