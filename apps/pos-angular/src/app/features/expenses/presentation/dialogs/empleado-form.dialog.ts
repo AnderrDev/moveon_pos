@@ -8,7 +8,7 @@ import {
   output,
   signal,
 } from '@angular/core'
-import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms'
+import { ReactiveFormsModule } from '@angular/forms'
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
@@ -20,21 +20,17 @@ import { DialogFooterComponent } from '@angular-app/shared/molecules/dialog-foot
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import { ExpenseRepository } from '@angular-app/features/expenses/domain/repositories/expense.repository'
-import {
-  createEmpleadoFormDefaults,
-  empleadoFormSchema,
-  type EmpleadoFormValue,
-} from '@angular-app/features/expenses/presentation/forms/empleado-form.factory'
 import { empleadoFormMapper } from '@angular-app/features/expenses/presentation/forms/empleado-form.mapper'
 import { saveEmpleado } from '@angular-app/features/expenses/domain/usecases/save-empleado.use-case'
 import type { Empleado } from '@angular-app/features/expenses/domain/entities/expense.entity'
+import { EmpleadoFormPresenter } from '@angular-app/features/expenses/presentation/presenters/empleado-form.presenter'
 
-type EmpleadoFormErrors = Partial<Record<keyof EmpleadoFormValue | 'root', string>>
 
 @Component({
   selector: 'mo-empleado-form-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [EmpleadoFormPresenter],
   imports: [
     ReactiveFormsModule,
     DialogComponent,
@@ -98,7 +94,7 @@ type EmpleadoFormErrors = Partial<Record<keyof EmpleadoFormValue | 'root', strin
   `,
 })
 export class EmpleadoFormDialog {
-  private readonly fb = inject(NonNullableFormBuilder)
+  private readonly presenter = inject(EmpleadoFormPresenter)
   private readonly repo = inject(ExpenseRepository)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
@@ -110,57 +106,47 @@ export class EmpleadoFormDialog {
   readonly saved = output<Empleado>()
 
   readonly saving = signal(false)
-  readonly errors = signal<EmpleadoFormErrors>({})
-  readonly form = this.fb.group(createEmpleadoFormDefaults())
+  readonly errors = this.presenter.errors
+  readonly form = this.presenter.form
 
   readonly dialogTitle = computed(() => (this.empleado() ? 'Editar empleado' : 'Nuevo empleado'))
 
   constructor() {
     effect(() => {
       if (this.open()) {
-        this.form.reset(empleadoFormMapper.toFormValue(this.empleado()))
-        this.errors.set({})
+        this.presenter.reset(empleadoFormMapper.toFormValue(this.empleado()))
       }
     })
   }
 
   async submit(): Promise<void> {
     if (this.saving()) return
-    this.form.markAllAsTouched()
-    const parsed = empleadoFormSchema.safeParse(this.form.getRawValue())
-    if (!parsed.success) {
-      const errors: EmpleadoFormErrors = {}
-      for (const issue of parsed.error.issues) {
-        const field = issue.path[0] as keyof EmpleadoFormValue | undefined
-        if (field && !errors[field]) errors[field] = issue.message
-      }
-      this.errors.set(errors)
-      return
-    }
+    const value = this.presenter.validate()
+    if (!value) return
 
     const auth = await this.session.getAuthContext()
     if (!auth) {
-      this.errors.update((e) => ({ ...e, root: 'Sesión expirada' }))
+      this.presenter.setRootError('Sesión expirada')
       return
     }
 
     this.saving.set(true)
     this.form.disable({ emitEvent: false })
     try {
-      const dto = empleadoFormMapper.toSaveDto(parsed.data, {
+      const dto = empleadoFormMapper.toSaveDto(value, {
         tiendaId: auth.tiendaId,
         empleadoId: this.empleado()?.id,
       })
       const result = await saveEmpleado({ repo: this.repo }, dto)
       if (!result.ok) {
-        this.errors.update((e) => ({ ...e, root: result.error.message }))
+        this.presenter.setRootError(result.error.message)
         return
       }
       this.toast.success(this.empleado() ? 'Empleado actualizado' : 'Empleado creado')
       this.saved.emit(result.value)
       this.closed.emit()
     } catch (error) {
-      this.errors.update((e) => ({ ...e, root: getErrorMessage(error, 'Error al guardar') }))
+      this.presenter.setRootError(getErrorMessage(error, 'Error al guardar'))
     } finally {
       this.saving.set(false)
       this.form.enable({ emitEvent: false })

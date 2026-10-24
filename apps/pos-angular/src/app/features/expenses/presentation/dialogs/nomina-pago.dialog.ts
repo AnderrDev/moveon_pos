@@ -8,7 +8,7 @@ import {
   signal,
 } from '@angular/core'
 import { generateIdempotencyKey } from '@/shared/lib/idempotency-key'
-import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms'
+import { ReactiveFormsModule } from '@angular/forms'
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { formatCurrency } from '@/shared/lib/format'
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
@@ -21,11 +21,6 @@ import { DialogFooterComponent } from '@angular-app/shared/molecules/dialog-foot
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import { ExpenseRepository } from '@angular-app/features/expenses/domain/repositories/expense.repository'
-import {
-  createNominaPagoFormDefaults,
-  nominaPagoFormSchema,
-  type NominaPagoFormValue,
-} from '@angular-app/features/expenses/presentation/forms/nomina-pago-form.factory'
 import { nominaPagoFormMapper } from '@angular-app/features/expenses/presentation/forms/nomina-pago-form.mapper'
 import {
   buildNominaPagoSugerido,
@@ -34,6 +29,7 @@ import {
 } from '@angular-app/features/expenses/domain/services/nomina'
 import { registerExpense } from '@angular-app/features/expenses/domain/usecases/register-expense.use-case'
 import type { Empleado, Expense } from '@angular-app/features/expenses/domain/entities/expense.entity'
+import { NominaPagoFormPresenter } from '@angular-app/features/expenses/presentation/presenters/nomina-pago-form.presenter'
 
 const TIPO_OPTIONS: FormSelectOption<string>[] = (
   ['mes', 'quincena1', 'quincena2', 'adelanto'] as NominaTipoPago[]
@@ -45,12 +41,12 @@ const METODO_OPTIONS: FormSelectOption<string>[] = [
   { value: 'efectivo_caja', label: 'Efectivo de la caja' },
 ]
 
-type FormErrors = Partial<Record<keyof NominaPagoFormValue | 'root', string>>
 
 @Component({
   selector: 'mo-nomina-pago-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [NominaPagoFormPresenter],
   imports: [
     ReactiveFormsModule,
     DialogComponent,
@@ -137,7 +133,7 @@ type FormErrors = Partial<Record<keyof NominaPagoFormValue | 'root', string>>
   `,
 })
 export class NominaPagoDialog {
-  private readonly fb = inject(NonNullableFormBuilder)
+  private readonly presenter = inject(NominaPagoFormPresenter)
   private readonly repo = inject(ExpenseRepository)
   /**
    * Una por apertura del diálogo (se regenera al abrir): los reintentos del
@@ -156,10 +152,10 @@ export class NominaPagoDialog {
   readonly saved = output<Expense>()
 
   readonly saving = signal(false)
-  readonly errors = signal<FormErrors>({})
+  readonly errors = this.presenter.errors
   readonly tipoOptions = TIPO_OPTIONS
   readonly metodoOptions = METODO_OPTIONS
-  readonly form = this.fb.group(createNominaPagoFormDefaults())
+  readonly form = this.presenter.form
 
   salarioHint(): string {
     const emp = this.empleado()
@@ -170,8 +166,7 @@ export class NominaPagoDialog {
     effect(() => {
       if (this.open() && this.empleado()) {
         this.idempotencyKey = generateIdempotencyKey()
-        this.form.reset(createNominaPagoFormDefaults())
-        this.errors.set({})
+        this.presenter.reset()
         this.applySugerido('mes')
       }
     })
@@ -196,53 +191,41 @@ export class NominaPagoDialog {
     const categoryId = this.nominaCategoryId()
     if (!emp) return
     if (!categoryId) {
-      this.errors.update((e) => ({ ...e, root: 'No existe la categoría de nómina en esta tienda' }))
+      this.presenter.setRootError('No existe la categoría de nómina en esta tienda')
       return
     }
 
-    this.form.markAllAsTouched()
-    const parsed = nominaPagoFormSchema.safeParse(this.form.getRawValue())
-    if (!parsed.success) {
-      const errors: FormErrors = {}
-      for (const issue of parsed.error.issues) {
-        const field = issue.path[0] as keyof NominaPagoFormValue | undefined
-        if (field && !errors[field]) errors[field] = issue.message
-      }
-      this.errors.set(errors)
-      return
-    }
+    const value = this.presenter.validate()
+    if (!value) return
 
     const auth = await this.session.getAuthContext()
     if (!auth) {
-      this.errors.update((e) => ({ ...e, root: 'Sesión expirada' }))
+      this.presenter.setRootError('Sesión expirada')
       return
     }
 
     this.saving.set(true)
     this.form.disable({ emitEvent: false })
     try {
-      const dto = nominaPagoFormMapper.toCreateDto(parsed.data, {
+      const dto = nominaPagoFormMapper.toCreateDto(value, {
         tiendaId: auth.tiendaId,
         categoryId,
         empleado: emp,
-        month: parsed.data.fechaGasto.slice(0, 7),
+        month: value.fechaGasto.slice(0, 7),
       })
       const result = await registerExpense(
         { repo: this.repo, userId: auth.userId },
         { ...dto, idempotencyKey: this.idempotencyKey },
       )
       if (!result.ok) {
-        this.errors.update((e) => ({ ...e, root: result.error.message }))
+        this.presenter.setRootError(result.error.message)
         return
       }
       this.toast.success(`Pago de nómina registrado para ${emp.nombre}`)
       this.saved.emit(result.value)
       this.closed.emit()
     } catch (error) {
-      this.errors.update((e) => ({
-        ...e,
-        root: getErrorMessage(error, 'Error al registrar el pago'),
-      }))
+      this.presenter.setRootError(getErrorMessage(error, 'Error al registrar el pago'))
     } finally {
       this.saving.set(false)
       this.form.enable({ emitEvent: false })

@@ -8,8 +8,7 @@ import {
   output,
   signal,
 } from '@angular/core'
-import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms'
-import { z } from 'zod'
+import { ReactiveFormsModule } from '@angular/forms'
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
@@ -21,13 +20,11 @@ import { DialogFooterComponent } from '@angular-app/shared/molecules/dialog-foot
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import { ExpenseRepository } from '@angular-app/features/expenses/domain/repositories/expense.repository'
-import { saveTemplateSchema } from '@angular-app/features/expenses/domain/dtos/template.dto'
+import { templateFormMapper } from '@angular-app/features/expenses/presentation/forms/template-form.mapper'
 import { saveTemplate } from '@angular-app/features/expenses/domain/usecases/save-template.use-case'
 import type { ExpenseCategory, ExpenseTemplate } from '@angular-app/features/expenses/domain/entities/expense.entity'
+import { TemplateFormPresenter } from '@angular-app/features/expenses/presentation/presenters/template-form.presenter'
 
-const templateFormSchema = saveTemplateSchema.omit({ id: true, tiendaId: true })
-type TemplateFormValue = z.infer<typeof templateFormSchema>
-type TemplateFormErrors = Partial<Record<keyof TemplateFormValue | 'root', string>>
 
 const FRECUENCIA_OPTIONS: FormSelectOption<string>[] = [
   { value: 'mensual', label: 'Mensual' },
@@ -38,6 +35,7 @@ const FRECUENCIA_OPTIONS: FormSelectOption<string>[] = [
   selector: 'mo-template-form-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [TemplateFormPresenter],
   imports: [
     ReactiveFormsModule,
     DialogComponent,
@@ -108,7 +106,7 @@ const FRECUENCIA_OPTIONS: FormSelectOption<string>[] = [
   `,
 })
 export class TemplateFormDialog {
-  private readonly fb = inject(NonNullableFormBuilder)
+  private readonly presenter = inject(TemplateFormPresenter)
   private readonly repo = inject(ExpenseRepository)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
@@ -120,15 +118,10 @@ export class TemplateFormDialog {
   readonly saved = output<ExpenseTemplate>()
 
   readonly saving = signal(false)
-  readonly errors = signal<TemplateFormErrors>({})
+  readonly errors = this.presenter.errors
   readonly frecuenciaOptions = FRECUENCIA_OPTIONS
 
-  readonly form = this.fb.group({
-    categoryId: '',
-    concepto: '',
-    montoSugerido: 0,
-    frecuencia: 'mensual',
-  })
+  readonly form = this.presenter.form
 
   readonly categoryOptions = computed<FormSelectOption<string>[]>(() =>
     this.categorias().map((c) => ({ value: c.id, label: c.nombre })),
@@ -137,29 +130,19 @@ export class TemplateFormDialog {
   constructor() {
     effect(() => {
       if (this.open()) {
-        this.form.reset({ categoryId: '', concepto: '', montoSugerido: 0, frecuencia: 'mensual' })
-        this.errors.set({})
+        this.presenter.reset()
       }
     })
   }
 
   async submit(): Promise<void> {
     if (this.saving()) return
-    this.form.markAllAsTouched()
-    const parsed = templateFormSchema.safeParse(this.form.getRawValue())
-    if (!parsed.success) {
-      const errors: TemplateFormErrors = {}
-      for (const issue of parsed.error.issues) {
-        const field = issue.path[0] as keyof TemplateFormValue | undefined
-        if (field && !errors[field]) errors[field] = issue.message
-      }
-      this.errors.set(errors)
-      return
-    }
+    const value = this.presenter.validate()
+    if (!value) return
 
     const auth = await this.session.getAuthContext()
     if (!auth) {
-      this.errors.update((e) => ({ ...e, root: 'Sesión expirada' }))
+      this.presenter.setRootError('Sesión expirada')
       return
     }
 
@@ -168,17 +151,17 @@ export class TemplateFormDialog {
     try {
       const result = await saveTemplate(
         { repo: this.repo },
-        { ...parsed.data, tiendaId: auth.tiendaId },
+        templateFormMapper.toSaveDto(value, { tiendaId: auth.tiendaId }),
       )
       if (!result.ok) {
-        this.errors.update((e) => ({ ...e, root: result.error.message }))
+        this.presenter.setRootError(result.error.message)
         return
       }
       this.toast.success('Plantilla creada')
       this.saved.emit(result.value)
       this.closed.emit()
     } catch (error) {
-      this.errors.update((e) => ({ ...e, root: getErrorMessage(error, 'Error al guardar') }))
+      this.presenter.setRootError(getErrorMessage(error, 'Error al guardar'))
     } finally {
       this.saving.set(false)
       this.form.enable({ emitEvent: false })

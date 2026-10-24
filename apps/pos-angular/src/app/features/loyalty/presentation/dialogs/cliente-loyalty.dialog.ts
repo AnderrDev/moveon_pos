@@ -9,7 +9,7 @@ import {
   output,
   signal,
 } from '@angular/core'
-import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
+import { ReactiveFormsModule } from '@angular/forms'
 import {
   LucideAngularModule,
   CupSoda,
@@ -24,10 +24,6 @@ import {
 } from 'lucide-angular'
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { formatCurrency, formatShortDate, formatTime } from '@/shared/lib/format'
-import {
-  adjustStampsFormSchema,
-  createAdjustStampsFormDefaults,
-} from '@angular-app/features/loyalty/presentation/forms/adjust-stamps-form.factory'
 import { adjustStampsFormMapper } from '@angular-app/features/loyalty/presentation/forms/adjust-stamps-form.mapper'
 import type {
   LoyaltyReward,
@@ -52,6 +48,7 @@ import { SessionService } from '@angular-app/core/auth/session.service'
 import { TiendaInfoService } from '@angular-app/core/tienda/tienda-info.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
+import { AdjustStampsFormPresenter } from '@angular-app/features/loyalty/presentation/presenters/adjust-stamps-form.presenter'
 
 const TYPE_LABELS: Record<LoyaltyTransactionType, string> = {
   earn: 'Sellos ganados',
@@ -70,6 +67,7 @@ const TYPE_LABELS: Record<LoyaltyTransactionType, string> = {
   selector: 'mo-cliente-loyalty-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [AdjustStampsFormPresenter],
   imports: [SkeletonComponent, 
     ReactiveFormsModule,
     LucideAngularModule,
@@ -330,13 +328,11 @@ export class ClienteLoyaltyDialog {
   readonly transactions = signal<LoyaltyTransaction[]>([])
   readonly config = signal<LoyaltyConfig>(DEFAULT_LOYALTY_CONFIG)
   readonly adjusting = signal(false)
-  readonly adjustErrors = signal<Partial<Record<'delta' | 'reason' | 'root', string>>>({})
   readonly canAdjust = computed(() => canAdjustLoyaltyStamps(this.session.role()))
 
-  readonly adjustForm = new FormGroup({
-    delta: new FormControl<number | null>(null),
-    reason: new FormControl<string>('', { nonNullable: true }),
-  })
+  private readonly adjustPresenter = inject(AdjustStampsFormPresenter)
+  readonly adjustForm = this.adjustPresenter.form
+  readonly adjustErrors = this.adjustPresenter.errors
 
   readonly dialogTitle = computed(() => {
     const nombre = this.cliente()?.nombre
@@ -396,8 +392,7 @@ export class ClienteLoyaltyDialog {
     void this.session.getRole()
     effect(() => {
       if (this.open() && this.cliente()) {
-        this.adjustForm.reset(createAdjustStampsFormDefaults())
-        this.adjustErrors.set({})
+        this.adjustPresenter.reset()
         void this.load()
       }
     })
@@ -437,52 +432,35 @@ export class ClienteLoyaltyDialog {
 
   async submitAdjust(): Promise<void> {
     if (this.adjusting() || !this.canAdjust()) return
-    this.adjustForm.markAllAsTouched()
-
-    const raw = this.adjustForm.getRawValue()
-    const parsed = adjustStampsFormSchema.safeParse({
-      delta: raw.delta ?? Number.NaN,
-      reason: raw.reason,
-    })
-    if (!parsed.success) {
-      const errors: Partial<Record<'delta' | 'reason', string>> = {}
-      for (const issue of parsed.error.issues) {
-        const field = issue.path[0] as 'delta' | 'reason' | undefined
-        if (field && !errors[field]) errors[field] = issue.message
-      }
-      this.adjustErrors.set(errors)
-      return
-    }
+    const value = this.adjustPresenter.validate()
+    if (!value) return
 
     const cliente = this.cliente()
     const auth = await this.session.getAuthContext()
     if (!cliente || !auth) {
-      this.adjustErrors.set({ root: 'Sesión expirada' })
+      this.adjustPresenter.setRootError('Sesión expirada')
       return
     }
 
     this.adjusting.set(true)
-    this.adjustErrors.set({})
     try {
       const result = await adjustStamps(
         { repo: this.loyaltyRepo },
-        adjustStampsFormMapper.toPayload(parsed.data, {
+        adjustStampsFormMapper.toPayload(value, {
           tiendaId: auth.tiendaId,
           clienteId: cliente.id,
           createdBy: auth.userId,
         }),
       )
       if (!result.ok) {
-        this.adjustErrors.set({ root: result.error.message })
+        this.adjustPresenter.setRootError(result.error.message)
         return
       }
       this.toast.success(`Sellos ajustados. Nuevo saldo: ${result.value}`)
-      this.adjustForm.reset(createAdjustStampsFormDefaults())
+      this.adjustPresenter.reset()
       await this.load()
     } catch (error) {
-      this.adjustErrors.set({
-        root: getErrorMessage(error, 'No se pudo ajustar los sellos'),
-      })
+      this.adjustPresenter.setRootError(getErrorMessage(error, 'No se pudo ajustar los sellos'))
     } finally {
       this.adjusting.set(false)
     }

@@ -7,7 +7,7 @@ import {
   output,
   signal,
 } from '@angular/core'
-import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms'
+import { ReactiveFormsModule } from '@angular/forms'
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
@@ -17,21 +17,18 @@ import { DialogFooterComponent } from '@angular-app/shared/molecules/dialog-foot
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import { ExpenseRepository } from '@angular-app/features/expenses/domain/repositories/expense.repository'
-import {
-  createFundSettingsFormDefaults,
-  fundSettingsFormSchema,
-  type FundSettingsFormValue,
-} from '@angular-app/features/expenses/presentation/forms/fund-settings-form.factory'
+import { createFundSettingsFormDefaults } from '@angular-app/features/expenses/presentation/forms/fund-settings-form.factory'
 import { fundSettingsFormMapper } from '@angular-app/features/expenses/presentation/forms/fund-settings-form.mapper'
 import { saveFundSettings } from '@angular-app/features/expenses/domain/usecases/save-fund-settings.use-case'
 import type { ReinvestmentFundSettings } from '@angular-app/features/expenses/domain/entities/expense.entity'
+import { FundSettingsFormPresenter } from '@angular-app/features/expenses/presentation/presenters/fund-settings-form.presenter'
 
-type FundSettingsFormErrors = Partial<Record<keyof FundSettingsFormValue | 'root', string>>
 
 @Component({
   selector: 'mo-fund-settings-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [FundSettingsFormPresenter],
   imports: [
     ReactiveFormsModule,
     DialogComponent,
@@ -90,7 +87,7 @@ type FundSettingsFormErrors = Partial<Record<keyof FundSettingsFormValue | 'root
   `,
 })
 export class FundSettingsDialog {
-  private readonly fb = inject(NonNullableFormBuilder)
+  private readonly presenter = inject(FundSettingsFormPresenter)
   private readonly repo = inject(ExpenseRepository)
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
@@ -103,60 +100,50 @@ export class FundSettingsDialog {
   readonly saved = output<ReinvestmentFundSettings>()
 
   readonly saving = signal(false)
-  readonly errors = signal<FundSettingsFormErrors>({})
+  readonly errors = this.presenter.errors
 
-  readonly form = this.fb.group(createFundSettingsFormDefaults())
+  readonly form = this.presenter.form
 
   constructor() {
     effect(() => {
       if (this.open()) {
         const current = this.settings()
-        this.form.reset(
+        this.presenter.reset(
           createFundSettingsFormDefaults(
             current
               ? { saldoInicial: current.saldoInicial, fechaInicio: current.fechaInicio }
               : {},
           ),
         )
-        this.errors.set({})
       }
     })
   }
 
   async submit(): Promise<void> {
     if (this.saving()) return
-    this.form.markAllAsTouched()
-    const parsed = fundSettingsFormSchema.safeParse(this.form.getRawValue())
-    if (!parsed.success) {
-      const errors: FundSettingsFormErrors = {}
-      for (const issue of parsed.error.issues) {
-        const field = issue.path[0] as keyof FundSettingsFormValue | undefined
-        if (field && !errors[field]) errors[field] = issue.message
-      }
-      this.errors.set(errors)
-      return
-    }
+    const value = this.presenter.validate()
+    if (!value) return
 
     const auth = await this.session.getAuthContext()
     if (!auth) {
-      this.errors.update((e) => ({ ...e, root: 'Sesión expirada' }))
+      this.presenter.setRootError('Sesión expirada')
       return
     }
 
     this.saving.set(true)
     this.form.disable({ emitEvent: false })
     try {
-      const dto = fundSettingsFormMapper.toSaveDto(parsed.data, { tiendaId: auth.tiendaId })
+      const dto = fundSettingsFormMapper.toSaveDto(value, { tiendaId: auth.tiendaId })
       const result = await saveFundSettings({ repo: this.repo }, dto)
       if (!result.ok) {
-        this.errors.update((e) => ({ ...e, root: result.error.message }))
+        this.presenter.setRootError(result.error.message)
         return
       }
       this.toast.success('Fondo de reinversión configurado')
       this.saved.emit(result.value)
       this.closed.emit()
     } catch (error) {
-      this.errors.update((e) => ({ ...e, root: getErrorMessage(error, 'Error al guardar') }))
+      this.presenter.setRootError(getErrorMessage(error, 'Error al guardar'))
     } finally {
       this.saving.set(false)
       this.form.enable({ emitEvent: false })
