@@ -109,9 +109,12 @@ export class CatalogoService {
   }
 
   async getContactSettings(): Promise<CatalogoContactSettings | null> {
-    // `storefront_contact_settings` no está en database.types.ts (generado
-    // antes de esa migración): cast estructural, mismo patrón que los repos
-    // del POS para tablas fuera de los tipos generados.
+    // `storefront_contact_settings` no está en database.types.ts porque su
+    // migración (20260710000100) nunca se aplicó al proyecto remoto: el
+    // generador de tipos lee del remoto y no puede verla. Mientras siga así,
+    // este cast estructural es la única forma de tipar la consulta — y en
+    // producción esta llamada devuelve PGRST205 y cae al fallback.
+    // Al aplicar la migración: `pnpm db:types` y borrar este cast.
     interface ContactClient {
       from(table: 'storefront_contact_settings'): {
         select(cols: string): {

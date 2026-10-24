@@ -8,6 +8,7 @@ import {
   signal,
 } from '@angular/core'
 import type { CatalogoProducto } from './catalogo.service'
+import { WA_MENSAJES, whatsappLink } from '../../shared/whatsapp'
 
 /**
  * Cinta de ofertas del header del catálogo (diseño oficial v4).
@@ -429,8 +430,7 @@ export class OffersCarouselComponent implements OnInit, OnDestroy {
   }
 
   waLink(p: CatalogoProducto): string {
-    const msg = `Hola Move On 👋 Me interesa ${p.nombre}, que vi destacado en el catálogo. ¿Está disponible?`
-    return `https://wa.me/${this.whatsappNumber()}?text=${encodeURIComponent(msg)}`
+    return whatsappLink(this.whatsappNumber(), WA_MENSAJES.productoDestacado(p.nombre))
   }
 
   private pad(n: number): string {

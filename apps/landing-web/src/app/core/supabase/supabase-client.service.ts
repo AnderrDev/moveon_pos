@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core'
-import { createClient, processLock, SupabaseClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { AppConfigService } from '../config/app-config.service'
 import type { Database } from '@/infrastructure/supabase/database.types'
 
@@ -11,12 +11,14 @@ export class SupabaseClientService {
   get supabase(): SupabaseClient<Database> {
     if (!this._client) {
       const { supabaseUrl, supabaseAnonKey } = this.appConfig.current
+      // La landing es 100% anónima (vistas públicas + RPC anon): no hay login
+      // ni sesión que refrescar. `detectSessionInUrl` además inspeccionaría el
+      // fragmento en cada carga, y esta página navega por anclas (#catalogo).
       this._client = createClient<Database>(supabaseUrl, supabaseAnonKey, {
         auth: {
-          autoRefreshToken: true,
-          persistSession: true,
-          detectSessionInUrl: true,
-          lock: processLock,
+          autoRefreshToken: false,
+          persistSession: false,
+          detectSessionInUrl: false,
         },
       })
     }
