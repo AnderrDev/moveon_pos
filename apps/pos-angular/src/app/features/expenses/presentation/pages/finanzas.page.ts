@@ -57,7 +57,7 @@ import {
   type StockValuation,
 } from '@angular-app/features/inventory/domain/services/stock-valuation'
 import { ProductsCacheStore } from '@angular-app/core/catalog/products-cache.store'
-import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
+import { PageSkeletonComponent } from '@angular-app/shared/molecules/page-skeleton.component'
 
 function currentMonthLocal(): string {
   const now = new Date()
@@ -88,7 +88,7 @@ function monthRange(month: string): { from: string; to: string } {
   selector: 'mo-finanzas-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SkeletonComponent, 
+  imports: [PageSkeletonComponent, 
     FixedCommitmentsComponent,
     LucideAngularModule,
     ...MO_MENU,
@@ -139,7 +139,7 @@ function monthRange(month: string): { from: string; to: string } {
         <mo-button variant="outline" (click)="openPurchaseList()">Lista de compras</mo-button>
         <mo-button variant="outline" (click)="recurrentesOpen.set(true)">Gastos del mes</mo-button>
         <mo-button (click)="openNewExpense()">Registrar gasto</mo-button>
-        <mo-menu>
+        <mo-menu [busy]="exporting()">
           <button type="button" moMenuItem [disabled]="loading() || exporting()" (click)="exportFinanzas()">
             {{ exporting() ? 'Generando Excel…' : 'Descargar Excel del mes' }}
           </button>
@@ -147,7 +147,7 @@ function monthRange(month: string): { from: string; to: string } {
       </mo-page-header>
 
       @if (loading()) {
-        <mo-skeleton heightClass="h-72" />
+        <mo-page-skeleton variant="stats" [cards]="3" label="Cargando finanzas…" />
       } @else if (loadError()) {
         <mo-empty-state title="Error al cargar finanzas" [description]="loadError()">
           <mo-button (click)="load()">Reintentar</mo-button>

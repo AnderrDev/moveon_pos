@@ -103,3 +103,15 @@ apps/pos-angular/src/app/features/expenses/          (estructura ADR 0015)
 - sugiere registrar el saldo inicial si el fondo arrancó en $0.
 
 `fundBalanceKind` (`reinvestment-fund.ts`) decide la lectura. Tests: `tests/unit/features/inventory/stock-valuation.test.ts`. Sin cambios en la base.
+
+## Gastos fijos y lista de compras (2026-10-24)
+
+- **Gastos fijos del mes** (`domain/services/fixed-commitments.ts`, tarjeta `mo-fixed-commitments`): plantillas activas (mensual = monto; quincenal = 2 × monto) + salario de empleados activos. Pagado = gastos activos del mes con la misma categoría y concepto (plantillas) o ligados al empleado (nómina). Lo **pendiente se aparta desde el día 1**: el resumen agrega "− Gastos fijos por pagar = Dinero libre" (solo en el mes en curso). Decisión del dueño: arriendo $2.500.000 (plantilla) y empleado $1.800.000 (salario) siempre fijos.
+- **Lista de compras** (`/finanzas/compras`, `presentation/pages/compras.page.ts`): pronóstico por producto con `buildPurchasePlan` (`features/inventory/domain/services/purchase-suggestions.ts`):
+  - consumo diario = 0,6 × promedio 14 días + 0,4 × promedio 56 días, desde `sale_exit` − `void_return` (incluye componentes de batidos y combos); productos nuevos promedian sobre los días que llevan, mínimo 7;
+  - necesario = ⌈máx(consumo × días de cobertura, stock mínimo) − stock total⌉;
+  - orden: menos días de stock primero, luego mayor margen diario;
+  - presupuesto (por defecto lo disponible del fondo, editable): se llena en orden; completo, parcial o "sin presupuesto"; nunca lo supera. Sin costo registrado no consume presupuesto.
+  - Filtro por proveedor (el tope aplica al pedido filtrado) y Excel ordenado por proveedor.
+  - No es un modelo de ML: con ~4 meses de historia un pronóstico ponderado es igual de preciso y explicable. Reevaluar con más historia (estacionalidad semanal/mensual).
+- Tests: `tests/unit/features/inventory/purchase-suggestions.test.ts`, `tests/unit/features/expenses/fixed-commitments.test.ts`.

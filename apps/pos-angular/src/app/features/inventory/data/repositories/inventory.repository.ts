@@ -1,6 +1,8 @@
 import { inject, Injectable } from '@angular/core'
 import { SupabaseClientService } from '@angular-app/core/supabase/supabase-client.service'
 import { rpcArgs } from '@angular-app/core/supabase/rpc-args'
+import { fetchAllPages } from '@angular-app/core/supabase/fetch-all-pages'
+import type { ConsumptionRecord } from '@angular-app/features/inventory/domain/services/purchase-suggestions'
 import { AuditLogRepository } from '@angular-app/features/audit/domain/repositories/audit-log.repository'
 import {
   rowToInventoryMovement,
@@ -85,6 +87,25 @@ export class InventoryRepository extends InventoryRepositoryContract {
         isLow: isLowStock({ tipo: p.tipo, currentStock: puntoVentaStock, minimumStock: minimum }),
       }
     })
+  }
+
+  async getConsumption(tiendaId: string, fromIso: string): Promise<ConsumptionRecord[]> {
+    const rows = await fetchAllPages<{ producto_id: string; cantidad: number; created_at: string }>(async (from, to) => {
+      const { data, error } = await this.supabaseClient.supabase
+        .from('inventory_movements')
+        .select('producto_id, cantidad, created_at')
+        .eq('tienda_id', tiendaId)
+        .in('tipo', ['sale_exit', 'void_return'])
+        .gte('created_at', fromIso)
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, to)
+      if (error) throw new Error(error.message)
+      return data ?? []
+    })
+    // sale_exit resta stock (cantidad negativa) y void_return lo devuelve:
+    // el consumo es el opuesto del movimiento.
+    return rows.map((r) => ({ productId: r.producto_id, unidades: -Number(r.cantidad), at: new Date(r.created_at) }))
   }
 
   async getKardex(productId: string, tiendaId: string, limit = 100): Promise<InventoryMovement[]> {

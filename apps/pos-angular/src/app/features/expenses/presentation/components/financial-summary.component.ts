@@ -135,6 +135,24 @@ import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
             {{ (s().balanceDinero | money) }}
           </dd>
         </div>
+        @if (s().fijosPendientes > 0) {
+          <div class="flex items-center justify-between">
+            <dt class="text-muted-foreground" title="Arriendo, nómina y demás fijos del mes que aún no se han pagado">
+              − Gastos fijos por pagar
+            </dt>
+            <dd class="font-semibold">{{ (s().fijosPendientes | money) }}</dd>
+          </div>
+          <div class="flex items-center justify-between border-t pt-2">
+            <dt class="font-semibold">= Dinero libre</dt>
+            <dd
+              class="font-bold"
+              [class.text-emerald-600]="s().dineroLibre > 0"
+              [class.text-destructive]="s().dineroLibre < 0"
+            >
+              {{ (s().dineroLibre | money) }}
+            </dd>
+          </div>
+        }
       </dl>
       <p class="text-muted-foreground mt-2 text-xs">
         Las compras de mercancía no son gasto: se descuentan de la utilidad cuando se vende el producto.
