@@ -385,6 +385,25 @@ Hecho en `moveon-owner-ios` (commit `e125945`, sin push). Detalle en `docs/modul
     - la recompensa: `redeemed` en V-000009;
     - el ledger: earn 8 → redeem −8 → earn 1, saldo 1.
 
+## 31. PLAN-96 — QA del punto de venta
+
+- `moveon-owner-ios`: `main` con PLAN-95 subido (`5b4aea2`). Recorrido con esa versión en el simulador, contra el Supabase local; el POS web en `localhost:4200`, también apuntando al local.
+- **Ventas desde el iPhone** (cada una con la vista previa igual a lo que registró el servidor):
+  - **V-000010:** cliente nuevo "QA iOS Cierre" creado en el carrito; 1 × QA Creatina con 10 % por unidad (−8.500) y 1 × batido Whey; global de 2.000 con el motivo "QA cierre PLAN-96"; pago 50.000 en efectivo + 42.500 por transferencia.
+    - Servidor: 103.000 − 8.500 − 2.000 = 92.500, con el global repartido 1.619,05 / 380,95, como lo calcula Swift.
+    - Sin sellos por el global; la app tampoco los mostró.
+  - **V-000011:** "QA iOS Cliente" (1 sello) compra 7 batidos: la app anunció "suma 7 sellos" y el servidor llegó a 8, generó la recompensa y dejó el saldo en 0.
+  - **V-000012:** canje del batido junto con −500 en la QA iOS Barra. La app mostró "Descuentos −500" y "Canje MOVE ON Club −11.000" por separado, total 15.000, y pidió motivo solo por los 500. El servidor registró lo mismo, sin sellos, con la recompensa canjeada.
+- **Cifras iguales en el web y el iPhone:**
+  - **Hoy** (`/reportes` contra la pestaña Resumen): total 1.850.500 · 14 ventas · 2 anuladas · ticket 132.179 · utilidad 616.481.
+  - **Caja abierta** (`/caja` contra la pestaña Caja): esperado 553.000 = base 125.000 + efectivo 568.000 (8 ventas) − retiros 140.000; transferencias 102.500 (2); total 670.500; el gasto anulado aparece como anulado en ambas.
+  - **Clientes:** los creados desde el iPhone aparecen en `/clientes` con su documento, celular y el Club; el progreso es el mismo del ledger (QA iOS Cliente 0/8 tras el canje, QA iOS Cierre 0/8).
+- **Tests:** iOS 255 unitarios + 25 de interfaz; POS `pnpm test` 905 y `pnpm test:parity` 39, todo en verde.
+- **Notas:**
+  - En V-000010 la referencia de la transferencia quedó "TRX" en vez de "TRX-QA96" porque el clic de "Agregar pago" llegó antes de que el simulador terminara de escribir. Al repetirlo con pausa, el campo guardó el texto completo: es del recorrido automatizado, no de la app.
+  - Mientras se hacía este QA aparecieron en el local 40 productos "SIM ·" de otra sesión; no tocaron las ventas ni la caja comparadas.
+- **Pendiente:** PLAN-84 (instalar en el iPhone del dueño), en pausa por decisión del dueño.
+
 ## 8. Notas adicionales
 
 - Fuentes de datos ya existentes para la app: `get_stock_levels`, `get_monthly_sales_totals`, `get_monthly_expense_totals`, `get_reinvestment_fund_totals`, `list_cash_history_days`.
