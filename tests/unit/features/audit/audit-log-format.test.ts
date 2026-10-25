@@ -15,6 +15,8 @@ describe('acciones legibles', () => {
     expect(auditActionInfo('void', 'venta')).toEqual({ label: 'Anuló venta', variant: 'destructive' })
     expect(auditActionInfo('update', 'producto').label).toBe('Editó producto')
     expect(auditActionInfo('algo.nuevo', null).label).toBe('algo.nuevo')
+    expect(auditActionInfo('sale.item_cost_corrected', 'sale')).toEqual({ label: 'Corrigió costo de venta', variant: 'warning' })
+    expect(auditModuleOf('sale', 'sale.item_cost_corrected')).toBe('ventas')
   })
 
   it('ubica cada registro en su módulo, con la acción por encima del tipo', () => {
