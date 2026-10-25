@@ -171,6 +171,19 @@ El POS usa la identidad MOVE ON (la misma del catálogo/landing):
 
 ---
 
+### 5.2 Gráficas (2026-10-24)
+
+Componentes en `shared/molecules/charts/`, hechos con HTML/CSS (sin librería de gráficas):
+
+| Componente | Para qué |
+|---|---|
+| `mo-column-chart` | Una serie en el tiempo (ventas por día, por hora). Eje con números redondos, tooltip por columna (mouse, toque y teclado), "Ver como tabla". |
+| `mo-bar-list-chart` | Ranking de una serie (top productos, métodos de pago, gastos por categoría). Valor en la punta y `%` opcional; `shareOf` cuando los puntos son parte de un total mayor. |
+| `mo-grouped-column-chart` | 2–3 series en el mismo eje (ventas vs. gastos por mes). Leyenda siempre visible, tooltip con todas las series. |
+| `mo-share-bar-chart` | Reparto de un total en 2–3 partes (a dónde se fue lo vendido). Leyenda con valor y `%`. |
+
+Reglas (guía de visualización): colores de `chart-palette.ts` — **paleta aparte de la marca** (decisión del dueño): azul `#2a78d6`, naranja `#eb6834`, verde `#1baf7a`, validados para daltonismo y contraste; el amarillo y el negro de marca no pasan para barras sobre fondo claro. Orden fijo (la serie 1 siempre es azul). Un solo eje Y (nunca dos escalas). Columnas ≤ 24 px con punta redondeada de 4 px y 2 px de separación. El texto usa colores de texto, nunca el de la serie. Las gráficas muestran los huecos (día u hora sin ventas = 0). Un `%` que redondea a 0 se muestra `<1%`. Escalas y formatos: `src/shared/lib/chart-scale.ts`.
+
 ## 6. Componentes con datos remotos
 
 - Los componentes del design system (`shared/`) **no** llaman Supabase. Reciben datos por inputs.

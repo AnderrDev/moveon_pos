@@ -112,7 +112,7 @@ function monthRange(month: string): { from: string; to: string } {
     <section class="flex h-full min-h-0 flex-col gap-4">
       <mo-page-header
         title="Finanzas"
-        subtitle="Gastos del negocio en relación a las entradas totales"
+        subtitle="Cuánto vendes, cuánto gastas y cuánto te queda"
       >
         <div class="bg-card flex items-center rounded-lg border">
           <button
@@ -154,7 +154,7 @@ function monthRange(month: string): { from: string; to: string } {
         </mo-empty-state>
       } @else {
         <div class="min-h-0 flex-1 space-y-4 overflow-auto pb-4">
-          <mo-financial-summary [s]="summary()" />
+          <mo-financial-summary [s]="summary()" [monthLabel]="monthLabel()" />
 
           @if (isCurrentMonth()) {
             <mo-fixed-commitments [c]="fixedCommitments()" (manageRequested)="recurrentesOpen.set(true)" />

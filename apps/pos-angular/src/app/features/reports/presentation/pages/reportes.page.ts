@@ -38,6 +38,8 @@ import { PAYMENT_FILTER_OPTIONS, getPaymentMethodLabel } from '@/shared/lib/paym
 import { SegmentedComponent } from '@angular-app/shared/molecules/segmented.component'
 import { PageSkeletonComponent } from '@angular-app/shared/molecules/page-skeleton.component'
 
+import { SalesChartsComponent } from '@angular-app/features/reports/presentation/components/sales-charts.component'
+import { TopProductsChartComponent } from '@angular-app/features/reports/presentation/components/top-products-chart.component'
 @Component({
   selector: 'mo-reportes-page',
   standalone: true,
@@ -58,6 +60,8 @@ import { PageSkeletonComponent } from '@angular-app/shared/molecules/page-skelet
     AccountingSummaryComponent,
     StockReportTableComponent,
     LoyaltyReportComponent,
+    SalesChartsComponent,
+    TopProductsChartComponent,
   ],
   template: `
     <section class="flex h-full min-h-0 flex-col gap-4">
@@ -142,8 +146,10 @@ import { PageSkeletonComponent } from '@angular-app/shared/molecules/page-skelet
         @if (daily(); as d) {
           @if (subTab() === 'resumen') {
             <mo-daily-kpi-cards [report]="d" />
+            <mo-sales-charts [report]="d" [fromIso]="fromIso()" [toIso]="toIso()" />
             <mo-discount-control-table [report]="d" />
           } @else if (subTab() === 'productos') {
+            <mo-top-products-chart [productSales]="d.productSales" [totalVentas]="d.totalVentas" />
             <mo-top-products-table [productSales]="d.productSales" />
             <mo-product-sales-search [saleItems]="d.saleItems" />
           } @else if (subTab() === 'cajeros') {
