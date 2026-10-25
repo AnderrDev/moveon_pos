@@ -30,13 +30,13 @@ import { buildCustomersWorkbook } from '@angular-app/features/customers/presenta
 import { CustomerLoyaltyHighlightComponent } from '@angular-app/features/loyalty/presentation/components/customer-loyalty-highlight.component'
 import { CustomerLoyaltyProgressComponent } from '@angular-app/features/loyalty/presentation/components/customer-loyalty-progress.component'
 import { CustomerLoyaltyOverviewStore } from '@angular-app/features/customers/presentation/services/customer-loyalty-overview.store'
-import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
+import { PageSkeletonComponent } from '@angular-app/shared/molecules/page-skeleton.component'
 
 @Component({
   selector: 'mo-clientes-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SkeletonComponent,
+  imports: [PageSkeletonComponent,
     NgTemplateOutlet,
     LucideAngularModule,
     PageHeaderComponent,
@@ -102,7 +102,7 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
       }
 
       @if (loading()) {
-        <mo-skeleton heightClass="h-72" />
+        <mo-page-skeleton variant="table" thumb="circle" label="Cargando clientes…" />
       } @else if (loadError()) {
         <mo-empty-state title="Error al cargar clientes" [description]="loadError()">
           <mo-button (click)="load()">Reintentar</mo-button>

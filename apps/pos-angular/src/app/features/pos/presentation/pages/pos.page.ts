@@ -99,15 +99,42 @@ interface PostSaleOutputJob {
 
       @if (loading()) {
         <div
-          class="bg-card flex min-h-[28rem] flex-1 animate-pulse overflow-hidden rounded-xl border"
+          class="flex min-h-0 flex-1 animate-pulse flex-col gap-4 overflow-hidden lg:flex-row lg:gap-5"
+          role="status"
+          aria-live="polite"
         >
-          <div class="flex min-h-0 flex-1 flex-col gap-4 p-4">
-            <div class="bg-muted h-11 rounded-xl"></div>
-            <div class="bg-muted/50 flex-1 rounded-xl"></div>
+          <span class="sr-only">Cargando catálogo…</span>
+          <div class="flex min-h-0 flex-1 flex-col gap-3" aria-hidden="true">
+            <div class="bg-card h-12 rounded-xl border"></div>
+            <div class="flex gap-2">
+              @for (chip of [16, 28, 22]; track chip) {
+                <div class="bg-card h-10 rounded-full border" [style.width.px]="chip * 4"></div>
+              }
+            </div>
+            <div class="grid grid-cols-2 gap-2 sm:gap-2.5 xl:grid-cols-3">
+              @for (card of [1, 2, 3, 4, 5, 6]; track card) {
+                <div class="bg-card flex min-h-40 flex-col rounded-2xl border p-3 sm:min-h-44 sm:p-4">
+                  <div class="bg-muted h-4 w-20 rounded-md"></div>
+                  <div class="bg-muted mt-3 h-4 w-3/4 rounded"></div>
+                  <div class="bg-muted mt-1.5 h-3 w-1/3 rounded"></div>
+                  <div class="mt-auto flex items-end justify-between pt-4">
+                    <div class="bg-muted h-5 w-20 rounded"></div>
+                    <div class="bg-muted h-10 w-10 rounded-xl sm:h-11 sm:w-11"></div>
+                  </div>
+                </div>
+              }
+            </div>
           </div>
-          <div class="hidden w-96 border-l p-4 lg:block">
-            <div class="bg-muted mb-4 h-8 w-32 rounded"></div>
-            <div class="bg-muted/50 h-48 rounded-xl"></div>
+          <div
+            class="bg-card hidden flex-col rounded-2xl border lg:flex lg:w-[22rem] xl:w-96"
+            aria-hidden="true"
+          >
+            <div class="p-4">
+              <div class="bg-muted h-5 w-32 rounded"></div>
+            </div>
+            <div class="flex flex-1 items-center justify-center">
+              <div class="bg-muted h-14 w-14 rounded-2xl"></div>
+            </div>
           </div>
         </div>
       } @else if (loadError()) {

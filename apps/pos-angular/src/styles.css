@@ -90,6 +90,24 @@
   }
 }
 
+/* Barra de progreso de navegación (shell). Global a propósito: Angular renombra
+   los @keyframes de los estilos de componente. Con movimiento reducido queda
+   como un tramo fijo visible. */
+@keyframes mo-route-progress {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+.mo-route-progress {
+  width: 40%;
+  transform: translateX(60%);
+  animation: mo-route-progress 1.1s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,

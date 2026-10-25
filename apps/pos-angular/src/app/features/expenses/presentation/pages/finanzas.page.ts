@@ -48,13 +48,16 @@ import type {
   ExpenseTemplate,
   ReinvestmentFundSettings,
 } from '@angular-app/features/expenses/domain/entities/expense.entity'
-import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
+import { Router } from '@angular/router'
+import { buildFixedCommitments } from '@angular-app/features/expenses/domain/services/fixed-commitments'
+import { FixedCommitmentsComponent } from '@angular-app/features/expenses/presentation/components/fixed-commitments.component'
 import { InventoryRepository } from '@angular-app/features/inventory/domain/repositories/inventory.repository'
 import {
   valueStockAtCost,
   type StockValuation,
 } from '@angular-app/features/inventory/domain/services/stock-valuation'
 import { ProductsCacheStore } from '@angular-app/core/catalog/products-cache.store'
+import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
 
 function currentMonthLocal(): string {
   const now = new Date()
@@ -86,6 +89,7 @@ function monthRange(month: string): { from: string; to: string } {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SkeletonComponent, 
+    FixedCommitmentsComponent,
     LucideAngularModule,
     ...MO_MENU,
     PageHeaderComponent,
@@ -132,6 +136,7 @@ function monthRange(month: string): { from: string; to: string } {
             <lucide-angular [img]="icons.next" class="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
+        <mo-button variant="outline" (click)="openPurchaseList()">Lista de compras</mo-button>
         <mo-button variant="outline" (click)="recurrentesOpen.set(true)">Gastos del mes</mo-button>
         <mo-button (click)="openNewExpense()">Registrar gasto</mo-button>
         <mo-menu>
@@ -150,6 +155,10 @@ function monthRange(month: string): { from: string; to: string } {
       } @else {
         <div class="min-h-0 flex-1 space-y-4 overflow-auto pb-4">
           <mo-financial-summary [s]="summary()" />
+
+          @if (isCurrentMonth()) {
+            <mo-fixed-commitments [c]="fixedCommitments()" (manageRequested)="recurrentesOpen.set(true)" />
+          }
 
           <mo-reinvestment-fund
             [fund]="fund()"
@@ -260,6 +269,7 @@ export class FinanzasPage {
   private readonly excel = inject(ExcelExportService)
   private readonly inventoryRepo = inject(InventoryRepository)
   private readonly catalog = inject(ProductsCacheStore)
+  private readonly router = inject(Router)
 
   /** Valor del inventario al costo (para leer el fondo); `null` si no cargó. */
   readonly inventoryValue = signal<StockValuation | null>(null)
@@ -306,6 +316,15 @@ export class FinanzasPage {
 
   readonly isCurrentMonth = computed(() => this.month() >= currentMonthLocal())
 
+  readonly fixedCommitments = computed(() =>
+    buildFixedCommitments({
+      templates: this.templates(),
+      empleados: this.empleados(),
+      gastos: this.expenses(),
+      month: this.month(),
+    }),
+  )
+
   readonly summary = computed<FinancialSummary>(() =>
     buildFinancialSummary({
       entradasTotales: this.entradasTotales(),
@@ -314,6 +333,8 @@ export class FinanzasPage {
       ventasSinCosto: this.ventasSinCosto(),
       unidadesSinCosto: this.unidadesSinCosto(),
       comprasMercancia: this.comprasMercancia(),
+      // Solo el mes en curso aparta fijos: en meses cerrados ya no hay nada por pagar.
+      fijosPendientes: this.isCurrentMonth() ? this.fixedCommitments().pendiente : 0,
       gastos: this.expenses(),
       categorias: this.categorias(),
     }),
@@ -389,6 +410,10 @@ export class FinanzasPage {
     } finally {
       this.loading.set(false)
     }
+  }
+
+  openPurchaseList(): void {
+    void this.router.navigate(['/finanzas/compras'])
   }
 
   /**

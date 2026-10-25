@@ -39,26 +39,25 @@ import { computeCashTurnSummary } from '@angular-app/features/cash-register/doma
 import type { CashMovementType } from '@/shared/types'
 import { SegmentedComponent } from '@angular-app/shared/molecules/segmented.component'
 import { MO_MENU } from '@angular-app/shared/molecules/menu.component'
-import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
 import { CashOpenSessionFormComponent } from '@angular-app/features/cash-register/presentation/components/cash-open-session-form.component'
 import { OpenSessionFormPresenter } from '@angular-app/features/cash-register/presentation/presenters/open-session-form.presenter'
 import { openSessionFormMapper } from '@angular-app/features/cash-register/presentation/forms/open-session-form.mapper'
 import { CashTurnSummaryComponent } from '@angular-app/features/cash-register/presentation/components/cash-turn-summary.component'
 import { CashMovementsTableComponent } from '@angular-app/features/cash-register/presentation/components/cash-movements-table.component'
 import { cashMovementLabel } from '@angular-app/features/cash-register/presentation/services/cash-movement-labels'
+import { PageSkeletonComponent } from '@angular-app/shared/molecules/page-skeleton.component'
 
 @Component({
   selector: 'mo-caja-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [OpenSessionFormPresenter],
-  imports: [
+  imports: [PageSkeletonComponent, 
     RouterLink,
     PageHeaderComponent,
     CardComponent,
     ButtonComponent,
     EmptyStateComponent,
-    SkeletonComponent,
     SegmentedComponent,
     ...MO_MENU,
     CashOpenSessionFormComponent,
@@ -78,7 +77,7 @@ import { cashMovementLabel } from '@angular-app/features/cash-register/presentat
           <mo-button variant="outline" (click)="openMovement()">Registrar movimiento</mo-button>
           <mo-button (click)="closeOpen.set(true)">Cerrar caja</mo-button>
         }
-        <mo-menu>
+        <mo-menu [busy]="openingDrawer() || exporting()">
           <button type="button" moMenuItem [disabled]="openingDrawer()" (click)="openCashDrawer()">
             {{ openingDrawer() ? 'Abriendo registradora…' : 'Abrir registradora' }}
           </button>
@@ -99,7 +98,7 @@ import { cashMovementLabel } from '@angular-app/features/cash-register/presentat
       </mo-page-header>
 
       @if (loading()) {
-        <mo-skeleton heightClass="h-72" />
+        <mo-page-skeleton variant="summary" [rows]="3" label="Cargando caja…" />
       } @else if (loadError()) {
         <mo-empty-state title="Error al cargar caja" [description]="loadError()">
           <mo-button (click)="load()">Reintentar</mo-button>
