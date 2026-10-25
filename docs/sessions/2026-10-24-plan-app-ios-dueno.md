@@ -357,6 +357,34 @@ Hecho en `moveon-owner-ios` (commit `e125945`, sin push). Detalle en `docs/modul
   - Cobro en efectivo de 8.500: el servidor registró **V-000007** con `cliente_id` de QA iOS Cliente y la auditoría `cliente`/`create` con `{tipoDocumento, numeroDocumento}`.
   - Nota: el teclado del simulador escribe "+" como "¡"; con el celular sin prefijo funciona igual.
 
+## 30. PLAN-95 — MOVE ON Club en la venta
+
+- `moveon-owner-ios`: `main` con PLAN-94 subido (`14272e0`).
+- **Reglas del web y del servidor:**
+  - `stamps.ts`, `pos-cart.store.ts` y `pos.page.ts`: la tarjeta del Club, una recompensa por venta en la línea elegible más costosa, se cae con descuento manual o al cambiar de cliente.
+  - `create_sale_atomic`: `item_index` desde 0; canje = `round(least(precio, valor), 2)` una vez por línea y antes del reparto del global; sellos = unidades enteras de líneas del Club sin descuento por unidad ni parte del global, menos la unidad canjeada; el motivo reservado "Canje MOVE ON Club" cuando solo hay canje.
+- **POS** (`8b4d107`):
+  - `create_sale_loyalty.json` y su caso: cliente con 7 sellos y una recompensa; la venta canjea y suma 2 sellos, genera otra recompensa y queda 1 sello; el segundo canje se rechaza.
+  - `CLEANUP_SQL` borra también las tablas del Club. `pnpm test:parity` → 39 en verde.
+- **iOS:**
+  - `Domain/Loyalty` (`LoyaltyConfig`, `LoyaltyReward`, `LoyaltySummary`, `LoyaltyRules`, `LoyaltyReading`) y `Data/Loyalty` (`SupabaseLoyaltyReader`).
+  - En Checkout: `LoyaltyRedemption`, `LoyaltyStamps`, `Cart.redeem`, `SaleTotals` con el canje, `discretionaryDiscount` para el motivo y `p_loyalty_redemptions` en `CreateSaleParams`.
+  - Tarjeta del Club en el carrito y la fila "Canje MOVE ON Club" en el resumen.
+  - `RejectionReason.rewardUnavailable/rewardExpired/rewardNotApplicable`.
+  - 255 tests unitarios (incluido el JSON contra el contrato) y la prueba de interfaz `testCanjearBatidoGratis`.
+- **QA contra el Supabase local**, con "QA iOS Cliente", que empezó sin sellos:
+  - **V-000008:** 8 × QA Batido proteico (Whey, $18.000), con la tarjeta "0/8 sellos · Esta venta suma 8 sellos". El servidor registró 8 sellos, generó una recompensa y dejó el saldo en 0.
+  - **V-000009:** 2 × el mismo batido, "Canjear batido gratis". La app mostró:
+    - "Premio aplicado: −$ 11.000 … el cliente paga la diferencia";
+    - "Esta venta suma 1 sello";
+    - subtotal 36.000, canje −11.000, total 25.000;
+    - sin pedir motivo.
+  - El servidor registró lo mismo:
+    - la venta: `loyalty_discount_total` 11.000, total 25.000 y motivo "Canje MOVE ON Club";
+    - la línea: con `loyalty_reward_id`;
+    - la recompensa: `redeemed` en V-000009;
+    - el ledger: earn 8 → redeem −8 → earn 1, saldo 1.
+
 ## 8. Notas adicionales
 
 - Fuentes de datos ya existentes para la app: `get_stock_levels`, `get_monthly_sales_totals`, `get_monthly_expense_totals`, `get_reinvestment_fund_totals`, `list_cash_history_days`.

@@ -1,29 +1,196 @@
 import type { ProductType } from '@/shared/types'
 import { tracksOwnStock } from '@/shared/lib/product-type'
+import { storeDateIso, shiftIsoDate } from '@/shared/lib/day-range'
 
 /**
- * Lista de compras sugerida. Servicio de dominio puro.
+ * Asesor de compras. Servicio de dominio puro (lo usan la página
+ * `/finanzas/compras` y el backtest `tests/backtest/purchase-advisor.backtest.ts`).
  *
- * 1. Consumo diario estimado por producto (ventas reales, incluidos los
- *    componentes que consumen batidos y combos — vienen de `sale_exit`):
- *      0,6 × promedio de los últimos 14 días + 0,4 × promedio de 56 días.
- *    Pondera lo reciente sin olvidar la tendencia. Un producto con menos
- *    historia usa los días que lleva, con un mínimo de 7 para que unos pocos
- *    días de arranque no disparen el pronóstico.
- * 2. Objetivo = consumo × días de cobertura (nunca menos que el stock mínimo).
- *    Sugerido = objetivo − stock actual (bodega + punto de venta), redondeado
- *    hacia arriba.
- * 3. Prioridad: lo que antes se agota (días que alcanza el stock); a igual
- *    urgencia, lo que más margen deja por día.
- * 4. Presupuesto: se llena en orden de prioridad. Si un producto no cabe
- *    completo se compra lo que alcance (mínimo una unidad); si no alcanza ni
- *    una, queda "fuera del presupuesto". Nunca se pasa del presupuesto.
+ * 1. Historia diaria por producto (últimos 56 días, fecha local de la tienda):
+ *    consumo por ventas (`sale_exit` − `void_return`, incluye componentes de
+ *    batidos y combos) y stock al cierre de cada día.
+ * 2. Pronóstico (`forecastDemand`): promedio ponderado de lo reciente y lo
+ *    histórico, SIN los días que el producto cerró agotado (ese día la venta
+ *    no muestra la demanda real), más la desviación diaria para el colchón
+ *    de seguridad. Tendencia y regla de producto joven son opcionales. Los
+ *    parámetros por defecto salen del backtest contra el seed masivo local.
+ * 3. Necesario = ⌈consumo × días + colchón (z·σ·√días), nunca menos que el
+ *    stock mínimo − stock actual⌉.
+ * 4. Prioridad: lo que antes se agota; a igual urgencia, mayor margen diario.
+ * 5. Presupuesto: se llena en orden; completo, parcial o "sin presupuesto".
+ *    Nunca se supera.
  */
 
-export const RECENT_DAYS = 14
-export const HISTORY_DAYS = 56
-const RECENT_WEIGHT = 0.6
-const MIN_HISTORY_DAYS = 7
+export interface DemandForecastOptions {
+  recentDays: number
+  historyDays: number
+  /** Peso del promedio reciente (el resto, del histórico). */
+  recentWeight: number
+  /** Con menos días válidos se promedia sobre este mínimo (evita picos de arranque). */
+  minHistoryDays: number
+  /** Excluye los días que cerraron con stock ≤ 0 (demanda censurada). */
+  censorStockouts: boolean
+  /** Ajusta por la tendencia de las últimas semanas. */
+  trend: boolean
+  /** Cambio mínimo (|ratio − 1|) para aplicar la tendencia; por debajo es ruido. */
+  trendThreshold: number
+  /** Fracción del cambio de tendencia que se aplica (amortiguación). */
+  trendDamping: number
+  /**
+   * Producto joven (menos días válidos que esto): se usan solo sus últimos 7
+   * días válidos, porque los primeros días de un lanzamiento venden menos.
+   */
+  youngProductDays: number
+  /** Desviaciones estándar de colchón de seguridad (0 = sin colchón). */
+  safetyZ: number
+}
+
+/**
+ * Elegidos con el backtest contra el seed masivo local (2026-10-24, ver
+ * docs/modules/expenses.md "Asesor de compras"): excluir días agotados y un
+ * colchón de 1σ dan el mejor resultado; la tendencia solo ayuda a productos
+ * en alza y en conjunto no mejora, así que queda apagada.
+ */
+export const DEFAULT_FORECAST: DemandForecastOptions = {
+  recentDays: 14,
+  historyDays: 56,
+  recentWeight: 0.6,
+  minHistoryDays: 7,
+  censorStockouts: true,
+  trend: false,
+  trendThreshold: 0.2,
+  trendDamping: 0.5,
+  youngProductDays: 0,
+  safetyZ: 1,
+}
+
+export const HISTORY_DAYS = DEFAULT_FORECAST.historyDays
+
+/** Serie diaria de un producto, del día más antiguo al más reciente. */
+export interface DemandHistory {
+  consumption: readonly number[]
+  stockEnd: readonly number[]
+}
+
+export interface DemandForecast {
+  /** Unidades por día esperadas. */
+  daily: number
+  /** Desviación estándar diaria (días válidos). */
+  sigma: number
+  /** Días usados (sin agotados ni antes del lanzamiento). */
+  validDays: number
+}
+
+function mean(values: readonly number[], minDays = 1): number {
+  if (values.length === 0) return 0
+  return values.reduce((s, v) => s + v, 0) / Math.max(values.length, minDays)
+}
+
+export function forecastDemand(history: DemandHistory, options: DemandForecastOptions): DemandForecast {
+  const n = history.consumption.length
+  const valid: { i: number; v: number }[] = []
+  for (let i = Math.max(0, n - options.historyDays); i < n; i++) {
+    const stockout = options.censorStockouts && history.stockEnd[i] <= 0
+    if (!stockout) valid.push({ i, v: Math.max(history.consumption[i], 0) })
+  }
+  if (valid.length === 0) return { daily: 0, sigma: 0, validDays: 0 }
+
+  // Net de devoluciones: suma neta de la ventana (una anulación resta).
+  const netTotal = valid.reduce((s, d) => s + history.consumption[d.i], 0)
+  if (netTotal <= 0) return { daily: 0, sigma: 0, validDays: valid.length }
+
+  const recentFrom = n - options.recentDays
+  const recent = valid.filter((d) => d.i >= recentFrom).map((d) => history.consumption[d.i])
+  const all = valid.map((d) => history.consumption[d.i])
+  const recentAvg = Math.max(mean(recent, Math.min(options.minHistoryDays, options.recentDays)), 0)
+  const histAvg = Math.max(mean(all, options.minHistoryDays), 0)
+  let daily = recent.length > 0 ? options.recentWeight * recentAvg + (1 - options.recentWeight) * histAvg : histAvg
+
+  if (valid.length < options.youngProductDays) {
+    daily = Math.max(mean(valid.slice(-7).map((d) => d.v)), 0)
+  } else if (options.trend && valid.length >= 21) {
+    // Mitad reciente vs mitad anterior de los días válidos; amortiguado,
+    // acotado y solo si el cambio supera el umbral.
+    const half = Math.floor(valid.length / 2)
+    const older = mean(valid.slice(0, half).map((d) => d.v))
+    const newer = mean(valid.slice(half).map((d) => d.v))
+    if (older > 0) {
+      const ratio = Math.min(1.6, Math.max(0.6, newer / older))
+      if (Math.abs(ratio - 1) >= options.trendThreshold) daily *= 1 + options.trendDamping * (ratio - 1)
+    }
+  }
+
+  const avg = mean(valid.map((d) => d.v))
+  const variance = valid.reduce((s, d) => s + (d.v - avg) ** 2, 0) / valid.length
+  return { daily, sigma: Math.sqrt(variance), validDays: valid.length }
+}
+
+// ---------------- Historia desde movimientos ----------------
+
+/** Movimiento de inventario de cualquier tipo (cantidad con signo). */
+export interface StockMovementRecord {
+  productId: string
+  tipo: string
+  cantidad: number
+  at: Date
+}
+
+/**
+ * Arma la historia diaria (fecha local) de cada producto con los movimientos
+ * desde `fromDay` y el stock actual: el stock al cierre de un día es el
+ * actual menos todo lo que entró/salió después.
+ */
+export function buildDemandHistories(
+  movements: readonly StockMovementRecord[],
+  currentStock: ReadonlyMap<string, number>,
+  options: { now: Date; timezone: string; days: number; firstDayByProduct?: ReadonlyMap<string, string> },
+): Map<string, DemandHistory> {
+  const today = storeDateIso(options.now, options.timezone)
+  const firstDay = shiftIsoDate(today, -options.days)
+  const dayIndex = (iso: string) => {
+    const diff = (Date.parse(`${iso}T00:00:00Z`) - Date.parse(`${firstDay}T00:00:00Z`)) / 86_400_000
+    return Math.round(diff)
+  }
+
+  const consumption = new Map<string, number[]>()
+  const net = new Map<string, number[]>()
+  const ensure = (id: string) => {
+    if (!consumption.has(id)) {
+      consumption.set(id, new Array(options.days).fill(0))
+      net.set(id, new Array(options.days + 1).fill(0)) // último índice = hoy
+    }
+  }
+  for (const id of currentStock.keys()) ensure(id)
+
+  for (const m of movements) {
+    const i = dayIndex(storeDateIso(m.at, options.timezone))
+    if (i < 0 || i > options.days) continue
+    ensure(m.productId)
+    net.get(m.productId)![i] += m.cantidad
+    if (i < options.days && (m.tipo === 'sale_exit' || m.tipo === 'void_return')) {
+      consumption.get(m.productId)![i] += -m.cantidad
+    }
+  }
+
+  const histories = new Map<string, DemandHistory>()
+  for (const [id, cons] of consumption) {
+    const moves = net.get(id)!
+    const stockEnd = new Array(options.days).fill(0)
+    let stock = currentStock.get(id) ?? 0
+    stock -= moves[options.days] // lo de hoy no cuenta en la historia
+    for (let i = options.days - 1; i >= 0; i--) {
+      stockEnd[i] = stock
+      stock -= moves[i]
+    }
+    // Días antes del lanzamiento no son historia.
+    const first = options.firstDayByProduct?.get(id)
+    const start = first ? Math.max(0, dayIndex(first)) : 0
+    histories.set(id, { consumption: cons.slice(start), stockEnd: stockEnd.slice(start) })
+  }
+  return histories
+}
+
+// ---------------- Plan de compra ----------------
 
 export interface PurchaseProductInput {
   id: string
@@ -33,15 +200,6 @@ export interface PurchaseProductInput {
   precioVenta: number
   stockMinimo: number
   proveedorNombre: string | null
-  /** Fecha de creación: limita los días de historia de productos nuevos. */
-  createdAt: Date
-}
-
-/** Consumo neto (unidades) de un producto en un instante. */
-export interface ConsumptionRecord {
-  productId: string
-  unidades: number
-  at: Date
 }
 
 export interface PurchaseOptions {
@@ -49,7 +207,7 @@ export interface PurchaseOptions {
   coverDays: number
   /** Dinero disponible para la compra; `null` = sin tope. */
   budget: number | null
-  now: Date
+  forecast?: DemandForecastOptions
 }
 
 export type PurchaseLineStatus = 'full' | 'partial' | 'over_budget' | 'no_cost'
@@ -62,7 +220,7 @@ export interface PurchaseLine {
   consumoDiario: number
   /** Días que alcanza el stock actual (`null` si no hay consumo). */
   diasQueAlcanza: number | null
-  /** Unidades necesarias para cubrir los días pedidos. */
+  /** Unidades necesarias para cubrir los días pedidos (con colchón). */
   necesario: number
   /** Unidades que entran en el presupuesto. */
   sugerido: number
@@ -80,55 +238,44 @@ export interface PurchasePlan {
   restante: number | null
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000
-
 function round1(n: number): number {
   return Math.round(n * 10) / 10
 }
 
-export function estimateDailyConsumption(
-  records: readonly Pick<ConsumptionRecord, 'unidades' | 'at'>[],
-  createdAt: Date,
-  now: Date,
+/** Unidades a comprar para cubrir `coverDays` con colchón, sin bajar del mínimo. */
+export function unitsNeeded(
+  forecast: DemandForecast,
+  stock: number,
+  stockMinimo: number,
+  coverDays: number,
+  safetyZ: number,
 ): number {
-  const ageDays = Math.max(MIN_HISTORY_DAYS, Math.ceil((now.getTime() - createdAt.getTime()) / DAY_MS))
-  const recentDays = Math.min(RECENT_DAYS, ageDays)
-  const historyDays = Math.min(HISTORY_DAYS, ageDays)
-  let recent = 0
-  let history = 0
-  for (const r of records) {
-    const age = (now.getTime() - r.at.getTime()) / DAY_MS
-    if (age < 0 || age >= historyDays) continue
-    history += r.unidades
-    if (age < recentDays) recent += r.unidades
-  }
-  const daily = RECENT_WEIGHT * (Math.max(recent, 0) / recentDays) + (1 - RECENT_WEIGHT) * (Math.max(history, 0) / historyDays)
-  return daily
+  if (forecast.daily <= 0) return 0
+  const target = Math.max(
+    forecast.daily * coverDays + safetyZ * forecast.sigma * Math.sqrt(coverDays),
+    stockMinimo,
+  )
+  return Math.max(0, Math.ceil(target - Math.max(stock, 0) - 1e-9))
 }
 
 export function buildPurchasePlan(
   products: readonly PurchaseProductInput[],
   stockByProduct: ReadonlyMap<string, number>,
-  consumption: readonly ConsumptionRecord[],
+  histories: ReadonlyMap<string, DemandHistory>,
   options: PurchaseOptions,
 ): PurchasePlan {
-  const byProduct = new Map<string, ConsumptionRecord[]>()
-  for (const record of consumption) {
-    const list = byProduct.get(record.productId)
-    if (list) list.push(record)
-    else byProduct.set(record.productId, [record])
-  }
+  const forecastOptions = options.forecast ?? DEFAULT_FORECAST
+  const empty: DemandHistory = { consumption: [], stockEnd: [] }
 
   const candidates = products
     .filter((p) => tracksOwnStock(p.tipo))
     .map((p) => {
       const stockActual = Math.max(stockByProduct.get(p.id) ?? 0, 0)
-      const consumoDiario = estimateDailyConsumption(byProduct.get(p.id) ?? [], p.createdAt, options.now)
-      const objetivo = Math.max(consumoDiario * options.coverDays, consumoDiario > 0 ? p.stockMinimo : 0)
-      const necesario = Math.max(0, Math.ceil(objetivo - stockActual - 1e-9))
-      const diasQueAlcanza = consumoDiario > 0 ? stockActual / consumoDiario : null
-      const margenDiario = p.costo !== null ? (p.precioVenta - p.costo) * consumoDiario : 0
-      return { p, stockActual, consumoDiario, necesario, diasQueAlcanza, margenDiario }
+      const forecast = forecastDemand(histories.get(p.id) ?? empty, forecastOptions)
+      const necesario = unitsNeeded(forecast, stockActual, p.stockMinimo, options.coverDays, forecastOptions.safetyZ)
+      const diasQueAlcanza = forecast.daily > 0 ? stockActual / forecast.daily : null
+      const margenDiario = p.costo !== null ? (p.precioVenta - p.costo) * forecast.daily : 0
+      return { p, stockActual, consumoDiario: forecast.daily, necesario, diasQueAlcanza, margenDiario }
     })
     .filter((c) => c.necesario > 0)
     .sort((a, b) => {

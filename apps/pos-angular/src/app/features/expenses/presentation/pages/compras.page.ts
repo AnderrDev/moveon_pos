@@ -17,9 +17,10 @@ import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import { ExcelExportService } from '@angular-app/shared/services/export/excel-export.service'
 import { InventoryRepository } from '@angular-app/features/inventory/domain/repositories/inventory.repository'
 import {
+  buildDemandHistories,
   buildPurchasePlan,
   HISTORY_DAYS,
-  type ConsumptionRecord,
+  type DemandHistory,
   type PurchaseLineStatus,
   type PurchaseProductInput,
 } from '@angular-app/features/inventory/domain/services/purchase-suggestions'
@@ -236,7 +237,7 @@ export class ComprasPage {
 
   readonly products = signal<PurchaseProductInput[]>([])
   readonly stock = signal<ReadonlyMap<string, number>>(new Map())
-  readonly consumption = signal<ConsumptionRecord[]>([])
+  readonly histories = signal<ReadonlyMap<string, DemandHistory>>(new Map())
   readonly fondoDisponible = signal(0)
   readonly fijosPendientes = signal(0)
 
@@ -246,10 +247,9 @@ export class ComprasPage {
   readonly soloComprar = signal(false)
 
   readonly plan = computed(() =>
-    buildPurchasePlan(this.filteredProducts(), this.stock(), this.consumption(), {
+    buildPurchasePlan(this.filteredProducts(), this.stock(), this.histories(), {
       coverDays: this.coverDays(),
       budget: this.budget(),
-      now: new Date(),
     }),
   )
 
@@ -283,34 +283,41 @@ export class ComprasPage {
       if (!auth) throw new Error('No autenticado')
       const { timezone } = await this.tiendaInfo.get(auth.tiendaId)
       const month = storeDateIso(new Date(), timezone).slice(0, 7)
-      const historyFrom = new Date(Date.now() - HISTORY_DAYS * 24 * 60 * 60 * 1000).toISOString()
+      // Un día de margen: la historia se corta por fecha local de la tienda.
+      const historyFrom = new Date(Date.now() - (HISTORY_DAYS + 1) * 24 * 60 * 60 * 1000).toISOString()
 
-      const [catalog, levels, consumption, settings, templates, empleados, gastos] = await Promise.all([
+      const [catalog, levels, movements, settings, templates, empleados, gastos] = await Promise.all([
         this.catalog.ensureProducts(auth.tiendaId, { force: true }),
         this.inventoryRepo.getStockLevels(auth.tiendaId),
-        this.inventoryRepo.getConsumption(auth.tiendaId, historyFrom),
+        this.inventoryRepo.getMovementsSince(auth.tiendaId, historyFrom),
         this.expenseRepo.getFundSettings(auth.tiendaId),
         this.expenseRepo.listTemplates(auth.tiendaId),
         this.expenseRepo.listEmpleados(auth.tiendaId),
         this.expenseRepo.listExpenses(auth.tiendaId, `${month}-01`, `${month}-31`),
       ])
 
+      const active = catalog.filter((p) => p.isActive && !p.deletedAt)
       this.products.set(
-        catalog
-          .filter((p) => p.isActive && !p.deletedAt)
-          .map((p) => ({
-            id: p.id,
-            nombre: p.nombre,
-            tipo: p.tipo,
-            costo: p.costo,
-            precioVenta: p.precioVenta,
-            stockMinimo: p.stockMinimo,
-            proveedorNombre: p.proveedorNombre,
-            createdAt: p.createdAt,
-          })),
+        active.map((p) => ({
+          id: p.id,
+          nombre: p.nombre,
+          tipo: p.tipo,
+          costo: p.costo,
+          precioVenta: p.precioVenta,
+          stockMinimo: p.stockMinimo,
+          proveedorNombre: p.proveedorNombre,
+        })),
       )
-      this.stock.set(new Map(levels.map((l) => [l.productId, l.totalStock])))
-      this.consumption.set(consumption)
+      const stock = new Map(levels.map((l) => [l.productId, l.totalStock]))
+      this.stock.set(stock)
+      this.histories.set(
+        buildDemandHistories(movements, stock, {
+          now: new Date(),
+          timezone,
+          days: HISTORY_DAYS,
+          firstDayByProduct: new Map(active.map((p) => [p.id, storeDateIso(p.createdAt, timezone)])),
+        }),
+      )
 
       let disponible = 0
       if (settings) {
