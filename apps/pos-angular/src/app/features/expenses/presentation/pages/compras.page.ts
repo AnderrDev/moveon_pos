@@ -6,7 +6,7 @@ import { PageHeaderComponent } from '@angular-app/shared/molecules/page-header.c
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 import { BadgeComponent } from '@angular-app/shared/atoms/badge.component'
 import { EmptyStateComponent } from '@angular-app/shared/molecules/empty-state.component'
-import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
+import { PageSkeletonComponent } from '@angular-app/shared/molecules/page-skeleton.component'
 import { TableShellComponent } from '@angular-app/shared/molecules/table/table-shell.component'
 import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
 import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
@@ -63,7 +63,7 @@ function nextMonthStartIso(month: string): string {
     ButtonComponent,
     BadgeComponent,
     EmptyStateComponent,
-    SkeletonComponent,
+    PageSkeletonComponent,
     TableShellComponent,
     MO_TABLE,
     MoneyPipe,
@@ -88,7 +88,7 @@ function nextMonthStartIso(month: string): string {
       </mo-page-header>
 
       @if (loading()) {
-        <mo-skeleton heightClass="h-72" />
+        <mo-page-skeleton variant="stats" [cards]="4" [rows]="6" label="Armando la lista de compras…" />
       } @else if (loadError()) {
         <mo-empty-state title="No se pudo armar la lista" [description]="loadError()">
           <mo-button (click)="load()">Reintentar</mo-button>

@@ -181,7 +181,11 @@ export class PageSkeletonComponent {
   readonly cardSlots = computed(() => Array.from({ length: this.cards() }))
   readonly thumbShape = computed(() => (this.thumb() === 'circle' ? 'rounded-full' : 'rounded-lg'))
   readonly statsGridClass = computed(() =>
-    this.cards() >= 5 ? 'sm:grid-cols-2 xl:grid-cols-5' : 'sm:grid-cols-3',
+    this.cards() >= 5
+      ? 'sm:grid-cols-2 xl:grid-cols-5'
+      : this.cards() === 4
+        ? 'sm:grid-cols-2 lg:grid-cols-4'
+        : 'sm:grid-cols-3',
   )
 
   /** Anchos variados para que las filas no se vean idénticas. */

@@ -87,9 +87,30 @@ const TYPE_LABELS: Record<LoyaltyTransactionType, string> = {
       (closed)="onClose()"
     >
       @if (loading()) {
-        <div class="space-y-3">
-          <mo-skeleton heightClass="h-20" />
-          <mo-skeleton heightClass="h-40" />
+        <div class="space-y-5" role="status" aria-live="polite">
+          <span class="sr-only">Cargando tarjeta de sellos…</span>
+          <div class="rounded-2xl border p-5" aria-hidden="true">
+            <div class="flex items-center justify-between">
+              <mo-skeleton variant="line" class="w-32" />
+              <mo-skeleton heightClass="h-5 w-10 rounded" />
+            </div>
+            <div class="mt-4 flex flex-wrap gap-2.5">
+              @for (stamp of [1, 2, 3, 4, 5, 6, 7, 8]; track stamp) {
+                <mo-skeleton variant="circle" heightClass="h-10 w-10" />
+              }
+            </div>
+          </div>
+          <div class="space-y-2.5" aria-hidden="true">
+            @for (row of [1, 2, 3]; track row) {
+              <div class="flex items-center gap-3">
+                <mo-skeleton variant="circle" heightClass="h-9 w-9" />
+                <div class="flex-1 space-y-1.5">
+                  <mo-skeleton variant="line" class="w-40" />
+                  <mo-skeleton variant="line" class="w-24" />
+                </div>
+              </div>
+            }
+          </div>
         </div>
       } @else if (loadError()) {
         <div class="space-y-3">

@@ -94,7 +94,16 @@ Diagnóstico (red local con 3–4 s de retraso simulado): todas las páginas usa
 - No se tocó Auditoría (otra sesión). La línea del loader en `finanzas.page.ts` la incluye la sesión "Revisión de cambios en dev" en su commit, porque está editando ese archivo.
 - Verificación: copia aislada (HEAD + solo estos cambios) build + lint OK; capturas con retraso simulado en escritorio y móvil.
 
-## 9. Próximos pasos
+## 9. Fase 6 — Loaders restantes
+
+Inventario de todos los `loading` de la app tras los cambios de otras sesiones:
+- `mo-skeleton` (átomo): color `bg-muted-foreground/10` (antes `bg-muted`, invisible sobre el fondo) y host `block` con `w-full` salvo que `heightClass` fije ancho.
+- `mo-page-skeleton` en Auditoría (tabla, 8 filas), Lista de compras (4 cifras + panel; grilla de 4 columnas) y turnos del Historial de caja.
+- Diálogos con forma propia: Kardex (filas), Ventas del turno (3 cifras + ventas), tarjeta MOVE ON Club (sellos + movimientos), selector de cliente (avatar + 2 líneas). Todos con `role="status"` y texto para lectores.
+- No se tocó Reportes ni Finanzas: la sesión "Revisión de cambios en dev" los está editando (gráficas).
+- Verificación: build OK, lint OK, 905 tests; capturas con 3 s de retraso simulado.
+
+## 10. Próximos pasos
 
 - En Caja, unir el filtro por método con el listado "Ventas del turno" (hoy son dos bloques).
 - Revisar el diálogo de cobro y el historial de ventas con la nueva paleta.

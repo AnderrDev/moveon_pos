@@ -4,7 +4,6 @@ import { SessionService } from '@angular-app/core/auth/session.service'
 import { TiendaInfoService } from '@angular-app/core/tienda/tienda-info.service'
 import { PageHeaderComponent } from '@angular-app/shared/molecules/page-header.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
-import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import { ExcelExportService } from '@angular-app/shared/services/export/excel-export.service'
 import { buildTurnSalesWorkbook } from '@angular-app/shared/services/export/turn-sales-export'
@@ -25,7 +24,7 @@ import { storeDateIso } from '@/shared/lib/day-range'
 import { PageSkeletonComponent } from '@angular-app/shared/molecules/page-skeleton.component'
 @Component({
  selector: 'mo-cash-history-page', standalone: true, changeDetection: ChangeDetectionStrategy.OnPush,
- imports: [PageSkeletonComponent, RouterLink, PageHeaderComponent, ButtonComponent, SkeletonComponent, CashHistoryFiltersComponent, CashHistoryDaysComponent, CashHistoryTableComponent, CashSessionDetailDrawer],
+ imports: [PageSkeletonComponent, RouterLink, PageHeaderComponent, ButtonComponent, CashHistoryFiltersComponent, CashHistoryDaysComponent, CashHistoryTableComponent, CashSessionDetailDrawer],
  providers: [CashHistoryFormPresenter],
  template: `
   <section class="flex min-w-0 flex-col gap-4">
@@ -42,7 +41,7 @@ import { PageSkeletonComponent } from '@angular-app/shared/molecules/page-skelet
        <mo-button class="mb-4 block" variant="outline" size="sm" (click)="backToSummary()">Volver al resumen</mo-button>
        <h2 #dayHeading tabindex="-1" class="mb-2 text-lg font-semibold">Turnos del {{ day.split('-').reverse().join('/') }}</h2>
        <p class="text-muted-foreground mb-4 text-sm">Horarios de apertura y cierre en {{ timezone() }}. Se mantienen los filtros de responsable y cuadre aplicados.</p>
-       @if (turnsLoading()) { <mo-skeleton heightClass="h-48" /> }
+       @if (turnsLoading()) { <mo-page-skeleton variant="table" [rows]="3" label="Cargando turnos…" /> }
        @else if (turnsError()) { <p role="alert">{{ turnsError() }}</p><mo-button variant="outline" (click)="loadTurns(turns().page)">Reintentar turnos</mo-button> }
        @else { <mo-cash-history-table [page]="turns()" [timezone]="timezone()" (selected)="selectSession($event)" (pageChanged)="loadTurns($event)" /> }
       </section>
