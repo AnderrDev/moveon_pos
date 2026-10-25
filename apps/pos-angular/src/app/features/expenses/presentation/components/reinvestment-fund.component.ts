@@ -1,6 +1,10 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
-import type { ReinvestmentFund } from '@angular-app/features/expenses/domain/services/reinvestment-fund'
+import {
+  fundBalanceKind,
+  type ReinvestmentFund,
+} from '@angular-app/features/expenses/domain/services/reinvestment-fund'
+import type { StockValuation } from '@angular-app/features/inventory/domain/services/stock-valuation'
 import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 
 /**
@@ -25,17 +29,17 @@ import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
       @if (fund(); as f) {
         <div class="mt-4 grid gap-4 sm:grid-cols-3">
           <div>
-            <p class="text-muted-foreground text-sm font-medium">
-              Disponible para reinvertir
-            </p>
+            <p class="text-muted-foreground text-sm font-medium">{{ balanceTitle() }}</p>
             <p
               class="font-display mt-1.5 text-[1.75rem] leading-tight font-extrabold tabular-nums"
-              [class.text-emerald-600]="f.disponible > 0"
-              [class.text-destructive]="f.disponible < 0"
+              [class.text-emerald-600]="balanceKind() === 'available'"
+              [class.text-amber-700]="balanceKind() === 'overinvested'"
             >
-              {{ (f.disponible | money) }}
+              {{ (balanceAmount() | money) }}
             </p>
-            <p class="text-muted-foreground mt-1 text-xs">Acumulado, arrastra entre meses</p>
+            <p class="text-muted-foreground mt-1 text-xs">
+              {{ balanceKind() === 'overinvested' ? 'Está en mercancía sin vender, no es una deuda' : 'Acumulado, arrastra entre meses' }}
+            </p>
           </div>
           <div>
             <p class="text-muted-foreground text-sm font-medium">Apartado este mes</p>
@@ -66,13 +70,47 @@ import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
             <dt class="font-semibold">= Disponible para reinvertir</dt>
             <dd
               class="font-bold"
-              [class.text-emerald-600]="f.disponible > 0"
-              [class.text-destructive]="f.disponible < 0"
+              [class.text-emerald-600]="balanceKind() === 'available'"
+              [class.text-amber-700]="balanceKind() === 'overinvested'"
             >
               {{ (f.disponible | money) }}
             </dd>
           </div>
+          @if (inventory(); as inv) {
+            <div class="flex items-center justify-between">
+              <dt class="text-muted-foreground">Inventario hoy al costo</dt>
+              <dd class="font-semibold">{{ (inv.valorAlCosto | money) }}</dd>
+            </div>
+          }
         </dl>
+
+        @if (balanceKind() === 'overinvested') {
+          <div class="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
+            <p class="font-semibold">El saldo negativo no es una deuda.</p>
+            <p class="mt-1">
+              Desde que arrancó el fondo, lo que compraste en mercancía supera en
+              {{ (balanceAmount() | money) }} {{ f.saldoInicial > 0 ? 'al saldo inicial más lo' : 'a lo' }}
+              que has recuperado vendiéndola al costo. Esa diferencia está en tu inventario, que hoy
+              vale {{ inventory() ? (inventory()!.valorAlCosto | money) : '—' }} al costo: se recupera a
+              medida que se venda.
+            </p>
+            @if (f.saldoInicial === 0) {
+              <p class="mt-1">
+                Si al iniciar el fondo ya tenías dinero apartado para mercancía, regístralo como saldo
+                inicial en "Editar fondo".
+              </p>
+            }
+          </div>
+        }
+        @if (inventory(); as inv) {
+          @if (inv.productosSinCosto > 0) {
+            <p class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+              {{ inv.productosSinCosto }}
+              {{ inv.productosSinCosto === 1 ? 'producto con stock no tiene' : 'productos con stock no tienen' }}
+              costo registrado: no suman al valor del inventario.
+            </p>
+          }
+        }
 
         @if (f.entradasSinCosto > 0) {
           <p class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
@@ -105,6 +143,15 @@ import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 })
 export class ReinvestmentFundComponent {
   readonly fund = input.required<ReinvestmentFund | null>()
+  /** Valor del inventario al costo; `null` mientras carga o si falla. */
+  readonly inventory = input<StockValuation | null>(null)
+
+  readonly balanceKind = computed(() => fundBalanceKind(this.fund()?.disponible ?? 0))
+  readonly balanceTitle = computed(() =>
+    this.balanceKind() === 'overinvested' ? 'Invertido en inventario de más' : 'Disponible para reinvertir',
+  )
+  /** En negativo se muestra el monto en positivo: lo invertido de más, no un faltante. */
+  readonly balanceAmount = computed(() => Math.abs(this.fund()?.disponible ?? 0))
 
   readonly configureRequested = output<void>()
 
