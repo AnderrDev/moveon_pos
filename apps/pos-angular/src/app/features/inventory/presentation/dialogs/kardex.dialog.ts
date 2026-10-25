@@ -10,6 +10,7 @@ import {
 import { getErrorMessage } from '@/shared/lib/error-message'
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
 import { BadgeComponent } from '@angular-app/shared/atoms/badge.component'
+import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 import { MO_TABLE } from '@angular-app/shared/molecules/table/table.directives'
 import { InventoryRepository } from '@angular-app/features/inventory/domain/repositories/inventory.repository'
@@ -49,7 +50,7 @@ const LOCATION_LABELS: Record<string, string> = {
   selector: 'mo-kardex-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DialogComponent, BadgeComponent, ButtonComponent, MO_TABLE],
+  imports: [DialogComponent, BadgeComponent, ButtonComponent, SkeletonComponent, MO_TABLE],
   template: `
     <mo-dialog
       [open]="open()"
@@ -59,7 +60,17 @@ const LOCATION_LABELS: Record<string, string> = {
       (closed)="closed.emit()"
     >
       @if (loading()) {
-        <p class="text-muted-foreground py-6 text-center text-sm">Cargando movimientos...</p>
+        <div class="space-y-2.5 py-2" role="status" aria-live="polite">
+          <span class="sr-only">Cargando movimientos…</span>
+          @for (row of [1, 2, 3, 4, 5, 6]; track row) {
+            <div class="flex items-center gap-4" aria-hidden="true">
+              <mo-skeleton variant="line" class="w-24" />
+              <mo-skeleton variant="line" class="w-20" />
+              <mo-skeleton variant="line" class="flex-1" />
+              <mo-skeleton variant="line" class="w-16" />
+            </div>
+          }
+        </div>
       } @else if (loadError()) {
         <p class="text-destructive py-6 text-center text-sm">{{ loadError() }}</p>
       } @else if (movements().length === 0) {

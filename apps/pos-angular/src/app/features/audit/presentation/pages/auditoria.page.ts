@@ -10,7 +10,7 @@ import { SessionService } from '@angular-app/core/auth/session.service'
 import { AuditLogRepository } from '@angular-app/features/audit/domain/repositories/audit-log.repository'
 import type { AuditLog } from '@angular-app/features/audit/domain/entities/audit-log.entity'
 import { AUDIT_MODULES, type AuditModule } from '@angular-app/features/audit/domain/services/audit-modules'
-import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
+import { PageSkeletonComponent } from '@angular-app/shared/molecules/page-skeleton.component'
 import { TiendaInfoService } from '@angular-app/core/tienda/tienda-info.service'
 import {
   auditRangeStart,
@@ -44,7 +44,7 @@ const LOAD_LIMIT = 500
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    SkeletonComponent,
+    PageSkeletonComponent,
     PageHeaderComponent,
     ButtonComponent,
     BadgeComponent,
@@ -105,7 +105,7 @@ const LOAD_LIMIT = 500
       </div>
 
       @if (loading()) {
-        <mo-skeleton heightClass="h-72" />
+        <mo-page-skeleton variant="table" [rows]="8" label="Cargando registros…" />
       } @else if (loadError()) {
         <mo-empty-state title="No se pudo cargar el registro" [description]="loadError()">
           <mo-button (click)="load()">Reintentar</mo-button>

@@ -42,9 +42,16 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
         </div>
 
         @if (loading()) {
-          <div class="space-y-2">
+          <div class="space-y-2" role="status" aria-live="polite">
+            <span class="sr-only">Buscando clientes…</span>
             @for (i of [0, 1, 2, 3]; track i) {
-              <mo-skeleton heightClass="h-12" />
+              <div class="flex items-center gap-3 rounded-lg border p-2.5" aria-hidden="true">
+                <mo-skeleton variant="circle" heightClass="h-8 w-8" />
+                <div class="flex-1 space-y-1.5">
+                  <mo-skeleton variant="line" class="w-36" />
+                  <mo-skeleton variant="line" class="w-24" />
+                </div>
+              </div>
             }
           </div>
         } @else if (loadError()) {

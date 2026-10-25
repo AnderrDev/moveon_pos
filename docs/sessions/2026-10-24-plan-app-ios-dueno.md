@@ -404,6 +404,19 @@ Hecho en `moveon-owner-ios` (commit `e125945`, sin push). Detalle en `docs/modul
   - Mientras se hacía este QA aparecieron en el local 40 productos "SIM ·" de otra sesión; no tocaron las ventas ni la caja comparadas.
 - **Pendiente:** PLAN-84 (instalar en el iPhone del dueño), en pausa por decisión del dueño.
 
+## 32. PLAN-84 — instalación en los iPhone, contra producción
+
+- Pedido del dueño: "conéctalo a prod e instálalo a los teléfonos de Ander y Vevita".
+- **Configuración:** `scripts/make_secrets.sh` con un `.env` temporal que tenía solo `SUPABASE_URL` y `SUPABASE_ANON_KEY` de `.env.local` (se comprobó que la clave tiene rol `anon`; la service role nunca entra a la app) y `PASSWORD_RESET_URL=https://moveon-client.netlify.app/restablecer-contrasena`. El `.env` temporal se borró y `Config/Secrets.xcconfig` (no versionado) volvió al Supabase local.
+- **Compilación:** Release para `generic/platform=iOS`, firmada con el equipo personal `SMK6B9QBM9`. El perfil incluye los dos iPhone y vence el 2026-11-01.
+- **Instalación** con `xcrun devicectl`:
+  - "iPhone de Vevita" (iOS 26.6.1): instalada y abierta.
+  - "iPhone de Ander" (iOS 27.0.1): los dos primeros intentos se cortaron con el teléfono bloqueado; el tercero instaló. No se pudo abrir de forma remota porque el teléfono estaba bloqueado.
+- **Sin pruebas con datos en producción** (regla del dueño): no se entró ni se registró nada desde la app.
+- **Pendiente para el dueño:**
+  - Abrir la app y entrar con su cuenta de administrador. Si iOS dice "desarrollador no confiable": Ajustes › General › VPN y gestión de dispositivos › confiar en el perfil de desarrollo.
+  - Reinstalar antes del 2026-11-01, o tener una cuenta Apple Developer para usar TestFlight.
+
 ## 8. Notas adicionales
 
 - Fuentes de datos ya existentes para la app: `get_stock_levels`, `get_monthly_sales_totals`, `get_monthly_expense_totals`, `get_reinvestment_fund_totals`, `list_cash_history_days`.

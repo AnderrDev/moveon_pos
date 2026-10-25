@@ -66,10 +66,25 @@ import { ChevronDown, FileText, LucideAngularModule } from 'lucide-angular'
       (closed)="closed.emit()"
     >
       @if (loading()) {
-        <div class="space-y-3" aria-label="Cargando ventas">
-          <mo-skeleton heightClass="h-20" />
-          <mo-skeleton heightClass="h-28" />
-          <mo-skeleton heightClass="h-28" />
+        <div class="space-y-3" role="status" aria-live="polite">
+          <span class="sr-only">Cargando ventas…</span>
+          <div class="grid grid-cols-3 gap-3" aria-hidden="true">
+            @for (stat of [1, 2, 3]; track stat) {
+              <div class="rounded-xl border p-3">
+                <mo-skeleton variant="line" class="w-16" />
+                <mo-skeleton heightClass="mt-2 h-6 w-24 rounded-md" />
+              </div>
+            }
+          </div>
+          @for (sale of [1, 2, 3]; track sale) {
+            <div class="flex items-center justify-between gap-4 rounded-xl border p-4" aria-hidden="true">
+              <div class="flex-1 space-y-2">
+                <mo-skeleton variant="line" class="w-28" />
+                <mo-skeleton variant="line" class="w-44" />
+              </div>
+              <mo-skeleton heightClass="h-6 w-24 rounded-md" />
+            </div>
+          }
         </div>
       } @else if (loadError()) {
         <div
