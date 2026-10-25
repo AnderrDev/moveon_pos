@@ -29,10 +29,12 @@ const COVERED = [
   'create_sale',
   'audit_log_adjust',
   'audit_log_create_sale',
+  'audit_log_customer_create',
   'audit_log_product_create',
   'audit_log_product_update',
   'audit_log_transfer',
   'audit_log_void_sale',
+  'create_customer',
   'create_product',
   'register_inventory_entry',
   'sale_totals_cases',
@@ -355,7 +357,42 @@ describe('payloads de escritura de la app iOS contra el Supabase local', () => {
     }
   })
 
-  it.each(['audit_log_product_create', 'audit_log_product_update', 'audit_log_void_sale', 'audit_log_create_sale'])('%s: la auditoría del producto se guarda tal cual', async (name) => {
+  it('create_customer: crea el cliente, lo asocia a una venta y rechaza documento o celular repetidos', async () => {
+    const fixture = loadPayload('create_customer', { tienda_id: TIENDA })
+    const { data, error } = await send(admin, fixture)
+    expect(error, JSON.stringify(error)).toBeNull()
+    const cliente = data as { id: string; activo: boolean; celular_normalizado: string; deleted_at?: string | null }
+    expect(cliente).toMatchObject({ ...fixture.payload, activo: true })
+
+    const again = await send(admin, fixture)
+    expect(again.error?.code).toBe('23505')
+    expect(again.error?.message).toMatch(/ux_clientes_(documento|celular_normalizado)/)
+
+    // La venta con p_cliente_id queda asociada (como en el web).
+    const { data: session } = await admin.from('cash_sessions').select('id').eq('tienda_id', TIENDA).eq('status', 'open').single()
+    const { data: saleId, error: saleError } = await admin.rpc('create_sale_atomic', {
+      p_tienda_id: TIENDA,
+      p_cash_session_id: (session as { id: string }).id,
+      p_sale_number: '',
+      p_cashier_id: adminId,
+      p_cliente_id: cliente.id,
+      p_subtotal: 0,
+      p_discount_total: 0,
+      p_tax_total: 0,
+      p_total: 0,
+      p_idempotency_key: randomUUID(),
+      p_items: [{ producto_id: CON_STOCK, producto_nombre: 'Creatina contrato', producto_sku: null, quantity: 1, unit_price: 80000, option_id: null, discount_amount: 0, tax_rate: 0, tax_amount: 0, total: 80000 }],
+      p_payments: [{ metodo: 'cash', amount: 80000, referencia: null }],
+      p_global_discount_total: 0,
+      p_discount_reason: null,
+      p_loyalty_redemptions: null,
+    })
+    expect(saleError, JSON.stringify(saleError)).toBeNull()
+    const { data: sale } = await admin.from('sales').select('cliente_id').eq('id', saleId as string).single()
+    expect(sale).toEqual({ cliente_id: cliente.id })
+  })
+
+  it.each(['audit_log_product_create', 'audit_log_product_update', 'audit_log_void_sale', 'audit_log_create_sale', 'audit_log_customer_create'])('%s: la auditoría del producto se guarda tal cual', async (name) => {
     const entityId = randomUUID()
     const fixture = loadPayload(name, { tienda_id: TIENDA, user_id: adminId, user_email: adminEmail, entity_id: entityId })
     const { data, error } = await send(admin, fixture)

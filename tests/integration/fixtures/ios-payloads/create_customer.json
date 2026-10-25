@@ -1,0 +1,16 @@
+{
+  "description": "Cliente nuevo desde el cobro del iPhone (PLAN-94): el mismo insert del web sobre las columnas permitidas; el celular va normalizado",
+  "kind": "insert",
+  "target": "clientes",
+  "payload": {
+    "tienda_id": "{{tienda_id}}",
+    "nombre": "Cliente contrato iOS",
+    "tipo_documento": "CC",
+    "numero_documento": "1020304050",
+    "email": null,
+    "telefono": "+57 301 224 4006",
+    "celular_normalizado": "3012244006",
+    "autoriza_fidelizacion": true,
+    "acepta_mensajes_promocionales": false
+  }
+}
