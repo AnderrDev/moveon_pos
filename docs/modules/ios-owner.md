@@ -165,3 +165,8 @@ Cuenta Apple Developer + TestFlight interno (ADR 0021 §6). Mientras no exista l
 - **Estado (2026-10-24):** no hay cuenta de pago; la única identidad de firma es una Apple Development personal. Hay dos iPhone emparejados con este Mac. La versión Release compila para iPhone (sin firmar) sin avisos y sin el modo demo.
 - **Build de producción:** `scripts/make_secrets.sh <archivo .env>` con `SUPABASE_URL` y `SUPABASE_ANON_KEY` de producción (los de `runtime-config.json` del web) y `PASSWORD_RESET_URL` del POS publicado; luego `xcodegen generate`, elegir el equipo personal en Xcode e instalar en el iPhone. Para volver a local: `scripts/make_secrets.sh` sin argumentos.
 - **Cuidado:** con la configuración de producción la app escribe datos reales (vender, anular, inventario, productos).
+- **Instalada (2026-10-24, PLAN-84):** versión Release contra producción (`moveon-client.netlify.app` para restablecer contraseña) en "iPhone de Ander" (iOS 27.0.1) y "iPhone de Vevita" (iOS 26.6.1), firmada con el equipo personal `SMK6B9QBM9` ("Anderson Pulido (Personal Team)"). Comandos:
+  - Compilar sin el teléfono: `xcodebuild build -configuration Release -destination 'generic/platform=iOS' DEVELOPMENT_TEAM=SMK6B9QBM9 -allowProvisioningUpdates`.
+  - Instalar: `xcrun devicectl device install app --device <id> MoveOnOwner.app`, con el teléfono desbloqueado.
+- **El perfil vence a los 7 días** (este, el 2026-11-01): para seguir usándola hay que repetir compilar e instalar. Los datos y la sesión se conservan al reinstalar. Una cuenta Apple Developer de pago quitaría el vencimiento y permitiría TestFlight.
+- **Entrar:** la app es solo para administradores activos de la tienda; si la cuenta de Vevita es de cajera, el login la rechaza (como en el web).
