@@ -68,6 +68,9 @@ export const CLEANUP_SQL = `
   create temp table paridad_tiendas as select id from public.tiendas where nombre like 'Paridad %';
   delete from public.payments where sale_id in (select id from public.sales where tienda_id in (select id from paridad_tiendas));
   delete from public.sale_items where sale_id in (select id from public.sales where tienda_id in (select id from paridad_tiendas));
+  delete from public.loyalty_rewards where tienda_id in (select id from paridad_tiendas);
+  delete from public.loyalty_transactions where tienda_id in (select id from paridad_tiendas);
+  delete from public.loyalty_accounts where tienda_id in (select id from paridad_tiendas);
   delete from public.audit_logs where tienda_id in (select id from paridad_tiendas);
   delete from public.sales where tienda_id in (select id from paridad_tiendas);
   delete from public.inventory_movements where tienda_id in (select id from paridad_tiendas);

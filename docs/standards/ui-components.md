@@ -39,6 +39,7 @@ apps/pos-angular/src/app/shared/
 │   ├── dialog-footer.component.ts (mo-dialog-footer)
 │   ├── segmented.component.ts     (mo-segmented: filtro de selección única)
 │   ├── menu.component.ts          (mo-menu + moMenuItem: acciones secundarias "⋯")
+│   ├── page-skeleton.component.ts (mo-page-skeleton: carga con la forma de la página)
 │   └── table/
 │       ├── table-shell.component.ts  (mo-table-shell)
 │       └── table.directives.ts       (moTable, moThead, moTh, moTr, moTd — export MO_TABLE)
@@ -74,7 +75,8 @@ Criterio de nivel: **atom** = un elemento estilizado; **molecule** = composició
 | `mo-dialog` | `open`, `title`*, `description`, `busy`, `width: sm\|md\|lg\|xl` · `(closed)`. Escape cierra solo el diálogo de arriba (pila de abiertos) |
 | `mo-field-wrapper` y `mo-form-*` | `controlName`* + `label`/`error`/`required` — enlazan al FormGroup padre vía `viewProviders` (ver forms.md) |
 | `mo-segmented` | `options`* (`{ value, label }[]`), `[(value)]`* (string) — filas de filtros (método de pago, estado, periodo). No usar para pestañas principales |
-| `mo-menu` + `moMenuItem` (`MO_MENU`) | `label` (aria-label, def. "Más acciones"), `showLabel`, `size: default\|sm` · ng-content de `<button moMenuItem>` / `<a moMenuItem>`. Panel `fixed` (no se recorta en tablas), cierra al elegir, clic fuera, Escape o scroll. Úsalo cuando una cabecera o fila tenga más de 2 acciones: 1–2 visibles + el resto aquí |
+| `mo-menu` + `moMenuItem` (`MO_MENU`) | `label` (aria-label, def. "Más acciones"), `showLabel`, `size: default\|sm`, `busy` (spinner en ⋯ mientras corre una acción del menú) · ng-content de `<button moMenuItem>` / `<a moMenuItem>`. Panel `fixed` (no se recorta en tablas), cierra al elegir, clic fuera, Escape o scroll. Úsalo cuando una cabecera o fila tenga más de 2 acciones: 1–2 visibles + el resto aquí |
+| `mo-page-skeleton` | `variant: table\|stats\|summary\|form` · `rows`, `cards`, `thumb: none\|square\|circle`, `label` (lectores de pantalla). Úsalo en el `@if (loading())` de cada página; no un `mo-skeleton` suelto sobre el fondo gris (casi no se ve) |
 | `mo-sale-detail-body` | `sale`*, `canCorrectPayment` · `(correctPayment)` → `{ paymentId, metodo }` |
 | `mo-empty-state` | `title`*, `description` + slot de acción |
 | `mo-page-header` | `title`*, `subtitle` + slot de acciones |
@@ -162,6 +164,7 @@ El POS usa la identidad MOVE ON (la misma del catálogo/landing):
 - **Espaciado de página:** toda página es `<section class="flex flex-col gap-4">` (más `h-full min-h-0` si tiene tabla que llena). `mo-page-header` NO tiene margen propio: el `gap-4` separa cabecera, pestañas, filtros y contenido. No agregar `mb-*`/`-mt-*` a los hijos directos.
 - **Filtros en móvil:** buscador a ancho completo; selects en `grid-cols-[minmax(0,1fr)_minmax(0,1fr)]` con `w-full min-w-0` (con `grid-cols-2` se desbordan). `mo-segmented` es una sola fila que se desplaza en horizontal.
 - **Listas en móvil:** una tabla con más de ~3 columnas se muestra como tarjetas bajo `md` (ejemplo: Productos).
+- **Estados de carga:** (1) arranque: pantalla negra con logo y barra amarilla (`index.html` + `AppComponent` hasta la primera navegación); (2) navegación: barra amarilla de 3px arriba (shell) mientras corren guards y carga diferida; (3) datos: `mo-page-skeleton` con la forma de la página; (4) acciones: `loading` en `mo-button` o `busy` en `mo-menu`. El sidebar muestra un placeholder hasta conocer el rol (no mostrar el menú de cajero y luego el de admin).
 - **Pestañas principales** (Reportes, Productos/Categorías): barra con `border-b` y subrayado amarillo de 3px en la activa. Sub-vistas y filtros: píldoras negras (`mo-segmented` o equivalente).
 - `amber-*` queda reservado para avisos (warning), no como color de marca.
 - Logo oficial (blanco + amarillo, para fondo negro): `apps/pos-angular/public/assets/brand/moveon-logo.png`.

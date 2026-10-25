@@ -15,6 +15,16 @@
     />
   </head>
   <body>
-    <mo-root></mo-root>
+    <mo-root>
+      <!-- Pantalla de arranque mientras descarga la app (Angular la reemplaza al iniciar). -->
+      <div
+        style="position:fixed;inset:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px"
+      >
+        <img src="assets/brand/moveon-logo.png" alt="MOVE ON Nutrition" style="width:192px;height:auto" />
+        <div style="width:160px;height:3px;border-radius:9999px;overflow:hidden;background:rgba(255,255,255,.15)">
+          <div class="mo-route-progress" style="height:100%;border-radius:9999px;background:#f9d128"></div>
+        </div>
+      </div>
+    </mo-root>
   </body>
 </html>

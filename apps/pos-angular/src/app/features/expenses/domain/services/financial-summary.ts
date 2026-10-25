@@ -20,6 +20,8 @@ export interface FinancialSummaryInput {
    * que salió. Sin dato, el balance de dinero se calcula sin ellas.
    */
   comprasMercancia?: number
+  /** Gastos fijos del mes aún sin pagar (arriendo, nómina): se apartan del dinero libre. */
+  fijosPendientes?: number
   /** Gastos del período; los anulados se ignoran. */
   gastos: readonly Expense[]
   categorias: readonly ExpenseCategory[]
@@ -61,6 +63,9 @@ export interface FinancialSummary {
   comprasMercancia: number
   /** Dinero del período: entradas − gastos − compras de mercancía. */
   balanceDinero: number
+  fijosPendientes: number
+  /** Balance de dinero − gastos fijos pendientes: lo que de verdad queda libre. */
+  dineroLibre: number
 }
 
 function pctOf(part: number, total: number): number | null {
@@ -74,6 +79,7 @@ function pctOf(part: number, total: number): number | null {
  *
  *   Utilidad neta    = entradas − costo de productos vendidos − gastos activos
  *   Balance de dinero = entradas − gastos activos − compras de mercancía
+ *   Dinero libre      = balance de dinero − gastos fijos pendientes
  */
 export function buildFinancialSummary(input: FinancialSummaryInput): FinancialSummary {
   const activos = input.gastos.filter((g) => g.status === 'active')
@@ -125,5 +131,8 @@ export function buildFinancialSummary(input: FinancialSummaryInput): FinancialSu
     margenNeto: pctOf(utilidadNeta, input.entradasTotales),
     comprasMercancia: input.comprasMercancia ?? 0,
     balanceDinero: input.entradasTotales - gastosTotal - (input.comprasMercancia ?? 0),
+    fijosPendientes: input.fijosPendientes ?? 0,
+    dineroLibre:
+      input.entradasTotales - gastosTotal - (input.comprasMercancia ?? 0) - (input.fijosPendientes ?? 0),
   }
 }

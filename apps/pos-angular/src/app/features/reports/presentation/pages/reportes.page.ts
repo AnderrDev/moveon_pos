@@ -36,13 +36,13 @@ import {
 } from '@angular-app/features/reports/presentation/services/report-period.helpers'
 import { PAYMENT_FILTER_OPTIONS, getPaymentMethodLabel } from '@/shared/lib/payment-methods'
 import { SegmentedComponent } from '@angular-app/shared/molecules/segmented.component'
-import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
+import { PageSkeletonComponent } from '@angular-app/shared/molecules/page-skeleton.component'
 
 @Component({
   selector: 'mo-reportes-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SkeletonComponent, SegmentedComponent, 
+  imports: [PageSkeletonComponent, SegmentedComponent, 
     PageHeaderComponent,
     ButtonComponent,
     CardComponent,
@@ -133,7 +133,7 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
       }
 
       @if (loading()) {
-        <mo-skeleton heightClass="h-72" />
+        <mo-page-skeleton variant="stats" [cards]="5" [rows]="4" label="Cargando reporte…" />
       } @else if (loadError()) {
         <mo-empty-state title="Error al cargar reporte" [description]="loadError()">
           <mo-button (click)="reload()">Reintentar</mo-button>

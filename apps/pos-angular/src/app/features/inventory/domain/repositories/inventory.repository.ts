@@ -1,4 +1,5 @@
 import type { InventoryLocation } from '@/shared/types'
+import type { ConsumptionRecord } from '@angular-app/features/inventory/domain/services/purchase-suggestions'
 import type { EntryPaymentMethod } from '@angular-app/features/inventory/domain/entities/inventory.entity'
 import type {
   InventoryMovement,
@@ -59,6 +60,12 @@ export abstract class InventoryRepository {
     ubicacion?: InventoryLocation
   ): Promise<number>
   abstract getStockLevels(tiendaId: string): Promise<StockLevel[]>
+  /**
+   * Consumo por ventas desde `fromIso`: cada salida por venta (incluidos los
+   * componentes de batidos y combos) en positivo y cada devolución por
+   * anulación en negativo. Para pronosticar la lista de compras.
+   */
+  abstract getConsumption(tiendaId: string, fromIso: string): Promise<ConsumptionRecord[]>
   abstract getKardex(
     productId: string,
     tiendaId: string,

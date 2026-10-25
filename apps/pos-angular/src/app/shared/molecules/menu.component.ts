@@ -9,6 +9,7 @@ import {
   signal,
 } from '@angular/core'
 import { Ellipsis, LucideAngularModule } from 'lucide-angular'
+import { SpinnerComponent } from '../atoms/spinner.component'
 
 /**
  * Menú de acciones secundarias ("Más acciones") para cabeceras con muchos
@@ -22,7 +23,7 @@ import { Ellipsis, LucideAngularModule } from 'lucide-angular'
   selector: 'mo-menu',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [LucideAngularModule],
+  imports: [LucideAngularModule, SpinnerComponent],
   host: {
     class: 'inline-block',
     '(document:click)': 'onDocumentClick($event)',
@@ -34,6 +35,7 @@ import { Ellipsis, LucideAngularModule } from 'lucide-angular'
       type="button"
       (click)="toggle($event)"
       [attr.aria-expanded]="open()"
+      [attr.aria-busy]="busy()"
       aria-haspopup="menu"
       [attr.aria-label]="label()"
       [title]="label()"
@@ -43,7 +45,11 @@ import { Ellipsis, LucideAngularModule } from 'lucide-angular'
       [class.w-9]="size() === 'sm'"
       class="border-input bg-card hover:bg-accent focus-visible:ring-ring inline-flex items-center justify-center gap-2 rounded-lg border text-sm font-semibold shadow-sm transition-colors focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none"
     >
-      <lucide-angular [img]="icons.more" class="h-4 w-4" aria-hidden="true" />
+      @if (busy()) {
+        <mo-spinner size="sm" />
+      } @else {
+        <lucide-angular [img]="icons.more" class="h-4 w-4" aria-hidden="true" />
+      }
       @if (showLabel()) {
         <span>{{ label() }}</span>
       }
@@ -67,6 +73,11 @@ export class MenuComponent {
   readonly label = input('Más acciones')
   /** Muestra el texto junto al ícono; por defecto solo el ícono (con aria-label). */
   readonly showLabel = input(false)
+  /**
+   * Una acción del menú está en curso (exportar, abrir la registradora…). El
+   * menú se cierra al elegir, así que el progreso se muestra en el botón ⋯.
+   */
+  readonly busy = input(false)
   /** `sm` iguala la altura de `mo-button size="sm"` (filas de tabla). */
   readonly size = input<'default' | 'sm'>('default')
 

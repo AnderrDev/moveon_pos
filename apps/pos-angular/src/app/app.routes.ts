@@ -66,6 +66,12 @@ export const routes: Routes = [
           import('@angular-app/features/reports/presentation/pages/reportes.page').then((m) => m.ReportesPage),
       },
       {
+        path: 'finanzas/compras',
+        canActivate: [roleGuard('admin')],
+        loadComponent: () =>
+          import('@angular-app/features/expenses/presentation/pages/compras.page').then((m) => m.ComprasPage),
+      },
+      {
         path: 'finanzas',
         canActivate: [roleGuard('admin')],
         loadComponent: () =>

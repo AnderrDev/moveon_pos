@@ -42,13 +42,13 @@ import { ExcelExportService } from '@angular-app/shared/services/export/excel-ex
 import { buildProductsWorkbook } from '@angular-app/features/products/presentation/services/product-export'
 import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 import { formatCurrency } from '@/shared/lib/format'
-import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
+import { PageSkeletonComponent } from '@angular-app/shared/molecules/page-skeleton.component'
 
 @Component({
   selector: 'mo-productos-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SkeletonComponent, MoneyPipe,
+  imports: [PageSkeletonComponent, MoneyPipe,
     NgTemplateOutlet,
     LucideAngularModule,
     SegmentedComponent,
@@ -73,7 +73,7 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
     <section class="flex h-full min-h-0 flex-col gap-4">
       <mo-page-header title="Productos" [subtitle]="headerSubtitle()">
         <mo-button (click)="openCreate()">Nuevo producto</mo-button>
-        <mo-menu>
+        <mo-menu [busy]="exporting()">
           <button
             type="button"
             moMenuItem
@@ -145,7 +145,7 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
       </div>
 
       @if (loading()) {
-        <mo-skeleton heightClass="h-72" />
+        <mo-page-skeleton variant="table" thumb="square" label="Cargando productos…" />
       } @else if (loadError()) {
         <mo-empty-state title="No se pudo cargar el catálogo" [description]="loadError()">
           <mo-button (click)="load()">Reintentar</mo-button>
@@ -464,6 +464,7 @@ export class ProductosPage {
   })
 
   readonly headerSubtitle = computed(() => {
+    if (this.loading()) return 'Catálogo, precios y stock'
     const active = this.viewCounts().active
     const value = this.inventoryValue()
     const base = `${active} ${active === 1 ? 'producto activo' : 'productos activos'}`

@@ -75,8 +75,26 @@ Tras el commit `89f5656` (Productos e Inventario unificados en /productos) el du
 - No se tocó `features/audit/**` a pedido de la sesión "Revisión de cambios en dev", que está reescribiendo Auditoría (ella conserva el `gap-4` de la section).
 - Verificación: build OK, lint OK, 877 tests; Playwright 1440 px y 390 px (sin desborde horizontal).
 
-## 7. Próximos pasos
+## 7. Fase 4 — Clientes en móvil
 
-- Clientes en móvil: la tabla se corta; pasarla a tarjetas como Productos.
+- `clientes.page.ts`: la tabla (57rem fija) se muestra desde `md`; en móvil, tarjetas con iniciales, badge Club, teléfono/email/documento, progreso del Club y las mismas acciones (Club, editar, eliminar) vía `ng-template` compartido.
+- Estado vacío distinto cuando la búsqueda no encuentra nada ("Ningún cliente coincide"); "Nuevo cliente" sin "+"; tilde en el placeholder.
+- Verificación: build OK, lint OK, 890 tests; Playwright 390 px y 1440 px sin desborde horizontal.
+
+## 8. Fase 5 — Estados de carga ("faltaron los loaders")
+
+Diagnóstico (red local con 3–4 s de retraso simulado): todas las páginas usaban `<mo-skeleton heightClass="h-72">`, un bloque `bg-muted` casi invisible sobre `bg-background`; el loader del POS tenía el diseño viejo; y en carga directa de una ruta admin la pantalla quedaba **completamente vacía** (el `roleGuard` bloquea antes de montar el shell) y luego el sidebar mostraba "Cajero" con 3 ítems hasta conocer el rol. El menú ⋯ se cierra al elegir, así que "Generando Excel…" nunca se veía.
+
+- Nuevo `shared/molecules/page-skeleton.component.ts` (`mo-page-skeleton`: table/stats/summary/form) usado en Productos, Categorías, Clientes, Caja, Historial de caja, Reportes, Finanzas y Configuración. Barras `bg-muted-foreground/10` dentro de tarjetas blancas, `role="status"` + texto para lectores.
+- POS: loader con buscador, chips, 6 tarjetas de producto y panel del ticket.
+- `AppComponent` + `index.html`: pantalla de arranque negra con logo y barra amarilla hasta la primera navegación.
+- Shell: barra de progreso superior en cada navegación; placeholder del menú y del rol hasta resolverlo (también si no hay rol).
+- `mo-menu [busy]`: spinner en ⋯ (Caja, Finanzas, Productos, Categorías).
+- `styles.css`: `@keyframes mo-route-progress` global (Angular renombra los keyframes de componente).
+- No se tocó Auditoría (otra sesión). La línea del loader en `finanzas.page.ts` la incluye la sesión "Revisión de cambios en dev" en su commit, porque está editando ese archivo.
+- Verificación: copia aislada (HEAD + solo estos cambios) build + lint OK; capturas con retraso simulado en escritorio y móvil.
+
+## 9. Próximos pasos
+
 - En Caja, unir el filtro por método con el listado "Ventas del turno" (hoy son dos bloques).
 - Revisar el diálogo de cobro y el historial de ventas con la nueva paleta.

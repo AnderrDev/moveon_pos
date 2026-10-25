@@ -17,13 +17,13 @@ import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import type { Categoria } from '@angular-app/features/products/domain/entities/product.entity'
 import { ExcelExportService } from '@angular-app/shared/services/export/excel-export.service'
 import { buildCategoriesWorkbook } from '@angular-app/features/products/presentation/services/product-export'
-import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
+import { PageSkeletonComponent } from '@angular-app/shared/molecules/page-skeleton.component'
 
 @Component({
   selector: 'mo-categorias-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SkeletonComponent,
+  imports: [PageSkeletonComponent,
     ...MO_MENU,
     RouterLink,
     RouterLinkActive,
@@ -39,7 +39,7 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
     <section class="flex h-full min-h-0 flex-col gap-4">
       <mo-page-header title="Productos" subtitle="Categorías del catálogo">
         <mo-button (click)="openCreate()">Nueva categoría</mo-button>
-        <mo-menu>
+        <mo-menu [busy]="exporting()">
           <button
             type="button"
             moMenuItem
@@ -68,7 +68,7 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
       </nav>
 
       @if (loading()) {
-        <mo-skeleton heightClass="h-72" />
+        <mo-page-skeleton variant="table" [rows]="4" label="Cargando categorías…" />
       } @else if (loadError()) {
         <mo-empty-state title="No se pudieron cargar las categorias" [description]="loadError()">
           <mo-button (click)="load()">Reintentar</mo-button>

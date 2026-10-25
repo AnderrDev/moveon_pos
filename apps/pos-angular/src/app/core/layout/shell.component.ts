@@ -1,7 +1,15 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
-import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router'
+import {
+  NavigationCancel,
+  NavigationEnd,
+  NavigationError,
+  NavigationStart,
+  Router,
+  RouterLink,
+  RouterLinkActive,
+  RouterOutlet,
+} from '@angular/router'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { filter } from 'rxjs'
 import {
   ChartColumn,
   Ellipsis,
@@ -75,6 +83,15 @@ const NAV_GROUPS: readonly NavGroup[] = [
   imports: [RouterLink, RouterLinkActive, RouterOutlet, ToastHostComponent, LucideAngularModule],
   host: { class: 'fixed inset-0 block overflow-hidden' },
   template: `
+    @if (navigating()) {
+      <div
+        class="pointer-events-none fixed inset-x-0 top-0 z-[60] h-[3px] overflow-hidden"
+        role="progressbar"
+        aria-label="Cargando sección"
+      >
+        <div class="bg-primary mo-route-progress h-full rounded-full"></div>
+      </div>
+    }
     <div class="bg-background flex h-dvh flex-col overflow-hidden md:flex-row">
       <aside class="bg-sidebar hidden w-60 flex-shrink-0 flex-col md:flex">
         <a routerLink="/pos" class="block px-5 pt-6 pb-5" aria-label="MOVE ON — ir al punto de venta">
@@ -82,6 +99,17 @@ const NAV_GROUPS: readonly NavGroup[] = [
         </a>
 
         <nav class="flex-1 space-y-5 overflow-y-auto px-3 pb-4" aria-label="Principal">
+          @if (!roleKnown()) {
+            <!-- Hasta saber el rol no se muestran ítems: evita ver el menú de cajero y luego el de admin. -->
+            <div class="animate-pulse space-y-2 px-3 pt-1" aria-hidden="true">
+              @for (w of [70, 45, 60, 52, 40]; track $index) {
+                <div class="bg-sidebar-hover flex h-9 items-center gap-3 rounded-lg">
+                  <div class="bg-sidebar-border h-4 w-4 rounded"></div>
+                  <div class="bg-sidebar-border h-3 rounded" [style.width.%]="w"></div>
+                </div>
+              }
+            </div>
+          }
           @for (group of navGroups(); track group.label) {
             <div>
               <p class="text-sidebar-muted mb-1.5 px-3 text-[11px] font-semibold">{{ group.label }}</p>
@@ -111,7 +139,11 @@ const NAV_GROUPS: readonly NavGroup[] = [
           </div>
           <div class="min-w-0 flex-1">
             <p class="truncate text-[13px] font-semibold text-white">{{ userName() }}</p>
-            <p class="text-sidebar-muted text-[11px]">{{ roleLabel() }}</p>
+            @if (roleKnown()) {
+              <p class="text-sidebar-muted text-[11px]">{{ roleLabel() }}</p>
+            } @else {
+              <div class="bg-sidebar-hover mt-1 h-2.5 w-16 animate-pulse rounded" aria-hidden="true"></div>
+            }
           </div>
           <button
             type="button"
@@ -139,6 +171,11 @@ const NAV_GROUPS: readonly NavGroup[] = [
         aria-label="Principal"
       >
         <div class="flex gap-1">
+          @if (!roleKnown()) {
+            @for (slot of [1, 2, 3, 4]; track slot) {
+              <div class="bg-sidebar-hover min-h-14 flex-1 animate-pulse rounded-xl" aria-hidden="true"></div>
+            }
+          }
           @for (item of mobilePrimary(); track item.href) {
             <a
               [routerLink]="item.href"
@@ -220,10 +257,16 @@ export class ShellComponent {
 
   readonly icons = { logOut: LogOut, more: Ellipsis, close: X }
   readonly moreOpen = signal(false)
+  /** Navegación en curso (guards de rol + carga diferida de la página). */
+  readonly navigating = signal(false)
+  private readonly roleResolved = signal(false)
+  /** Rol cargado (o confirmado que no hay): hasta entonces el menú muestra un placeholder. */
+  readonly roleKnown = computed(() => this.sessionService.role() !== null || this.roleResolved())
   private readonly currentUrl = signal(this.router.url)
 
   /** Grupos visibles según el rol; los admin-only se ocultan al cajero. */
   readonly navGroups = computed(() => {
+    if (!this.roleKnown()) return []
     const isAdmin = this.sessionService.isAdmin()
     return NAV_GROUPS.map((group) => ({
       label: group.label,
@@ -251,17 +294,22 @@ export class ShellComponent {
 
   constructor() {
     // Asegura que el rol esté cargado para la visibilidad reactiva del nav (OnPush).
-    void this.sessionService.getRole()
+    void this.sessionService
+      .getRole()
+      .catch(() => null)
+      .finally(() => this.roleResolved.set(true))
 
-    this.router.events
-      .pipe(
-        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
-        takeUntilDestroyed(),
-      )
-      .subscribe((event) => {
+    this.router.events.pipe(takeUntilDestroyed()).subscribe((event) => {
+      if (event instanceof NavigationStart) {
+        this.navigating.set(true)
+      } else if (event instanceof NavigationEnd) {
+        this.navigating.set(false)
         this.currentUrl.set(event.urlAfterRedirects)
         this.moreOpen.set(false)
-      })
+      } else if (event instanceof NavigationCancel || event instanceof NavigationError) {
+        this.navigating.set(false)
+      }
+    })
   }
 
   async signOut(): Promise<void> {

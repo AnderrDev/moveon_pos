@@ -1,0 +1,51 @@
+{
+  "description": "Venta con canje MOVE ON Club desde el iPhone (PLAN-95): cliente del Club con una recompensa vigente, que se canjea en la línea elegible más costosa (batido con Whey, $18.000: cubre $11.000 y el cliente paga la diferencia), más 2 batidos que suman 2 sellos. Sin descuento discrecional: el motivo va en null y el servidor pone 'Canje MOVE ON Club'",
+  "kind": "rpc",
+  "target": "create_sale_atomic",
+  "payload": {
+    "p_tienda_id": "{{tienda_id}}",
+    "p_cash_session_id": "{{cash_session_id}}",
+    "p_sale_number": "",
+    "p_cashier_id": "{{user_id}}",
+    "p_cliente_id": "{{cliente_id}}",
+    "p_subtotal": 48000,
+    "p_discount_total": 11000,
+    "p_tax_total": 0,
+    "p_total": 37000,
+    "p_idempotency_key": "{{idempotency_key}}",
+    "p_items": [
+      {
+        "producto_id": "{{batido_id}}",
+        "producto_nombre": "Batido contrato",
+        "producto_sku": null,
+        "quantity": 1,
+        "unit_price": 18000,
+        "option_id": "{{whey_id}}",
+        "discount_amount": 0,
+        "tax_rate": 0,
+        "tax_amount": 0,
+        "total": 7000
+      },
+      {
+        "producto_id": "{{batido_id}}",
+        "producto_nombre": "Batido contrato",
+        "producto_sku": null,
+        "quantity": 2,
+        "unit_price": 15000,
+        "option_id": "{{option_id}}",
+        "discount_amount": 0,
+        "tax_rate": 0,
+        "tax_amount": 0,
+        "total": 30000
+      }
+    ],
+    "p_payments": [
+      { "metodo": "cash", "amount": 37000, "referencia": null }
+    ],
+    "p_global_discount_total": 0,
+    "p_discount_reason": null,
+    "p_loyalty_redemptions": [
+      { "reward_id": "{{reward_id}}", "item_index": 0 }
+    ]
+  }
+}

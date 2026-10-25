@@ -22,9 +22,10 @@ import { toCashHistoryQuery } from '../forms/cash-history-form.mapper'
 import type { CashHistoryFormValue } from '../forms/cash-history-form.factory'
 import { LatestRequest } from '../services/cash-history-request-state'
 import { storeDateIso } from '@/shared/lib/day-range'
+import { PageSkeletonComponent } from '@angular-app/shared/molecules/page-skeleton.component'
 @Component({
  selector: 'mo-cash-history-page', standalone: true, changeDetection: ChangeDetectionStrategy.OnPush,
- imports: [RouterLink, PageHeaderComponent, ButtonComponent, SkeletonComponent, CashHistoryFiltersComponent, CashHistoryDaysComponent, CashHistoryTableComponent, CashSessionDetailDrawer],
+ imports: [PageSkeletonComponent, RouterLink, PageHeaderComponent, ButtonComponent, SkeletonComponent, CashHistoryFiltersComponent, CashHistoryDaysComponent, CashHistoryTableComponent, CashSessionDetailDrawer],
  providers: [CashHistoryFormPresenter],
  template: `
   <section class="flex min-w-0 flex-col gap-4">
@@ -32,7 +33,7 @@ import { storeDateIso } from '@/shared/lib/day-range'
     @if (!selectedDay()) {
     <h2 #summaryHeading tabindex="-1" class="sr-only">Resumen diario</h2>
     @if (initialized()) { <mo-cash-history-filters [presenter]="presenter" [closers]="closers()" (applied)="applyFilters()" (cleared)="clearFilters()" /> }
-    @if (loading()) { <div role="status" aria-label="Cargando historial"><mo-skeleton heightClass="h-72" /></div> }
+    @if (loading()) { <mo-page-skeleton variant="table" [rows]="5" label="Cargando historial…" /> }
     @else if (loadError()) { <div role="alert" class="text-destructive"><p>{{ loadError() }}</p><mo-button variant="outline" (click)="retryHistory()">Reintentar</mo-button></div> }
     @else { <mo-cash-history-days [page]="result()" [selectedDay]="selectedDay()" (selected)="selectDay($event)" (pageChanged)="load($event)" /> }
     }

@@ -22,17 +22,21 @@ const VENTA = randomUUID()
 const VENDIBLE = randomUUID()
 const BATIDO = randomUUID()
 const SIN_PROTEINA = randomUUID()
+const WHEY = randomUUID()
 
 /** Fixtures con caso en este archivo. Uno nuevo sin caso hace fallar el primer test. */
 const COVERED = [
   'adjust_stock',
   'create_sale',
+  'create_sale_loyalty',
   'audit_log_adjust',
   'audit_log_create_sale',
+  'audit_log_customer_create',
   'audit_log_product_create',
   'audit_log_product_update',
   'audit_log_transfer',
   'audit_log_void_sale',
+  'create_customer',
   'create_product',
   'register_inventory_entry',
   'sale_totals_cases',
@@ -61,7 +65,7 @@ const SEED_SQL = `
     (:'vendible', :'tienda', 'Vendible contrato', 'IOS-VEND-1', 'simple', 80000, 40000, 0, 0, true),
     (:'batido', :'tienda', 'Batido contrato', null, 'prepared', 15000, null, 0, 0, true);
   insert into public.product_options (id, tienda_id, producto_id, grupo, nombre, precio_extra, es_default, orden, is_active) values
-    (gen_random_uuid(), :'tienda', :'batido', 'Proteína', 'Whey', 3000, true, 0, true),
+    (:'whey', :'tienda', :'batido', 'Proteína', 'Whey', 3000, true, 0, true),
     (:'sin_proteina', :'tienda', :'batido', 'Proteína', 'Sin proteína', 0, false, 1, true);
   insert into public.inventory_movements (tienda_id, producto_id, tipo, cantidad, ubicacion, motivo, created_by)
     values (:'tienda', :'vendible', 'entry', 5, 'punto_venta', 'Inventario inicial', :'admin');
@@ -95,7 +99,7 @@ describe('payloads de escritura de la app iOS contra el Supabase local', () => {
     stack = localStack()
     ;[adminId] = await createUsers(stack, [adminEmail])
     psql(stack, CLEANUP_SQL)
-    psql(stack, SEED_SQL, { tienda: TIENDA, admin: adminId, producto: PRODUCTO, con_stock: CON_STOCK, categoria: CATEGORIA, venta: VENTA, vendible: VENDIBLE, batido: BATIDO, sin_proteina: SIN_PROTEINA })
+    psql(stack, SEED_SQL, { tienda: TIENDA, admin: adminId, producto: PRODUCTO, con_stock: CON_STOCK, categoria: CATEGORIA, venta: VENTA, vendible: VENDIBLE, batido: BATIDO, sin_proteina: SIN_PROTEINA, whey: WHEY })
     admin = await signIn(stack, adminEmail)
   })
 
@@ -355,7 +359,113 @@ describe('payloads de escritura de la app iOS contra el Supabase local', () => {
     }
   })
 
-  it.each(['audit_log_product_create', 'audit_log_product_update', 'audit_log_void_sale', 'audit_log_create_sale'])('%s: la auditoría del producto se guarda tal cual', async (name) => {
+  it('create_sale_loyalty: canjea la recompensa en la línea, suma los sellos y no deja canjearla otra vez', async () => {
+    // Cliente del Club con 7 sellos y una recompensa vigente; el batido participa.
+    const cliente = randomUUID()
+    const reward = randomUUID()
+    psql(
+      stack,
+      `update public.productos set participa_fidelizacion = true where id = '${BATIDO}';
+       insert into public.clientes (id, tienda_id, nombre, celular_normalizado, autoriza_fidelizacion)
+         values ('${cliente}', '${TIENDA}', 'Cliente Club iOS', '3009998877', true);
+       insert into public.loyalty_accounts (tienda_id, cliente_id, stamps_balance, total_stamps_earned)
+         values ('${TIENDA}', '${cliente}', 7, 15);
+       with tx as (
+         insert into public.loyalty_transactions (tienda_id, cliente_id, type, stamps_delta, balance_after, reason, created_by)
+         values ('${TIENDA}', '${cliente}', 'adjustment', 8, 8, 'Contrato iOS', '${adminId}') returning id
+       )
+       insert into public.loyalty_rewards (id, tienda_id, cliente_id, cost_stamps, reward_value_cop, source_transaction_id, expires_at)
+         select '${reward}', '${TIENDA}', '${cliente}', 8, 11000, id, now() + interval '30 days' from tx;`,
+    )
+    const { data: session } = await admin.from('cash_sessions').select('id').eq('tienda_id', TIENDA).eq('status', 'open').single()
+    const vars = {
+      tienda_id: TIENDA,
+      cash_session_id: (session as { id: string }).id,
+      user_id: adminId,
+      idempotency_key: randomUUID(),
+      cliente_id: cliente,
+      batido_id: BATIDO,
+      whey_id: WHEY,
+      option_id: SIN_PROTEINA,
+      reward_id: reward,
+    }
+
+    // Lo que la app lee antes de canjear: saldo y recompensas vigentes (RLS de lectura).
+    const { data: before } = await admin.from('loyalty_rewards').select('id').eq('cliente_id', cliente).eq('status', 'available')
+    expect(before).toEqual([{ id: reward }])
+
+    const { data: saleId, error } = await send(admin, loadPayload('create_sale_loyalty', vars))
+    expect(error, JSON.stringify(error)).toBeNull()
+
+    const { data: sale } = await admin
+      .from('sales')
+      .select('subtotal, discount_total, loyalty_discount_total, tax_total, total, discount_reason, sale_items(option_id, loyalty_discount_amount, loyalty_reward_id, total)')
+      .eq('id', saleId as string)
+      .single()
+    const row = sale as { sale_items: { option_id: string; loyalty_discount_amount: number; loyalty_reward_id: string | null; total: number }[] }
+    expect(row).toMatchObject({
+      subtotal: 48000,
+      discount_total: 11000,
+      loyalty_discount_total: 11000,
+      tax_total: 0,
+      total: 37000,
+      discount_reason: 'Canje MOVE ON Club',
+    })
+    expect(row.sale_items.find((i) => i.option_id === WHEY)).toMatchObject({ loyalty_discount_amount: 11000, loyalty_reward_id: reward, total: 7000 })
+
+    // La recompensa queda canjeada en esta venta; 7 + 2 sellos = 9 → una recompensa nueva y queda 1.
+    const { data: redeemed } = await admin.from('loyalty_rewards').select('status, redeemed_sale_id').eq('id', reward).single()
+    expect(redeemed).toEqual({ status: 'redeemed', redeemed_sale_id: saleId })
+    const { data: account } = await admin.from('loyalty_accounts').select('stamps_balance').eq('cliente_id', cliente).single()
+    expect(account).toEqual({ stamps_balance: 1 })
+    const { count } = await admin
+      .from('loyalty_rewards')
+      .select('id', { count: 'exact', head: true })
+      .eq('cliente_id', cliente)
+      .eq('status', 'available')
+    expect(count).toBe(1)
+
+    // Con otra clave, la misma recompensa ya no se puede canjear.
+    const again = await send(admin, loadPayload('create_sale_loyalty', { ...vars, idempotency_key: randomUUID() }))
+    expect(again.error?.message).toBe('La recompensa ya fue utilizada o anulada')
+  })
+
+  it('create_customer: crea el cliente, lo asocia a una venta y rechaza documento o celular repetidos', async () => {
+    const fixture = loadPayload('create_customer', { tienda_id: TIENDA })
+    const { data, error } = await send(admin, fixture)
+    expect(error, JSON.stringify(error)).toBeNull()
+    const cliente = data as { id: string; activo: boolean; celular_normalizado: string; deleted_at?: string | null }
+    expect(cliente).toMatchObject({ ...fixture.payload, activo: true })
+
+    const again = await send(admin, fixture)
+    expect(again.error?.code).toBe('23505')
+    expect(again.error?.message).toMatch(/ux_clientes_(documento|celular_normalizado)/)
+
+    // La venta con p_cliente_id queda asociada (como en el web).
+    const { data: session } = await admin.from('cash_sessions').select('id').eq('tienda_id', TIENDA).eq('status', 'open').single()
+    const { data: saleId, error: saleError } = await admin.rpc('create_sale_atomic', {
+      p_tienda_id: TIENDA,
+      p_cash_session_id: (session as { id: string }).id,
+      p_sale_number: '',
+      p_cashier_id: adminId,
+      p_cliente_id: cliente.id,
+      p_subtotal: 0,
+      p_discount_total: 0,
+      p_tax_total: 0,
+      p_total: 0,
+      p_idempotency_key: randomUUID(),
+      p_items: [{ producto_id: CON_STOCK, producto_nombre: 'Creatina contrato', producto_sku: null, quantity: 1, unit_price: 80000, option_id: null, discount_amount: 0, tax_rate: 0, tax_amount: 0, total: 80000 }],
+      p_payments: [{ metodo: 'cash', amount: 80000, referencia: null }],
+      p_global_discount_total: 0,
+      p_discount_reason: null,
+      p_loyalty_redemptions: null,
+    })
+    expect(saleError, JSON.stringify(saleError)).toBeNull()
+    const { data: sale } = await admin.from('sales').select('cliente_id').eq('id', saleId as string).single()
+    expect(sale).toEqual({ cliente_id: cliente.id })
+  })
+
+  it.each(['audit_log_product_create', 'audit_log_product_update', 'audit_log_void_sale', 'audit_log_create_sale', 'audit_log_customer_create'])('%s: la auditoría del producto se guarda tal cual', async (name) => {
     const entityId = randomUUID()
     const fixture = loadPayload(name, { tienda_id: TIENDA, user_id: adminId, user_email: adminEmail, entity_id: entityId })
     const { data, error } = await send(admin, fixture)
