@@ -324,6 +324,23 @@ Hecho en `moveon-owner-ios` (commit `e125945`, sin push). Detalle en `docs/modul
   - Finanzas abre desde Resumen con entradas $1.283.000, igual que el resumen.
   - No se registró ninguna venta en este PLAN.
 
+## 28. PLAN-93 — descuentos y totales con paridad
+
+- `moveon-owner-ios`: `main` con PLAN-92 subido (`c5df902`).
+- **Reglas del web:**
+  - `sale-calculator.ts`, `item-discount-form.factory.ts` y `checkout-rules.ts`: descuento por unidad en $ o % (redondeado a pesos) y hasta el precio; global en $ o % sobre el subtotal, acotado al disponible; motivo ≥ 3 si hay descuento discrecional.
+  - El web reparte el global redondeando a pesos y el servidor a centavos: el total es igual, el IVA puede diferir en centavos. Swift sigue al servidor, que es quien registra.
+- **POS** (`abe79eb`): `sale_totals_cases.json` con 4 casos y su test, que vende cada caso con totales en 0 (el servidor los ignora) y compara lo registrado con los esperados. `pnpm test:parity` → 36 en verde.
+- **iOS:**
+  - `SaleTotals` y `DiscountRules`; `CartLine.discount` y `Cart.setDiscount`; `NewSaleRequest` lleva el global y el motivo; `CreateSaleParams` manda los totales de la vista previa y el descuento por unidad.
+  - Presentación: `LineDiscountSheet` y la sección de descuento y motivo en el carrito.
+  - Nuevos `RejectionReason.discountReasonRequired`/`invalidDiscount`.
+  - Pasan 230 tests unitarios (incluida la paridad con los mismos casos) y los de interfaz de venta y resumen.
+- **QA contra el Supabase local:**
+  - Venta de 2 × QA Creatina con 10 % por unidad (−8.500 c/u), 1 × QA iOS Barra y $5.000 de global, con motivo "QA iOS descuentos".
+  - Vista previa: subtotal 178.500, descuentos 22.000, total 156.500.
+  - El servidor registró **V-000006** con 178.500 / 17.000 / 5.000 / 156.500, el motivo y el reparto del global (4.736,84 a la Creatina y 263,16 a la Barra), igual que Swift. Pago en efectivo de 156.500.
+
 ## 8. Notas adicionales
 
 - Fuentes de datos ya existentes para la app: `get_stock_levels`, `get_monthly_sales_totals`, `get_monthly_expense_totals`, `get_reinvestment_fund_totals`, `list_cash_history_days`.

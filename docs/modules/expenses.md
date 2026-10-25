@@ -93,3 +93,13 @@ apps/pos-angular/src/app/features/expenses/          (estructura ADR 0015)
 - **`expenses` sin escritura directa:** se revocaron `INSERT/UPDATE/DELETE` a `anon` y `authenticated`. Todo pasa por `register_expense_atomic`, `void_expense_atomic` o las RPC de caja.
 - **Compras de mercancía en el resumen:** Finanzas muestra "Dinero del período" = entradas − gastos − compras de mercancía (entradas de inventario con costo del mes). Las compras **no** restan de la utilidad (su costo entra cuando se vende). `ExpenseRepository.getMerchandisePurchases` reutiliza `get_reinvestment_fund_totals`.
 - Prueba: `supabase/tests/cash-expenses-sync.test.sql`.
+
+## Fondo en negativo = inventario de más (2026-10-24)
+
+`Disponible = saldo inicial + costo de lo vendido − compras de mercancía`. Cuando queda negativo **no es una deuda**: se compró más mercancía de la que se ha recuperado vendiéndola al costo, y esa diferencia está en estantería (en producción, al 2026-10-24: −$10,8 M con el inventario pasando de ~$6,0 M a $15,6 M al costo desde julio). La tarjeta del fondo:
+
+- titula el saldo negativo "Invertido en inventario de más", lo muestra en positivo y en ámbar (no en rojo), y explica que se recupera al vender;
+- muestra **Inventario hoy al costo** (`valueStockAtCost` en `features/inventory/domain/services/stock-valuation.ts`: Σ stock total × costo vigente de productos activos con stock propio; stock negativo cuenta 0; avisa productos con stock sin costo);
+- sugiere registrar el saldo inicial si el fondo arrancó en $0.
+
+`fundBalanceKind` (`reinvestment-fund.ts`) decide la lectura. Tests: `tests/unit/features/inventory/stock-valuation.test.ts`. Sin cambios en la base.

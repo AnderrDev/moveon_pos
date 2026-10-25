@@ -49,6 +49,12 @@ import type {
   ReinvestmentFundSettings,
 } from '@angular-app/features/expenses/domain/entities/expense.entity'
 import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
+import { InventoryRepository } from '@angular-app/features/inventory/domain/repositories/inventory.repository'
+import {
+  valueStockAtCost,
+  type StockValuation,
+} from '@angular-app/features/inventory/domain/services/stock-valuation'
+import { ProductsCacheStore } from '@angular-app/core/catalog/products-cache.store'
 
 function currentMonthLocal(): string {
   const now = new Date()
@@ -147,6 +153,7 @@ function monthRange(month: string): { from: string; to: string } {
 
           <mo-reinvestment-fund
             [fund]="fund()"
+            [inventory]="inventoryValue()"
             (configureRequested)="fundDialogOpen.set(true)"
           />
 
@@ -251,6 +258,11 @@ export class FinanzasPage {
   private readonly session = inject(SessionService)
   private readonly toast = inject(ToastService)
   private readonly excel = inject(ExcelExportService)
+  private readonly inventoryRepo = inject(InventoryRepository)
+  private readonly catalog = inject(ProductsCacheStore)
+
+  /** Valor del inventario al costo (para leer el fondo); `null` si no cargó. */
+  readonly inventoryValue = signal<StockValuation | null>(null)
 
   readonly month = signal(currentMonthLocal())
   readonly loading = signal(true)
@@ -361,6 +373,7 @@ export class FinanzasPage {
       this.fundSettings.set(fundSettings)
       this.comprasMercancia.set(compras)
       await this.loadFundTotals(auth.tiendaId)
+      void this.loadInventoryValue(auth.tiendaId)
 
       const costos = report.productSales
         .map((p) => p.costoTotal)
@@ -375,6 +388,22 @@ export class FinanzasPage {
       this.loadError.set(getErrorMessage(error, 'Error al cargar'))
     } finally {
       this.loading.set(false)
+    }
+  }
+
+  /**
+   * Valor del inventario al costo de hoy. No bloquea la página: si falla, el
+   * fondo se muestra sin ese dato.
+   */
+  private async loadInventoryValue(tiendaId: string): Promise<void> {
+    try {
+      const [levels, products] = await Promise.all([
+        this.inventoryRepo.getStockLevels(tiendaId),
+        this.catalog.ensureProducts(tiendaId),
+      ])
+      this.inventoryValue.set(valueStockAtCost(levels, products.filter((p) => p.isActive)))
+    } catch {
+      this.inventoryValue.set(null)
     }
   }
 

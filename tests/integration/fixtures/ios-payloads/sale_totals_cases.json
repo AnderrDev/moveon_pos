@@ -1,0 +1,42 @@
+{
+  "description": "Paridad de totales con descuentos (PLAN-93, ADR 0022 §6.5): cada caso se vende en el Supabase local y los totales que guarda create_sale_atomic deben ser los esperados; la vista previa de Swift (SaleTotals) debe dar lo mismo",
+  "kind": "cases",
+  "target": "create_sale_atomic",
+  "payload": {
+    "products": [
+      { "key": "a", "price": 85000, "iva": 0 },
+      { "key": "b", "price": 11900, "iva": 19 },
+      { "key": "c", "price": 3150, "iva": 5 }
+    ],
+    "cases": [
+      {
+        "name": "descuento por línea",
+        "lines": [{ "product": "a", "quantity": 2, "discount": 5000 }, { "product": "b", "quantity": 1, "discount": 0 }],
+        "global": 0,
+        "expected": { "subtotal": 181900, "discount_total": 10000, "tax_total": 1900, "total": 171900 }
+      },
+      {
+        "name": "global repartido con IVA mixto",
+        "lines": [
+          { "product": "a", "quantity": 1, "discount": 0 },
+          { "product": "b", "quantity": 3, "discount": 900 },
+          { "product": "c", "quantity": 2, "discount": 0 }
+        ],
+        "global": 10001,
+        "expected": { "subtotal": 127000, "discount_total": 12701, "tax_total": 5120.84, "total": 114299 }
+      },
+      {
+        "name": "global del 15 % sobre el subtotal",
+        "lines": [{ "product": "b", "quantity": 2, "discount": 0 }, { "product": "c", "quantity": 1, "discount": 150 }],
+        "global_percent": 15,
+        "expected": { "subtotal": 26950, "discount_total": 4193, "tax_total": 3348.05, "total": 22757 }
+      },
+      {
+        "name": "descuento del 100 % deja la venta en cero",
+        "lines": [{ "product": "c", "quantity": 1, "discount": 3150 }],
+        "global": 0,
+        "expected": { "subtotal": 3150, "discount_total": 3150, "tax_total": 0, "total": 0 }
+      }
+    ]
+  }
+}

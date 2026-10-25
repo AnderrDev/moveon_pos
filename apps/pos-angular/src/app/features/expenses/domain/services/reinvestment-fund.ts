@@ -50,3 +50,16 @@ export function buildReinvestmentFund(input: ReinvestmentFundInput): Reinvestmen
     entradasSinCosto: input.entradasSinCosto,
   }
 }
+
+/**
+ * Cómo leer el saldo del fondo. Negativo NO es una deuda: se compró más
+ * mercancía de la que se ha recuperado vendiéndola al costo, y esa
+ * diferencia está en estantería.
+ */
+export type FundBalanceKind = 'available' | 'even' | 'overinvested'
+
+export function fundBalanceKind(disponible: number): FundBalanceKind {
+  if (disponible > 0) return 'available'
+  if (disponible < 0) return 'overinvested'
+  return 'even'
+}
