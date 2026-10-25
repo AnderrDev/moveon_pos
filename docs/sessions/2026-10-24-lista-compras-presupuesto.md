@@ -41,3 +41,10 @@ Regla: pruebas solo en local; producción solo con OK del dueño.
 **Aplicado:** fondo con `fecha_inicio = 2026-10-24` y `saldo_inicial = 0` (arranca en +$53.996, 0 compras hoy); plantilla mensual "Arriendo" $2.500.000 (categoría Arriendo) creada; empleado Gustavo $1.800.000 sin cambios. Frontend publicado en `main` f627ad2 (incluye f330a96 de la sesión de diseño, que había quedado sin compilar por sí solo y se completó en 86ca9b3). Netlify ready en POS y catálogo; `/finanzas/compras` responde.
 
 **Pendiente:** corregir en el kardex los costos de ARMY EAAS SACHET (~$925.000 de más) y COLLAGEN STACK (~$226.000); revisar la lista con datos reales antes de la próxima compra.
+
+## 5. Seed masivo y backtest del asesor (local)
+
+- `scripts/seed-asesor-compras.sql` (+ `-limpiar.sql`), `pnpm seed:asesor`, `pnpm seed:asesor:limpiar`, `pnpm test:backtest` (`vitest.backtest.config.ts`).
+- El asesor se rehízo sobre historia diaria (consumo + stock al cierre) reconstruida desde todos los movimientos (`InventoryRepository.getMovementsSince`, `buildDemandHistories`); `forecastDemand` con opciones; por defecto excluye días agotados y suma colchón z=1 (backtest: margen perdido −63%, servicio 97,1% → 99,2%). Ver tabla en `docs/modules/expenses.md`.
+- Errores encontrados al armar el backtest: el trigger de componentes fecha la salida con `now()` (en el seed se corrige a la hora de la venta; en producción no aplica); `current_date` en UTC desfasaba un día (seed y backtest usan la zona de la tienda).
+- Pendiente: publicar el asesor nuevo (sin migraciones); el seed y el backtest son solo locales.
