@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import {
   LucideAngularModule,
@@ -35,7 +36,8 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
   selector: 'mo-clientes-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SkeletonComponent, 
+  imports: [SkeletonComponent,
+    NgTemplateOutlet,
     LucideAngularModule,
     PageHeaderComponent,
     ButtonComponent,
@@ -59,7 +61,7 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
             type="search"
             [value]="query()"
             (input)="onQuery($event)"
-            placeholder="Buscar por nombre, email o telefono"
+            placeholder="Buscar por nombre, email o teléfono"
             aria-label="Buscar clientes"
             name="customer-search"
             autocomplete="off"
@@ -106,14 +108,21 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
           <mo-button (click)="load()">Reintentar</mo-button>
         </mo-empty-state>
       } @else if (filtered().length === 0) {
-        <mo-empty-state
-          title="Sin clientes"
-          description="Crea el primer cliente para empezar a registrarlos en ventas."
-        >
-          <mo-button (click)="openCreate()">+ Nuevo cliente</mo-button>
-        </mo-empty-state>
+        @if (query().trim()) {
+          <mo-empty-state
+            title="Ningún cliente coincide"
+            description="Prueba con otro nombre, email o teléfono."
+          />
+        } @else {
+          <mo-empty-state
+            title="Aún no hay clientes"
+            description="Crea el primer cliente para empezar a registrarlos en ventas."
+          >
+            <mo-button (click)="openCreate()">Nuevo cliente</mo-button>
+          </mo-empty-state>
+        }
       } @else {
-        <mo-table-shell class="flex-1">
+        <mo-table-shell class="hidden flex-1 md:block">
           <table moTable class="min-w-[57rem] table-fixed">
             <thead moThead>
               <tr>
@@ -150,16 +159,6 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
                               Club
                             </span>
                           }
-                        </div>
-                        <div class="mt-1 md:hidden">
-                          <mo-customer-loyalty-progress
-                            [participates]="c.autorizaFidelizacion"
-                            [state]="loyaltyState()"
-                            [progress]="loyaltyOverview.progressFor(c.id)"
-                            [stampsPerReward]="stampsPerReward()"
-                            [customerName]="c.nombre"
-                            [compact]="true"
-                          />
                         </div>
                       </div>
                     </div>
@@ -217,50 +216,119 @@ import { SkeletonComponent } from '@angular-app/shared/atoms/skeleton.component'
                     />
                   </td>
                   <td moTd class="text-right">
-                    <div class="flex justify-end gap-1">
-                      <mo-button size="sm" variant="outline" (click)="openLoyalty(c)">
-                        <lucide-angular
-                          [img]="icons.cup"
-                          class="mr-1 h-3.5 w-3.5"
-                          aria-hidden="true"
-                        />
-                        Club
-                      </mo-button>
-                      <mo-button
-                        size="sm"
-                        variant="outline"
-                        title="Editar cliente"
-                        (click)="openEdit(c)"
-                      >
-                        <lucide-angular
-                          [img]="icons.pencil"
-                          class="h-3.5 w-3.5"
-                          aria-hidden="true"
-                        />
-                        <span class="sr-only">Editar</span>
-                      </mo-button>
-                      <mo-button
-                        size="sm"
-                        variant="ghost"
-                        title="Eliminar cliente"
-                        (click)="confirmDelete(c)"
-                      >
-                        <lucide-angular
-                          [img]="icons.trash"
-                          class="text-destructive h-3.5 w-3.5"
-                          aria-hidden="true"
-                        />
-                        <span class="sr-only">Eliminar</span>
-                      </mo-button>
-                    </div>
+                    <ng-container *ngTemplateOutlet="rowActions; context: { $implicit: c }" />
                   </td>
                 </tr>
               }
             </tbody>
           </table>
         </mo-table-shell>
+
+        <!-- Móvil: tarjetas -->
+        <ul class="space-y-2 md:hidden">
+          @for (c of filtered(); track c.id) {
+            <li class="bg-card rounded-xl border p-3">
+              <div class="flex items-start gap-3">
+                <span
+                  class="bg-muted text-foreground flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-black uppercase"
+                  aria-hidden="true"
+                >
+                  {{ initials(c) }}
+                </span>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-1.5">
+                    <p class="truncate font-semibold">{{ c.nombre }}</p>
+                    @if (c.autorizaFidelizacion) {
+                      <span
+                        class="bg-primary text-primary-foreground inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[11px] font-bold"
+                        title="Participa en MOVE ON Club"
+                      >
+                        <lucide-angular [img]="icons.cup" class="h-3 w-3" aria-hidden="true" />
+                        Club
+                      </span>
+                    }
+                  </div>
+                  <div class="text-muted-foreground mt-1 space-y-0.5 text-xs">
+                    @if (c.telefono) {
+                      <p class="flex items-center gap-1.5">
+                        <lucide-angular [img]="icons.phone" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                        {{ c.telefono }}
+                      </p>
+                    }
+                    @if (c.email) {
+                      <p class="flex min-w-0 items-center gap-1.5">
+                        <lucide-angular [img]="icons.mail" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                        <span class="truncate">{{ c.email }}</span>
+                      </p>
+                    }
+                    @if (c.tipoDocumento && c.numeroDocumento) {
+                      <p class="flex items-center gap-1.5">
+                        <lucide-angular [img]="icons.idCard" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                        {{ c.tipoDocumento }} · {{ c.numeroDocumento }}
+                      </p>
+                    }
+                  </div>
+                  @if (c.autorizaFidelizacion) {
+                    <div class="mt-2">
+                      <mo-customer-loyalty-progress
+                        [participates]="c.autorizaFidelizacion"
+                        [state]="loyaltyState()"
+                        [progress]="loyaltyOverview.progressFor(c.id)"
+                        [stampsPerReward]="stampsPerReward()"
+                        [customerName]="c.nombre"
+                        [compact]="true"
+                      />
+                    </div>
+                  }
+                </div>
+              </div>
+              <div class="mt-3 border-t pt-3">
+                <ng-container *ngTemplateOutlet="rowActions; context: { $implicit: c }" />
+              </div>
+            </li>
+          }
+        </ul>
       }
     </section>
+
+    <ng-template #rowActions let-c>
+      <div class="flex justify-end gap-1">
+        <mo-button size="sm" variant="outline" (click)="openLoyalty(c)">
+          <lucide-angular
+            [img]="icons.cup"
+            class="mr-1 h-3.5 w-3.5"
+            aria-hidden="true"
+          />
+          Club
+        </mo-button>
+        <mo-button
+          size="sm"
+          variant="outline"
+          title="Editar cliente"
+          (click)="openEdit(c)"
+        >
+          <lucide-angular
+            [img]="icons.pencil"
+            class="h-3.5 w-3.5"
+            aria-hidden="true"
+          />
+          <span class="sr-only">Editar</span>
+        </mo-button>
+        <mo-button
+          size="sm"
+          variant="ghost"
+          title="Eliminar cliente"
+          (click)="confirmDelete(c)"
+        >
+          <lucide-angular
+            [img]="icons.trash"
+            class="text-destructive h-3.5 w-3.5"
+            aria-hidden="true"
+          />
+          <span class="sr-only">Eliminar</span>
+        </mo-button>
+      </div>
+    </ng-template>
 
     <mo-cliente-form-dialog
       [open]="dialogOpen()"

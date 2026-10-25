@@ -75,8 +75,13 @@ Tras el commit `89f5656` (Productos e Inventario unificados en /productos) el du
 - No se tocó `features/audit/**` a pedido de la sesión "Revisión de cambios en dev", que está reescribiendo Auditoría (ella conserva el `gap-4` de la section).
 - Verificación: build OK, lint OK, 877 tests; Playwright 1440 px y 390 px (sin desborde horizontal).
 
-## 7. Próximos pasos
+## 7. Fase 4 — Clientes en móvil
 
-- Clientes en móvil: la tabla se corta; pasarla a tarjetas como Productos.
+- `clientes.page.ts`: la tabla (57rem fija) se muestra desde `md`; en móvil, tarjetas con iniciales, badge Club, teléfono/email/documento, progreso del Club y las mismas acciones (Club, editar, eliminar) vía `ng-template` compartido.
+- Estado vacío distinto cuando la búsqueda no encuentra nada ("Ningún cliente coincide"); "Nuevo cliente" sin "+"; tilde en el placeholder.
+- Verificación: build OK, lint OK, 890 tests; Playwright 390 px y 1440 px sin desborde horizontal.
+
+## 8. Próximos pasos
+
 - En Caja, unir el filtro por método con el listado "Ventas del turno" (hoy son dos bloques).
 - Revisar el diálogo de cobro y el historial de ventas con la nueva paleta.
