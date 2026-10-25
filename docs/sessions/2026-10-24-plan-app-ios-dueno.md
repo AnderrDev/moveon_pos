@@ -341,6 +341,22 @@ Hecho en `moveon-owner-ios` (commit `e125945`, sin push). Detalle en `docs/modul
   - Vista previa: subtotal 178.500, descuentos 22.000, total 156.500.
   - El servidor registró **V-000006** con 178.500 / 17.000 / 5.000 / 156.500, el motivo y el reparto del global (4.736,84 a la Creatina y 263,16 a la Barra), igual que Swift. Pago en efectivo de 156.500.
 
+## 29. PLAN-94 — buscar, asociar y crear cliente
+
+- `moveon-owner-ios`: `main` con PLAN-93 subido (`2cda105`).
+- **Reglas del web:** `cliente.dto.ts` (tipos CC/NIT/CE/PA, celular colombiano normalizado a 10 dígitos, email opcional), la búsqueda de clientes de `clientes.page.ts` (nombre, documento o celular) e índices únicos `ux_clientes_*` con sus mensajes.
+- **POS** (`867eb11`): `create_customer.json` (insert y duplicados de documento y celular → 23505), venta con `p_cliente_id` y `audit_log_customer_create.json`. `pnpm test:parity` → 38 en verde.
+- **iOS:**
+  - `Domain/Customers` (`Customer`, `PhoneCO`, `NewCustomer`, `CustomerSearch`, `CreateCustomerUseCase`) y `Data/Customers` (`SupabaseCustomerDirectory`), compartidos para que Club (PLAN-95) los reuse.
+  - `CustomerPickerSheet`/`CustomerPickerViewModel` en Checkout; `NewSaleRequest.customerId` → `p_cliente_id`.
+  - `AuditEvent.EntityType.customer`, `AuditValue.bool/.list`; `RejectionReason.duplicateCustomerDocument/Phone` con los textos del web.
+  - Tests unitarios de cliente, selector y venta con cliente, y la prueba de interfaz `testAsociarClientePorCelular`.
+- **QA contra el Supabase local:**
+  - Con 1 × QA iOS Barra proteica en el carrito, "Asociar" → "Nuevo cliente" con el documento 1020304050 (ya existente): aviso "Ya existe un cliente con ese documento" y ninguna fila creada.
+  - Con 1098765432 / 3120001122 se registró "QA iOS Cliente" (CC, `celular_normalizado` 3120001122, Club y mensajes activados) y quedó asociado en el carrito.
+  - Cobro en efectivo de 8.500: el servidor registró **V-000007** con `cliente_id` de QA iOS Cliente y la auditoría `cliente`/`create` con `{tipoDocumento, numeroDocumento}`.
+  - Nota: el teclado del simulador escribe "+" como "¡"; con el celular sin prefijo funciona igual.
+
 ## 8. Notas adicionales
 
 - Fuentes de datos ya existentes para la app: `get_stock_levels`, `get_monthly_sales_totals`, `get_monthly_expense_totals`, `get_reinvestment_fund_totals`, `list_cash_history_days`.
