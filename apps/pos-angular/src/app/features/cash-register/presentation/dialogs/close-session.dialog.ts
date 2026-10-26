@@ -42,6 +42,8 @@ export interface ExpectedByMethod {
   metodo: string
   total: number
   count: number
+  /** Recargo por tarjeta cobrado aparte de `total` (ADR 0024). */
+  surcharge?: number
 }
 
 /** Fila renderizada en el diálogo: esperado, conteo en vivo y diferencia. */
@@ -55,10 +57,13 @@ interface ClosureRow {
   counted: number
   /** `counted - expected`: positivo = sobra, negativo = falta. */
   difference: number
+  /** Aclaración bajo la fila (p. ej. cómo se cuenta la tarjeta). */
+  note?: string
 }
 
 const NON_CASH_METHODS: { metodo: Exclude<PaymentMethod, 'cash'>; controlName: string }[] = [
   { metodo: 'transfer', controlName: 'actualTransferAmount' },
+  { metodo: 'card', controlName: 'actualCardAmount' },
 ]
 
 @Component({
@@ -96,6 +101,9 @@ const NON_CASH_METHODS: { metodo: Exclude<PaymentMethod, 'cash'>; controlName: s
                   {{ row.expectedCount === 1 ? 'pago' : 'pagos' }})
                 </span>
               </div>
+              @if (row.note) {
+                <p class="text-muted-foreground mt-1 text-[11px]">{{ row.note }}</p>
+              }
               <div class="mt-2 grid items-end gap-3 sm:grid-cols-2">
                 <mo-form-currency-input
                   [controlName]="row.controlName"
@@ -195,6 +203,7 @@ export class CloseSessionDialog {
       ?? errors.cashLeftAmount
       ?? errors.actualCashAmount
       ?? errors.actualTransferAmount
+      ?? errors.actualCardAmount
       ?? errors.notasCierre
       ?? null
   })
@@ -223,15 +232,24 @@ export class CloseSessionDialog {
 
   /** Esperado por método, indexado para lookup O(1). */
   private readonly expectedMap = computed(() => {
-    const map = new Map<string, { total: number; count: number }>()
+    const map = new Map<string, { total: number; count: number; surcharge?: number }>()
     for (const item of this.expectedByMethod()) {
       const cur = map.get(item.metodo) ?? { total: 0, count: 0 }
-      map.set(item.metodo, { total: cur.total + item.total, count: cur.count + item.count })
+      map.set(item.metodo, {
+        total: cur.total + item.total,
+        count: cur.count + item.count,
+        surcharge: (cur.surcharge ?? 0) + (item.surcharge ?? 0),
+      })
     }
     return map
   })
 
-  /** 2 filas fijas: efectivo (vs esperado en caja) + transferencia (vs breakdown). */
+  /**
+   * Efectivo (vs esperado en caja) + transferencia (vs breakdown) y tarjeta
+   * solo si hubo pagos con tarjeta en el turno. El esperado de tarjeta es lo
+   * que abona Nequi (sin el recargo, que cubre su comisión; ADR 0024), igual
+   * que en `close_cash_session_atomic`.
+   */
   readonly rows = computed<ClosureRow[]>(() => {
     const value = this.formValue()
     const cashCounted = value.actualCashAmount ?? 0
@@ -248,20 +266,27 @@ export class CloseSessionDialog {
       difference: computeMethodDifference(cashExpected, cashCounted),
     }
 
-    const nonCashRows = NON_CASH_METHODS.map(({ metodo, controlName }): ClosureRow => {
-      const expected = expectedMap.get(metodo)?.total ?? 0
-      const expectedCount = expectedMap.get(metodo)?.count ?? 0
-      const counted = (value[controlName as keyof typeof value] as number | undefined) ?? 0
-      return {
-        metodo,
-        label: getPaymentMethodLabel(metodo),
-        controlName,
-        expected,
-        expectedCount,
-        counted,
-        difference: computeMethodDifference(expected, counted),
-      }
-    })
+    const nonCashRows = NON_CASH_METHODS
+      .filter(({ metodo }) => metodo !== 'card' || (expectedMap.get(metodo)?.count ?? 0) > 0)
+      .map(({ metodo, controlName }): ClosureRow => {
+        const expected = expectedMap.get(metodo)?.total ?? 0
+        const expectedCount = expectedMap.get(metodo)?.count ?? 0
+        const counted = (value[controlName as keyof typeof value] as number | undefined) ?? 0
+        const surcharge = expectedMap.get(metodo)?.surcharge ?? 0
+        return {
+          metodo,
+          label: getPaymentMethodLabel(metodo),
+          controlName,
+          expected,
+          expectedCount,
+          counted,
+          difference: computeMethodDifference(expected, counted),
+          note:
+            metodo === 'card'
+              ? `Cuenta lo que abonó Nequi. Por el datáfono pasaron ${formatCurrency(expected + surcharge)} (recargo ${formatCurrency(surcharge)}).`
+              : undefined,
+        }
+      })
 
     return [cashRow, ...nonCashRows]
   })
@@ -285,6 +310,7 @@ export class CloseSessionDialog {
         this.presenter.reset({
           actualCashAmount: expectedCash,
           actualTransferAmount: this.expectedMap().get('transfer')?.total ?? 0,
+          actualCardAmount: this.expectedMap().get('card')?.total ?? 0,
           withdrawAtClose: false,
           cashLeftAmount: Math.min(this.cashSession()?.openingAmount ?? 0, expectedCash),
           notasCierre: '',

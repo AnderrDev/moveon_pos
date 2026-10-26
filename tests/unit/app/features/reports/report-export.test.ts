@@ -17,6 +17,8 @@ function makeReport(): DailyReport {
     discountedSalesCount: 1,
     averageDiscountPercentage: 10,
     avgVenta: 90_000,
+    cardSurchargeTotal: 0,
+    cardSurchargeSalesCount: 0,
     paymentBreakdown: [],
     taxBreakdown: [],
     productSales: [],

@@ -10,6 +10,7 @@ describe('createCloseSessionDefaults', () => {
     expect(createCloseSessionDefaults()).toEqual({
       actualCashAmount: 0,
       actualTransferAmount: 0,
+      actualCardAmount: 0,
       withdrawAtClose: false,
       cashLeftAmount: 0,
       notasCierre: '',
@@ -58,6 +59,7 @@ describe('closeSessionFormMapper', () => {
     expect(closeSessionFormMapper.toPayload({
       actualCashAmount: 480_000,
       actualTransferAmount: 70_000,
+      actualCardAmount: 85_000,
       withdrawAtClose: false,
       cashLeftAmount: 150_000,
       notasCierre: '',
@@ -65,6 +67,7 @@ describe('closeSessionFormMapper', () => {
       actualCashAmount: 480_000,
       cashLeftAmount: 480_000,
       actualTransferAmount: 70_000,
+      actualCardAmount: 85_000,
       notasCierre: undefined,
     })
   })
@@ -73,6 +76,7 @@ describe('closeSessionFormMapper', () => {
     expect(closeSessionFormMapper.toPayload({
       actualCashAmount: 480_000,
       actualTransferAmount: 70_000,
+      actualCardAmount: 0,
       withdrawAtClose: true,
       cashLeftAmount: 150_000,
       notasCierre: '  Retiro de cierre  ',
@@ -80,6 +84,7 @@ describe('closeSessionFormMapper', () => {
       actualCashAmount: 480_000,
       cashLeftAmount: 150_000,
       actualTransferAmount: 70_000,
+      actualCardAmount: 0,
       notasCierre: 'Retiro de cierre',
     })
   })

@@ -33,6 +33,6 @@ Hoy RN-PG05 dice que no hay integración con datáfono; el método `card` existe
 
 - Modifica RN-PG05 (el método `card` vuelve al checkout, con recargo automático).
 - Requiere migración: columnas en `sales` y ajuste de `create_sale_atomic` para validar y persistir el recargo en el servidor (el cliente no es la autoridad).
-- Cierre de caja: el esperado de tarjeta incluye el recargo cobrado.
+- Cierre de caja (corregido 2026-10-26, PLAN-101): el esperado de tarjeta es lo que abona Nequi, es decir el monto SIN recargo (el recargo se va en la comisión). Coincide con `close_cash_session_atomic`, que suma `payments.amount`. El diálogo muestra aparte lo que pasó por el datáfono (monto + recargo) para cuadrar contra la app de Nequi.
 - Si Nequi cambia la tarifa o el redondeo, solo cambia la configuración (`CardFeeConfig`) y su test.
 - Retefuente: la página de Nequi muestra una retención de 1,5 % en ventas con tarjeta que en la prueba de $1.500 no se aplicó. Si aparece en una venta real, el neto bajará en esa retención (no es costo, es anticipo de renta) y el recargo no la cubre, por decisión del dueño.

@@ -133,6 +133,27 @@ describe('buildSalesSummary', () => {
     ])
   })
 
+  it('informa el recargo por tarjeta aparte, sin sumarlo al total ni a los pagos (ADR 0024)', () => {
+    const conTarjeta = {
+      ...makeSale({
+        id: 'a',
+        createdAt: '2026-10-24T15:00:00Z',
+        items: [makeItem({ productId: 'p1', quantity: 1, total: 85000 })],
+        payments: [['card', 85000]],
+      }),
+      cardSurcharge: 2062,
+    }
+    const anulada = {
+      ...makeSale({ id: 'b', status: 'voided', createdAt: '2026-10-24T16:00:00Z', items: [makeItem({ productId: 'p1', quantity: 1, total: 30000 })] }),
+      cardSurcharge: 727,
+    }
+    const summary = buildSalesSummary([conTarjeta, anulada], TZ)
+    expect(summary.totalVentas).toBe(85000)
+    expect(summary.cardSurchargeTotal).toBe(2062)
+    expect(summary.cardSurchargeSalesCount).toBe(1)
+    expect(summary.paymentBreakdown).toEqual([{ metodo: 'card', count: 1, total: 85000 }])
+  })
+
   it('la utilidad excluye productos con costo desconocido (ADR 0019)', () => {
     const summary = buildSalesSummary(
       [

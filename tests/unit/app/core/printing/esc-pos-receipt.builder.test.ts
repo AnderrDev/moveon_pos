@@ -113,6 +113,35 @@ describe('buildEscPosReceipt', () => {
     expect(buildEscPosTestReceipt(store)).not.toContain('IVA')
   })
 
+  it('muestra el recargo por tarjeta, el total pagado y lo cobrado por el datáfono (ADR 0024)', () => {
+    const store = {
+      titulo: 'COMPROBANTE', nit: null, direccion: null, ciudad: null,
+      telefono: null, mensajePie: null, mostrarNit: false,
+      mostrarDireccion: false, mostrarTelefono: false, mostrarIva: false,
+    }
+    const conTarjeta: Sale = {
+      ...sale,
+      cardSurcharge: 533,
+      payments: [{ ...sale.payments[0]!, metodo: 'card', amount: 22_000, cardSurcharge: 533 }],
+    }
+    const result = buildEscPosReceipt({ sale: conTarjeta, store, customer: null, cashierEmail: null, change: 0 })
+    expect(result).toMatch(/TOTAL +\$ 22\.000/)
+    expect(result).toMatch(/Recargo pago tarjeta +\$ 533/)
+    expect(result).toMatch(/TOTAL PAGADO +\$ 22\.533/)
+    expect(result).toMatch(/Tarjeta +\$ 22\.533/)
+  })
+
+  it('sin tarjeta no imprime líneas de recargo', () => {
+    const store = {
+      titulo: 'COMPROBANTE', nit: null, direccion: null, ciudad: null,
+      telefono: null, mensajePie: null, mostrarNit: false,
+      mostrarDireccion: false, mostrarTelefono: false, mostrarIva: false,
+    }
+    const result = buildEscPosReceipt({ sale, store, customer: null, cashierEmail: null, change: 0 })
+    expect(result).not.toContain('Recargo')
+    expect(result).not.toContain('TOTAL PAGADO')
+  })
+
   it('mantiene las lineas de texto dentro de las 32 columnas', () => {
     const result = buildEscPosReceipt({
       sale,

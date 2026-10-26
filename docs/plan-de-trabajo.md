@@ -476,7 +476,7 @@ Diseño en **`docs/adr/0024-recargo-pago-con-tarjeta.md`**. El cliente asume la 
 | PLAN-98 | ✅ Hecho (2026-10-26) — Aprobación del ADR 0024 | P0 | S | Dueño aprueba (estado → Aceptado); RN-PG05 actualizada en `docs/modules/payments.md` |
 | PLAN-99 | ✅ Hecho (2026-10-26; aplicada y registrada en producción con OK del dueño, cuerpos idénticos a local por md5) — Migración y RPC | P0 | M | Columnas `card_surcharge`, `card_fee_rate_bps`, `card_fee_iva_pct` en `sales`; tarifa por tienda en ajustes; `create_sale_atomic` recalcula y valida el recargo en el servidor (misma fórmula, test de paridad con el TS); probado en local |
 | PLAN-100 | ✅ Hecho (2026-10-26, verificado en el navegador contra Supabase local) — Checkout con tarjeta | P0 | M | Botón "Tarjeta" en el checkout; muestra recargo y monto a pasar por el datáfono antes de confirmar; pago mixto (recargo solo sobre la parte con tarjeta); aviso de límites; referencia opcional |
-| PLAN-101 | Pendiente — Recibo, caja y reportes | P1 | M | Línea "Recargo pago con tarjeta" en el recibo; cierre de caja con esperado de tarjeta incluyendo recargo; reportes de ventas sin recargo y recargo aparte |
+| PLAN-101 | ✅ Hecho (2026-10-26, verificado en el navegador contra Supabase local) — Recibo, caja y reportes | P1 | M | Línea "Recargo pago tarjeta" y "TOTAL PAGADO" en la tirilla; cierre de caja con fila Tarjeta (esperado = lo que abona Nequi, sin recargo, como el RPC; se muestra lo pasado por el datáfono); detalle de venta con recargo; reportes con ventas sin recargo y recargo aparte |
 | PLAN-102 | Pendiente — Tarifa editable en Ajustes | P2 | S | Admin ve y cambia la tarifa (por defecto 1,99 % + 19 %); las ventas pasadas conservan su tarifa |
 
 **Orden:** 97 → 98 → 99 → 100 → 101 → 102.
