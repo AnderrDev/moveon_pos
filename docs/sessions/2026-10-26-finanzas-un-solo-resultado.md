@@ -10,7 +10,7 @@
 | Sprint | Mantenimiento post-MVP |
 | Agente | Claude Code |
 | HUs trabajadas | — (pedido directo del dueño) |
-| Estado | Completada (sin commit) |
+| Estado | Completada y publicada |
 
 ---
 
@@ -55,7 +55,7 @@ resultado claro.
 
 ## 7. Próximos pasos
 
-1. Publicar (merge dev → main) cuando el dueño lo apruebe.
+1. ~~Publicar~~ — hecho: commit `6a9a192` en dev, merge `b705d56` en main, deploy Netlify `ready` y bundle verificado (2026-10-26).
 2. Datos de producción: faltan arriendo (ago, sep) y nómina (sep; julio quedó en $900 mil). Los registra el dueño o se hace con su OK.
 3. Fondo de reinversión en producción arrancó el 2026-10-24 con saldo $0: revisar fecha/saldo con el dueño.
 4. iOS: agregar `costo_mercancia`/`ganancia` a `tendencia` en `owner_finance_summary` (migración + app).
