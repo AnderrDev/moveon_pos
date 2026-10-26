@@ -59,6 +59,9 @@ export interface OpenCashSession {
 
 export interface PaymentEntry {
   metodo: PaymentMethod
+  /** Parte de la venta que cubre el pago (sin recargo). */
   amount: number
   referencia?: string
+  /** Recargo por tarjeta: por el datáfono pasa `amount + cardSurcharge` (ADR 0024). */
+  cardSurcharge?: number
 }

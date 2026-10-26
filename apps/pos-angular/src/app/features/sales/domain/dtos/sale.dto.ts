@@ -17,11 +17,23 @@ const saleItemSchema = z.object({
   total:          z.number().nonnegative(),
 })
 
-const paymentInputSchema = z.object({
-  metodo:     paymentMethodEnum,
-  amount:     z.number().positive(),
-  referencia: z.string().nullable().optional(),
-})
+const paymentInputSchema = z
+  .object({
+    metodo:     paymentMethodEnum,
+    /** Parte de la venta que cubre el pago (sin recargo). */
+    amount:     z.number().positive(),
+    referencia: z.string().nullable().optional(),
+    /** Recargo por tarjeta que el cajero cobró aparte (ADR 0024). */
+    cardSurcharge: z.number().int().nonnegative().optional(),
+  })
+  .refine((payment) => payment.metodo === 'card' || !payment.cardSurcharge, {
+    message: 'Solo los pagos con tarjeta llevan recargo',
+    path: ['cardSurcharge'],
+  })
+  .refine((payment) => payment.metodo !== 'card' || payment.cardSurcharge !== undefined, {
+    message: 'Falta el recargo del pago con tarjeta',
+    path: ['cardSurcharge'],
+  })
 
 /** Venta del POS tal como la recibe `createSale` (fuente única de validación). */
 export const createSaleSchema = z

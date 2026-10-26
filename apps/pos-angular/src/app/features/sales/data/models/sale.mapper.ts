@@ -17,6 +17,8 @@ export interface SaleRow {
   discount_approved_by: string | null
   tax_total: number
   total: number
+  /** Opcional: no todas las consultas lo seleccionan (ADR 0024). */
+  card_surcharge?: string | number | null
   status: string
   billing_status: string
   billing_document_id: string | null
@@ -55,6 +57,7 @@ interface PaymentRow {
   metodo: string
   amount: number
   referencia: string | null
+  card_surcharge?: string | number | null
   created_at: string
 }
 
@@ -86,6 +89,7 @@ function rowToPayment(row: PaymentRow): Payment {
     metodo: row.metodo as PaymentMethod,
     amount: Number(row.amount),
     referencia: row.referencia,
+    cardSurcharge: Number(row.card_surcharge ?? 0),
     createdAt: new Date(row.created_at),
   }
 }
@@ -116,6 +120,7 @@ export function rowToSale(row: SaleRow): Sale {
     discountApprovedBy: row.discount_approved_by,
     taxTotal: Number(row.tax_total),
     total: Number(row.total),
+    cardSurcharge: Number(row.card_surcharge ?? 0),
     change: Math.max(0, totalPaid - Number(row.total)),
     idempotencyKey: row.idempotency_key,
     voidedBy: row.voided_by,

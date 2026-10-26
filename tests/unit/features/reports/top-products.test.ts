@@ -69,6 +69,7 @@ function makeSale(overrides: { id: string; status: SaleStatus; items: SaleItem[]
     discountReason: null,
     discountApprovedBy: null,
     taxTotal: 0,
+    cardSurcharge: 0,
     total,
     change: 0,
     idempotencyKey: `key-${overrides.id}`,

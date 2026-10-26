@@ -42,6 +42,7 @@ function makeSale(o: {
     metodo,
     amount,
     referencia: null,
+    cardSurcharge: 0,
     createdAt: new Date(o.createdAt),
   }))
   return {
@@ -65,6 +66,7 @@ function makeSale(o: {
     discountReason: null,
     discountApprovedBy: null,
     taxTotal: 0,
+    cardSurcharge: 0,
     total,
     change: 0,
     idempotencyKey: o.id,

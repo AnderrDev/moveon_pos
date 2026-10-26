@@ -466,6 +466,21 @@ de pantalla de inicio, iPad, migrar `/reportes` web a las RPC `owner_*`.
 - **Archivos:** `apps/pos-angular/src/app/features/cash-register/close-session.dialog.ts`.
 - **Esfuerzo:** M.
 
+### Bloque — Pago con tarjeta vía Nequi Negocios (ADR 0024)
+
+Diseño en **`docs/adr/0024-recargo-pago-con-tarjeta.md`**. El cliente asume la comisión de Nequi (1,99 % + IVA) cuando paga con tarjeta y a la cuenta llega exacto el valor de la venta. Pruebas con datos solo en Supabase local; migraciones al remoto con confirmación del dueño.
+
+| ID | Título | Prioridad | Esfuerzo | Criterio de cierre |
+|---|---|---|---|---|
+| PLAN-97 | ✅ Hecho (2026-10-26) — Cálculo del recargo en dominio | P0 | S | `card-surcharge.ts` (comisión, cálculo inverso, límites $1.500–$250.000) con tests: reproduce la prueba real ($1.500 → $1.464) y neto exacto en todo el rango |
+| PLAN-98 | ✅ Hecho (2026-10-26) — Aprobación del ADR 0024 | P0 | S | Dueño aprueba (estado → Aceptado); RN-PG05 actualizada en `docs/modules/payments.md` |
+| PLAN-99 | ✅ Hecho (2026-10-26, en local; remoto pendiente de confirmación del dueño) — Migración y RPC | P0 | M | Columnas `card_surcharge`, `card_fee_rate_bps`, `card_fee_iva_pct` en `sales`; tarifa por tienda en ajustes; `create_sale_atomic` recalcula y valida el recargo en el servidor (misma fórmula, test de paridad con el TS); probado en local |
+| PLAN-100 | ✅ Hecho (2026-10-26, verificado en el navegador contra Supabase local) — Checkout con tarjeta | P0 | M | Botón "Tarjeta" en el checkout; muestra recargo y monto a pasar por el datáfono antes de confirmar; pago mixto (recargo solo sobre la parte con tarjeta); aviso de límites; referencia opcional |
+| PLAN-101 | Pendiente — Recibo, caja y reportes | P1 | M | Línea "Recargo pago con tarjeta" en el recibo; cierre de caja con esperado de tarjeta incluyendo recargo; reportes de ventas sin recargo y recargo aparte |
+| PLAN-102 | Pendiente — Tarifa editable en Ajustes | P2 | S | Admin ve y cambia la tarifa (por defecto 1,99 % + 19 %); las ventas pasadas conservan su tarifa |
+
+**Orden:** 97 → 98 → 99 → 100 → 101 → 102.
+
 ### PLAN-13 — `sale_exit` con motivo descriptivo
 - **Origen:** TC-09.
 - **Problema:** los movimientos `sale_exit` generados por ventas nuevas tienen motivo vacío ("—"); los seed muestran "Venta".

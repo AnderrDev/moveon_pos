@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core'
 import { Gift, LucideAngularModule, UserRound } from 'lucide-angular'
-import { PAYMENT_METHOD_OPTIONS } from '@/shared/lib/payment-methods'
+import { CHECKOUT_PAYMENT_METHOD_OPTIONS } from '@/shared/lib/payment-methods'
 import type { PaymentMethod } from '@/shared/types'
 import { DialogComponent } from '@angular-app/shared/organisms/dialog.component'
 import { PosCartStore } from '@angular-app/features/pos/presentation/services/pos-cart.store'
@@ -58,10 +58,21 @@ import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
               <span class="text-muted-foreground">Total venta</span>
               <span class="font-semibold">{{ (cart.totals().total | money) }}</span>
             </div>
+            @if (cart.cardSurchargeTotal() > 0) {
+              <div class="flex justify-between text-sm">
+                <span class="text-muted-foreground">Recargo pago con tarjeta</span>
+                <span class="font-semibold tabular-nums">+{{ (cart.cardSurchargeTotal() | money) }}</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-muted-foreground">Total a cobrar</span>
+                <span class="font-semibold tabular-nums">{{ (cart.totalToCharge() | money) }}</span>
+              </div>
+            }
             @if (cart.totalPaid() > 0) {
               <div class="flex justify-between text-sm">
                 <span class="text-muted-foreground">Pagado</span>
-                <span class="font-semibold text-emerald-600">{{ (cart.totalPaid() | money) }}</span>
+                <!-- Incluye el recargo por tarjeta para cuadrar con "Total a cobrar". -->
+                <span class="font-semibold text-emerald-600">{{ (cart.totalPaid() + cart.cardSurchargeTotal() | money) }}</span>
               </div>
             }
             @if (cart.remainingAmount() > 0) {
@@ -118,6 +129,12 @@ import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
                 >
                   <span class="min-w-0">
                     <span class="block font-medium">{{ (payment.metodo | paymentLabel) }}</span>
+                    @if (payment.cardSurcharge) {
+                      <span class="text-muted-foreground block text-[11px] tabular-nums">
+                        + recargo {{ (payment.cardSurcharge | money) }} · datáfono
+                        {{ (payment.amount + payment.cardSurcharge | money) }}
+                      </span>
+                    }
                     @if (payment.referencia) {
                       <span class="text-muted-foreground block truncate text-[11px]">
                         Ref: {{ payment.referencia }}
@@ -287,6 +304,26 @@ import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
               </button>
             </div>
 
+            @if (checkout.pendingCardCharge(); as charge) {
+              <div class="bg-muted/50 space-y-1 rounded-lg px-3 py-2 text-xs">
+                <div class="flex justify-between">
+                  <span class="text-muted-foreground">Recargo pago con tarjeta</span>
+                  <span class="font-semibold tabular-nums">+{{ (charge.surcharge | money) }}</span>
+                </div>
+                <div class="flex justify-between text-sm font-bold">
+                  <span>Pasar por el datáfono</span>
+                  <span class="tabular-nums">{{ (charge.chargeAmount | money) }}</span>
+                </div>
+                <p class="text-muted-foreground text-[11px]">
+                  Avísale al cliente antes de cobrar: el recargo cubre la comisión de Nequi.
+                </p>
+              </div>
+            }
+
+            @if (checkout.paymentError()) {
+              <p class="text-destructive text-xs font-semibold">{{ checkout.paymentError() }}</p>
+            }
+
             @if (cart.remainingAmount() > 0) {
               <button
                 type="button"
@@ -353,7 +390,7 @@ import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
               loadingText="Guardando venta..."
               (click)="confirm.emit()"
             >
-              Confirmar · {{ (cart.totals().total | money) }}
+              Confirmar · {{ (cart.totalToCharge() | money) }}
             </mo-button>
           </div>
         </div>
@@ -372,7 +409,7 @@ export class PosCheckoutDialogComponent {
   readonly openCashDrawer = output<void>()
 
   readonly icons = { gift: Gift, user: UserRound }
-  readonly paymentMethods = PAYMENT_METHOD_OPTIONS
+  readonly paymentMethods = CHECKOUT_PAYMENT_METHOD_OPTIONS
   readonly String = String
 
   discountModeClass(mode: 'amount' | 'percent'): string {

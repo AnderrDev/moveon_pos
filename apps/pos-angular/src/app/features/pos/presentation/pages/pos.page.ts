@@ -9,6 +9,7 @@ import { PosCheckoutDialogComponent } from '@angular-app/features/pos/presentati
 import { PosCheckoutStore } from '@angular-app/features/pos/presentation/services/pos-checkout.store'
 import { SessionService } from '@angular-app/core/auth/session.service'
 import { TiendaInfoService } from '@angular-app/core/tienda/tienda-info.service'
+import { NEQUI_CARD_FEE, type CardFeeConfig } from '@angular-app/features/sales/domain/services/card-surcharge'
 import { ToastService } from '@angular-app/shared/organisms/toast/toast.service'
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 import { PosCartStore } from '@angular-app/features/pos/presentation/services/pos-cart.store'
@@ -253,6 +254,7 @@ export class PosPage {
   readonly products = signal<PosProduct[]>([])
   readonly imprimirAlFinalizarVenta = signal(false)
   readonly abrirCajonEnEfectivo = signal(true)
+  readonly cardFee = signal<CardFeeConfig>(NEQUI_CARD_FEE)
   readonly categories = signal<PosCategory[]>([])
   readonly cashSession = signal<OpenCashSession | null>(null)
   readonly loading = signal(true)
@@ -340,6 +342,7 @@ export class PosPage {
       this.cashSession.set(cashSession)
       this.imprimirAlFinalizarVenta.set(tienda.receipt.imprimirAlFinalizarVenta)
       this.abrirCajonEnEfectivo.set(tienda.receipt.abrirCajonEnEfectivo)
+      this.cardFee.set(tienda.pagoTarjeta)
       this.stampsPerReward.set(tienda.fidelizacion.sellosParaRecompensa)
       void this.recoverPendingSale(auth.tiendaId)
     } catch (error) {
@@ -486,7 +489,7 @@ export class PosPage {
   }
 
   openCheckout(): void {
-    this.checkout.open(this.imprimirAlFinalizarVenta())
+    this.checkout.open(this.imprimirAlFinalizarVenta(), this.cardFee())
   }
 
   closeCheckout(): void {
