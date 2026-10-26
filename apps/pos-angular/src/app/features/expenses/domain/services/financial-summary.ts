@@ -14,13 +14,7 @@ export interface FinancialSummaryInput {
   /** Líneas/unidades vendidas con producto sin costo capturado. No entran en COGS. */
   ventasSinCosto?: number
   unidadesSinCosto?: number
-  /**
-   * Compras de mercancía del período (entradas de inventario con costo). No
-   * restan de la utilidad —su costo entra cuando se vende— pero sí son dinero
-   * que salió. Sin dato, el balance de dinero se calcula sin ellas.
-   */
-  comprasMercancia?: number
-  /** Gastos fijos del mes aún sin pagar (arriendo, nómina): se apartan del dinero libre. */
+  /** Gastos fijos del mes aún sin pagar (arriendo, nómina). No restan de la ganancia: se avisan. */
   fijosPendientes?: number
   /** Gastos del período; los anulados se ignoran. */
   gastos: readonly Expense[]
@@ -60,12 +54,9 @@ export interface FinancialSummary {
   utilidadNeta: number
   /** Margen neto (%) sobre entradas. `null` si no hay entradas. */
   margenNeto: number | null
-  comprasMercancia: number
-  /** Dinero del período: entradas − gastos − compras de mercancía. */
-  balanceDinero: number
   fijosPendientes: number
-  /** Balance de dinero − gastos fijos pendientes: lo que de verdad queda libre. */
-  dineroLibre: number
+  /** Cómo quedará la ganancia cuando se paguen los fijos pendientes. */
+  utilidadTrasFijos: number
 }
 
 function pctOf(part: number, total: number): number | null {
@@ -77,9 +68,11 @@ function pctOf(part: number, total: number): number | null {
  * Núcleo del módulo de finanzas: relaciona los gastos del negocio con las
  * entradas totales del período. Función pura — la página solo la alimenta.
  *
- *   Utilidad neta    = entradas − costo de productos vendidos − gastos activos
- *   Balance de dinero = entradas − gastos activos − compras de mercancía
- *   Dinero libre      = balance de dinero − gastos fijos pendientes
+ *   Utilidad neta (el único resultado) = entradas − costo de productos vendidos − gastos activos
+ *
+ * Las compras de mercancía no restan: su costo entra cuando se vende (el fondo
+ * de reinversión las sigue aparte). Los fijos por pagar tampoco: se avisa
+ * cómo quedará la ganancia al pagarlos (`utilidadTrasFijos`).
  */
 export function buildFinancialSummary(input: FinancialSummaryInput): FinancialSummary {
   const activos = input.gastos.filter((g) => g.status === 'active')
@@ -129,10 +122,7 @@ export function buildFinancialSummary(input: FinancialSummaryInput): FinancialSu
     pctGastosSobreEntradas: pctOf(gastosTotal, input.entradasTotales),
     utilidadNeta,
     margenNeto: pctOf(utilidadNeta, input.entradasTotales),
-    comprasMercancia: input.comprasMercancia ?? 0,
-    balanceDinero: input.entradasTotales - gastosTotal - (input.comprasMercancia ?? 0),
     fijosPendientes: input.fijosPendientes ?? 0,
-    dineroLibre:
-      input.entradasTotales - gastosTotal - (input.comprasMercancia ?? 0) - (input.fijosPendientes ?? 0),
+    utilidadTrasFijos: utilidadNeta - (input.fijosPendientes ?? 0),
   }
 }

@@ -47,10 +47,13 @@ export abstract class ExpenseRepository {
     mesHastaIso: string,
   ): Promise<ReinvestmentFundTotals>
   /**
-   * Compras de mercancía (Σ cantidad × costo de las entradas con costo) en
-   * `[fromIso, toIso)` — fin exclusivo.
+   * Costo de la mercancía vendida (Σ cantidad × costo de las líneas con costo)
+   * de cada mes, en `[fromIso, toIso)` — fin exclusivo.
    */
-  abstract getMerchandisePurchases(tiendaId: string, fromIso: string, toIso: string): Promise<number>
+  abstract getMonthlyProductCostTotals(
+    tiendaId: string,
+    months: readonly { month: string; fromIso: string; toIso: string }[],
+  ): Promise<{ month: string; total: number }[]>
   /**
    * Totales mensuales agregados en el servidor para la comparativa (nunca
    * filas crudas: el cliente truncaba en el límite de 1000 filas de

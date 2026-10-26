@@ -50,21 +50,21 @@ describe('buildFinancialSummary', () => {
     expect(summary.pctGastosSobreEntradas).toBe(20)
   })
 
-  it('las compras de mercancía restan del balance de dinero, no de la utilidad', () => {
+  it('los fijos por pagar no cambian la ganancia: se informa cómo quedará al pagarlos', () => {
     const summary = buildFinancialSummary({
       entradasTotales: 10_000_000,
       costoProductosVendidos: 4_000_000,
-      comprasMercancia: 5_000_000,
+      fijosPendientes: 2_500_000,
       gastos: [gasto({ monto: 2_000_000 })],
       categorias: CATEGORIAS,
     })
 
     expect(summary.utilidadNeta).toBe(4_000_000)
-    expect(summary.comprasMercancia).toBe(5_000_000)
-    expect(summary.balanceDinero).toBe(3_000_000)
+    expect(summary.fijosPendientes).toBe(2_500_000)
+    expect(summary.utilidadTrasFijos).toBe(1_500_000)
   })
 
-  it('sin dato de compras el balance es entradas − gastos', () => {
+  it('sin fijos pendientes la ganancia tras fijos es la misma ganancia', () => {
     const summary = buildFinancialSummary({
       entradasTotales: 1_000_000,
       costoProductosVendidos: null,
@@ -72,8 +72,8 @@ describe('buildFinancialSummary', () => {
       categorias: CATEGORIAS,
     })
 
-    expect(summary.comprasMercancia).toBe(0)
-    expect(summary.balanceDinero).toBe(700_000)
+    expect(summary.fijosPendientes).toBe(0)
+    expect(summary.utilidadTrasFijos).toBe(700_000)
   })
 
   it('separa las entradas por método de pago', () => {

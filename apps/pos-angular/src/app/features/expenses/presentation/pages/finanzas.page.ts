@@ -283,7 +283,6 @@ export class FinanzasPage {
   readonly entradasTotales = signal(0)
   readonly entradasPorMetodo = signal<PaymentBreakdownInput[]>([])
   readonly costoProductos = signal<number | null>(null)
-  readonly comprasMercancia = signal(0)
   readonly ventasSinCosto = signal(0)
   readonly unidadesSinCosto = signal(0)
   readonly dialogOpen = signal(false)
@@ -332,8 +331,7 @@ export class FinanzasPage {
       costoProductosVendidos: this.costoProductos(),
       ventasSinCosto: this.ventasSinCosto(),
       unidadesSinCosto: this.unidadesSinCosto(),
-      comprasMercancia: this.comprasMercancia(),
-      // Solo el mes en curso aparta fijos: en meses cerrados ya no hay nada por pagar.
+      // Solo el mes en curso avisa fijos: en meses cerrados ya no hay nada por pagar.
       fijosPendientes: this.isCurrentMonth() ? this.fixedCommitments().pendiente : 0,
       gastos: this.expenses(),
       categorias: this.categorias(),
@@ -374,8 +372,7 @@ export class FinanzasPage {
       const auth = await this.session.getAuthContext()
       if (!auth) throw new Error('No autenticado')
       const { from, to } = monthRange(this.month())
-      const { fromIso, toIso } = monthIsoBounds(this.month())
-      const [categorias, expenses, empleados, templates, report, fundSettings, compras] =
+      const [categorias, expenses, empleados, templates, report, fundSettings] =
         await Promise.all([
           this.repo.listCategories(auth.tiendaId),
           this.repo.listExpenses(auth.tiendaId, from, to),
@@ -383,7 +380,6 @@ export class FinanzasPage {
           this.repo.listTemplates(auth.tiendaId),
           this.reportsService.getDailyReport(auth.tiendaId, from, to),
           this.repo.getFundSettings(auth.tiendaId),
-          this.repo.getMerchandisePurchases(auth.tiendaId, fromIso, toIso),
         ])
       this.categorias.set(categorias)
       this.expenses.set(expenses)
@@ -392,7 +388,6 @@ export class FinanzasPage {
       this.entradasTotales.set(report.totalVentas)
       this.entradasPorMetodo.set(report.paymentBreakdown.map((p) => ({ metodo: p.metodo, total: p.total })))
       this.fundSettings.set(fundSettings)
-      this.comprasMercancia.set(compras)
       await this.loadFundTotals(auth.tiendaId)
       void this.loadInventoryValue(auth.tiendaId)
 
@@ -460,11 +455,15 @@ export class FinanzasPage {
     const months = lastMonths(6)
     const fromDate = `${months[0]}-01`
     const fromIso = new Date(`${fromDate}T00:00:00`).toISOString()
-    const [entradas, gastos] = await Promise.all([
+    const [entradas, gastos, costoMercancia] = await Promise.all([
       this.repo.getMonthlySalesTotals(tiendaId, fromIso),
       this.repo.getMonthlyExpenseTotals(tiendaId, fromDate),
+      this.repo.getMonthlyProductCostTotals(
+        tiendaId,
+        months.map((month) => ({ month, ...monthIsoBounds(month) })),
+      ),
     ])
-    this.comparison.set(buildMonthlyComparison({ entradas, gastos, months }))
+    this.comparison.set(buildMonthlyComparison({ entradas, gastos, costoMercancia, months }))
   }
 
   onExpenseSaved(expense: Expense): void {
