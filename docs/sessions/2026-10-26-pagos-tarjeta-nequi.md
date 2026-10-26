@@ -61,6 +61,7 @@ Investigar las tarifas de Nequi Negocios y plantear el cobro con tarjeta en el P
 - PLAN-99/100: el recargo se guarda aparte del total y del monto del pago (no altera reportes, caja ni iOS); el servidor recalcula y rechaza si no coincide con lo mostrado, para que nunca se guarde algo distinto a lo cobrado por el datáfono.
 - Verificado en el navegador contra local: venta $85.000 con tarjeta → datáfono $87.062, guardada como total 85.000 + recargo 2.062 (V-000013); mixto $50.000 efectivo + $35.000 tarjeta → recargo $848.
 - **Orden de despliegue:** aplicar la migración en el remoto ANTES de subir el frontend a main: el web nuevo selecciona `card_surcharge` y sin la columna fallarían las consultas de ventas.
+- 2026-10-26: commit `ab918c9` en dev. Migración `20261026000100` aplicada en producción con OK del dueño (una transacción vía `db query --linked -f`, registrada en `schema_migrations`). Antes se verificó que `create_sale_atomic` y `correct_payment_atomic` en producción eran idénticos (md5) a los cuerpos copiados del repo; después, las 5 funciones quedaron con el mismo md5 que en local y `card_fee_amount` da 36/37/38/40/356. El frontend publicado sigue compatible (misma firma; pagos sin `card_surcharge` = 0). El web con tarjeta aún NO está en main.
 - Pendiente PLAN-101: línea del recargo en la tirilla, esperado de tarjeta en el cierre de caja, recargo en detalle/reportes.
 - Próximo paso: cobro real de ~$15.000 para validar abono vs calculadora; aprobación del ADR 0024 (PLAN-98) antes de la migración (PLAN-99).
 
