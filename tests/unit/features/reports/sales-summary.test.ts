@@ -67,6 +67,8 @@ function makeSale(o: {
     discountApprovedBy: null,
     taxTotal: 0,
     cardSurcharge: 0,
+    cardFeeRateBps: null,
+    cardFeeIvaPct: null,
     total,
     change: 0,
     idempotencyKey: o.id,

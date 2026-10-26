@@ -1,5 +1,9 @@
 import type { Sale } from '@angular-app/features/sales/domain/entities/sale.entity'
 import { getPaymentMethodLabel } from '@/shared/lib/payment-methods'
+import {
+  NEQUI_CARD_FEE,
+  formatCardSurchargePercent,
+} from '@angular-app/features/sales/domain/services/card-surcharge'
 
 const ESC = '\x1b'
 const GS = '\x1d'
@@ -98,7 +102,11 @@ export function buildEscPosReceipt(input: EscPosReceiptInput): string {
   // ADR 0024: el recargo por tarjeta va aparte del total de la venta y el
   // cliente debe verlo en la tirilla junto con lo que pagó en total.
   if (sale.cardSurcharge > 0) {
-    output.push(...pairLines('Recargo pago tarjeta', formatMoney(sale.cardSurcharge)))
+    const percent = formatCardSurchargePercent({
+      rateBps: sale.cardFeeRateBps ?? NEQUI_CARD_FEE.rateBps,
+      ivaPct: sale.cardFeeIvaPct ?? NEQUI_CARD_FEE.ivaPct,
+    }).replace(' ', '')
+    output.push(...pairLines(`Recargo tarjeta ${percent}`, formatMoney(sale.cardSurcharge)))
     output.push(
       COMMAND.boldOn,
       ...pairLines('TOTAL PAGADO', formatMoney(sale.total + sale.cardSurcharge)),

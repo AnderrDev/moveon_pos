@@ -10,6 +10,7 @@ import { canConfirmSale, discretionaryDiscount } from '@angular-app/features/sal
 import {
   NEQUI_CARD_FEE,
   calculateCardCharge,
+  formatCardSurchargePercent,
   validateCardChargeAmount,
   type CardCharge,
   type CardFeeConfig,
@@ -42,6 +43,8 @@ export class PosCheckoutStore {
   readonly imprimirEstaVenta = signal(false)
   /** Tarifa de la tienda para el recargo por tarjeta (ADR 0024). */
   readonly cardFee = signal<CardFeeConfig>(NEQUI_CARD_FEE)
+  /** % del recargo con la tarifa de la tienda, para informarlo al cliente ("2,43 %"). */
+  readonly cardSurchargePercentLabel = computed(() => formatCardSurchargePercent(this.cardFee()))
   /** Error al agregar un pago (p. ej. cobro con tarjeta fuera de los límites). */
   readonly paymentError = signal<string | null>(null)
 

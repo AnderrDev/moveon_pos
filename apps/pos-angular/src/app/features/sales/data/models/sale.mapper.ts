@@ -19,6 +19,8 @@ export interface SaleRow {
   total: number
   /** Opcional: no todas las consultas lo seleccionan (ADR 0024). */
   card_surcharge?: string | number | null
+  card_fee_rate_bps?: number | null
+  card_fee_iva_pct?: number | null
   status: string
   billing_status: string
   billing_document_id: string | null
@@ -121,6 +123,8 @@ export function rowToSale(row: SaleRow): Sale {
     taxTotal: Number(row.tax_total),
     total: Number(row.total),
     cardSurcharge: Number(row.card_surcharge ?? 0),
+    cardFeeRateBps: row.card_fee_rate_bps ?? null,
+    cardFeeIvaPct: row.card_fee_iva_pct ?? null,
     change: Math.max(0, totalPaid - Number(row.total)),
     idempotencyKey: row.idempotency_key,
     voidedBy: row.voided_by,

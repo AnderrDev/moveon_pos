@@ -62,6 +62,9 @@ export interface Sale {
   total: number
   /** Suma del recargo por tarjeta; no hace parte de `total` (ADR 0024). */
   cardSurcharge: number
+  /** Tarifa de la tarjeta usada en la venta (snapshot); null si no hubo tarjeta. */
+  cardFeeRateBps: number | null
+  cardFeeIvaPct: number | null
   change: number
   idempotencyKey: string
   voidedBy: UserId | null

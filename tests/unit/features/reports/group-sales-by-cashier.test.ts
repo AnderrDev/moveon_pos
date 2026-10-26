@@ -40,6 +40,8 @@ function makeSale(overrides: {
     discountApprovedBy: null,
     taxTotal: overrides.taxTotal,
     cardSurcharge: 0,
+    cardFeeRateBps: null,
+    cardFeeIvaPct: null,
     total: overrides.total,
     change: 0,
     idempotencyKey: 'key',

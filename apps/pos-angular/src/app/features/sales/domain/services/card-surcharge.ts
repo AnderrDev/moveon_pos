@@ -108,6 +108,27 @@ export function calculateCardCharge(baseAmount: number, config: CardFeeConfig = 
   return { baseAmount: base, chargeAmount: charge, surcharge: charge - base }
 }
 
+/**
+ * Porcentaje que el recargo suma a la venta, para informarlo al cliente.
+ * Con costo `t = comisión × (1 + IVA)`, cobrar `base / (1 − t)` deja `base`
+ * neto, así que el recargo es `t / (1 − t)` de la venta: 1,99 % + 19 % IVA →
+ * 2,43 %. Por el redondeo al peso, el recargo de una venta puntual puede
+ * diferir unos pesos de aplicar este % a mano.
+ */
+export function cardSurchargePercent(config: Pick<CardFeeConfig, 'rateBps' | 'ivaPct'>): number {
+  const rate = (config.rateBps / 10000) * (1 + config.ivaPct / 100)
+  return (rate / (1 - rate)) * 100
+}
+
+/** `cardSurchargePercent` con dos decimales y coma decimal ("2,43 %"). */
+export function formatCardSurchargePercent(config: Pick<CardFeeConfig, 'rateBps' | 'ivaPct'>): string {
+  const value = cardSurchargePercent(config).toLocaleString('es-CO', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+  return `${value} %`
+}
+
 /** Valida el monto a pasar por el datáfono contra los límites de Nequi. */
 export function validateCardChargeAmount(chargeAmount: number): string | null {
   if (chargeAmount < CARD_CHARGE_MIN) return 'El cobro con tarjeta debe ser de al menos $1.500'
