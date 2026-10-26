@@ -26,7 +26,7 @@ Hoy RN-PG05 dice que no hay integración con datáfono; el método `card` existe
 4. **Solo aplica a la parte pagada con tarjeta.** En pago mixto, el cajero indica cuánto de la venta cubre la tarjeta; el recargo se calcula sobre esa parte.
 5. **El recargo no cambia el precio de los productos ni su IVA.** Se guarda en la venta como un campo propio (`card_surcharge`) junto con la tarifa usada (snapshot), para que un cambio futuro de tarifa no altere ventas pasadas. El total cobrado = total de productos + recargo.
 6. **Tarifa configurable por tienda** en Ajustes (por defecto 1,99 % + 19 % IVA), porque Nequi la puede cambiar.
-7. **Aviso al cliente (Ley 1480):** el recargo se muestra en el checkout antes de confirmar y sale como línea aparte en el recibo ("Recargo pago con tarjeta"). La tienda debe tener aviso visible en el mostrador.
+7. **Aviso al cliente (Ley 1480):** el recargo se muestra en el checkout antes de confirmar, **con su porcentaje** (2,43 % con la tarifa actual = `t / (1 − t)`, `t = 1,99 % × 1,19`), y sale como línea aparte en el recibo ("Recargo tarjeta 2,43%"). El % de una venta pasada se calcula con la tarifa guardada en ella. La tienda debe tener aviso visible en el mostrador.
 8. **Reportes:** las ventas se siguen reportando sin recargo; el recargo se muestra aparte (cubre la comisión, no es ingreso del negocio).
 
 ## Consecuencias

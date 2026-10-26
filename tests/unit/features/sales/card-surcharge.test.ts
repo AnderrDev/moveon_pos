@@ -3,6 +3,8 @@ import {
   NEQUI_CARD_FEE,
   calculateCardCharge,
   calculateCardFee,
+  cardSurchargePercent,
+  formatCardSurchargePercent,
   validateCardChargeAmount,
   type CardFeeConfig,
   type CardFeeIvaBase,
@@ -82,5 +84,21 @@ describe('validateCardChargeAmount', () => {
     expect(validateCardChargeAmount(1500)).toBeNull()
     expect(validateCardChargeAmount(250000)).toBeNull()
     expect(validateCardChargeAmount(250001)).not.toBeNull()
+  })
+})
+
+describe('cardSurchargePercent', () => {
+  it('con 1,99 % + IVA el recargo es 2,43 % de la venta', () => {
+    expect(cardSurchargePercent({ rateBps: 199, ivaPct: 19 })).toBeCloseTo(2.4255, 4)
+    expect(formatCardSurchargePercent({ rateBps: 199, ivaPct: 19 })).toBe('2,43 %')
+  })
+
+  it('el % coincide con el recargo real de una venta grande', () => {
+    const { surcharge } = calculateCardCharge(200000)
+    expect((surcharge / 200000) * 100).toBeCloseTo(cardSurchargePercent({ rateBps: 199, ivaPct: 19 }), 2)
+  })
+
+  it('cambia con la tarifa de la tienda', () => {
+    expect(formatCardSurchargePercent({ rateBps: 250, ivaPct: 19 })).toBe('3,07 %')
   })
 })

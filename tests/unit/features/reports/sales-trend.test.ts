@@ -40,6 +40,8 @@ function makeSale(overrides: { status: SaleStatus; total: number; createdAt: str
     discountApprovedBy: null,
     taxTotal: 0,
     cardSurcharge: 0,
+    cardFeeRateBps: null,
+    cardFeeIvaPct: null,
     total: overrides.total,
     change: 0,
     idempotencyKey: 'key',

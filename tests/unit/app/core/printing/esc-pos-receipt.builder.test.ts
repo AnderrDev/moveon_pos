@@ -56,6 +56,8 @@ const sale: Sale = {
   discountApprovedBy: null,
   taxTotal: 0,
   cardSurcharge: 0,
+  cardFeeRateBps: null,
+  cardFeeIvaPct: null,
   total: 22_000,
   change: 0,
   idempotencyKey: 'key-1',
@@ -122,11 +124,13 @@ describe('buildEscPosReceipt', () => {
     const conTarjeta: Sale = {
       ...sale,
       cardSurcharge: 533,
+      cardFeeRateBps: 199,
+      cardFeeIvaPct: 19,
       payments: [{ ...sale.payments[0]!, metodo: 'card', amount: 22_000, cardSurcharge: 533 }],
     }
     const result = buildEscPosReceipt({ sale: conTarjeta, store, customer: null, cashierEmail: null, change: 0 })
     expect(result).toMatch(/TOTAL +\$ 22\.000/)
-    expect(result).toMatch(/Recargo pago tarjeta +\$ 533/)
+    expect(result).toMatch(/Recargo tarjeta 2,43% +\$ 533/)
     expect(result).toMatch(/TOTAL PAGADO +\$ 22\.533/)
     expect(result).toMatch(/Tarjeta +\$ 22\.533/)
   })

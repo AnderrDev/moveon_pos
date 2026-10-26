@@ -60,7 +60,7 @@ import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
             </div>
             @if (cart.cardSurchargeTotal() > 0) {
               <div class="flex justify-between text-sm">
-                <span class="text-muted-foreground">Recargo pago con tarjeta</span>
+                <span class="text-muted-foreground">Recargo pago con tarjeta ({{ checkout.cardSurchargePercentLabel() }})</span>
                 <span class="font-semibold tabular-nums">+{{ (cart.cardSurchargeTotal() | money) }}</span>
               </div>
               <div class="flex justify-between text-sm">
@@ -131,7 +131,7 @@ import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
                     <span class="block font-medium">{{ (payment.metodo | paymentLabel) }}</span>
                     @if (payment.cardSurcharge) {
                       <span class="text-muted-foreground block text-[11px] tabular-nums">
-                        + recargo {{ (payment.cardSurcharge | money) }} · datáfono
+                        + recargo {{ checkout.cardSurchargePercentLabel() }} {{ (payment.cardSurcharge | money) }} · datáfono
                         {{ (payment.amount + payment.cardSurcharge | money) }}
                       </span>
                     }
@@ -307,7 +307,7 @@ import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
             @if (checkout.pendingCardCharge(); as charge) {
               <div class="bg-muted/50 space-y-1 rounded-lg px-3 py-2 text-xs">
                 <div class="flex justify-between">
-                  <span class="text-muted-foreground">Recargo pago con tarjeta</span>
+                  <span class="text-muted-foreground">Recargo pago con tarjeta ({{ checkout.cardSurchargePercentLabel() }})</span>
                   <span class="font-semibold tabular-nums">+{{ (charge.surcharge | money) }}</span>
                 </div>
                 <div class="flex justify-between text-sm font-bold">
@@ -315,7 +315,8 @@ import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
                   <span class="tabular-nums">{{ (charge.chargeAmount | money) }}</span>
                 </div>
                 <p class="text-muted-foreground text-[11px]">
-                  Avísale al cliente antes de cobrar: el recargo cubre la comisión de Nequi.
+                  Avísale al cliente antes de cobrar: pagar con tarjeta tiene un recargo de
+                  {{ checkout.cardSurchargePercentLabel() }}, que cubre la comisión de Nequi.
                 </p>
               </div>
             }

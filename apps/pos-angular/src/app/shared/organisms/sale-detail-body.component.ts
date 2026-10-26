@@ -3,6 +3,10 @@ import { formatShortDate, formatTime } from '@/shared/lib/format'
 import type { Sale } from '@angular-app/features/sales/domain/entities/sale.entity'
 import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
+import {
+  NEQUI_CARD_FEE,
+  formatCardSurchargePercent,
+} from '@angular-app/features/sales/domain/services/card-surcharge'
 
 /**
  * Detalle de una venta (productos, resumen, pagos y registro). Compartido por
@@ -90,7 +94,7 @@ import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
             </div>
             @if (sale().cardSurcharge > 0) {
               <div class="flex justify-between gap-3">
-                <dt class="text-muted-foreground">Recargo pago con tarjeta</dt>
+                <dt class="text-muted-foreground">Recargo pago con tarjeta ({{ surchargePercent() }})</dt>
                 <dd class="font-semibold tabular-nums">+{{ (sale().cardSurcharge | money) }}</dd>
               </div>
               <div class="flex justify-between gap-3">
@@ -195,6 +199,15 @@ export class SaleDetailBodyComponent {
   customerLabel(): string {
     const sale = this.sale()
     return sale.clienteNombre || (sale.clienteId ? `Cliente ${sale.clienteId.slice(0, 8)}` : 'Consumidor final')
+  }
+
+  /** % del recargo con la tarifa guardada en la venta (ADR 0024). */
+  surchargePercent(): string {
+    const sale = this.sale()
+    return formatCardSurchargePercent({
+      rateBps: sale.cardFeeRateBps ?? NEQUI_CARD_FEE.rateBps,
+      ivaPct: sale.cardFeeIvaPct ?? NEQUI_CARD_FEE.ivaPct,
+    })
   }
 
   totalPaid(): number {

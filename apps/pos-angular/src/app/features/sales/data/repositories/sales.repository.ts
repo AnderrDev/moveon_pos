@@ -12,7 +12,7 @@ import {
 import type { PaymentMethod } from '@/shared/types'
 
 const SALE_COLS =
-  'id, tienda_id, cash_session_id, sale_number, cliente_id, cashier_id, cashier_email, subtotal, item_discount_total, global_discount_total, discount_total, discount_reason, discount_approved_by, tax_total, total, card_surcharge, status, billing_status, billing_document_id, voided_by, voided_at, voided_reason, idempotency_key, created_at, updated_at'
+  'id, tienda_id, cash_session_id, sale_number, cliente_id, cashier_id, cashier_email, subtotal, item_discount_total, global_discount_total, discount_total, discount_reason, discount_approved_by, tax_total, total, card_surcharge, card_fee_rate_bps, card_fee_iva_pct, status, billing_status, billing_document_id, voided_by, voided_at, voided_reason, idempotency_key, created_at, updated_at'
 const ITEM_COLS =
   'id, sale_id, producto_id, producto_nombre, producto_sku, quantity, unit_price, unit_cost, discount_amount, global_discount_amount, option_nombre, option_extra, tax_rate, tax_amount, total'
 const PAY_COLS = 'id, sale_id, metodo, amount, referencia, card_surcharge, created_at'
