@@ -3,7 +3,8 @@ import type { RegisterEntryFormValue } from './register-entry-form.factory'
 export const registerEntryFormMapper = {
   /** Arranca con el costo vigente del producto para no tener que reescribirlo. */
   toFormValue(product: { costo?: number | null } | null): RegisterEntryFormValue {
-    return { cantidad: 1, ubicacion: 'bodega', costoUnitario: product?.costo ?? 0, motivo: '', metodoPago: '' }
+    // Punto de venta por defecto: así se registran casi todas las entradas (88% en producción).
+    return { cantidad: 1, ubicacion: 'punto_venta', costoUnitario: product?.costo ?? 0, motivo: '', metodoPago: '' }
   },
 
   toPayload(value: RegisterEntryFormValue, productId: string) {
