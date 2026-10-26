@@ -49,7 +49,7 @@ export function buildFinanzasWorkbook(input: FinanzasExportInput): ExcelWorkbook
       cat.total,
       cat.pctSobreEntradas,
     ]),
-    ['Utilidad neta', summary.utilidadNeta, summary.margenNeto],
+    ['Ganancia (utilidad neta)', summary.utilidadNeta, summary.margenNeto],
   ]
 
   if (input.fund) {
@@ -107,20 +107,22 @@ export function buildFinanzasWorkbook(input: FinanzasExportInput): ExcelWorkbook
       {
         name: 'Comparativa',
         title: 'Comparativa mensual',
-        subtitle: 'Balance = entradas − gastos (no descuenta costo de productos)',
+        subtitle: 'Ganancia = ventas − costo de lo vendido − gastos (igual que el Resumen)',
         columns: [
           { header: 'Mes', width: 12 },
-          { header: 'Entradas', width: 18, format: 'currency' },
+          { header: 'Ventas', width: 18, format: 'currency' },
+          { header: 'Costo de lo vendido', width: 20, format: 'currency' },
           { header: 'Gastos', width: 18, format: 'currency' },
-          { header: 'Gastos/Entradas', width: 16, format: 'percent' },
-          { header: 'Balance', width: 18, format: 'currency' },
+          { header: 'Ganancia', width: 18, format: 'currency' },
+          { header: 'Ganancia/Ventas', width: 16, format: 'percent' },
         ],
         rows: input.comparison.map((row) => [
           row.month,
           row.entradas,
+          row.costoMercancia,
           row.gastos,
-          row.pctGastos,
-          row.balance,
+          row.ganancia,
+          row.margen,
         ]),
       },
     ],

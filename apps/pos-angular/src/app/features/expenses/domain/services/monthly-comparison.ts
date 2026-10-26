@@ -2,10 +2,16 @@ export interface MonthlyComparisonRow {
   /** `YYYY-MM` local. */
   month: string
   entradas: number
+  /** Lo que costó la mercancía vendida en el mes (Σ cantidad × costo de cada línea con costo). */
+  costoMercancia: number
   gastos: number
-  /** % de gastos sobre entradas. `null` si no hubo entradas. */
+  /** Entradas − costo de la mercancía vendida − gastos: la misma ganancia del resumen del mes. */
+  ganancia: number
+  /** % de la ganancia sobre las entradas. `null` si no hubo entradas. */
+  margen: number | null
+  /** % de gastos sobre entradas. `null` si no hubo entradas. Paridad con `owner_finance_summary` (iOS). */
   pctGastos: number | null
-  /** Entradas − gastos (no descuenta costo de productos — ver nota en la UI). */
+  /** Entradas − gastos, sin la mercancía. Paridad con `owner_finance_summary` (iOS); el web ya no lo muestra. */
   balance: number
 }
 
@@ -23,8 +29,14 @@ export interface MonthlyComparisonInput {
    */
   entradas: readonly MonthlyTotal[]
   gastos: readonly MonthlyTotal[]
+  /** Costo de la mercancía vendida por mes. Sin dato para un mes, cuenta 0. */
+  costoMercancia?: readonly MonthlyTotal[]
   /** Meses a mostrar, en orden (`YYYY-MM`). */
   months: readonly string[]
+}
+
+function pctOf(part: number, total: number): number | null {
+  return total > 0 ? Math.round((part / total) * 1000) / 10 : null
 }
 
 /** Últimos `n` meses locales terminando en `now`, en orden ascendente. */
@@ -37,19 +49,25 @@ export function lastMonths(n: number, now: Date = new Date()): string[] {
   return months
 }
 
-/** Tendencia mensual de entradas vs. gastos. Función pura. */
+/** Tendencia mensual: ventas, mercancía vendida, gastos y ganancia. Función pura. */
 export function buildMonthlyComparison(input: MonthlyComparisonInput): MonthlyComparisonRow[] {
   const entradasByMonth = new Map(input.entradas.map((e) => [e.month, e.total]))
   const gastosByMonth = new Map(input.gastos.map((g) => [g.month, g.total]))
+  const costoByMonth = new Map((input.costoMercancia ?? []).map((c) => [c.month, c.total]))
 
   return input.months.map((month) => {
     const entradas = entradasByMonth.get(month) ?? 0
     const gastos = gastosByMonth.get(month) ?? 0
+    const costoMercancia = costoByMonth.get(month) ?? 0
+    const ganancia = entradas - costoMercancia - gastos
     return {
       month,
       entradas,
+      costoMercancia,
       gastos,
-      pctGastos: entradas > 0 ? Math.round((gastos / entradas) * 1000) / 10 : null,
+      ganancia,
+      margen: pctOf(ganancia, entradas),
+      pctGastos: pctOf(gastos, entradas),
       balance: entradas - gastos,
     }
   })

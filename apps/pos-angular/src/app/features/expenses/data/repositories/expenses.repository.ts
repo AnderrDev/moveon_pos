@@ -349,10 +349,20 @@ export class ExpensesRepository extends ExpenseRepository {
     }
   }
 
-  async getMerchandisePurchases(tiendaId: string, fromIso: string, toIso: string): Promise<number> {
-    // Misma agregación del fondo de reinversión, acotada al período.
-    const totals = await this.getFundTotals(tiendaId, fromIso, fromIso, toIso)
-    return totals.comprasMes
+  async getMonthlyProductCostTotals(
+    tiendaId: string,
+    months: readonly { month: string; fromIso: string; toIso: string }[],
+  ): Promise<{ month: string; total: number }[]> {
+    if (months.length === 0) return []
+    // Misma agregación del fondo de reinversión (cogs_mes), una llamada por
+    // mes: suma en el servidor, sin el límite de 1000 filas de PostgREST.
+    const desdeIso = months[0].fromIso
+    return Promise.all(
+      months.map(async (m) => ({
+        month: m.month,
+        total: (await this.getFundTotals(tiendaId, desdeIso, m.fromIso, m.toIso)).cogsMes,
+      })),
+    )
   }
 
   async listTemplates(tiendaId: string): Promise<ExpenseTemplate[]> {

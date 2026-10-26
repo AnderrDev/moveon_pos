@@ -78,7 +78,7 @@ apps/pos-angular/src/app/features/expenses/          (estructura ADR 0015)
 
 ## Limitaciones conocidas
 
-- La comparativa mensual usa `entradas − gastos` sin costo de productos (cargar 6 meses de `sale_items` sería pesado; anotado en la UI).
+- La comparativa mensual depende de que arriendo y nómina estén registrados en cada mes: si faltan, la ganancia de ese mes se ve más alta (avisado en la UI).
 - Probado end-to-end en Chrome contra producción (2026-07-05): CRUD de gastos, nómina, plantillas, export y guards de rol. Ver `docs/sessions/2026-07-05-finanzas-cierre-plan49.md`.
 
 ## Gastos idempotentes (2026-10-24, `20261024000800`)
@@ -91,7 +91,7 @@ apps/pos-angular/src/app/features/expenses/          (estructura ADR 0015)
 - **Recuperación de históricos:** `20261024170000_backfill_cash_expenses.sql` crea el gasto de cada movimiento `expense` activo sin gasto. Es un cambio de datos: en producción solo con OK del dueño. Idempotente.
 - **Anular es simétrico.** `void_expense_atomic` (admin) anula el gasto y su salida de caja; `void_cash_movement_atomic` anula también el gasto enlazado. `correct_cash_movement_atomic` copia el monto (y el concepto, sin el prefijo `Gasto: `) al gasto enlazado.
 - **`expenses` sin escritura directa:** se revocaron `INSERT/UPDATE/DELETE` a `anon` y `authenticated`. Todo pasa por `register_expense_atomic`, `void_expense_atomic` o las RPC de caja.
-- **Compras de mercancía en el resumen:** Finanzas muestra "Dinero del período" = entradas − gastos − compras de mercancía (entradas de inventario con costo del mes). Las compras **no** restan de la utilidad (su costo entra cuando se vende). `ExpenseRepository.getMerchandisePurchases` reutiliza `get_reinvestment_fund_totals`.
+- **Compras de mercancía:** **no** restan de la ganancia (su costo entra cuando se vende); las sigue el fondo de reinversión. (El "Dinero del período"/"Plata libre" se retiró el 2026-10-26, ver abajo.)
 - Prueba: `supabase/tests/cash-expenses-sync.test.sql`.
 
 ## Fondo en negativo = inventario de más (2026-10-24)
@@ -106,7 +106,7 @@ apps/pos-angular/src/app/features/expenses/          (estructura ADR 0015)
 
 ## Gastos fijos y lista de compras (2026-10-24)
 
-- **Gastos fijos del mes** (`domain/services/fixed-commitments.ts`, tarjeta `mo-fixed-commitments`): plantillas activas (mensual = monto; quincenal = 2 × monto) + salario de empleados activos. Pagado = gastos activos del mes con la misma categoría y concepto (plantillas) o ligados al empleado (nómina). Lo **pendiente se aparta desde el día 1**: el resumen agrega "− Gastos fijos por pagar = Dinero libre" (solo en el mes en curso). Decisión del dueño: arriendo $2.500.000 (plantilla) y empleado $1.800.000 (salario) siempre fijos.
+- **Gastos fijos del mes** (`domain/services/fixed-commitments.ts`, tarjeta `mo-fixed-commitments`): plantillas activas (mensual = monto; quincenal = 2 × monto) + salario de empleados activos. Pagado = gastos activos del mes con la misma categoría y concepto (plantillas) o ligados al empleado (nómina). Lo pendiente se avisa en el resumen (solo en el mes en curso): "faltan $X; al pagarlos la ganancia quedará en $Y" (`utilidadTrasFijos`). Hasta el 2026-10-26 se restaba de un "Dinero libre". Decisión del dueño: arriendo $2.500.000 (plantilla) y empleado $1.800.000 (salario) siempre fijos.
 - **Lista de compras** (`/finanzas/compras`, `presentation/pages/compras.page.ts`): pronóstico por producto con `buildPurchasePlan` (`features/inventory/domain/services/purchase-suggestions.ts`); ver "Asesor de compras" abajo para el modelo vigente:
   - consumo diario = 0,6 × promedio 14 días + 0,4 × promedio 56 días, desde `sale_exit` − `void_return` (incluye componentes de batidos y combos), **sin los días que cerraron agotados**; productos nuevos promedian sobre los días que llevan, mínimo 7;
   - necesario = ⌈máx(consumo × días + 1σ·√días, stock mínimo) − stock total⌉;
@@ -131,3 +131,11 @@ apps/pos-angular/src/app/features/expenses/          (estructura ADR 0015)
   | sin agotados + tendencia + z=1,28 | 8,3% | 99,4% | 38 | $6,0 M | $9,3 M (con +22% de compra) |
 
   Excluir días agotados mejora sobre todo los productos que se agotan seguido (servicio 63% → 81%). La tendencia corrige el sesgo de los productos en alza pero empeora los demás: queda como opción apagada (`DEFAULT_FORECAST.trend`). Un colchón mayor (z=1,28) pierde menos ventas pero inmoviliza más dinero; se eligió z=1 por la prioridad del dueño de no gastar de más. Limitaciones: compras esporádicas (accesorios) y promociones puntuales siguen con error alto; con más historia real conviene volver a correr el backtest.
+
+## Un solo resultado (2026-10-26)
+
+El dueño no entendía la página: veía "Ganancia", "Plata libre" y una comparativa "Ventas − gastos" con cifras distintas para el mismo mes. Ahora:
+
+- **Un solo resultado: Ganancia = ventas − costo de lo vendido − gastos.** El resumen lo muestra como una cuenta en 4 tarjetas (`mo-stat-card`). Se retiraron `balanceDinero`, `dineroLibre` y `comprasMercancia` de `FinancialSummary`; los fijos pendientes ya no restan, se avisan con `utilidadTrasFijos`.
+- **La comparativa de 6 meses usa la misma cuenta.** `MonthlyComparisonRow` suma `costoMercancia`, `ganancia` y `margen`; el costo mensual sale de `ExpenseRepository.getMonthlyProductCostTotals` (una llamada a `get_reinvestment_fund_totals` por mes → `cogs_mes`, sin migración). La gráfica muestra Ventas / Costo + gastos / Ganancia (3 colores); la tabla los separa. El Excel (hoja Comparativa) igual.
+- **App iOS:** `pctGastos` y `balance` se conservan en la fila solo por paridad con `owner_finance_summary`, que sigue entregando `balance = entradas − gastos`. Pendiente: agregar `costo_mercancia`/`ganancia` a la `tendencia` de esa RPC y a la app.

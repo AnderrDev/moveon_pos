@@ -6,7 +6,7 @@ import type { FixedCommitments } from '@angular-app/features/expenses/domain/ser
 
 /**
  * Gastos fijos del mes (plantillas + nómina): cuánto toca pagar, cuánto va
- * pagado y cuánto queda por pagar. Lo pendiente se aparta del dinero libre.
+ * pagado y cuánto queda por pagar. El resumen avisa cómo queda la ganancia al pagarlo.
  * Presentacional.
  */
 @Component({
@@ -19,7 +19,7 @@ import type { FixedCommitments } from '@angular-app/features/expenses/domain/ser
       <div class="flex items-center justify-between gap-2">
         <div>
           <h3 class="text-sm font-semibold">Gastos fijos del mes</h3>
-          <p class="text-muted-foreground text-xs">Se apartan desde el día 1, aunque aún no se paguen</p>
+          <p class="text-muted-foreground text-xs">Arriendo y nómina del mes: lo que falta por pagar se avisa en el resumen</p>
         </div>
         <mo-button variant="outline" size="sm" (click)="manageRequested.emit()">Registrar pagos</mo-button>
       </div>
