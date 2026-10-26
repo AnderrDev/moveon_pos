@@ -145,6 +145,12 @@ export class PosCartStore {
     this.paymentsState().reduce((sum, payment) => sum + payment.amount, 0),
   )
   readonly remainingAmount = computed(() => Math.max(0, this.totals().total - this.totalPaid()))
+  /** Recargo por tarjeta de los pagos capturados; va aparte del total (ADR 0024). */
+  readonly cardSurchargeTotal = computed(() =>
+    this.paymentsState().reduce((sum, payment) => sum + (payment.cardSurcharge ?? 0), 0),
+  )
+  /** Lo que el cliente paga en total: venta + recargo por tarjeta. */
+  readonly totalToCharge = computed(() => this.totals().total + this.cardSurchargeTotal())
   readonly change = computed(() => Math.max(0, this.totalPaid() - this.totals().total))
 
   /**

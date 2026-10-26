@@ -5,6 +5,10 @@ import {
   DEFAULT_LOYALTY_CONFIG,
   type LoyaltyConfig,
 } from '@angular-app/features/loyalty/domain/loyalty-config'
+import {
+  NEQUI_CARD_FEE,
+  type CardFeeConfig,
+} from '@angular-app/features/sales/domain/services/card-surcharge'
 
 interface ReceiptSettings {
   titulo: string
@@ -33,6 +37,8 @@ export interface TiendaInfo {
   timezone: string
   receipt: ReceiptSettings
   fidelizacion: LoyaltyConfig
+  /** Tarifa del cobro con tarjeta (ADR 0024). */
+  pagoTarjeta: CardFeeConfig
 }
 
 const DEFAULT_RECEIPT: ReceiptSettings = {
@@ -66,6 +72,7 @@ interface SettingsRow {
   data: {
     recibo?: Partial<ReceiptSettings & { mensaje_pie: string }>
     fidelizacion?: Partial<LoyaltyConfig>
+    pagoTarjeta?: { comisionBps?: number; ivaPct?: number }
   } | null
 }
 
@@ -118,6 +125,7 @@ export class TiendaInfoService {
 
     const recibo = settingsRes.data?.data?.recibo ?? {}
     const fidelizacion = settingsRes.data?.data?.fidelizacion ?? {}
+    const pagoTarjeta = settingsRes.data?.data?.pagoTarjeta ?? {}
     return {
       id: tiendaRes.data.id,
       nombre: tiendaRes.data.nombre,
@@ -162,6 +170,12 @@ export class TiendaInfoService {
           1,
           fidelizacion.vigenciaDias ?? DEFAULT_LOYALTY_CONFIG.vigenciaDias,
         ),
+      },
+      // Misma fuente y límites que el RPC card_fee_config (settings.data.pagoTarjeta).
+      pagoTarjeta: {
+        ...NEQUI_CARD_FEE,
+        rateBps: Math.min(10000, Math.max(0, pagoTarjeta.comisionBps ?? NEQUI_CARD_FEE.rateBps)),
+        ivaPct: Math.min(100, Math.max(0, pagoTarjeta.ivaPct ?? NEQUI_CARD_FEE.ivaPct)),
       },
     }
   }

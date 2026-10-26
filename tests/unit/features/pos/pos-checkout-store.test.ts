@@ -81,6 +81,56 @@ describe('PosCheckoutStore', () => {
     expect(checkout.showReference()).toBe(false)
   })
 
+  it('tarjeta: muestra el recargo, lo guarda aparte y suma el total a cobrar (ADR 0024)', () => {
+    const { cart, checkout } = setup()
+    cart.addItem(whey)
+    checkout.open(false)
+    checkout.selectPaymentMethod('card')
+    expect(checkout.pendingCardCharge()).toEqual({ baseAmount: 120000, chargeAmount: 122911, surcharge: 2911 })
+    checkout.addPayment()
+    expect(cart.payments()).toEqual([expect.objectContaining({ metodo: 'card', amount: 120000, cardSurcharge: 2911 })])
+    expect(cart.remainingAmount()).toBe(0)
+    expect(cart.totalToCharge()).toBe(122911)
+    expect(checkout.canConfirm()).toBe(true)
+  })
+
+  it('tarjeta en pago mixto: el recargo va solo sobre la parte con tarjeta', () => {
+    const { cart, checkout } = setup()
+    cart.addItem(whey)
+    checkout.open(false)
+    checkout.setPaymentAmount(input('100000'))
+    checkout.addPayment()
+    checkout.selectPaymentMethod('card')
+    checkout.addExactPayment()
+    expect(cart.cardSurchargeTotal()).toBe(486)
+    expect(cart.totalToCharge()).toBe(120486)
+  })
+
+  it('tarjeta: no agrega cobros fuera de los límites de Nequi ni mayores a lo que falta', () => {
+    const { cart, checkout } = setup()
+    cart.addItem(whey)
+    checkout.open(false)
+    checkout.selectPaymentMethod('card')
+    checkout.setPaymentAmount(input('1000'))
+    checkout.addPayment()
+    expect(cart.payments()).toEqual([])
+    expect(checkout.paymentError()).toMatch(/1\.500/)
+
+    checkout.setPaymentAmount(input('130000'))
+    expect(checkout.paymentError()).toBeNull()
+    checkout.addPayment()
+    expect(cart.payments()).toEqual([])
+    expect(checkout.paymentError()).toMatch(/lo que falta/)
+  })
+
+  it('tarjeta: usa la tarifa de la tienda que recibe al abrir', () => {
+    const { cart, checkout } = setup()
+    cart.addItem(whey)
+    checkout.open(false, { rateBps: 250, ivaPct: 19, rounding: 'half-up', ivaBase: 'rounded-commission' })
+    checkout.selectPaymentMethod('card')
+    expect(checkout.pendingCardCharge()?.surcharge).toBe(3679)
+  })
+
   it('cerrar descarta los pagos y reiniciar deja el cobro limpio', () => {
     const { cart, checkout } = setup()
     cart.addItem(whey)

@@ -5,6 +5,7 @@ export const closeSessionFormSchema = z.object({
   actualTransferAmount: z
     .number()
     .nonnegative('El total de transferencias no puede ser negativo'),
+  actualCardAmount: z.number().nonnegative('El total de tarjeta no puede ser negativo'),
   withdrawAtClose: z.boolean(),
   cashLeftAmount: z.number().nonnegative('El efectivo dejado no puede ser negativo'),
   notasCierre: z.string().max(500, 'Las notas no pueden superar 500 caracteres'),
@@ -24,6 +25,7 @@ export function createCloseSessionDefaults(
   return {
     actualCashAmount: initial.actualCashAmount ?? 0,
     actualTransferAmount: initial.actualTransferAmount ?? 0,
+    actualCardAmount: initial.actualCardAmount ?? 0,
     withdrawAtClose: initial.withdrawAtClose ?? false,
     cashLeftAmount: initial.cashLeftAmount ?? 0,
     notasCierre: initial.notasCierre ?? '',

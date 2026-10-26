@@ -33,6 +33,8 @@ export interface Payment {
   metodo: PaymentMethod
   amount: number
   referencia: string | null
+  /** Recargo cobrado aparte por pagar con tarjeta (ADR 0024). 0 en otros métodos. */
+  cardSurcharge: number
   createdAt: Date
 }
 
@@ -58,6 +60,8 @@ export interface Sale {
   discountApprovedBy: string | null
   taxTotal: number
   total: number
+  /** Suma del recargo por tarjeta; no hace parte de `total` (ADR 0024). */
+  cardSurcharge: number
   change: number
   idempotencyKey: string
   voidedBy: UserId | null

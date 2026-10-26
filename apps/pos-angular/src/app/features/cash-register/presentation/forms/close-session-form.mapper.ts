@@ -4,6 +4,7 @@ export interface CloseSessionPayload {
   actualCashAmount: number
   cashLeftAmount: number
   actualTransferAmount: number
+  actualCardAmount: number
   notasCierre?: string
 }
 
@@ -16,6 +17,7 @@ export const closeSessionFormMapper = {
         ? value.cashLeftAmount
         : value.actualCashAmount,
       actualTransferAmount: value.actualTransferAmount,
+      actualCardAmount: value.actualCardAmount,
       notasCierre: notasCierre || undefined,
     }
   },

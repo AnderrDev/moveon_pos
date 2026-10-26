@@ -7,6 +7,13 @@ import {
   validatePaymentsForSale,
 } from '@angular-app/features/sales/domain/services/sale-calculator'
 import { canConfirmSale, discretionaryDiscount } from '@angular-app/features/sales/domain/services/checkout-rules'
+import {
+  NEQUI_CARD_FEE,
+  calculateCardCharge,
+  validateCardChargeAmount,
+  type CardCharge,
+  type CardFeeConfig,
+} from '@angular-app/features/sales/domain/services/card-surcharge'
 import { PosCartStore } from '@angular-app/features/pos/presentation/services/pos-cart.store'
 
 /**
@@ -33,6 +40,21 @@ export class PosCheckoutStore {
   readonly isSaving = signal(false)
   /** Elección de tirilla para ESTA venta (parte del default de la tienda). */
   readonly imprimirEstaVenta = signal(false)
+  /** Tarifa de la tienda para el recargo por tarjeta (ADR 0024). */
+  readonly cardFee = signal<CardFeeConfig>(NEQUI_CARD_FEE)
+  /** Error al agregar un pago (p. ej. cobro con tarjeta fuera de los límites). */
+  readonly paymentError = signal<string | null>(null)
+
+  /**
+   * Vista previa del cobro con tarjeta del monto en captura: lo que se suma
+   * de recargo y lo que hay que pasar por el datáfono. Null si no es tarjeta.
+   */
+  readonly pendingCardCharge = computed<CardCharge | null>(() => {
+    if (this.paymentMethod() !== 'card') return null
+    const amount = Number.parseInt(this.paymentAmount().replace(/\D/g, ''), 10)
+    if (!Number.isInteger(amount) || amount <= 0) return null
+    return calculateCardCharge(amount, this.cardFee())
+  })
 
   /**
    * Descuento discrecional = total − canje MOVE ON Club. El canje no exige
@@ -70,8 +92,10 @@ export class PosCheckoutStore {
   }
 
   /** Abre el cobro con el default de tirilla de la tienda y el faltante prellenado. */
-  open(printByDefault: boolean): void {
+  open(printByDefault: boolean, cardFee: CardFeeConfig = NEQUI_CARD_FEE): void {
     this.saleError.set(null)
+    this.paymentError.set(null)
+    this.cardFee.set(cardFee)
     this.imprimirEstaVenta.set(printByDefault)
     this.isOpen.set(true)
     this.discountMode.set('amount')
@@ -90,6 +114,7 @@ export class PosCheckoutStore {
     this.cart.clearPayments()
     this.paymentAmount.set('')
     this.paymentReference.set('')
+    this.paymentError.set(null)
     this.saleError.set(null)
   }
 
@@ -148,6 +173,7 @@ export class PosCheckoutStore {
   setPaymentAmount(event: Event): void {
     const value = (event.target as HTMLInputElement).value.replace(/\D/g, '')
     this.paymentAmount.set(value)
+    this.paymentError.set(null)
   }
 
   setPaymentReference(event: Event): void {
@@ -156,6 +182,7 @@ export class PosCheckoutStore {
 
   selectPaymentMethod(method: PaymentMethod): void {
     this.paymentMethod.set(method)
+    this.paymentError.set(null)
     // El efectivo no lleva referencia: limpiamos cualquier valor previo.
     if (!requiresReference(method)) {
       this.paymentReference.set('')
@@ -185,7 +212,25 @@ export class PosCheckoutStore {
     })
     if (!entry) return
 
-    this.cart.addPayment(entry)
+    // Tarjeta (ADR 0024): `amount` es la parte de la venta que cubre; el
+    // recargo va aparte y por el datáfono pasa la suma, dentro de los límites
+    // de Nequi.
+    if (entry.metodo === 'card') {
+      if (entry.amount > this.cart.remainingAmount()) {
+        this.paymentError.set('Con tarjeta se cobra como máximo lo que falta de la venta')
+        return
+      }
+      const charge = calculateCardCharge(entry.amount, this.cardFee())
+      const limitError = validateCardChargeAmount(charge.chargeAmount)
+      if (limitError) {
+        this.paymentError.set(limitError)
+        return
+      }
+      this.cart.addPayment({ ...entry, cardSurcharge: charge.surcharge })
+    } else {
+      this.cart.addPayment(entry)
+    }
+    this.paymentError.set(null)
     this.paymentReference.set('')
 
     const remaining = this.cart.remainingAmount()

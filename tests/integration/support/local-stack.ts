@@ -63,6 +63,12 @@ export function psql(stack: LocalStack, sql: string, vars: Record<string, string
   execFileSync('docker', args, { input: sql, stdio: ['pipe', 'ignore', 'pipe'] })
 }
 
+/** Como `psql`, pero devuelve la salida sin alinear (`-At`) para leer resultados. */
+export function psqlQuery(stack: LocalStack, sql: string): string {
+  const args = ['exec', '-i', stack.dbContainer, 'psql', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-q', '-At']
+  return execFileSync('docker', args, { input: sql, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).trim()
+}
+
 /** Borra las tiendas de paridad (también las que dejó una corrida que falló). */
 export const CLEANUP_SQL = `
   create temp table paridad_tiendas as select id from public.tiendas where nombre like 'Paridad %';

@@ -25,6 +25,7 @@ function makeSale(id: string, cashSessionId: string): Sale {
     discountReason: null,
     discountApprovedBy: null,
     taxTotal: 0,
+    cardSurcharge: 0,
     total: 0,
     change: 0,
     idempotencyKey: `key-${id}`,

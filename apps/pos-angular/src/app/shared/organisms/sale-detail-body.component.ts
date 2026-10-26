@@ -88,6 +88,16 @@ import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
               <dt class="font-black">Total</dt>
               <dd class="text-foreground text-lg font-black tabular-nums">{{ (sale().total | money) }}</dd>
             </div>
+            @if (sale().cardSurcharge > 0) {
+              <div class="flex justify-between gap-3">
+                <dt class="text-muted-foreground">Recargo pago con tarjeta</dt>
+                <dd class="font-semibold tabular-nums">+{{ (sale().cardSurcharge | money) }}</dd>
+              </div>
+              <div class="flex justify-between gap-3">
+                <dt class="text-muted-foreground">Total cobrado al cliente</dt>
+                <dd class="font-bold tabular-nums">{{ (sale().total + sale().cardSurcharge | money) }}</dd>
+              </div>
+            }
           </dl>
         </section>
 
@@ -103,10 +113,16 @@ import { PaymentLabelPipe } from '@angular-app/shared/pipes/payment-label.pipe'
                       Ref. {{ payment.referencia }}
                     </p>
                   }
+                  @if (payment.cardSurcharge > 0) {
+                    <p class="text-muted-foreground mt-0.5 text-[11px] tabular-nums">
+                      {{ (payment.amount | money) }} + recargo {{ (payment.cardSurcharge | money) }}
+                    </p>
+                  }
                 </div>
                 <div class="flex shrink-0 items-center gap-2">
-                <span class="font-bold tabular-nums">{{ (payment.amount | money) }}</span>
-                @if (canCorrectPayment() && sale().status === 'completed') {
+                <span class="font-bold tabular-nums">{{ (payment.amount + payment.cardSurcharge | money) }}</span>
+                <!-- Un pago con recargo no se corrige (RN-PG09): se anula la venta. -->
+                @if (canCorrectPayment() && sale().status === 'completed' && payment.cardSurcharge === 0) {
                   <button
                     type="button"
                     class="text-muted-foreground hover:text-foreground border-border hover:border-primary rounded-lg border px-2 py-1 text-[11px] font-semibold transition-colors"
@@ -182,7 +198,7 @@ export class SaleDetailBodyComponent {
   }
 
   totalPaid(): number {
-    return this.sale().payments.reduce((sum, p) => sum + p.amount, 0)
+    return this.sale().payments.reduce((sum, p) => sum + p.amount + p.cardSurcharge, 0)
   }
 
   itemDiscountTotal(item: Sale['items'][number]): number {

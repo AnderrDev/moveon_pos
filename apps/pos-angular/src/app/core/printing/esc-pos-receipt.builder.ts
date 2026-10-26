@@ -95,13 +95,24 @@ export function buildEscPosReceipt(input: EscPosReceiptInput): string {
     }
   }
   output.push(COMMAND.boldOn, ...pairLines('TOTAL', formatMoney(sale.total)), COMMAND.boldOff)
+  // ADR 0024: el recargo por tarjeta va aparte del total de la venta y el
+  // cliente debe verlo en la tirilla junto con lo que pagó en total.
+  if (sale.cardSurcharge > 0) {
+    output.push(...pairLines('Recargo pago tarjeta', formatMoney(sale.cardSurcharge)))
+    output.push(
+      COMMAND.boldOn,
+      ...pairLines('TOTAL PAGADO', formatMoney(sale.total + sale.cardSurcharge)),
+      COMMAND.boldOff,
+    )
+  }
 
   output.push(divider(), COMMAND.boldOn, ...lines('PAGOS'), COMMAND.boldOff)
   for (const payment of sale.payments) {
     const label = payment.referencia
       ? `${getPaymentMethodLabel(payment.metodo)} ${payment.referencia}`
       : getPaymentMethodLabel(payment.metodo)
-    output.push(...pairLines(label, formatMoney(payment.amount)))
+    // Con tarjeta se muestra lo que pasó por el datáfono (monto + recargo).
+    output.push(...pairLines(label, formatMoney(payment.amount + payment.cardSurcharge)))
   }
   if (input.change > 0) {
     output.push(COMMAND.boldOn, ...pairLines('Cambio', formatMoney(input.change)), COMMAND.boldOff)

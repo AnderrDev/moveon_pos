@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core'
 import { StatCardComponent } from '@angular-app/shared/molecules/stat-card.component'
 import type { DailyReport } from '@angular-app/features/reports/domain/entities/report.entity'
 import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
+import { formatCurrency } from '@/shared/lib/format'
 
 /** Las 5 tarjetas KPI del tab "Ventas": total, descuentos, ticket promedio, anuladas, utilidad. */
 @Component({
@@ -14,7 +15,7 @@ import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
       <mo-stat-card
         label="Total ventas"
         [value]="(report().totalVentas | money)"
-        [hint]="report().countVentas + ' ventas'"
+        [hint]="totalHint()"
       />
       <mo-stat-card
         label="Descuentos"
@@ -44,6 +45,14 @@ import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 export class DailyKpiCardsComponent {
   readonly report = input.required<DailyReport>()
 
+
+  /** El recargo por tarjeta no suma al total: se informa aparte (ADR 0024). */
+  totalHint(): string {
+    const report = this.report()
+    const ventas = `${report.countVentas} ventas`
+    if (report.cardSurchargeTotal <= 0) return ventas
+    return `${ventas} · + ${formatCurrency(report.cardSurchargeTotal)} recargo tarjeta (comisión Nequi)`
+  }
 
   percent(value: number): string {
     return `${value.toFixed(2)}%`

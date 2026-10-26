@@ -30,6 +30,9 @@ export interface SalesSummary {
   discountedSalesCount: number
   averageDiscountPercentage: number
   avgVenta: number
+  /** Recargo por tarjeta cobrado aparte del total (cubre la comisión de Nequi, ADR 0024). */
+  cardSurchargeTotal: number
+  cardSurchargeSalesCount: number
   paymentBreakdown: DailyPaymentBreakdown[]
   productSales: DailyProductSale[]
   /** Suma de `utilidad` solo de productos con costo conocido (no asume 0 para costo null). */
@@ -69,6 +72,8 @@ export function buildSalesSummary(sales: Sale[], timezone: string): SalesSummary
     discountedSalesCount: discountedSales.length,
     averageDiscountPercentage,
     avgVenta: completed.length > 0 ? Math.round(totalVentas / completed.length) : 0,
+    cardSurchargeTotal: completed.reduce((s, v) => s + v.cardSurcharge, 0),
+    cardSurchargeSalesCount: completed.filter((v) => v.cardSurcharge > 0).length,
     paymentBreakdown: summarizePayments(completed),
     productSales,
     utilidadTotal,

@@ -269,13 +269,27 @@ export class CajaPage {
   )
   readonly totalSales = computed(() => this.breakdown().reduce((sum, p) => sum + p.total, 0))
   readonly primaryPaymentSummary = computed<PaymentBreakdown[]>(() =>
-    (['cash', 'transfer'] as const).map((metodo) => {
-      const payment = this.breakdown().find((item) => item.metodo === metodo)
-      return { metodo, count: payment?.count ?? 0, total: payment?.total ?? 0 }
-    })
+    (['cash', 'transfer', 'card'] as const)
+      .map((metodo) => {
+        const payment = this.breakdown().find((item) => item.metodo === metodo)
+        return { metodo, count: payment?.count ?? 0, total: payment?.total ?? 0 }
+      })
+      // La tarjeta solo aparece en turnos que la usaron (ADR 0024).
+      .filter((payment) => payment.metodo !== 'card' || payment.count > 0)
+  )
+  /** Recargo por tarjeta de las ventas completadas del turno (ADR 0024). */
+  readonly cardSurchargeTotal = computed(() =>
+    this.sales()
+      .filter((sale) => sale.status === 'completed')
+      .reduce((sum, sale) => sum + sale.cardSurcharge, 0)
   )
   readonly expectedByMethod = computed<ExpectedByMethod[]>(() =>
-    this.breakdown().map((p) => ({ metodo: p.metodo, total: p.total, count: p.count }))
+    this.breakdown().map((p) => ({
+      metodo: p.metodo,
+      total: p.total,
+      count: p.count,
+      surcharge: p.metodo === 'card' ? this.cardSurchargeTotal() : 0,
+    }))
   )
   readonly expectedCashInDrawer = computed(() => {
     return this.cashTurnSummary().expectedCashAmount

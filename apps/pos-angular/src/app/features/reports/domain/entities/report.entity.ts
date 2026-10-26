@@ -118,6 +118,9 @@ export interface DailyReport {
   discountedSalesCount: number
   averageDiscountPercentage: number
   avgVenta: number
+  /** Recargo por tarjeta cobrado aparte del total (ADR 0024). */
+  cardSurchargeTotal: number
+  cardSurchargeSalesCount: number
   paymentBreakdown: DailyPaymentBreakdown[]
   taxBreakdown: TaxBreakdownRow[]
   productSales: DailyProductSale[]

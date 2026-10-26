@@ -77,6 +77,23 @@ describe('createSaleSchema', () => {
     }
   })
 
+  it('un pago con tarjeta lleva su recargo y los demás no (ADR 0024)', () => {
+    const conRecargo = createSaleSchema.safeParse({
+      ...validSale,
+      payments: [{ metodo: 'card', amount: 119000, cardSurcharge: 2887 }],
+    })
+    expect(conRecargo.success).toBe(true)
+
+    const tarjetaSinRecargo = createSaleSchema.safeParse({ ...validSale, payments: [{ metodo: 'card', amount: 119000 }] })
+    expect(tarjetaSinRecargo.success).toBe(false)
+
+    const efectivoConRecargo = createSaleSchema.safeParse({
+      ...validSale,
+      payments: [{ metodo: 'cash', amount: 119000, cardSurcharge: 100 }],
+    })
+    expect(efectivoConRecargo.success).toBe(false)
+  })
+
   it('exige motivo de al menos 3 caracteres cuando hay descuento con motivo', () => {
     const result = createSaleSchema.safeParse({ ...validSale, discountReason: ' x ' })
     expect(result.success).toBe(false)

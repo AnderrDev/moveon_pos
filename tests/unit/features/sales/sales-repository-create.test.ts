@@ -89,7 +89,7 @@ describe('SalesRepository.create', () => {
           total: 29000,
         },
       ],
-      p_payments: [{ metodo: 'transfer', amount: 29000, referencia: null }],
+      p_payments: [{ metodo: 'transfer', amount: 29000, referencia: null, card_surcharge: 0 }],
       p_global_discount_total: 0,
       p_discount_reason: null,
       p_loyalty_redemptions: [{ reward_id: 'reward-1', item_index: 0 }],
@@ -102,6 +102,14 @@ describe('SalesRepository.create', () => {
         action: 'create',
         changes: { total: 29000, items: 1, payments: ['transfer'] },
       },
+    ])
+  })
+
+  it('envía el recargo de los pagos con tarjeta (ADR 0024)', async () => {
+    const { repo, rpcCalls } = makeRepo({ data: 'sale-1', error: null })
+    await repo.create({ ...request, payments: [{ metodo: 'card', amount: 29000, referencia: 'APROB-1', cardSurcharge: 703 }] })
+    expect(rpcCalls[0]?.args['p_payments']).toEqual([
+      { metodo: 'card', amount: 29000, referencia: 'APROB-1', card_surcharge: 703 },
     ])
   })
 
