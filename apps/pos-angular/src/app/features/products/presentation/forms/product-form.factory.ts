@@ -116,7 +116,7 @@ export const productFormSchema = z.object({
       .nonnegative('El inventario inicial no puede ser negativo'),
   ),
 
-  stockInicialUbicacion: inventoryLocationSchema.default('bodega'),
+  stockInicialUbicacion: inventoryLocationSchema.default('punto_venta'),
 
   participaFidelizacion: z.boolean().default(false),
 
@@ -166,7 +166,7 @@ export function createProductFormDefaults(
     ivaTasa:      initial.ivaTasa      ?? 0,
     stockMinimo:  initial.stockMinimo  ?? 0,
     stockInicial: initial.stockInicial ?? 0,
-    stockInicialUbicacion: initial.stockInicialUbicacion ?? 'bodega',
+    stockInicialUbicacion: initial.stockInicialUbicacion ?? 'punto_venta',
     participaFidelizacion: initial.participaFidelizacion ?? false,
     isActive:     initial.isActive     ?? true,
   }

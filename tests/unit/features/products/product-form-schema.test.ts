@@ -259,7 +259,7 @@ describe('createProductFormDefaults', () => {
     expect(defaults.ivaTasa).toBe(0)
     expect(defaults.stockMinimo).toBe(0)
     expect(defaults.stockInicial).toBe(0)
-    expect(defaults.stockInicialUbicacion).toBe('bodega')
+    expect(defaults.stockInicialUbicacion).toBe('punto_venta')
     expect(defaults.tipo).toBe('simple')
     expect(defaults.unidad).toBe('und')
     expect(defaults.isActive).toBe(true)

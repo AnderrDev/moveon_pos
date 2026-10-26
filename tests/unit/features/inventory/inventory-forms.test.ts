@@ -20,12 +20,12 @@ const messages = (result: { error?: { issues: { path: PropertyKey[]; message: st
 describe('entrada de mercancía', () => {
   it('arranca con el costo vigente y omite costo 0 y motivo vacío al enviar', () => {
     const value = registerEntryFormMapper.toFormValue({ costo: 42_000 })
-    expect(value).toEqual({ cantidad: 1, ubicacion: 'bodega', costoUnitario: 42_000, motivo: '', metodoPago: '' })
+    expect(value).toEqual({ cantidad: 1, ubicacion: 'punto_venta', costoUnitario: 42_000, motivo: '', metodoPago: '' })
     const parsed = registerEntryFormSchema.parse({ ...value, costoUnitario: 0, motivo: '   ' })
     expect(registerEntryFormMapper.toPayload(parsed, PRODUCT)).toEqual({
       productId: PRODUCT,
       cantidad: 1,
-      ubicacion: 'bodega',
+      ubicacion: 'punto_venta',
       costoUnitario: undefined,
       motivo: undefined,
       metodoPago: undefined,

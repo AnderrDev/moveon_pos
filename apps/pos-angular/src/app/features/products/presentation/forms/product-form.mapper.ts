@@ -32,7 +32,8 @@ export const productFormMapper = {
       ivaTasa:      product?.ivaTasa      ?? 0,
       stockMinimo:  product?.stockMinimo  ?? 0,
       stockInicial: 0,
-      stockInicialUbicacion: 'bodega',
+      // La mayoría del stock se vende directo desde el punto de venta (97% en producción).
+      stockInicialUbicacion: 'punto_venta',
       participaFidelizacion: product?.participaFidelizacion ?? false,
       isActive:       product?.isActive       ?? true,
     }

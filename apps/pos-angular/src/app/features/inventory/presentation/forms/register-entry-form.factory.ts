@@ -26,7 +26,7 @@ export type RegisterEntryFormValue = z.infer<typeof registerEntryFormSchema>
 export function createRegisterEntryDefaults(initial: Partial<RegisterEntryFormValue> = {}): RegisterEntryFormValue {
   return {
     cantidad: initial.cantidad ?? 1,
-    ubicacion: initial.ubicacion ?? 'bodega',
+    ubicacion: initial.ubicacion ?? 'punto_venta',
     costoUnitario: initial.costoUnitario ?? 0,
     motivo: initial.motivo ?? '',
     metodoPago: initial.metodoPago ?? '',

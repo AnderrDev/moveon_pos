@@ -277,11 +277,14 @@ import { PageSkeletonComponent } from '@angular-app/shared/molecules/page-skelet
         <div class="flex items-center gap-2">
           <span
             class="font-display text-lg leading-none font-extrabold tabular-nums"
-            [class.text-destructive]="stock.isOut"
+            [class.text-destructive]="stock.isOut && stock.bodegaStock <= 0"
           >
             {{ stock.puntoVentaStock }}
           </span>
-          @if (stock.isOut) {
+          @if (stock.isOut && stock.bodegaStock > 0) {
+            <!-- No está agotado: está guardado. Lo que falta es pasarlo al punto de venta. -->
+            <mo-badge variant="warning">En bodega</mo-badge>
+          } @else if (stock.isOut) {
             <mo-badge variant="destructive">Agotado</mo-badge>
           } @else if (stock.isLow) {
             <mo-badge variant="warning">Stock bajo</mo-badge>
@@ -290,6 +293,15 @@ import { PageSkeletonComponent } from '@angular-app/shared/molecules/page-skelet
         <div class="text-muted-foreground mt-1 text-xs tabular-nums">
           Bodega {{ stock.bodegaStock }} · mínimo {{ product.stockMinimo }}
         </div>
+        @if (stock.isOut && stock.bodegaStock > 0 && canMoveStock(product)) {
+          <button
+            type="button"
+            class="text-primary-foreground bg-primary/90 hover:bg-primary mt-1.5 rounded-md px-2 py-0.5 text-xs font-semibold"
+            (click)="openTransfer(product)"
+          >
+            Pasar al punto de venta
+          </button>
+        }
       } @else {
         <span class="text-muted-foreground text-xs">{{ noStockLabel(product) }}</span>
       }
@@ -719,6 +731,10 @@ export class ProductosPage {
 
   onSaved(product: Product): void {
     this.store.upsertProduct(product)
+    // Crear con inventario inicial registra una entrada en la misma RPC: sin
+    // releer el stock, la fila quedaba en "0 · Agotado" y parecía que faltaba
+    // darle entrada (reporte del dueño 2026-10-25).
+    void this.onStockChanged()
   }
 
   async confirmDeactivate(product: Product): Promise<void> {
