@@ -507,6 +507,14 @@ Pedido del dueño (2026-11-01): en la lista de compras de producción los sabore
 |---|---|---|---|---|
 | PLAN-112 | ⏪ Revertido el mismo día a pedido del dueño ("así está confuso, déjalo como antes"): el frontend (campos del producto, agrupación en la lista, columnas en Excel) volvió a como estaba en `dd89133`. Las columnas `productos.familia`/`sabor` se eliminan con `20261101000300` (la propuesta queda en `outputs/2026-11-01-propuesta-familias.sql`). Si se retoma, el código está en los commits `562abbd` y `29131a4` de `dev` — Familia y sabor del producto | P1 | M | Columnas `productos.familia` / `sabor` (texto, opcionales, con índice por tienda); campos "Familia (producto base)" con sugerencias de las familias existentes y "Sabor" en el formulario de producto (sabor exige familia); `groupPurchaseLines` en `purchase-suggestions.ts` (TS puro, tests): la lista de compras muestra una fila sombreada por familia con stock, venta/día, días que alcanza, necesario y total a pedir, y debajo cada sabor; el pronóstico sigue por producto (modelo con backtest intacto); Excel de compras con columnas Familia y Sabor y ordenado por proveedor → familia; Excel de productos con las dos columnas. Propuesta inicial de 59 productos / 43 familias generada desde los nombres (sabores conocidos; "Mutant Cookies" tratado como marca), pendiente de revisión del dueño y de aplicarse en producción |
 
+### Bloque — Fraccionar: abrir un tarro para sachets (PLAN-113)
+
+Pedido del dueño (2026-11-01): "destapamos un tarro de PASE para armar sachets y venderlos; no puedo agregarlos como entrada porque no está saliendo plata". Una entrada contaría como compra (sobre de mercancía) y un ajuste dejaría el sachet sin costo.
+
+| ID | Título | Prioridad | Esfuerzo | Criterio de cierre |
+|---|---|---|---|---|
+| PLAN-113 | ✅ Hecho en local (2026-11-01; migración `20261101000500` **pendiente en producción**) — Fraccionar | P1 | M | RPC `split_product_atomic` (admin; sale N del origen y entran M del destino como `adjustment` con `referencia_tipo = product_split`, enlazados; costo del destino = costo origen × N ÷ M; exige costo en el origen y stock suficiente; pgTAP 12); DTO `splitProductSchema` + `splitUnitCost`, use-case `splitProduct`, repo; diálogo "Fraccionar (abrir para sachets)" en el menú del producto con el costo por porción calculado en vivo; kardex etiqueta "Fraccionado"; el asesor de compras cuenta los tarros abiertos como demanda del tarro (`isDemandMovement`). Verificado en navegador local: 1 tarro → 30 sachets a $3.051 |
+
 **Pendiente:** evaluar pronóstico por familia (reemplazo entre sabores) cuando haya historia con familias.
 
 ### PLAN-13 — `sale_exit` con motivo descriptivo

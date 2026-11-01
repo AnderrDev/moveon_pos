@@ -115,6 +115,10 @@ en noviembre (los meses anteriores están desordenados).
 
 - **Simplificación (noche):** el dueño pidió quitar la línea "Arriendo y nómina apartados por día" ("la idea es solo separar los gastos de inventario de utilidad para saber cómo invertir"). Ahora son tres sobres: mercancía, gastos registrados y utilidad; `accrueFixedSince`, los consejos `guardar_fijos`/`sin_fijos` y el saldo inicial de fijos desaparecen (migración `20261101000400` elimina `saldo_inicial_fijos`; aplicada y registrada en producción con OK del dueño después de que Netlify sirvió el build nuevo, porque el frontend anterior aún leía la columna). La tarjeta: Vendiste − Mercancía − Gastos = Utilidad, y dos acciones (comprar / retirar). ADR 0025 enmendado.
 
+## 7c. PLAN-113 — Fraccionar (noche)
+
+El dueño abre tarros para armar sachets y no podía registrarlo (entrada = compra; ajuste = sin costo). Implementado: migración `20261101000500_split_product_atomic.sql` (solo local, pgTAP 12), DTO/use-case/repo en `features/inventory`, diálogo `split-product.dialog.ts` + factory/mapper/presenter, ítem "Fraccionar (abrir para sachets)" en el menú de Productos, etiqueta "Fraccionado" en el kardex, y el asesor cuenta los tarros abiertos como demanda (`isDemandMovement`). Tipos regenerados. Verificado en navegador local: 1 × SIM · Pre-entreno Psycho ($91.516) → 30 × Sachet pre-entreno a $3.051; stock 6 → 5 y 76 → 106; movimientos enlazados; sin errores de consola. Docs: `docs/modules/inventory.md`, PLAN-113. Lección: `tsc --noEmit` de la raíz no cubre `apps/`; el chequeo real es `ng build --configuration development`.
+
 ## 8. Notas adicionales
 
 - Consultas a producción hechas con `supabase db query --linked -f <archivo>` (solo `select`,

@@ -18,6 +18,17 @@ export interface RegisterEntryInput {
   createdBy: string
 }
 
+export interface SplitProductInput {
+  tiendaId: string
+  origenId: string
+  cantidadOrigen: number
+  destinoId: string
+  cantidadDestino: number
+  ubicacion: InventoryLocation
+  nota?: string
+  createdBy: string
+}
+
 export interface AdjustStockInput {
   tiendaId: string
   productId: string
@@ -73,5 +84,7 @@ export abstract class InventoryRepository {
   abstract registerEntry(input: RegisterEntryInput): Promise<InventoryMovement>
   abstract correctEntryCost(input: CorrectEntryCostInput): Promise<InventoryMovement>
   abstract adjustStock(input: AdjustStockInput): Promise<InventoryMovement>
+  /** Fraccionar (PLAN-113): devuelve el movimiento de entrada del destino. */
+  abstract splitProduct(input: SplitProductInput): Promise<InventoryMovement>
   abstract transferStock(input: TransferStockInput): Promise<string>
 }

@@ -2217,6 +2217,40 @@ export type Database = {
         Args: { p_options: Json; p_producto_id: string; p_tienda_id: string }
         Returns: number
       }
+      split_product_atomic: {
+        Args: {
+          p_cantidad_destino: number
+          p_cantidad_origen: number
+          p_created_by: string
+          p_destino_id: string
+          p_motivo: string
+          p_origen_id: string
+          p_tienda_id: string
+          p_ubicacion: Database["public"]["Enums"]["inventory_location"]
+        }
+        Returns: {
+          cantidad: number
+          cash_movement_id: string | null
+          costo_unitario: number | null
+          created_at: string
+          created_by: string
+          id: string
+          metodo_pago: string | null
+          motivo: string | null
+          producto_id: string
+          referencia_id: string | null
+          referencia_tipo: string | null
+          tienda_id: string
+          tipo: Database["public"]["Enums"]["inventory_movement_type"]
+          ubicacion: Database["public"]["Enums"]["inventory_location"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "inventory_movements"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       storefront_club_progress: {
         Args: { p_celular: string }
         Returns: {

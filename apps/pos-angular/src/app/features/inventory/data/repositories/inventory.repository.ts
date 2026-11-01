@@ -18,6 +18,7 @@ import {
   type AdjustStockInput,
   type CorrectEntryCostInput,
   type RegisterEntryInput,
+  type SplitProductInput,
   type TransferStockInput,
 } from '@angular-app/features/inventory/domain/repositories/inventory.repository'
 import type { InventoryLocation, ProductType } from '@/shared/types'
@@ -90,10 +91,10 @@ export class InventoryRepository extends InventoryRepositoryContract {
   }
 
   async getMovementsSince(tiendaId: string, fromIso: string): Promise<StockMovementRecord[]> {
-    const rows = await fetchAllPages<{ producto_id: string; tipo: string; cantidad: number; created_at: string }>(async (from, to) => {
+    const rows = await fetchAllPages<{ producto_id: string; tipo: string; cantidad: number; created_at: string; referencia_tipo: string | null }>(async (from, to) => {
       const { data, error } = await this.supabaseClient.supabase
         .from('inventory_movements')
-        .select('producto_id, tipo, cantidad, created_at')
+        .select('producto_id, tipo, cantidad, created_at, referencia_tipo')
         .eq('tienda_id', tiendaId)
         .gte('created_at', fromIso)
         .order('created_at', { ascending: true })
@@ -107,6 +108,7 @@ export class InventoryRepository extends InventoryRepositoryContract {
       tipo: r.tipo,
       cantidad: Number(r.cantidad),
       at: new Date(r.created_at),
+      referenciaTipo: r.referencia_tipo,
     }))
   }
 
@@ -176,6 +178,31 @@ export class InventoryRepository extends InventoryRepositoryContract {
     const movement = rowToInventoryMovement(data)
     // El trigger tr_audit_inventory_adjustment ya audita (inventory.adjusted).
     return movement
+  }
+
+  async splitProduct(input: SplitProductInput): Promise<InventoryMovement> {
+    const { data, error } = await this.supabaseClient.supabase.rpc('split_product_atomic', {
+      p_tienda_id: input.tiendaId,
+      p_origen_id: input.origenId,
+      p_cantidad_origen: input.cantidadOrigen,
+      p_destino_id: input.destinoId,
+      p_cantidad_destino: input.cantidadDestino,
+      p_ubicacion: input.ubicacion,
+      p_motivo: input.nota ?? '',
+      p_created_by: input.createdBy,
+    })
+    if (error) {
+      if (error.message.includes('STOCK_INSUFICIENTE')) {
+        throw new Error('No hay suficientes unidades en esa ubicación para abrir')
+      }
+      if (error.message.includes('ORIGEN_SIN_COSTO')) {
+        throw new Error('El producto que abres no tiene costo registrado: regístralo primero con una entrada')
+      }
+      throw new Error(error.message)
+    }
+    if (!data) throw new Error('Fraccionamiento creado sin respuesta')
+    // tg_audit_inventory_adjustment audita los dos movimientos.
+    return rowToInventoryMovement(data)
   }
 
   async transferStock(input: TransferStockInput): Promise<string> {
