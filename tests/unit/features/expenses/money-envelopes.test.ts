@@ -100,8 +100,13 @@ describe('accrueFixedSince', () => {
   })
 
   it('sin fijos o con fecha futura no aparta nada', () => {
-    expect(accrueFixedSince({ fijosMensual: 0, desde: '2026-11-01', hasta: '2026-11-30', mesVisible: '2026-11' })).toEqual({ acumulado: 0, mes: 0 })
-    expect(accrueFixedSince({ fijosMensual: 100, desde: '2026-12-01', hasta: '2026-11-30', mesVisible: '2026-11' })).toEqual({ acumulado: 0, mes: 0 })
+    expect(accrueFixedSince({ fijosMensual: 0, desde: '2026-11-01', hasta: '2026-11-30', mesVisible: '2026-11' })).toEqual({ acumulado: 0, mes: 0, dias: 0, diasMes: 30 })
+    expect(accrueFixedSince({ fijosMensual: 100, desde: '2026-12-01', hasta: '2026-11-30', mesVisible: '2026-11' })).toEqual({ acumulado: 0, mes: 0, dias: 0, diasMes: 30 })
+  })
+
+  it('cuenta los días apartados: 1 de noviembre = 1 día de 30, $143.333 de $4.300.000', () => {
+    const r = accrueFixedSince({ fijosMensual: 4_300_000, desde: '2026-11-01', hasta: '2026-11-01', mesVisible: '2026-11' })
+    expect(r).toEqual({ acumulado: 143_333, mes: 143_333, dias: 1, diasMes: 30 })
   })
 })
 

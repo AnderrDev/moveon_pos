@@ -170,18 +170,21 @@ function shiftMonth(month: string, delta: number): string {
  * Fijos apartados entre `desde` y `hasta` (ambas `YYYY-MM-DD`, inclusive):
  * cada día aparta `fijosMensual ÷ días de su mes`. Así el arriendo del mes
  * está completo el último día y, en meses cerrados, se apartó entero.
- * Devuelve el acumulado y la parte del mes `mesVisible` (`YYYY-MM`).
+ * Devuelve el acumulado, la parte del mes `mesVisible` (`YYYY-MM`) y los días
+ * contados (para explicar la cuenta: "1 día de 30").
  */
 export function accrueFixedSince(input: {
   fijosMensual: number
   desde: string
   hasta: string
   mesVisible: string
-}): { acumulado: number; mes: number } {
-  if (input.fijosMensual <= 0 || input.hasta < input.desde) return { acumulado: 0, mes: 0 }
+}): { acumulado: number; mes: number; dias: number; diasMes: number } {
+  const diasMes = daysInMonth(`${input.mesVisible}-01`)
+  if (input.fijosMensual <= 0 || input.hasta < input.desde) return { acumulado: 0, mes: 0, dias: 0, diasMes }
 
   let acumulado = 0
   let mes = 0
+  let dias = 0
   const lastMonth = monthOf(input.hasta)
   for (let m = monthOf(input.desde); m <= lastMonth; m = shiftMonth(m, 1)) {
     const total = daysInMonth(`${m}-01`)
@@ -191,7 +194,8 @@ export function accrueFixedSince(input: {
     if (days <= 0) continue
     const apartado = Math.round((input.fijosMensual * days) / total)
     acumulado += apartado
+    dias += days
     if (m === input.mesVisible) mes = apartado
   }
-  return { acumulado, mes }
+  return { acumulado, mes, dias, diasMes }
 }
