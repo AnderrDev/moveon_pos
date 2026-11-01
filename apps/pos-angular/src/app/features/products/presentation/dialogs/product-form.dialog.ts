@@ -146,53 +146,6 @@ import { tracksOwnStock } from '@/shared/lib/product-type'
           />
         }
 
-        <div class="grid gap-4 sm:grid-cols-2">
-          <div class="space-y-1.5">
-            <label for="product-familia" class="text-foreground text-sm font-medium">Familia (producto base)</label>
-            <input
-              id="product-familia"
-              type="text"
-              formControlName="familia"
-              list="product-familias"
-              maxlength="100"
-              placeholder="Ej. WHEY GOLD STANDARD 2LB"
-              class="border-input bg-card focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm focus:ring-2 focus:outline-none"
-            />
-            <datalist id="product-familias">
-              @for (f of familias(); track f) {
-                <option [value]="f"></option>
-              }
-            </datalist>
-            <p class="text-muted-foreground text-xs">
-              Agrupa los sabores de un mismo producto en la lista de compras. Escribe la misma familia en cada sabor.
-            </p>
-            @if (presenter.errors().familia; as familiaError) {
-              <p class="text-destructive text-xs">{{ familiaError }}</p>
-            }
-          </div>
-          <div class="space-y-1.5">
-            <label for="product-sabor" class="text-foreground text-sm font-medium">Sabor</label>
-            <input
-              id="product-sabor"
-              type="text"
-              formControlName="sabor"
-              list="product-sabores"
-              maxlength="60"
-              placeholder="Ej. Vainilla"
-              class="border-input bg-card focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm focus:ring-2 focus:outline-none"
-            />
-            <datalist id="product-sabores">
-              @for (s of sabores(); track s) {
-                <option [value]="s"></option>
-              }
-            </datalist>
-            <p class="text-muted-foreground text-xs">Elige uno de los sabores ya usados o escribe uno nuevo.</p>
-            @if (presenter.errors().sabor; as saborError) {
-              <p class="text-destructive text-xs">{{ saborError }}</p>
-            }
-          </div>
-        </div>
-
         <mo-product-image-field formControlName="imageUrl" [tiendaId]="tiendaId()" />
         <mo-form-error [message]="presenter.errors().imageUrl ?? null" />
 
@@ -333,10 +286,6 @@ export class ProductFormDialog {
   readonly product = input<Product | null>(null)
   readonly categorias = input<Categoria[]>([])
   readonly proveedores = input<Proveedor[]>([])
-  /** Familias ya usadas en el catálogo, para sugerirlas al escribir. */
-  readonly familias = input<string[]>([])
-  /** Sabores ya usados en el catálogo, para sugerirlos al escribir. */
-  readonly sabores = input<string[]>([])
 
   readonly proveedorNuevoValue = PROVEEDOR_NUEVO
   readonly proveedorIdValue = toSignal(this.presenter.form.controls.proveedorId.valueChanges, {

@@ -378,8 +378,6 @@ import { PageSkeletonComponent } from '@angular-app/shared/molecules/page-skelet
       [product]="editingProduct()"
       [categorias]="categorias()"
       [proveedores]="proveedores()"
-      [familias]="familias()"
-      [sabores]="sabores()"
       (closed)="closeDialog()"
       (saved)="onSaved($event)"
     />
@@ -434,12 +432,6 @@ export class ProductosPage {
   private readonly excel = inject(ExcelExportService)
 
   readonly products = computed(() => this.store.products() ?? [])
-  readonly sabores = computed(() =>
-    [...new Set(this.products().map((p) => p.sabor).filter((s): s is string => !!s))].sort((a, b) => a.localeCompare(b, 'es')),
-  )
-  readonly familias = computed(() =>
-    [...new Set(this.products().map((p) => p.familia).filter((f): f is string => !!f))].sort((a, b) => a.localeCompare(b, 'es')),
-  )
   readonly categorias = computed(() => this.store.categorias() ?? [])
   readonly proveedores = computed(() => this.store.activeProveedores())
   readonly stockLevels = signal<StockLevel[]>([])

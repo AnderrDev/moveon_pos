@@ -53,13 +53,6 @@ describe('productFormSchema', () => {
     isActive: true,
   }
 
-  it('sabor sin familia se rechaza (el sabor necesita su producto base)', () => {
-    const result = productFormSchema.safeParse({ ...validProduct, familia: '', sabor: 'Vainilla' })
-    expect(result.success).toBe(false)
-    if (!result.success) expect(result.error.issues[0].path).toEqual(['familia'])
-    expect(productFormSchema.safeParse({ ...validProduct, familia: 'WHEY 2LB', sabor: 'Vainilla' }).success).toBe(true)
-  })
-
   it('acepta un producto válido', () => {
     const result = productFormSchema.safeParse(validProduct)
     expect(result.success).toBe(true)
@@ -293,8 +286,6 @@ describe('createProductFormDefaults', () => {
       categoriaId: '11111111-1111-4111-8111-111111111111',
       proveedorId: '44444444-4444-4444-8444-444444444444',
       proveedorNombreNuevo: '',
-      familia: 'WHEY 2LB',
-      sabor: 'Vainilla',
       paraQueSirve: 'Aporta proteina.',
       recomendadoPara: 'Personas activas.',
       imageUrl: 'https://example.com/barra.jpg',
