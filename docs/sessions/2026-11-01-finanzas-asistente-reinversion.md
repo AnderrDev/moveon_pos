@@ -96,7 +96,8 @@ en noviembre (los meses anteriores están desordenados).
 ## 7. Próximos pasos
 
 1. ~~Commit y producción~~ — hecho 2026-11-01 con OK del dueño: migración `20261101000100` aplicada con `db query --linked -f`, versión registrada, RPC con md5 idéntico a local, prueba funcional en bloque `DO` revertida, `TRUNCATE` revocado para anon/authenticated (los default privileges lo daban); merge `b616062` en `main`, Netlify desplegó (el dueño vio la tarjeta en producción).
-2. **En producción el fondo sigue con `fecha_inicio = 2026-10-24`**: por eso muestra "Faltó apartar para fijos $3,05 M" (arriendo y nómina de octubre pagados dentro de la ventana, pero solo 8 días apartados). PLAN-104 (dueño): "Editar sobres" → fecha 2026-11-01 y saldos iniciales; registrar compras con costo y método, y cada retiro.
+2. ~~Fecha de inicio~~ — hecho 2026-11-01 con OK del dueño: `fecha_inicio = 2026-11-01` en producción (saldos iniciales en 0, meta 45). Al verificar la cuenta de noviembre salió un mensaje engañoso el día 1 (utilidad en negativo por el día de fijos apartado → "Retiraste de más" sin retiros): nuevo consejo `sin_utilidad` ("Aún no hay utilidad"), commit en dev y merge `5083add` en main.
+3. (histórico) **En producción el fondo tenía `fecha_inicio = 2026-10-24`**: por eso muestra "Faltó apartar para fijos $3,05 M" (arriendo y nómina de octubre pagados dentro de la ventana, pero solo 8 días apartados). PLAN-104 (dueño): "Editar sobres" → fecha 2026-11-01 y saldos iniciales; registrar compras con costo y método, y cada retiro.
 4. PLAN-108 (reordenar la página), PLAN-109 (destino del retiro de cierre), PLAN-110 (paridad iOS: `owner_finance_summary` con sobres), PLAN-111.
 
 ---
