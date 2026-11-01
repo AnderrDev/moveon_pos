@@ -113,7 +113,7 @@ en noviembre (los meses anteriores están desordenados).
 
 - **Revertido (misma tarde):** el dueño vio la lista agrupada en producción y pidió dejarla como antes. `git revert` de `562abbd` y `29131a4` solo en el frontend y tests; se conserva la migración `20261101000200` y se agrega `20261101000300` que elimina las columnas (el dueño pidió resolverlas); `database.types.ts` regenerado. Merge a `main` y Netlify.
 
-- **Simplificación (noche):** el dueño pidió quitar la línea "Arriendo y nómina apartados por día" ("la idea es solo separar los gastos de inventario de utilidad para saber cómo invertir"). Ahora son tres sobres: mercancía, gastos registrados y utilidad; `accrueFixedSince`, los consejos `guardar_fijos`/`sin_fijos` y el saldo inicial de fijos desaparecen (migración `20261101000400` elimina `saldo_inicial_fijos`). La tarjeta: Vendiste − Mercancía − Gastos = Utilidad, y dos acciones (comprar / retirar). ADR 0025 enmendado.
+- **Simplificación (noche):** el dueño pidió quitar la línea "Arriendo y nómina apartados por día" ("la idea es solo separar los gastos de inventario de utilidad para saber cómo invertir"). Ahora son tres sobres: mercancía, gastos registrados y utilidad; `accrueFixedSince`, los consejos `guardar_fijos`/`sin_fijos` y el saldo inicial de fijos desaparecen (migración `20261101000400` elimina `saldo_inicial_fijos`; aplicada y registrada en producción con OK del dueño después de que Netlify sirvió el build nuevo, porque el frontend anterior aún leía la columna). La tarjeta: Vendiste − Mercancía − Gastos = Utilidad, y dos acciones (comprar / retirar). ADR 0025 enmendado.
 
 ## 8. Notas adicionales
 
