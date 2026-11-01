@@ -10,7 +10,7 @@
 | Sprint | Post-MVP (mejoras) |
 | Agente | Claude Code |
 | HUs trabajadas | Pedido del dueño: entender `/finanzas` y un asistente que diga qué reinvertir |
-| Estado | Completada en local (PLAN-103, 105, 106, 107); sin publicar |
+| Estado | Completada y publicada en producción (commits `d858c0f`, `b862847`; merge `b616062` en main) |
 
 ---
 
@@ -95,9 +95,8 @@ en noviembre (los meses anteriores están desordenados).
 
 ## 7. Próximos pasos
 
-1. Commit en `dev` (índice compartido: `git commit -- <rutas>`).
-2. Con OK explícito del dueño: aplicar `20261101000100` en producción (`db query --linked -f` + registrar versión), luego merge a `main` (Netlify).
-3. PLAN-104 (dueño): "Editar sobres" con fecha 2026-11-01 y saldos; registrar compras con costo y método, y cada retiro.
+1. ~~Commit y producción~~ — hecho 2026-11-01 con OK del dueño: migración `20261101000100` aplicada con `db query --linked -f`, versión registrada, RPC con md5 idéntico a local, prueba funcional en bloque `DO` revertida, `TRUNCATE` revocado para anon/authenticated (los default privileges lo daban); merge `b616062` en `main`, Netlify desplegó (el dueño vio la tarjeta en producción).
+2. **En producción el fondo sigue con `fecha_inicio = 2026-10-24`**: por eso muestra "Faltó apartar para fijos $3,05 M" (arriendo y nómina de octubre pagados dentro de la ventana, pero solo 8 días apartados). PLAN-104 (dueño): "Editar sobres" → fecha 2026-11-01 y saldos iniciales; registrar compras con costo y método, y cada retiro.
 4. PLAN-108 (reordenar la página), PLAN-109 (destino del retiro de cierre), PLAN-110 (paridad iOS: `owner_finance_summary` con sobres), PLAN-111.
 
 ---
