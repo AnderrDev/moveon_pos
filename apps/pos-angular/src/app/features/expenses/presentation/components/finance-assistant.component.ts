@@ -12,15 +12,13 @@ import type { OwnerWithdrawal } from '@angular-app/features/expenses/domain/enti
 
 const ENVELOPE_LABEL: Record<EnvelopeKey, string> = {
   mercancia: 'Mercancía',
-  fijos: 'Arriendo y nómina',
-  diaADia: 'Día a día',
+  gastos: 'Gastos',
   utilidad: 'Utilidad',
 }
 
 const ENVELOPE_HINT: Record<EnvelopeKey, string> = {
   mercancia: 'Lo que costó lo vendido: es para volver a surtir',
-  fijos: 'Se aparta día a día para pagarlos a tiempo',
-  diaADia: 'Hielo, insumos, transporte… lo que ya se gastó',
+  gastos: 'Arriendo, nómina, caja, insumos… lo registrado como gasto',
   utilidad: 'Lo que sobra: de aquí salen tus retiros',
 }
 
@@ -47,7 +45,7 @@ const LEVEL_BADGE: Record<InventoryLevel, 'success' | 'warning' | 'destructive' 
         <div>
           <h3 class="text-sm font-semibold">Tu plata este mes</h3>
           <p class="text-muted-foreground mt-1 text-xs">
-            Cada peso que entra se reparte en cuatro sobres: mercancía, arriendo y nómina, día a día y utilidad.
+            Cada peso que entra se reparte en tres: lo que cuesta reponer la mercancía, los gastos y tu utilidad.
           </p>
         </div>
         <div class="flex gap-2">
@@ -63,7 +61,7 @@ const LEVEL_BADGE: Record<InventoryLevel, 'success' | 'warning' | 'destructive' 
       @if (!envelopes() || !advice()) {
         <p class="text-muted-foreground mt-3 text-sm">
           Configura los sobres con la fecha desde la que quieres llevar las cuentas (por ejemplo el 1 de
-          noviembre). Desde ahí el asistente te dirá cuánto puedes comprar y cuánto puedes retirar.
+          noviembre). Desde ahí el asistente separa la plata de la mercancía de tu utilidad.
         </p>
       } @else {
         <p class="mt-4 text-sm font-semibold">La cuenta desde el {{ fechaInicioLabel() }}</p>
@@ -81,17 +79,10 @@ const LEVEL_BADGE: Record<InventoryLevel, 'success' | 'warning' | 'destructive' 
           </div>
           <div class="flex items-start justify-between gap-3 px-3 py-2">
             <dt>
-              − Arriendo y nómina
-              <span class="text-muted-foreground block text-xs">{{ fijosExplicacion() }}</span>
+              − Gastos
+              <span class="text-muted-foreground block text-xs">Arriendo, nómina, caja, insumos… lo que registraste como gasto.</span>
             </dt>
-            <dd class="font-semibold tabular-nums">{{ (envelopes()!.sobres.fijos.apartadoAcumulado | money) }}</dd>
-          </div>
-          <div class="flex items-start justify-between gap-3 px-3 py-2">
-            <dt>
-              − Gastos del día a día
-              <span class="text-muted-foreground block text-xs">Hielo, insumos, transporte… lo registrado como gasto.</span>
-            </dt>
-            <dd class="font-semibold tabular-nums">{{ (envelopes()!.sobres.diaADia.apartadoAcumulado | money) }}</dd>
+            <dd class="font-semibold tabular-nums">{{ (envelopes()!.sobres.gastos.apartadoAcumulado | money) }}</dd>
           </div>
           <div class="bg-muted/40 flex items-start justify-between gap-3 px-3 py-2">
             <dt class="font-semibold">
@@ -109,7 +100,7 @@ const LEVEL_BADGE: Record<InventoryLevel, 'success' | 'warning' | 'destructive' 
         </dl>
 
         <p class="mt-4 text-sm font-semibold">Qué puedes hacer hoy</p>
-        <div class="mt-2 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div class="mt-2 grid gap-3 sm:grid-cols-2">
           <mo-stat-card
             [label]="comprar().label"
             [value]="comprar().value"
@@ -121,12 +112,6 @@ const LEVEL_BADGE: Record<InventoryLevel, 'success' | 'warning' | 'destructive' 
             [value]="retirar().value"
             [hint]="retirar().hint"
             [tone]="retirar().tone"
-          />
-          <mo-stat-card
-            [label]="fijos().label"
-            [value]="fijos().value"
-            [hint]="fijos().hint"
-            [tone]="fijos().tone"
           />
         </div>
 
@@ -182,8 +167,8 @@ const LEVEL_BADGE: Record<InventoryLevel, 'success' | 'warning' | 'destructive' 
             </table>
           </div>
           <p class="text-muted-foreground mt-2">
-            Mercancía usada = compras de mercancía (entradas con costo). Arriendo y nómina usados = esos pagos
-            registrados. Utilidad usada = tus retiros. Las compras no restan de la ganancia: su costo se descuenta cuando vendes.
+            Mercancía usada = compras de mercancía (entradas con costo). Utilidad usada = tus retiros. Las compras
+            no restan de la ganancia: su costo se descuenta cuando vendes.
           </p>
         </details>
 
@@ -229,8 +214,6 @@ export class FinanceAssistantComponent {
   readonly monthLabel = input('este mes')
   /** `YYYY-MM-DD`; `null` sin configurar. */
   readonly fechaInicio = input<string | null>(null)
-  /** Cómo se apartaron los fijos: total mensual y días contados (para explicar la cuenta). */
-  readonly fijosInfo = input<{ mensual: number; dias: number; diasMes: number } | null>(null)
 
   readonly configureRequested = output<void>()
   readonly withdrawRequested = output<void>()
@@ -277,7 +260,7 @@ export class FinanceAssistantComponent {
       return {
         label: 'Aún no puedes retirar',
         value: formatCurrency(sinUtilidad.faltante),
-        hint: 'Es lo que falta vender (descontando su mercancía) para cubrir los fijos de estos días',
+        hint: 'Los gastos superan lo que dejó la venta por esto; se recupera vendiendo',
         tone: 'default' as const,
       }
     }
@@ -287,24 +270,6 @@ export class FinanceAssistantComponent {
       value: formatCurrency(exceso?.exceso ?? 0),
       hint: 'Esa plata era de mercancía o del arriendo: no retires hasta recuperarla',
       tone: 'warning' as const,
-    }
-  })
-
-  readonly fijos = computed(() => {
-    const f = this.find('guardar_fijos')
-    if (!f) {
-      return {
-        label: 'Arriendo y nómina',
-        value: '—',
-        hint: 'Configura una plantilla de arriendo y los empleados para apartarlos',
-        tone: 'warning' as const,
-      }
-    }
-    return {
-      label: f.disponible >= 0 ? 'Guardado para arriendo y nómina' : 'Faltó apartar para fijos',
-      value: formatCurrency(Math.abs(f.disponible)),
-      hint: `${formatCurrency(f.apartado)} apartados − ${formatCurrency(f.pagado)} ya pagados. No lo toques: es del arriendo y la nómina`,
-      tone: f.disponible < 0 ? ('warning' as const) : ('default' as const),
     }
   })
 
@@ -336,9 +301,7 @@ export class FinanceAssistantComponent {
   readonly avisos = computed<string[]>(() => {
     const out: string[] = []
     for (const c of this.advice()?.consejos ?? []) {
-      if (c.code === 'sin_fijos') {
-        out.push('No hay fijos configurados: crea la plantilla del arriendo en "Gastos del mes" y registra a tus empleados con su salario.')
-      } else if (c.code === 'ventas_sin_costo') {
+      if (c.code === 'ventas_sin_costo') {
         out.push(`${c.lineas} ${c.lineas === 1 ? 'línea vendida' : 'líneas vendidas'} sin costo del producto: el sobre de mercancía se queda corto. Registra el costo con una entrada de inventario.`)
       } else if (c.code === 'entradas_sin_costo') {
         out.push(`${c.entradas} ${c.entradas === 1 ? 'compra de mercancía' : 'compras de mercancía'} sin costo: no descuentan del sobre. Pon el costo unitario al surtir.`)
@@ -349,25 +312,17 @@ export class FinanceAssistantComponent {
     return out
   })
 
-  readonly fijosExplicacion = computed(() => {
-    const f = this.fijosInfo()
-    if (!f || f.mensual <= 0) return 'No hay arriendo ni nómina configurados: no se aparta nada.'
-    const porDia = Math.round(f.mensual / f.diasMes)
-    const dias = f.dias === 1 ? '1 día' : `${f.dias} días`
-    return `${formatCurrency(f.mensual)} al mes ÷ ${f.diasMes} días = ${formatCurrency(porDia)} por día. Van ${dias}: se apartan aunque aún no los hayas pagado.`
-  })
-
   readonly utilidadExplicacion = computed(() => {
     const u = this.envelopes()?.sobres.utilidad.apartadoAcumulado ?? 0
-    if (u < 0) return 'Lo vendido todavía no cubre la mercancía y los fijos de estos días. Es normal al empezar el mes.'
-    if (u === 0) return 'Lo vendido cubre justo la mercancía y los fijos.'
-    return 'Lo que sobra después de reponer mercancía y apartar los fijos. De aquí salen tus retiros.'
+    if (u < 0) return 'Los gastos registrados superan lo que dejó la venta. Cuando vendas más, la cuenta se voltea.'
+    if (u === 0) return 'Lo vendido cubre justo la mercancía y los gastos.'
+    return 'Lo que sobra después de reponer la mercancía y pagar los gastos. De aquí salen tus retiros.'
   })
 
   readonly rows = computed(() => {
     const e = this.envelopes()
     if (!e) return []
-    return (['mercancia', 'fijos', 'diaADia', 'utilidad'] as const).map((key) => {
+    return (['mercancia', 'gastos', 'utilidad'] as const).map((key) => {
       const s: Envelope = e.sobres[key]
       return { ...s, label: ENVELOPE_LABEL[key], hint: ENVELOPE_HINT[key] }
     })

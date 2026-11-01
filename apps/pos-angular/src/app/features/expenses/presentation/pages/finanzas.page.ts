@@ -22,7 +22,6 @@ import { FundSettingsDialog } from '@angular-app/features/expenses/presentation/
 import { OwnerWithdrawalDialog } from '@angular-app/features/expenses/presentation/dialogs/owner-withdrawal.dialog'
 import { voidOwnerWithdrawal } from '@angular-app/features/expenses/domain/usecases/void-owner-withdrawal.use-case'
 import {
-  accrueFixedSince,
   buildMoneyEnvelopes,
   type MoneyEnvelopes,
   type MoneyEnvelopeTotals,
@@ -31,7 +30,6 @@ import {
   buildFinanceAdvice,
   type FinanceAdviceResult,
 } from '@angular-app/features/expenses/domain/services/finance-advice'
-import { todayLocalDate } from '@angular-app/features/expenses/presentation/forms/expense-form.factory'
 import { ExcelExportService } from '@angular-app/shared/services/export/excel-export.service'
 import { buildFinanzasWorkbook } from '@angular-app/features/expenses/presentation/services/expense-export'
 import type { ExpenseFormValue } from '@angular-app/features/expenses/presentation/forms/expense-form.factory'
@@ -174,7 +172,6 @@ function monthRange(month: string): { from: string; to: string } {
             [withdrawals]="withdrawals()"
             [monthLabel]="monthLabel()"
             [fechaInicio]="fundSettings()?.fechaInicio ?? null"
-            [fijosInfo]="fijosInfo()"
             (configureRequested)="fundDialogOpen.set(true)"
             (withdrawRequested)="withdrawalDialogOpen.set(true)"
             (voidWithdrawalRequested)="voidingWithdrawal.set($event)"
@@ -377,38 +374,14 @@ export class FinanzasPage {
     }),
   )
 
-  /** Fijos apartados por día desde la fecha de inicio hasta hoy. */
-  private readonly fijosAccrual = computed(() => {
-    const settings = this.fundSettings()
-    if (!settings) return null
-    return accrueFixedSince({
-      fijosMensual: this.fixedCommitments().total,
-      desde: settings.fechaInicio,
-      hasta: todayLocalDate(),
-      mesVisible: this.month(),
-    })
-  })
-
-  readonly fijosInfo = computed(() => {
-    const f = this.fijosAccrual()
-    return f ? { mensual: this.fixedCommitments().total, dias: f.dias, diasMes: f.diasMes } : null
-  })
-
   /** Sobres acumulados desde la fecha de inicio + el mes visible (ADR 0025). */
   readonly envelopes = computed<MoneyEnvelopes | null>(() => {
     const settings = this.fundSettings()
     const totals = this.envelopeTotals()
-    const fijos = this.fijosAccrual()
-    if (!settings || !totals || !fijos) return null
+    if (!settings || !totals) return null
     return buildMoneyEnvelopes({
       ...totals,
-      saldosIniciales: {
-        mercancia: settings.saldoInicial,
-        fijos: settings.saldoInicialFijos,
-        utilidad: settings.saldoInicialUtilidad,
-      },
-      fijosApartadosAcumulados: fijos.acumulado,
-      fijosApartadosMes: fijos.mes,
+      saldosIniciales: { mercancia: settings.saldoInicial, utilidad: settings.saldoInicialUtilidad },
     })
   })
 
@@ -422,7 +395,6 @@ export class FinanzasPage {
       inventarioAlCosto: this.inventoryValue()?.valorAlCosto ?? null,
       cogsUltimos28Dias: totals.cogsUltimos28Dias,
       metaDias: settings.diasInventarioMeta,
-      fijosConfigurados: this.fixedCommitments().items.length > 0,
       hayRetiros: totals.retirosAcumulados > 0,
     })
   })

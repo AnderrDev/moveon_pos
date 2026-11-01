@@ -41,7 +41,7 @@ import { FundSettingsFormPresenter } from '@angular-app/features/expenses/presen
     <mo-dialog
       [open]="open()"
       title="Configurar los sobres"
-      description="Desde la fecha de inicio, cada venta reparte su plata en mercancía, fijos, día a día y utilidad. Lo anterior a esa fecha no cuenta."
+      description="Desde la fecha de inicio, cada venta separa la plata de la mercancía, los gastos y tu utilidad. Lo anterior a esa fecha no cuenta."
       [busy]="saving()"
       width="md"
       (closed)="onClose()"
@@ -66,18 +66,12 @@ import { FundSettingsFormPresenter } from '@angular-app/features/expenses/presen
         </div>
 
         <p class="text-sm font-semibold">Con cuánto arranca cada sobre</p>
-        <div class="grid gap-4 sm:grid-cols-3">
+        <div class="grid gap-4 sm:grid-cols-2">
           <mo-form-currency-input
             controlName="saldoInicial"
             label="Mercancía"
             description="Plata que ya tienes guardada para surtir (puede ser 0)."
             [error]="errors().saldoInicial ?? null"
-          />
-          <mo-form-currency-input
-            controlName="saldoInicialFijos"
-            label="Arriendo y nómina"
-            description="Plata ya apartada para los fijos del mes."
-            [error]="errors().saldoInicialFijos ?? null"
           />
           <mo-form-currency-input
             controlName="saldoInicialUtilidad"
@@ -150,7 +144,6 @@ export class FundSettingsDialog {
                   saldoInicial: current.saldoInicial,
                   fechaInicio: current.fechaInicio,
                   saldoInicialUtilidad: current.saldoInicialUtilidad,
-                  saldoInicialFijos: current.saldoInicialFijos,
                   diasInventarioMeta: current.diasInventarioMeta,
                 }
               : {},

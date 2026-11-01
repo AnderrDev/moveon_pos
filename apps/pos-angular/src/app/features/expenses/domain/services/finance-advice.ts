@@ -27,8 +27,6 @@ export type FinanceAdvice =
   | { code: 'retirar_exceso'; exceso: number }
   /** Utilidad en negativo sin haber retirado: lo vendido aún no cubre los fijos apartados. */
   | { code: 'sin_utilidad'; faltante: number }
-  | { code: 'guardar_fijos'; apartado: number; pagado: number; disponible: number }
-  | { code: 'sin_fijos' }
   | { code: 'ventas_sin_costo'; lineas: number }
   | { code: 'entradas_sin_costo'; entradas: number }
   | { code: 'sin_retiros'; disponible: number }
@@ -39,8 +37,6 @@ export interface FinanceAdviceInput {
   inventarioAlCosto: number | null
   cogsUltimos28Dias: number
   metaDias?: number
-  /** Hay fijos configurados (plantillas activas o empleados con salario). */
-  fijosConfigurados: boolean
   /** Hay al menos un retiro registrado desde el inicio. */
   hayRetiros: boolean
 }
@@ -72,7 +68,7 @@ export function inventoryCoverage(input: {
 }
 
 export function buildFinanceAdvice(input: FinanceAdviceInput): FinanceAdviceResult {
-  const { mercancia, fijos, utilidad } = input.envelopes.sobres
+  const { mercancia, utilidad } = input.envelopes.sobres
   const consejos: FinanceAdvice[] = []
 
   if (mercancia.disponible >= 0) consejos.push({ code: 'comprar', disponible: mercancia.disponible })
@@ -81,17 +77,6 @@ export function buildFinanceAdvice(input: FinanceAdviceInput): FinanceAdviceResu
   if (utilidad.disponible >= 0) consejos.push({ code: 'retirar', disponible: utilidad.disponible })
   else if (utilidad.usadoAcumulado > 0) consejos.push({ code: 'retirar_exceso', exceso: -utilidad.disponible })
   else consejos.push({ code: 'sin_utilidad', faltante: -utilidad.disponible })
-
-  if (input.fijosConfigurados) {
-    consejos.push({
-      code: 'guardar_fijos',
-      apartado: fijos.apartadoAcumulado + fijos.saldoInicial,
-      pagado: fijos.usadoAcumulado,
-      disponible: fijos.disponible,
-    })
-  } else {
-    consejos.push({ code: 'sin_fijos' })
-  }
 
   if (input.envelopes.ventasSinCosto > 0) {
     consejos.push({ code: 'ventas_sin_costo', lineas: input.envelopes.ventasSinCosto })

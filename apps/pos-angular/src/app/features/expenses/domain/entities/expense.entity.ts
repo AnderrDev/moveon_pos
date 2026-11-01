@@ -57,8 +57,6 @@ export interface ReinvestmentFundSettings {
   fechaInicio: string
   /** Utilidad ya apartada al arrancar los sobres (ADR 0025). */
   saldoInicialUtilidad: number
-  /** Dinero ya guardado para arriendo/nómina al arrancar los sobres (ADR 0025). */
-  saldoInicialFijos: number
   /** Meta de días de venta cubiertos por el inventario (semáforo). */
   diasInventarioMeta: number
   updatedAt: Date

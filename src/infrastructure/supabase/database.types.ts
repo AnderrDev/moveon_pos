@@ -1320,7 +1320,6 @@ export type Database = {
           dias_inventario_meta: number
           fecha_inicio: string
           saldo_inicial: number
-          saldo_inicial_fijos: number
           saldo_inicial_utilidad: number
           tienda_id: string
           updated_at: string
@@ -1330,7 +1329,6 @@ export type Database = {
           dias_inventario_meta?: number
           fecha_inicio: string
           saldo_inicial?: number
-          saldo_inicial_fijos?: number
           saldo_inicial_utilidad?: number
           tienda_id: string
           updated_at?: string
@@ -1340,7 +1338,6 @@ export type Database = {
           dias_inventario_meta?: number
           fecha_inicio?: string
           saldo_inicial?: number
-          saldo_inicial_fijos?: number
           saldo_inicial_utilidad?: number
           tienda_id?: string
           updated_at?: string
