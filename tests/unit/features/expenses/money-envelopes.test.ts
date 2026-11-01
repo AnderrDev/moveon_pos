@@ -152,6 +152,22 @@ describe('buildFinanceAdvice', () => {
     expect(r.inventario.nivel).toBe('sin_datos')
   })
 
+  it('utilidad en negativo sin retiros es "aún no hay utilidad", no "retiraste de más" (día 1 del mes)', () => {
+    const r = buildFinanceAdvice({
+      envelopes: buildMoneyEnvelopes(
+        octubre({ entradasAcumuladas: 57_000, cogsAcumulado: 25_822, fijosApartadosAcumulados: 143_333, variablesAcumulados: 0, comprasAcumuladas: 0 }),
+      ),
+      inventarioAlCosto: 1,
+      cogsUltimos28Dias: 1,
+      fijosConfigurados: true,
+      hayRetiros: false,
+    })
+    expect(r.consejos).toContainEqual({ code: 'sin_utilidad', faltante: 143_333 - 57_000 + 25_822 })
+    expect(r.consejos.some((c) => c.code === 'retirar_exceso')).toBe(false)
+    // Sin utilidad tampoco se insiste en registrar retiros.
+    expect(r.consejos.some((c) => c.code === 'sin_retiros')).toBe(false)
+  })
+
   it('avisa de datos faltantes: sin fijos, sin costos y sin retiros registrados', () => {
     const r = buildFinanceAdvice({
       envelopes: buildMoneyEnvelopes(octubre({ ventasSinCosto: 3, entradasSinCosto: 2 })),

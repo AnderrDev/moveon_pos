@@ -235,6 +235,15 @@ export class FinanceAssistantComponent {
         tone: ok.disponible > 0 ? ('success' as const) : ('default' as const),
       }
     }
+    const sinUtilidad = this.find('sin_utilidad')
+    if (sinUtilidad) {
+      return {
+        label: 'Aún no hay utilidad',
+        value: formatCurrency(sinUtilidad.faltante),
+        hint: 'Lo vendido todavía no cubre lo apartado para arriendo y nómina: falta esto para empezar a retirar',
+        tone: 'default' as const,
+      }
+    }
     const exceso = this.find('retirar_exceso')
     return {
       label: 'Retiraste de más',

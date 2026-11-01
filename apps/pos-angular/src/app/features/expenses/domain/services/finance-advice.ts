@@ -25,6 +25,8 @@ export type FinanceAdvice =
   | { code: 'comprar_exceso'; exceso: number }
   | { code: 'retirar'; disponible: number }
   | { code: 'retirar_exceso'; exceso: number }
+  /** Utilidad en negativo sin haber retirado: lo vendido aún no cubre los fijos apartados. */
+  | { code: 'sin_utilidad'; faltante: number }
   | { code: 'guardar_fijos'; apartado: number; pagado: number; disponible: number }
   | { code: 'sin_fijos' }
   | { code: 'ventas_sin_costo'; lineas: number }
@@ -77,7 +79,8 @@ export function buildFinanceAdvice(input: FinanceAdviceInput): FinanceAdviceResu
   else consejos.push({ code: 'comprar_exceso', exceso: -mercancia.disponible })
 
   if (utilidad.disponible >= 0) consejos.push({ code: 'retirar', disponible: utilidad.disponible })
-  else consejos.push({ code: 'retirar_exceso', exceso: -utilidad.disponible })
+  else if (utilidad.usadoAcumulado > 0) consejos.push({ code: 'retirar_exceso', exceso: -utilidad.disponible })
+  else consejos.push({ code: 'sin_utilidad', faltante: -utilidad.disponible })
 
   if (input.fijosConfigurados) {
     consejos.push({
