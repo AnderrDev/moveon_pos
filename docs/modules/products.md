@@ -143,6 +143,6 @@ Desde 2026-10-17 se omite IVA del formulario, tabla y exportación de productos.
 
 ## Familia y sabor (PLAN-112, 2026-11-01, `20261101000200`) — REVERTIDO en el frontend
 
-> El dueño lo pidió revertir el mismo día (la lista agrupada le resultó confusa). Las columnas existen en la base con datos, pero ningún código las lee ni escribe. Lo que sigue describe lo que había (commits `562abbd`, `29131a4` en `dev`).
+> El dueño lo pidió revertir el mismo día (la lista agrupada le resultó confusa). Las columnas se eliminaron con `20261101000300_drop_producto_familia_sabor.sql`. Lo que sigue describe lo que había (commits `562abbd`, `29131a4` en `dev`).
 
 `productos.familia` (texto, 2–100) y `productos.sabor` (texto, 1–60), opcionales. La familia es el producto base con su presentación (WHEY GOLD STANDARD 2LB); el sabor, la variante (Vainilla). Cada sabor sigue siendo un producto con su stock, costo y ventas: los campos solo agrupan en la lista de compras (`docs/modules/expenses.md`, "Familias") y salen en el Excel de productos. En el formulario: "Familia (producto base)" con `datalist` de las familias ya usadas y "Sabor"; el sabor exige familia. La RPC `create_product_with_initial_stock` no los recibe (firma fija): el repositorio los guarda con un `update` justo después de crear.
