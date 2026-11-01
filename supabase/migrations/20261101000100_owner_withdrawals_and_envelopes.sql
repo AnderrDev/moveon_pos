@@ -78,7 +78,7 @@ create policy "admin_only" on public.owner_withdrawals
   );
 
 grant select on public.owner_withdrawals to authenticated;
-revoke insert, update, delete on public.owner_withdrawals from anon, authenticated;
+revoke insert, update, delete, truncate on public.owner_withdrawals from anon, authenticated;
 
 -- -----------------------------------------------------
 -- register_owner_withdrawal_atomic
