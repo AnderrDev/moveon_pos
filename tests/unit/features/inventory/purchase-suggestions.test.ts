@@ -8,6 +8,7 @@ import {
   type DemandForecastOptions,
   type DemandHistory,
   type PurchaseProductInput,
+  groupPurchaseLines,
 } from '@angular-app/features/inventory/domain/services/purchase-suggestions'
 
 /** Sin colchón, para que las cuentas se lean fácil. */
@@ -136,5 +137,52 @@ describe('lista de compras', () => {
     const exact = buildPurchasePlan([product('r')], new Map([['r', 0]]), noisy, opts(null)).lines[0].necesario
     const safe = buildPurchasePlan([product('r')], new Map([['r', 0]]), noisy, { coverDays: 14, budget: null }).lines[0].necesario
     expect(safe).toBeGreaterThan(exact)
+  })
+})
+
+describe('agrupar por familia (PLAN-112)', () => {
+  it('junta los sabores de una familia con su total y deja sueltos los demás', () => {
+    const stock = new Map([
+      ['vainilla', 2],
+      ['chocolate', 10],
+      ['creatina', 1],
+    ])
+    const histories = new Map([
+      ['vainilla', series(days(56, 1))],
+      ['chocolate', series(days(56, 1))],
+      ['creatina', series(days(56, 1))],
+    ])
+    const plan = buildPurchasePlan(
+      [
+        product('vainilla', { nombre: 'WHEY VAINILLA 2LB', familia: 'WHEY 2LB', sabor: 'Vainilla', proveedorNombre: 'Suplecol' }),
+        product('chocolate', { nombre: 'WHEY CHOCOLATE 2LB', familia: 'whey 2lb', sabor: 'Chocolate', proveedorNombre: 'Suplecol' }),
+        product('creatina', { nombre: 'CREATINA 100', proveedorNombre: 'Healthy' }),
+      ],
+      stock,
+      histories,
+      { coverDays: 14, budget: null, forecast: PLAIN },
+    )
+    const groups = groupPurchaseLines(plan.lines)
+    // La creatina es la más urgente (1 día de stock) y va primera; la familia sale en el orden de su primer sabor.
+    expect(groups.map((g) => g.key)).toEqual(['prod:creatina', 'fam:whey 2lb'])
+    const whey = groups[1]
+    expect(whey.familia).toBe('WHEY 2LB')
+    expect(whey.lines.map((l) => l.sabor)).toEqual(['Vainilla', 'Chocolate'])
+    expect(whey.stockActual).toBe(12)
+    expect(whey.consumoDiario).toBe(2)
+    expect(whey.diasQueAlcanza).toBe(6)
+    expect(whey.necesario).toBe(12 + 4)
+    expect(whey.sugerido).toBe(16)
+    expect(whey.subtotal).toBe(160_000)
+    expect(whey.proveedorNombre).toBe('Suplecol')
+  })
+
+  it('un producto sin familia es su propio grupo', () => {
+    const groups = groupPurchaseLines([
+      { productId: 'a', nombre: 'A', proveedorNombre: null, familia: null, sabor: null, stockActual: 0, consumoDiario: 0, diasQueAlcanza: null, necesario: 1, sugerido: 1, costoUnitario: 100, subtotal: 100, status: 'full' },
+    ])
+    expect(groups).toHaveLength(1)
+    expect(groups[0].familia).toBeNull()
+    expect(groups[0].diasQueAlcanza).toBeNull()
   })
 })

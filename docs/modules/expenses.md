@@ -113,6 +113,7 @@ apps/pos-angular/src/app/features/expenses/          (estructura ADR 0015)
   - orden: menos días de stock primero, luego mayor margen diario;
   - presupuesto (por defecto lo disponible del fondo, editable): se llena en orden; completo, parcial o "sin presupuesto"; nunca lo supera. Sin costo registrado no consume presupuesto.
   - Filtro por proveedor (el tope aplica al pedido filtrado) y Excel ordenado por proveedor.
+  - **Familias (PLAN-112, 2026-11-01):** `productos.familia` (producto base con presentación, p. ej. WHEY GOLD STANDARD 2LB) y `sabor` agrupan las líneas con `groupPurchaseLines`: una fila sombreada por familia (stock, venta/día, días que alcanza, necesario y total a pedir, sumados) y debajo cada sabor con su nombre completo. Un producto sin familia es su propio grupo. El orden de los grupos es el de su primera línea (la más urgente). El pronóstico y el presupuesto siguen por producto. Excel con columnas Familia y Sabor, ordenado proveedor → familia → producto. Los campos se editan en el formulario de producto (sabor exige familia; la familia se sugiere de las existentes).
   - No es un modelo de ML: con ~4 meses de historia un pronóstico ponderado es igual de preciso y explicable. Reevaluar con más historia (estacionalidad semanal/mensual).
 - Tests: `tests/unit/features/inventory/purchase-suggestions.test.ts`, `tests/unit/features/expenses/fixed-commitments.test.ts`.
 
