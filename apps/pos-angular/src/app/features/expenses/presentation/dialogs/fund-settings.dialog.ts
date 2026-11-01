@@ -40,20 +40,13 @@ import { FundSettingsFormPresenter } from '@angular-app/features/expenses/presen
   template: `
     <mo-dialog
       [open]="open()"
-      title="Configurar fondo de reinversión"
-      description="Desde la fecha de inicio, cada venta aparta el costo de lo vendido y cada entrada de inventario con costo lo descuenta."
+      title="Configurar los sobres"
+      description="Desde la fecha de inicio, cada venta reparte su plata en mercancía, fijos, día a día y utilidad. Lo anterior a esa fecha no cuenta."
       [busy]="saving()"
       width="md"
       (closed)="onClose()"
     >
       <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
-        <mo-form-currency-input
-          controlName="saldoInicial"
-          label="Saldo inicial"
-          description="Dinero que hoy ya tienes destinado a comprar mercancía (puede ser 0)."
-          [error]="errors().saldoInicial ?? null"
-        />
-
         <div class="space-y-1.5">
           <label for="fund-fecha-inicio" class="text-foreground text-sm font-medium">
             Fecha de inicio <span class="text-destructive">*</span>
@@ -72,6 +65,48 @@ import { FundSettingsFormPresenter } from '@angular-app/features/expenses/presen
           }
         </div>
 
+        <p class="text-sm font-semibold">Con cuánto arranca cada sobre</p>
+        <div class="grid gap-4 sm:grid-cols-3">
+          <mo-form-currency-input
+            controlName="saldoInicial"
+            label="Mercancía"
+            description="Plata que ya tienes guardada para surtir (puede ser 0)."
+            [error]="errors().saldoInicial ?? null"
+          />
+          <mo-form-currency-input
+            controlName="saldoInicialFijos"
+            label="Arriendo y nómina"
+            description="Plata ya apartada para los fijos del mes."
+            [error]="errors().saldoInicialFijos ?? null"
+          />
+          <mo-form-currency-input
+            controlName="saldoInicialUtilidad"
+            label="Utilidad"
+            description="Ganancia ya apartada para ti (normalmente 0)."
+            [error]="errors().saldoInicialUtilidad ?? null"
+          />
+        </div>
+
+        <div class="space-y-1.5">
+          <label for="fund-dias-meta" class="text-foreground text-sm font-medium">
+            Meta de días de inventario
+          </label>
+          <input
+            id="fund-dias-meta"
+            type="number"
+            min="7"
+            max="365"
+            formControlName="diasInventarioMeta"
+            class="border-input bg-card focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm focus:ring-2 focus:outline-none sm:w-40"
+          />
+          <p class="text-muted-foreground text-xs">
+            Cuántos días de venta quieres tener en mercancía. Con más días el asistente te frena las compras.
+          </p>
+          @if (errors().diasInventarioMeta; as metaError) {
+            <p class="text-destructive text-xs">{{ metaError }}</p>
+          }
+        </div>
+
         <mo-form-error [message]="errors().root ?? null" />
 
         <mo-dialog-footer>
@@ -79,7 +114,7 @@ import { FundSettingsFormPresenter } from '@angular-app/features/expenses/presen
             Cancelar
           </mo-button>
           <mo-button type="submit" [loading]="saving()" loadingText="Guardando...">
-            Guardar fondo
+            Guardar sobres
           </mo-button>
         </mo-dialog-footer>
       </form>
@@ -111,7 +146,13 @@ export class FundSettingsDialog {
         this.presenter.reset(
           createFundSettingsFormDefaults(
             current
-              ? { saldoInicial: current.saldoInicial, fechaInicio: current.fechaInicio }
+              ? {
+                  saldoInicial: current.saldoInicial,
+                  fechaInicio: current.fechaInicio,
+                  saldoInicialUtilidad: current.saldoInicialUtilidad,
+                  saldoInicialFijos: current.saldoInicialFijos,
+                  diasInventarioMeta: current.diasInventarioMeta,
+                }
               : {},
           ),
         )
@@ -139,7 +180,7 @@ export class FundSettingsDialog {
         this.presenter.setRootError(result.error.message)
         return
       }
-      this.toast.success('Fondo de reinversión configurado')
+      this.toast.success('Sobres configurados')
       this.saved.emit(result.value)
       this.closed.emit()
     } catch (error) {

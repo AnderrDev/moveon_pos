@@ -26,7 +26,7 @@ const VALUE_TONE_CLASSES: Record<StatTone, string> = {
   template: `
     <mo-card class="h-full" [tone]="tone() === 'warning' ? 'warning' : 'default'">
       <p class="text-sm font-medium" [class]="labelClasses()">{{ label() }}</p>
-      <p class="font-display mt-1.5 text-[1.75rem] leading-tight font-extrabold tabular-nums" [class]="valueClasses()">
+      <p class="font-display mt-1.5 text-2xl leading-tight font-extrabold break-words tabular-nums lg:text-[1.75rem]" [class]="valueClasses()">
         {{ value() }}
       </p>
       @if (hint(); as h) {

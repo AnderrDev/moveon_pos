@@ -48,6 +48,16 @@ export function formatTime(date: Date | string, options: Intl.DateTimeFormatOpti
   })
 }
 
+/**
+ * Fecha local `YYYY-MM-DD` → "5 oct". No pasa por `new Date(iso)`, que la
+ * leería como medianoche UTC y en Colombia mostraría el día anterior.
+ */
+export function formatLocalDate(iso: string, options: Intl.DateTimeFormatOptions = {}): string {
+  const [y, m, d] = iso.slice(0, 10).split('-').map(Number)
+  if (!y || !m || !d) return iso
+  return new Date(y, m - 1, d).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', ...options })
+}
+
 export function formatShortDate(date: Date | string): string {
   const value = typeof date === 'string' ? new Date(date) : date
   return value.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })

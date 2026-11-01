@@ -710,6 +710,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "inventory_movements_cash_movement_id_fkey"
+            columns: ["cash_movement_id"]
+            isOneToOne: false
+            referencedRelation: "cash_movements"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "inventory_movements_producto_id_fkey"
             columns: ["producto_id"]
             isOneToOne: false
@@ -924,9 +931,76 @@ export type Database = {
           },
         ]
       }
+      owner_withdrawals: {
+        Row: {
+          cash_movement_id: string | null
+          created_at: string
+          created_by: string
+          fecha: string
+          id: string
+          idempotency_key: string | null
+          monto: number
+          nota: string | null
+          origen: string
+          status: string
+          tienda_id: string
+          voided_at: string | null
+          voided_by: string | null
+          voided_reason: string | null
+        }
+        Insert: {
+          cash_movement_id?: string | null
+          created_at?: string
+          created_by: string
+          fecha: string
+          id?: string
+          idempotency_key?: string | null
+          monto: number
+          nota?: string | null
+          origen: string
+          status?: string
+          tienda_id: string
+          voided_at?: string | null
+          voided_by?: string | null
+          voided_reason?: string | null
+        }
+        Update: {
+          cash_movement_id?: string | null
+          created_at?: string
+          created_by?: string
+          fecha?: string
+          id?: string
+          idempotency_key?: string | null
+          monto?: number
+          nota?: string | null
+          origen?: string
+          status?: string
+          tienda_id?: string
+          voided_at?: string | null
+          voided_by?: string | null
+          voided_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owner_withdrawals_cash_movement_id_fkey"
+            columns: ["cash_movement_id"]
+            isOneToOne: false
+            referencedRelation: "cash_movements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_withdrawals_tienda_id_fkey"
+            columns: ["tienda_id"]
+            isOneToOne: false
+            referencedRelation: "tiendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
+          card_surcharge: number
           created_at: string
           id: string
           metodo: Database["public"]["Enums"]["payment_method"]
@@ -935,6 +1009,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          card_surcharge?: number
           created_at?: string
           id?: string
           metodo: Database["public"]["Enums"]["payment_method"]
@@ -943,6 +1018,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          card_surcharge?: number
           created_at?: string
           id?: string
           metodo?: Database["public"]["Enums"]["payment_method"]
@@ -1241,22 +1317,31 @@ export type Database = {
       reinvestment_fund_settings: {
         Row: {
           created_at: string
+          dias_inventario_meta: number
           fecha_inicio: string
           saldo_inicial: number
+          saldo_inicial_fijos: number
+          saldo_inicial_utilidad: number
           tienda_id: string
           updated_at: string
         }
         Insert: {
           created_at?: string
+          dias_inventario_meta?: number
           fecha_inicio: string
           saldo_inicial?: number
+          saldo_inicial_fijos?: number
+          saldo_inicial_utilidad?: number
           tienda_id: string
           updated_at?: string
         }
         Update: {
           created_at?: string
+          dias_inventario_meta?: number
           fecha_inicio?: string
           saldo_inicial?: number
+          saldo_inicial_fijos?: number
+          saldo_inicial_utilidad?: number
           tienda_id?: string
           updated_at?: string
         }
@@ -1396,6 +1481,9 @@ export type Database = {
         Row: {
           billing_document_id: string | null
           billing_status: Database["public"]["Enums"]["billing_status"]
+          card_fee_iva_pct: number | null
+          card_fee_rate_bps: number | null
+          card_surcharge: number
           cash_session_id: string
           cashier_email: string | null
           cashier_id: string
@@ -1423,6 +1511,9 @@ export type Database = {
         Insert: {
           billing_document_id?: string | null
           billing_status?: Database["public"]["Enums"]["billing_status"]
+          card_fee_iva_pct?: number | null
+          card_fee_rate_bps?: number | null
+          card_surcharge?: number
           cash_session_id: string
           cashier_email?: string | null
           cashier_id: string
@@ -1450,6 +1541,9 @@ export type Database = {
         Update: {
           billing_document_id?: string | null
           billing_status?: Database["public"]["Enums"]["billing_status"]
+          card_fee_iva_pct?: number | null
+          card_fee_rate_bps?: number | null
+          card_surcharge?: number
           cash_session_id?: string
           cashier_email?: string | null
           cashier_id?: string
@@ -1746,6 +1840,25 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      audit_entity_label: {
+        Args: { p_entity_id: string; p_entity_type: string }
+        Returns: string
+      }
+      card_charge_for: {
+        Args: { p_base: number; p_iva_pct: number; p_rate_bps: number }
+        Returns: number
+      }
+      card_fee_amount: {
+        Args: { p_amount: number; p_iva_pct: number; p_rate_bps: number }
+        Returns: number
+      }
+      card_fee_config: {
+        Args: { p_tienda_id: string }
+        Returns: {
+          comision_bps: number
+          iva_pct: number
+        }[]
+      }
       close_cash_session_atomic: {
         Args: {
           p_actual_cash: number
@@ -1862,7 +1975,37 @@ export type Database = {
         }
         Returns: string
       }
+      ensure_cash_expense_category: {
+        Args: { p_tienda_id: string }
+        Returns: string
+      }
       expire_loyalty_rewards: { Args: { p_tienda_id: string }; Returns: number }
+      get_money_envelope_totals: {
+        Args: {
+          p_desde: string
+          p_hoy: string
+          p_mes_desde: string
+          p_mes_hasta: string
+          p_tienda_id: string
+        }
+        Returns: {
+          cogs_acumulado: number
+          cogs_mes: number
+          cogs_ultimos_28_dias: number
+          compras_acumuladas: number
+          compras_mes: number
+          entradas_acumuladas: number
+          entradas_mes: number
+          entradas_sin_costo: number
+          fijos_pagados_acum: number
+          fijos_pagados_mes: number
+          retiros_acum: number
+          retiros_mes: number
+          variables_acum: number
+          variables_mes: number
+          ventas_sin_costo: number
+        }[]
+      }
       get_monthly_expense_totals: {
         Args: { p_from: string; p_tienda_id: string }
         Returns: {
@@ -1976,6 +2119,10 @@ export type Database = {
         Args: { p_session_id?: string; p_tienda_id: string }
         Returns: Json
       }
+      owner_finance_summary: {
+        Args: { p_month: string; p_tienda_id: string }
+        Returns: Json
+      }
       owner_sales_summary: {
         Args: { p_from: string; p_tienda_id: string; p_to: string }
         Returns: Json
@@ -2033,6 +2180,38 @@ export type Database = {
         }
         Returns: string
       }
+      register_owner_withdrawal_atomic: {
+        Args: {
+          p_fecha: string
+          p_idempotency_key?: string
+          p_monto: number
+          p_nota?: string
+          p_origen: string
+          p_tienda_id: string
+        }
+        Returns: {
+          cash_movement_id: string | null
+          created_at: string
+          created_by: string
+          fecha: string
+          id: string
+          idempotency_key: string | null
+          monto: number
+          nota: string | null
+          origen: string
+          status: string
+          tienda_id: string
+          voided_at: string | null
+          voided_by: string | null
+          voided_reason: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "owner_withdrawals"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       save_product_components_atomic: {
         Args: { p_components: Json; p_producto_id: string; p_tienda_id: string }
         Returns: number
@@ -2074,11 +2253,7 @@ export type Database = {
         Returns: string
       }
       void_expense_atomic: {
-        Args: {
-          p_expense_id: string
-          p_reason: string
-          p_tienda_id: string
-        }
+        Args: { p_expense_id: string; p_reason: string; p_tienda_id: string }
         Returns: {
           cash_movement_id: string | null
           category_id: string
@@ -2102,6 +2277,31 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "expenses"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      void_owner_withdrawal_atomic: {
+        Args: { p_reason: string; p_tienda_id: string; p_withdrawal_id: string }
+        Returns: {
+          cash_movement_id: string | null
+          created_at: string
+          created_by: string
+          fecha: string
+          id: string
+          idempotency_key: string | null
+          monto: number
+          nota: string | null
+          origen: string
+          status: string
+          tienda_id: string
+          voided_at: string | null
+          voided_by: string | null
+          voided_reason: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "owner_withdrawals"
           isOneToOne: true
           isSetofReturn: false
         }

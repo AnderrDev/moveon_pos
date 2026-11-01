@@ -51,7 +51,8 @@ apps/pos-angular/src/app/shared/
 │   └── sale-detail-body.component.ts (mo-sale-detail-body: detalle de UNA venta)
 ├── pipes/          # Transformaciones de presentación puras (ADR 0023)
 │   ├── money.pipe.ts              (| money → formatCurrency)
-│   └── payment-label.pipe.ts      (| paymentLabel → getPaymentMethodLabel)
+│   ├── payment-label.pipe.ts      (| paymentLabel → getPaymentMethodLabel)
+│   └── local-date.pipe.ts         (| localDate → formatLocalDate: 'YYYY-MM-DD' → "5 oct", sin pasar por new Date(iso))
 └── services/       # Utilidades no visuales compartidas
     └── export/                    (ExcelExportService, export-filename)
 ```
@@ -81,7 +82,7 @@ Criterio de nivel: **atom** = un elemento estilizado; **molecule** = composició
 | `mo-empty-state` | `title`*, `description` + slot de acción |
 | `mo-page-header` | `title`*, `subtitle` + slot de acciones |
 | `mo-stat-card`, `mo-sale-detail-list`, `mo-toast-host` | ver archivo fuente |
-| `| money`, `| paymentLabel` | Pipes puros (ADR 0023). En plantillas usar el pipe, no un método `money()` local |
+| `| money`, `| paymentLabel`, `| localDate` | Pipes puros (ADR 0023). En plantillas usar el pipe, no un método `money()` local |
 
 ---
 

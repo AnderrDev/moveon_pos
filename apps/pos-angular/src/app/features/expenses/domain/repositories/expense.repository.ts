@@ -3,13 +3,19 @@ import type {
   Expense,
   ExpenseCategory,
   ExpenseTemplate,
+  OwnerWithdrawal,
   ReinvestmentFundSettings,
 } from '@angular-app/features/expenses/domain/entities/expense.entity'
 import type { ReinvestmentFundTotals } from '@angular-app/features/expenses/domain/services/reinvestment-fund'
+import type { MoneyEnvelopeTotals } from '@angular-app/features/expenses/domain/services/money-envelopes'
 import type { CreateExpenseDto, VoidExpenseDto } from '@angular-app/features/expenses/domain/dtos/expense.dto'
 import type { SaveEmpleadoDto } from '@angular-app/features/expenses/domain/dtos/empleado.dto'
 import type { SaveFundSettingsDto } from '@angular-app/features/expenses/domain/dtos/fund-settings.dto'
 import type { SaveTemplateDto } from '@angular-app/features/expenses/domain/dtos/template.dto'
+import type {
+  RegisterOwnerWithdrawalDto,
+  VoidOwnerWithdrawalDto,
+} from '@angular-app/features/expenses/domain/dtos/owner-withdrawal.dto'
 
 /**
  * Contrato de persistencia del módulo de finanzas. Abstract class
@@ -46,6 +52,22 @@ export abstract class ExpenseRepository {
     mesDesdeIso: string,
     mesHastaIso: string,
   ): Promise<ReinvestmentFundTotals>
+  /**
+   * Totales de los sobres (ADR 0025) desde `desdeIso`, con el desglose del mes
+   * `[mesDesdeIso, mesHastaIso)` y el costo vendido de los 28 días anteriores a `hoyIso`.
+   */
+  abstract getMoneyEnvelopeTotals(
+    tiendaId: string,
+    desdeIso: string,
+    mesDesdeIso: string,
+    mesHastaIso: string,
+    hoyIso: string,
+  ): Promise<MoneyEnvelopeTotals>
+
+  /** Retiros del dueño con `fecha` dentro de `[fromDate, toDate]` (`YYYY-MM-DD`, inclusive). */
+  abstract listOwnerWithdrawals(tiendaId: string, fromDate: string, toDate: string): Promise<OwnerWithdrawal[]>
+  abstract createOwnerWithdrawal(dto: RegisterOwnerWithdrawalDto): Promise<OwnerWithdrawal>
+  abstract voidOwnerWithdrawal(dto: VoidOwnerWithdrawalDto): Promise<OwnerWithdrawal>
   /**
    * Costo de la mercancía vendida (Σ cantidad × costo de las líneas con costo)
    * de cada mes, en `[fromIso, toIso)` — fin exclusivo.

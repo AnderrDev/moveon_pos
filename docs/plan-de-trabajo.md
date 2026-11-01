@@ -481,6 +481,24 @@ Diseño en **`docs/adr/0024-recargo-pago-con-tarjeta.md`**. El cliente asume la 
 
 **Orden:** 97 → 98 → 99 → 100 → 101 → 102.
 
+### Bloque — Asistente de finanzas: reparto del dinero en sobres (ADR 0025)
+
+Diseño en **`docs/adr/0025-asistente-finanzas-reparto-del-dinero.md`**. Pedido del dueño (2026-11-01): no entiende `/finanzas`, gasta sin saber qué plata es de mercancía y cuál es utilidad; quiere un asistente que diga cuánto reinvertir, arrancando en noviembre. Diagnóstico con datos de producción en el ADR. Pruebas con datos solo en Supabase local; migraciones al remoto con OK del dueño.
+
+| ID | Título | Prioridad | Esfuerzo | Criterio de cierre |
+|---|---|---|---|---|
+| PLAN-103 | ✅ Hecho (2026-11-01) — Aprobación del ADR 0025 | P0 | S | Dueño aprueba el modelo de 4 sobres, la meta de días de inventario (45) y que el stock inicial de productos nuevos cuenta como compra |
+| PLAN-104 | Pendiente — Arranque limpio 1-nov (tareas del dueño, sin código) | P0 | S | Fondo con `fecha_inicio = 2026-11-01` y saldo inicial decidido; compromiso de registrar cada compra con costo + método de pago y cada retiro; opcional: completar arriendo ago/sep y nómina sep en el histórico |
+| PLAN-105 | ✅ Hecho (2026-11-01, 16 tests) — Dominio: sobres y consejos | P0 | M | `money-envelopes.ts` (`buildMoneyEnvelopes`: 4 sobres con apartado, usado, disponible, arrastre) y `finance-advice.ts` (`buildFinanceAdvice`: consejos tipados comprar/retirar/guardar/semáforo/avisos) en `features/expenses/domain/services/`, TS puro, con tests que reproducen las cifras de julio–octubre del ADR |
+| PLAN-106 | ✅ Hecho en local (2026-11-01; migración `20261101000100` + pgTAP 16 OK; **pendiente aplicar en producción con OK del dueño**) — Retiros del dueño | P0 | M | Migración: tabla `owner_withdrawals` (RLS admin, sin escritura directa), RPC `register_owner_withdrawal_atomic` (origen caja → `cash_out` en la misma transacción, idempotente) y `void_owner_withdrawal_atomic`; 3 columnas nuevas en `reinvestment_fund_settings` (`saldo_inicial_utilidad`, `saldo_inicial_fijos`, `dias_inventario_meta`); pgTAP; contrato + repo + use-cases + diálogo "Registrar retiro" (patrón 3 archivos) |
+| PLAN-107 | ✅ Hecho (2026-11-01, verificado en navegador contra Supabase local: configurar sobres, retiro desde caja → `cash_out`, anulación sincronizada, 375 px) — Tarjeta "Tu plata este mes" en `/finanzas` | P0 | M | `mo-finance-assistant` arriba de la página: tres frases (puedes comprar hasta / puedes retirar hasta / guarda para fijos), semáforo de inventario con días y meta, 4 sobres en barra, "ver cuentas" con el detalle del fondo; la tarjeta vieja del fondo se retira; `Editar fondo` edita también los saldos iniciales y la meta; verificado en navegador contra local con el seed |
+| PLAN-108 | Pendiente — Reordenar `/finanzas` | P1 | M | Secciones con título: 1 Tu plata (asistente), 2 Tu resultado (resumen), 3 Por pagar (fijos + nómina), 4 Gastos del mes, 5 Últimos 6 meses; comparativa y nómina colapsadas por defecto; hoja "Reparto" en el Excel; textos sin jerga ("apartado/invertido" fuera) |
+| PLAN-109 | Pendiente — Retiro de cierre con destino | P1 | S | El diálogo de cierre de caja pregunta a qué va el retiro (utilidad del dueño / comprar mercancía / consignar al banco); "utilidad" crea el retiro del dueño solo; los otros dos no tocan sobres |
+| PLAN-110 | Pendiente — Paridad iOS | P1 | M | `owner_finance_summary` devuelve `sobres` y `consejos` (misma cuenta que el dominio TS, test de paridad); la app muestra las tres frases y el semáforo |
+| PLAN-111 | Pendiente — Dónde está la plata (caja + banco) | P2 | L | Saldo de caja (de sesiones) y de banco (transferencias cobradas − pagos por transferencia − retiros de banco) desde un saldo inicial el 1-nov; solo después de un mes con los sobres funcionando |
+
+**Orden:** 103 → 104 (dueño) → 105 → 106 → 107 → 108 → 109 → 110 → 111.
+
 ### PLAN-13 — `sale_exit` con motivo descriptivo
 - **Origen:** TC-09.
 - **Problema:** los movimientos `sale_exit` generados por ventas nuevas tienen motivo vacío ("—"); los seed muestran "Venta".
