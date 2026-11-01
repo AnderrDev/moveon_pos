@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
 import { ButtonComponent } from '@angular-app/shared/atoms/button.component'
 import { BadgeComponent } from '@angular-app/shared/atoms/badge.component'
 import { StatCardComponent } from '@angular-app/shared/molecules/stat-card.component'
-import { ShareBarChartComponent, type ShareSegment } from '@angular-app/shared/molecules/charts/share-bar-chart.component'
 import { LowerCasePipe } from '@angular/common'
 import { MoneyPipe } from '@angular-app/shared/pipes/money.pipe'
 import { LocalDatePipe } from '@angular-app/shared/pipes/local-date.pipe'
@@ -41,7 +40,7 @@ const LEVEL_BADGE: Record<InventoryLevel, 'success' | 'warning' | 'destructive' 
   selector: 'mo-finance-assistant',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ButtonComponent, BadgeComponent, StatCardComponent, ShareBarChartComponent, MoneyPipe, LocalDatePipe, LowerCasePipe],
+  imports: [ButtonComponent, BadgeComponent, StatCardComponent, MoneyPipe, LocalDatePipe, LowerCasePipe],
   template: `
     <div class="bg-card rounded-xl border p-4 sm:p-5">
       <div class="flex flex-wrap items-start justify-between gap-2">
@@ -67,7 +66,50 @@ const LEVEL_BADGE: Record<InventoryLevel, 'success' | 'warning' | 'destructive' 
           noviembre). Desde ahí el asistente te dirá cuánto puedes comprar y cuánto puedes retirar.
         </p>
       } @else {
-        <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <p class="mt-4 text-sm font-semibold">La cuenta desde el {{ fechaInicioLabel() }}</p>
+        <dl class="mt-2 divide-y rounded-lg border text-sm">
+          <div class="flex items-start justify-between gap-3 px-3 py-2">
+            <dt>Vendiste</dt>
+            <dd class="font-semibold tabular-nums">{{ (envelopes()!.entradasAcumuladas | money) }}</dd>
+          </div>
+          <div class="flex items-start justify-between gap-3 px-3 py-2">
+            <dt>
+              − Mercancía
+              <span class="text-muted-foreground block text-xs">Lo que te costó lo que vendiste. Es para volver a surtir.</span>
+            </dt>
+            <dd class="font-semibold tabular-nums">{{ (envelopes()!.sobres.mercancia.apartadoAcumulado | money) }}</dd>
+          </div>
+          <div class="flex items-start justify-between gap-3 px-3 py-2">
+            <dt>
+              − Arriendo y nómina
+              <span class="text-muted-foreground block text-xs">{{ fijosExplicacion() }}</span>
+            </dt>
+            <dd class="font-semibold tabular-nums">{{ (envelopes()!.sobres.fijos.apartadoAcumulado | money) }}</dd>
+          </div>
+          <div class="flex items-start justify-between gap-3 px-3 py-2">
+            <dt>
+              − Gastos del día a día
+              <span class="text-muted-foreground block text-xs">Hielo, insumos, transporte… lo registrado como gasto.</span>
+            </dt>
+            <dd class="font-semibold tabular-nums">{{ (envelopes()!.sobres.diaADia.apartadoAcumulado | money) }}</dd>
+          </div>
+          <div class="bg-muted/40 flex items-start justify-between gap-3 px-3 py-2">
+            <dt class="font-semibold">
+              = Utilidad hasta hoy
+              <span class="text-muted-foreground block text-xs font-normal">{{ utilidadExplicacion() }}</span>
+            </dt>
+            <dd
+              class="font-bold tabular-nums"
+              [class.text-emerald-600]="envelopes()!.sobres.utilidad.apartadoAcumulado > 0"
+              [class.text-amber-700]="envelopes()!.sobres.utilidad.apartadoAcumulado < 0"
+            >
+              {{ (envelopes()!.sobres.utilidad.apartadoAcumulado | money) }}
+            </dd>
+          </div>
+        </dl>
+
+        <p class="mt-4 text-sm font-semibold">Qué puedes hacer hoy</p>
+        <div class="mt-2 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           <mo-stat-card
             [label]="comprar().label"
             [value]="comprar().value"
@@ -100,15 +142,6 @@ const LEVEL_BADGE: Record<InventoryLevel, 'success' | 'warning' | 'destructive' 
 
         @for (aviso of avisos(); track aviso) {
           <p class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">{{ aviso }}</p>
-        }
-
-        @if (envelopes()!.entradasMes > 0) {
-          <div class="mt-4">
-            <p class="text-muted-foreground mb-2 text-xs">A dónde va lo que vendiste en {{ monthLabel() | lowercase }}</p>
-            <mo-share-bar-chart [segments]="segments()" ariaLabel="Reparto de lo vendido en el mes" />
-          </div>
-        } @else {
-          <p class="text-muted-foreground mt-3 text-sm">Todavía no hay ventas este mes.</p>
         }
 
         <details class="mt-4 text-xs">
@@ -196,6 +229,8 @@ export class FinanceAssistantComponent {
   readonly monthLabel = input('este mes')
   /** `YYYY-MM-DD`; `null` sin configurar. */
   readonly fechaInicio = input<string | null>(null)
+  /** Cómo se apartaron los fijos: total mensual y días contados (para explicar la cuenta). */
+  readonly fijosInfo = input<{ mensual: number; dias: number; diasMes: number } | null>(null)
 
   readonly configureRequested = output<void>()
   readonly withdrawRequested = output<void>()
@@ -209,10 +244,11 @@ export class FinanceAssistantComponent {
   readonly comprar = computed(() => {
     const ok = this.find('comprar')
     if (ok) {
+      const m = this.envelopes()!.sobres.mercancia
       return {
         label: 'Puedes comprar hasta',
         value: formatCurrency(ok.disponible),
-        hint: 'Mercancía: lo vendido al costo menos lo que ya compraste',
+        hint: `${formatCurrency(m.apartadoAcumulado)} de mercancía vendida − ${formatCurrency(m.usadoAcumulado)} ya comprados${m.saldoInicial > 0 ? ` + ${formatCurrency(m.saldoInicial)} iniciales` : ''}`,
         tone: ok.disponible > 0 ? ('success' as const) : ('default' as const),
       }
     }
@@ -228,19 +264,20 @@ export class FinanceAssistantComponent {
   readonly retirar = computed(() => {
     const ok = this.find('retirar')
     if (ok) {
+      const u = this.envelopes()!.sobres.utilidad
       return {
         label: 'Puedes retirar hasta',
         value: formatCurrency(ok.disponible),
-        hint: 'Utilidad que sobra después de mercancía, fijos y gastos',
+        hint: `${formatCurrency(u.apartadoAcumulado)} de utilidad − ${formatCurrency(u.usadoAcumulado)} ya retirados${u.saldoInicial > 0 ? ` + ${formatCurrency(u.saldoInicial)} iniciales` : ''}`,
         tone: ok.disponible > 0 ? ('success' as const) : ('default' as const),
       }
     }
     const sinUtilidad = this.find('sin_utilidad')
     if (sinUtilidad) {
       return {
-        label: 'Aún no hay utilidad',
+        label: 'Aún no puedes retirar',
         value: formatCurrency(sinUtilidad.faltante),
-        hint: 'Lo vendido todavía no cubre lo apartado para arriendo y nómina: falta esto para empezar a retirar',
+        hint: 'Es lo que falta vender (descontando su mercancía) para cubrir los fijos de estos días',
         tone: 'default' as const,
       }
     }
@@ -266,7 +303,7 @@ export class FinanceAssistantComponent {
     return {
       label: f.disponible >= 0 ? 'Guardado para arriendo y nómina' : 'Faltó apartar para fijos',
       value: formatCurrency(Math.abs(f.disponible)),
-      hint: `Apartado ${formatCurrency(f.apartado)} · pagado ${formatCurrency(f.pagado)}`,
+      hint: `${formatCurrency(f.apartado)} apartados − ${formatCurrency(f.pagado)} ya pagados. No lo toques: es del arriendo y la nómina`,
       tone: f.disponible < 0 ? ('warning' as const) : ('default' as const),
     }
   })
@@ -312,15 +349,19 @@ export class FinanceAssistantComponent {
     return out
   })
 
-  readonly segments = computed<ShareSegment[]>(() => {
-    const e = this.envelopes()
-    if (!e) return []
-    return (['mercancia', 'fijos', 'diaADia', 'utilidad'] as const).map((key) => ({
-      key,
-      label: ENVELOPE_LABEL[key],
-      value: Math.max(e.sobres[key].apartadoMes, 0),
-      hint: ENVELOPE_HINT[key],
-    }))
+  readonly fijosExplicacion = computed(() => {
+    const f = this.fijosInfo()
+    if (!f || f.mensual <= 0) return 'No hay arriendo ni nómina configurados: no se aparta nada.'
+    const porDia = Math.round(f.mensual / f.diasMes)
+    const dias = f.dias === 1 ? '1 día' : `${f.dias} días`
+    return `${formatCurrency(f.mensual)} al mes ÷ ${f.diasMes} días = ${formatCurrency(porDia)} por día. Van ${dias}: se apartan aunque aún no los hayas pagado.`
+  })
+
+  readonly utilidadExplicacion = computed(() => {
+    const u = this.envelopes()?.sobres.utilidad.apartadoAcumulado ?? 0
+    if (u < 0) return 'Lo vendido todavía no cubre la mercancía y los fijos de estos días. Es normal al empezar el mes.'
+    if (u === 0) return 'Lo vendido cubre justo la mercancía y los fijos.'
+    return 'Lo que sobra después de reponer mercancía y apartar los fijos. De aquí salen tus retiros.'
   })
 
   readonly rows = computed(() => {
