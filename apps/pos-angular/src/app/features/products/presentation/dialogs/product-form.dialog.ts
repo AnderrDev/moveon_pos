@@ -170,13 +170,27 @@ import { tracksOwnStock } from '@/shared/lib/product-type'
               <p class="text-destructive text-xs">{{ familiaError }}</p>
             }
           </div>
-          <mo-form-input
-            controlName="sabor"
-            label="Sabor"
-            placeholder="Ej. Vainilla"
-            [maxLength]="60"
-            [error]="presenter.errors().sabor ?? null"
-          />
+          <div class="space-y-1.5">
+            <label for="product-sabor" class="text-foreground text-sm font-medium">Sabor</label>
+            <input
+              id="product-sabor"
+              type="text"
+              formControlName="sabor"
+              list="product-sabores"
+              maxlength="60"
+              placeholder="Ej. Vainilla"
+              class="border-input bg-card focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm focus:ring-2 focus:outline-none"
+            />
+            <datalist id="product-sabores">
+              @for (s of sabores(); track s) {
+                <option [value]="s"></option>
+              }
+            </datalist>
+            <p class="text-muted-foreground text-xs">Elige uno de los sabores ya usados o escribe uno nuevo.</p>
+            @if (presenter.errors().sabor; as saborError) {
+              <p class="text-destructive text-xs">{{ saborError }}</p>
+            }
+          </div>
         </div>
 
         <mo-product-image-field formControlName="imageUrl" [tiendaId]="tiendaId()" />
@@ -321,6 +335,8 @@ export class ProductFormDialog {
   readonly proveedores = input<Proveedor[]>([])
   /** Familias ya usadas en el catálogo, para sugerirlas al escribir. */
   readonly familias = input<string[]>([])
+  /** Sabores ya usados en el catálogo, para sugerirlos al escribir. */
+  readonly sabores = input<string[]>([])
 
   readonly proveedorNuevoValue = PROVEEDOR_NUEVO
   readonly proveedorIdValue = toSignal(this.presenter.form.controls.proveedorId.valueChanges, {
