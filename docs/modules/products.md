@@ -140,3 +140,7 @@ Desde 2026-10-17 se omite IVA del formulario, tabla y exportación de productos.
 - Opciones: primero liberan `es_default` del producto y luego hacen upsert por (producto, grupo, nombre) — corrige el choque con `ux_product_options_default` al mover la predeterminada a una opción anterior en la lista. Las quitadas se desactivan (ADR 0017 §2.2).
 - Desde `000700`, `product_components` y `product_options` no admiten escritura directa (solo lectura + RPC).
 - Pruebas: `supabase/tests/atomic-product-components-options.test.sql`, `tests/unit/features/products/save-components-options-rpc.test.ts`.
+
+## Familia y sabor (PLAN-112, 2026-11-01, `20261101000200`)
+
+`productos.familia` (texto, 2–100) y `productos.sabor` (texto, 1–60), opcionales. La familia es el producto base con su presentación (WHEY GOLD STANDARD 2LB); el sabor, la variante (Vainilla). Cada sabor sigue siendo un producto con su stock, costo y ventas: los campos solo agrupan en la lista de compras (`docs/modules/expenses.md`, "Familias") y salen en el Excel de productos. En el formulario: "Familia (producto base)" con `datalist` de las familias ya usadas y "Sabor"; el sabor exige familia. La RPC `create_product_with_initial_stock` no los recibe (firma fija): el repositorio los guarda con un `update` justo después de crear.

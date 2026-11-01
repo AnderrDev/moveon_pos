@@ -23,6 +23,8 @@ function product(overrides: Partial<Product> = {}): Product {
     categoriaId: null,
     proveedorId: null,
     proveedorNombre: 'Distribuidora Healthy',
+    familia: null,
+    sabor: null,
     paraQueSirve: null,
     recomendadoPara: null,
     imageUrl: null,

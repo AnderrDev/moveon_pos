@@ -38,7 +38,7 @@ import {
 } from '@angular-app/features/products/data/models/product-option.mapper'
 
 const PRODUCT_COLS =
-  'id, tienda_id, nombre, sku, codigo_barras, categoria_id, proveedor_id, proveedores(nombre), para_que_sirve, recomendado_para, image_url, tipo, unidad, precio_venta, costo, iva_tasa, stock_minimo, participa_fidelizacion, is_active, deleted_at, created_at, updated_at'
+  'id, tienda_id, nombre, sku, codigo_barras, categoria_id, proveedor_id, proveedores(nombre), familia, sabor, para_que_sirve, recomendado_para, image_url, tipo, unidad, precio_venta, costo, iva_tasa, stock_minimo, participa_fidelizacion, is_active, deleted_at, created_at, updated_at'
 /** Máximo de resultados de una búsqueda por término (no aplica al listado completo). */
 const PRODUCT_SEARCH_LIMIT = 200
 const CATEGORIA_COLS = 'id, tienda_id, nombre, orden, is_active, created_at, updated_at'
@@ -153,6 +153,16 @@ export class ProductsRepository extends ProductRepositoryContract {
     if (error) throw new Error(error.message)
     if (!productId) throw new Error('Producto creado sin respuesta')
 
+    // Familia y sabor no van en la RPC de creación (firma fija): se guardan justo después.
+    if (dto.familia || dto.sabor) {
+      const { error: famError } = await this.supabaseClient.supabase
+        .from('productos')
+        .update({ familia: dto.familia ?? null, sabor: dto.sabor ?? null })
+        .eq('id', productId)
+        .eq('tienda_id', dto.tiendaId)
+      if (famError) throw new Error(famError.message)
+    }
+
     const { data, error: readError } = await this.supabaseClient.supabase
       .from('productos')
       .select(PRODUCT_COLS)
@@ -184,6 +194,8 @@ export class ProductsRepository extends ProductRepositoryContract {
     if (dto.codigoBarras !== undefined) patch.codigo_barras = dto.codigoBarras ?? null
     if (dto.categoriaId !== undefined) patch.categoria_id = dto.categoriaId ?? null
     if (dto.proveedorId !== undefined) patch.proveedor_id = dto.proveedorId ?? null
+    if (dto.familia !== undefined) patch.familia = dto.familia ?? null
+    if (dto.sabor !== undefined) patch.sabor = dto.sabor ?? null
     if (dto.paraQueSirve !== undefined) patch.para_que_sirve = dto.paraQueSirve ?? null
     if (dto.recomendadoPara !== undefined) patch.recomendado_para = dto.recomendadoPara ?? null
     if (dto.imageUrl !== undefined) patch.image_url = dto.imageUrl ?? null

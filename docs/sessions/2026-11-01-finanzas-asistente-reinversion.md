@@ -103,6 +103,14 @@ en noviembre (los meses anteriores están desordenados).
 
 ---
 
+## 7b. PLAN-112 — Familias y sabores (misma sesión, tarde)
+
+- Migración `20261101000200_producto_familia_sabor.sql` (solo local); tipos regenerados.
+- `products/domain/entities/product.entity.ts`, `dtos/product.dto.ts`, `data/models/product.mapper.ts`, `data/repositories/products.repository.ts` (select + update tras crear), `presentation/forms/product-form.{factory,mapper}.ts`, `dialogs/product-form.dialog.ts` (campos con datalist), `pages/productos.page.ts` (familias existentes), `services/product-export.ts`.
+- `inventory/domain/services/purchase-suggestions.ts`: `familia`/`sabor` en entrada y línea, `groupPurchaseLines` (+ tests); `expenses/presentation/pages/compras.page.ts` (fila por familia) y `purchase-list-export.ts` (columnas Familia/Sabor).
+- Propuesta de familias desde los nombres de producción (59 productos, 43 familias): tabla mostrada al dueño; SQL de UPDATE por id en el scratchpad de la sesión, **no aplicado**.
+- Verificado en navegador local: lista de compras con fila "SIM · Whey 2lb · 2 sabores" y sus sabores debajo; formulario de producto con Familia/Sabor. Tests 209 OK en products+inventory; lint OK.
+
 ## 8. Notas adicionales
 
 - Consultas a producción hechas con `supabase db query --linked -f <archivo>` (solo `select`,

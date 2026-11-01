@@ -44,6 +44,19 @@ export const productFormSchema = z.object({
   // '' representa "sin proveedor" o "ninguno seleccionado".
   proveedorId: z.string(),
 
+  /** Producto base con presentación; agrupa sabores en la lista de compras. '' = sin familia. */
+  familia: z
+    .string()
+    .trim()
+    .max(100, 'La familia no puede superar 100 caracteres')
+    .default(''),
+
+  sabor: z
+    .string()
+    .trim()
+    .max(60, 'El sabor no puede superar 60 caracteres')
+    .default(''),
+
   /** Solo se usa cuando `proveedorId === PROVEEDOR_NUEVO`. */
   proveedorNombreNuevo: z
     .string()
@@ -122,6 +135,13 @@ export const productFormSchema = z.object({
 
   isActive: z.boolean().default(true),
 }).superRefine((value, ctx) => {
+  if (value.sabor.trim() && !value.familia.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['familia'],
+      message: 'Si pones sabor, escribe también la familia (el producto base)',
+    })
+  }
   if (value.tipo === 'prepared' && value.stockInicial > 0) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -156,6 +176,8 @@ export function createProductFormDefaults(
     categoriaId:  initial.categoriaId  ?? '',
     proveedorId:  initial.proveedorId  ?? '',
     proveedorNombreNuevo: initial.proveedorNombreNuevo ?? '',
+    familia:      initial.familia      ?? '',
+    sabor:        initial.sabor        ?? '',
     paraQueSirve: initial.paraQueSirve ?? '',
     recomendadoPara: initial.recomendadoPara ?? '',
     imageUrl:     initial.imageUrl     ?? '',

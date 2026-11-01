@@ -499,6 +499,16 @@ Diseño en **`docs/adr/0025-asistente-finanzas-reparto-del-dinero.md`**. Pedido 
 
 **Orden:** 103 → 104 (dueño) → 105 → 106 → 107 → 108 → 109 → 110 → 111.
 
+### Bloque — Familias y sabores en la lista de compras (PLAN-112)
+
+Pedido del dueño (2026-11-01): en la lista de compras de producción los sabores de un mismo producto salen como filas sueltas y regadas (WHEY GOLD STANDARD VAINILLA 2LB / CHOCOLATE 2LB, PASE FRUIT PUNCH / BLUE RASPBERRY, SMART BAR…), y al proveedor se les pide juntos.
+
+| ID | Título | Prioridad | Esfuerzo | Criterio de cierre |
+|---|---|---|---|---|
+| PLAN-112 | ✅ Hecho en local (2026-11-01; migración `20261101000200` **pendiente en producción**) — Familia y sabor del producto | P1 | M | Columnas `productos.familia` / `sabor` (texto, opcionales, con índice por tienda); campos "Familia (producto base)" con sugerencias de las familias existentes y "Sabor" en el formulario de producto (sabor exige familia); `groupPurchaseLines` en `purchase-suggestions.ts` (TS puro, tests): la lista de compras muestra una fila sombreada por familia con stock, venta/día, días que alcanza, necesario y total a pedir, y debajo cada sabor; el pronóstico sigue por producto (modelo con backtest intacto); Excel de compras con columnas Familia y Sabor y ordenado por proveedor → familia; Excel de productos con las dos columnas. Propuesta inicial de 59 productos / 43 familias generada desde los nombres (sabores conocidos; "Mutant Cookies" tratado como marca), pendiente de revisión del dueño y de aplicarse en producción |
+
+**Pendiente:** aplicar la propuesta revisada (UPDATE por id) y la migración en producción con OK del dueño; evaluar pronóstico por familia (reemplazo entre sabores) cuando haya historia con familias.
+
 ### PLAN-13 — `sale_exit` con motivo descriptivo
 - **Origen:** TC-09.
 - **Problema:** los movimientos `sale_exit` generados por ventas nuevas tienen motivo vacío ("—"); los seed muestran "Venta".

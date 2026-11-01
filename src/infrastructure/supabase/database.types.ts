@@ -1187,6 +1187,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           etiqueta: string | null
+          familia: string | null
           id: string
           image_url: string | null
           is_active: boolean
@@ -1198,6 +1199,7 @@ export type Database = {
           precio_venta: number
           proveedor_id: string | null
           recomendado_para: string | null
+          sabor: string | null
           sku: string | null
           stock_minimo: number
           tienda_id: string
@@ -1212,6 +1214,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           etiqueta?: string | null
+          familia?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean
@@ -1223,6 +1226,7 @@ export type Database = {
           precio_venta: number
           proveedor_id?: string | null
           recomendado_para?: string | null
+          sabor?: string | null
           sku?: string | null
           stock_minimo?: number
           tienda_id: string
@@ -1237,6 +1241,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           etiqueta?: string | null
+          familia?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean
@@ -1248,6 +1253,7 @@ export type Database = {
           precio_venta?: number
           proveedor_id?: string | null
           recomendado_para?: string | null
+          sabor?: string | null
           sku?: string | null
           stock_minimo?: number
           tienda_id?: string

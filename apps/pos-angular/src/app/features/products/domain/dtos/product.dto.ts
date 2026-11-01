@@ -8,6 +8,8 @@ export const createProductSchema = z.object({
   codigoBarras: z.string().optional(),
   categoriaId: z.string().uuid().optional(),
   proveedorId: z.string().uuid().nullable().optional(),
+  familia: z.string().trim().min(2).max(100).nullable().optional(),
+  sabor: z.string().trim().min(1).max(60).nullable().optional(),
   paraQueSirve: z
     .string()
     .trim()

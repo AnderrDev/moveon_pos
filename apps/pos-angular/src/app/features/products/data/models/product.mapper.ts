@@ -11,6 +11,8 @@ export interface ProductRow {
   proveedor_id: string | null
   /** Embed de Supabase (`proveedores(nombre)`); ausente/null cuando no hay proveedor. */
   proveedores: { nombre: string } | null
+  familia: string | null
+  sabor: string | null
   para_que_sirve: string | null
   recomendado_para: string | null
   image_url: string | null
@@ -56,6 +58,8 @@ export function rowToProduct(row: ProductRow): Product {
     categoriaId: row.categoria_id,
     proveedorId: row.proveedor_id,
     proveedorNombre: row.proveedores?.nombre ?? null,
+    familia: row.familia,
+    sabor: row.sabor,
     paraQueSirve: row.para_que_sirve,
     recomendadoPara: row.recomendado_para,
     imageUrl: row.image_url,
