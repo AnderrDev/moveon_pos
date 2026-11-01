@@ -12,10 +12,7 @@ const STATUS_LABELS = {
 /** Lista de compras sugerida, ordenada por proveedor para armar los pedidos. */
 export function buildPurchaseListWorkbook(plan: PurchasePlan, coverDays: number): ExcelWorkbookDefinition {
   const lines = [...plan.lines].sort(
-    (a, b) =>
-      (a.proveedorNombre ?? '~').localeCompare(b.proveedorNombre ?? '~', 'es') ||
-      (a.familia ?? a.nombre).localeCompare(b.familia ?? b.nombre, 'es') ||
-      a.nombre.localeCompare(b.nombre, 'es'),
+    (a, b) => (a.proveedorNombre ?? '~').localeCompare(b.proveedorNombre ?? '~', 'es') || a.nombre.localeCompare(b.nombre, 'es'),
   )
   return {
     filename: buildExportFilename('lista-de-compras'),
@@ -26,8 +23,6 @@ export function buildPurchaseListWorkbook(plan: PurchasePlan, coverDays: number)
         subtitle: `Cobertura ${coverDays} días · Presupuesto ${plan.budget ?? 'sin tope'} · Total ${plan.total}`,
         columns: [
           { header: 'Proveedor', width: 24 },
-          { header: 'Familia', width: 30 },
-          { header: 'Sabor', width: 16 },
           { header: 'Producto', width: 36 },
           { header: 'Stock actual', width: 14, format: 'integer' },
           { header: 'Venta diaria estimada', width: 20 },
@@ -40,8 +35,6 @@ export function buildPurchaseListWorkbook(plan: PurchasePlan, coverDays: number)
         ],
         rows: lines.map((l) => [
           l.proveedorNombre ?? 'Sin proveedor',
-          l.familia ?? '',
-          l.sabor ?? '',
           l.nombre,
           l.stockActual,
           l.consumoDiario,

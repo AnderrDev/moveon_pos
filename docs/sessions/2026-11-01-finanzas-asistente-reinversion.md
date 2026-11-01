@@ -111,6 +111,8 @@ en noviembre (los meses anteriores están desordenados).
 - Propuesta de familias desde los nombres de producción (59 productos, 43 familias, 13 con más de un sabor): revisada por el dueño y **aplicada en producción** junto con la migración `20261101000200` (registrada). SQL en `outputs/2026-11-01-propuesta-familias.sql`. El dueño pidió además que el sabor sea un selector: datalist con los sabores ya usados (commit `29131a4`).
 - Verificado en navegador local: lista de compras con fila "SIM · Whey 2lb · 2 sabores" y sus sabores debajo; formulario de producto con Familia/Sabor. Tests 209 OK en products+inventory; lint OK.
 
+- **Revertido (misma tarde):** el dueño vio la lista agrupada en producción y pidió dejarla como antes. `git revert` de `562abbd` y `29131a4` solo en el frontend y tests; se conservan la migración `20261101000200` (ya aplicada en producción, columnas vacías de uso) y `database.types.ts`. Merge a `main` y Netlify.
+
 ## 8. Notas adicionales
 
 - Consultas a producción hechas con `supabase db query --linked -f <archivo>` (solo `select`,

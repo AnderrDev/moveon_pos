@@ -22,7 +22,6 @@ import {
   HISTORY_DAYS,
   type DemandHistory,
   type PurchaseLineStatus,
-  groupPurchaseLines,
   type PurchaseProductInput,
 } from '@angular-app/features/inventory/domain/services/purchase-suggestions'
 import { ExpenseRepository } from '@angular-app/features/expenses/domain/repositories/expense.repository'
@@ -187,30 +186,11 @@ function nextMonthStartIso(month: string): string {
                 </tr>
               </thead>
               <tbody class="divide-y">
-                @for (group of groups(); track group.key) {
-                  @if (group.familia) {
-                    <tr class="bg-muted/40">
-                      <td moTd>
-                        <div class="font-bold">{{ group.familia }}</div>
-                        <div class="text-muted-foreground text-xs">
-                          {{ group.lines.length }} {{ group.lines.length === 1 ? 'sabor' : 'sabores' }} · {{ group.proveedorNombre ?? 'Varios proveedores' }}
-                        </div>
-                      </td>
-                      <td moTd class="text-right tabular-nums">{{ group.stockActual }}</td>
-                      <td moTd class="text-right tabular-nums">{{ group.consumoDiario }}</td>
-                      <td moTd class="text-right tabular-nums">{{ group.diasQueAlcanza === null ? '—' : group.diasQueAlcanza + ' d' }}</td>
-                      <td moTd class="text-muted-foreground text-right tabular-nums">{{ group.necesario }}</td>
-                      <td moTd class="text-right text-base font-bold tabular-nums">{{ group.sugerido }}</td>
-                      <td moTd></td>
-                      <td moTd class="text-right font-semibold tabular-nums">{{ (group.subtotal | money) }}</td>
-                      <td moTd></td>
-                    </tr>
-                  }
-                  @for (line of group.lines; track line.productId) {
+                @for (line of visibleLines(); track line.productId) {
                   <tr class="hover:bg-muted/30">
-                    <td moTd [class.pl-8]="group.familia">
-                      <div class="font-semibold">{{ group.familia ? (line.sabor ?? line.nombre) : line.nombre }}</div>
-                      <div class="text-muted-foreground text-xs">{{ group.familia ? line.nombre : (line.proveedorNombre ?? 'Sin proveedor') }}</div>
+                    <td moTd>
+                      <div class="font-semibold">{{ line.nombre }}</div>
+                      <div class="text-muted-foreground text-xs">{{ line.proveedorNombre ?? 'Sin proveedor' }}</div>
                     </td>
                     <td moTd class="text-right tabular-nums">{{ line.stockActual }}</td>
                     <td moTd class="text-right tabular-nums">{{ line.consumoDiario }}</td>
@@ -232,7 +212,6 @@ function nextMonthStartIso(month: string): string {
                       <mo-badge [variant]="badge(line.status).variant">{{ badge(line.status).label }}</mo-badge>
                     </td>
                   </tr>
-                  }
                 }
               </tbody>
             </table>
@@ -240,7 +219,6 @@ function nextMonthStartIso(month: string): string {
               Orden: primero lo que antes se agota; a igual urgencia, lo que más margen deja. La venta
               diaria pesa más las últimas 2 semanas e incluye lo que consumen batidos y combos.
               "Sin presupuesto": no alcanza ni para una unidad; sube el presupuesto o baja los días.
-              Los sabores de una misma familia van juntos: la fila sombreada es el total a pedir de esa familia.
             </p>
           </mo-table-shell>
         }
@@ -299,9 +277,6 @@ export class ComprasPage {
     this.soloComprar() ? this.plan().lines.filter((l) => l.sugerido > 0) : this.plan().lines,
   )
 
-  /** Sabores de una misma familia juntos, con el total de la familia arriba. */
-  readonly groups = computed(() => groupPurchaseLines(this.visibleLines()))
-
   constructor() {
     void this.load()
   }
@@ -337,8 +312,6 @@ export class ComprasPage {
           precioVenta: p.precioVenta,
           stockMinimo: p.stockMinimo,
           proveedorNombre: p.proveedorNombre,
-          familia: p.familia,
-          sabor: p.sabor,
         })),
       )
       const stock = new Map(levels.map((l) => [l.productId, l.totalStock]))

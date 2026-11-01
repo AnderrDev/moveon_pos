@@ -10,10 +10,6 @@ export interface Product {
   proveedorId: string | null
   /** Nombre del proveedor, resuelto vía join — solo lectura. */
   proveedorNombre: string | null
-  /** Producto base con su presentación (ej. "WHEY GOLD STANDARD 2LB"); agrupa sabores (PLAN-112). */
-  familia: string | null
-  /** Variante dentro de la familia (ej. "Vainilla"). */
-  sabor: string | null
   paraQueSirve: string | null
   recomendadoPara: string | null
   imageUrl: string | null

@@ -200,9 +200,6 @@ export interface PurchaseProductInput {
   precioVenta: number
   stockMinimo: number
   proveedorNombre: string | null
-  /** Producto base con presentación; agrupa sabores (PLAN-112). */
-  familia?: string | null
-  sabor?: string | null
 }
 
 export interface PurchaseOptions {
@@ -219,8 +216,6 @@ export interface PurchaseLine {
   productId: string
   nombre: string
   proveedorNombre: string | null
-  familia: string | null
-  sabor: string | null
   stockActual: number
   consumoDiario: number
   /** Días que alcanza el stock actual (`null` si no hay consumo). */
@@ -298,8 +293,6 @@ export function buildPurchasePlan(
       productId: c.p.id,
       nombre: c.p.nombre,
       proveedorNombre: c.p.proveedorNombre,
-      familia: c.p.familia ?? null,
-      sabor: c.p.sabor ?? null,
       stockActual: c.stockActual,
       consumoDiario: round1(c.consumoDiario),
       diasQueAlcanza: c.diasQueAlcanza === null ? null : round1(c.diasQueAlcanza),
@@ -323,59 +316,4 @@ export function buildPurchasePlan(
   })
 
   return { lines, total, totalNecesario, budget: options.budget, restante }
-}
-
-/**
- * Líneas agrupadas por familia (PLAN-112): los sabores de un mismo producto
- * van juntos, con el total de la familia arriba. Un producto sin familia es
- * su propio grupo. El orden de los grupos es el de su primera línea (la más
- * urgente), así la lista sigue mostrando primero lo que antes se agota.
- */
-export interface PurchaseGroup {
-  key: string
-  /** `null` cuando el grupo es un producto suelto. */
-  familia: string | null
-  proveedorNombre: string | null
-  lines: PurchaseLine[]
-  stockActual: number
-  consumoDiario: number
-  diasQueAlcanza: number | null
-  necesario: number
-  sugerido: number
-  subtotal: number
-}
-
-export function groupPurchaseLines(lines: readonly PurchaseLine[]): PurchaseGroup[] {
-  const groups = new Map<string, PurchaseGroup>()
-  for (const line of lines) {
-    const familia = line.familia?.trim() || null
-    const key = familia ? `fam:${familia.toLocaleLowerCase('es')}` : `prod:${line.productId}`
-    let group = groups.get(key)
-    if (!group) {
-      group = {
-        key,
-        familia,
-        proveedorNombre: line.proveedorNombre,
-        lines: [],
-        stockActual: 0,
-        consumoDiario: 0,
-        diasQueAlcanza: null,
-        necesario: 0,
-        sugerido: 0,
-        subtotal: 0,
-      }
-      groups.set(key, group)
-    }
-    group.lines.push(line)
-    group.stockActual += line.stockActual
-    group.consumoDiario = round1(group.consumoDiario + line.consumoDiario)
-    group.necesario += line.necesario
-    group.sugerido += line.sugerido
-    group.subtotal += line.subtotal
-    if (group.proveedorNombre !== line.proveedorNombre) group.proveedorNombre = null
-  }
-  for (const group of groups.values()) {
-    group.diasQueAlcanza = group.consumoDiario > 0 ? round1(group.stockActual / group.consumoDiario) : null
-  }
-  return [...groups.values()]
 }
