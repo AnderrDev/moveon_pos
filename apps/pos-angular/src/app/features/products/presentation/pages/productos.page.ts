@@ -24,6 +24,7 @@ import type { Product } from '@angular-app/features/products/domain/entities/pro
 import type { StockLevel } from '@angular-app/features/inventory/domain/entities/inventory.entity'
 import { RegisterEntryDialog } from '@angular-app/features/inventory/presentation/dialogs/register-entry.dialog'
 import { AdjustStockDialog } from '@angular-app/features/inventory/presentation/dialogs/adjust-stock.dialog'
+import { SplitProductDialog } from '@angular-app/features/inventory/presentation/dialogs/split-product.dialog'
 import { TransferStockDialog } from '@angular-app/features/inventory/presentation/dialogs/transfer-stock.dialog'
 import {
   KardexDialog,
@@ -65,6 +66,7 @@ import { PageSkeletonComponent } from '@angular-app/shared/molecules/page-skelet
     ...MO_MENU,
     RegisterEntryDialog,
     AdjustStockDialog,
+    SplitProductDialog,
     TransferStockDialog,
     KardexDialog,
     CorrectEntryCostDialog,
@@ -321,6 +323,7 @@ import { PageSkeletonComponent } from '@angular-app/shared/molecules/page-skelet
         <mo-menu size="sm" [label]="'Más acciones para ' + product.nombre">
           @if (canMoveStock(product)) {
             <button type="button" moMenuItem (click)="openAdjust(product)">Ajustar stock</button>
+            <button type="button" moMenuItem (click)="openSplit(product)">Fraccionar (abrir para sachets)</button>
             <button type="button" moMenuItem (click)="openTransfer(product)">Trasladar entre bodega y punto de venta</button>
           }
           @if (stock.tracksStock) {
@@ -348,6 +351,14 @@ import { PageSkeletonComponent } from '@angular-app/shared/molecules/page-skelet
       [product]="stockTarget()"
       (closed)="adjustOpen.set(false)"
       (saved)="onStockChanged()"
+    />
+
+    <mo-split-product-dialog
+      [open]="splitOpen()"
+      [product]="stockTarget()"
+      [targets]="splitTargets()"
+      (closed)="splitOpen.set(false)"
+      (saved)="onStockChanged({ costChanged: true })"
     />
 
     <mo-transfer-stock-dialog
@@ -490,6 +501,14 @@ export class ProductosPage {
   // --- Diálogos de stock (antes en /inventario) ---
   readonly entryOpen = signal(false)
   readonly adjustOpen = signal(false)
+  readonly splitOpen = signal(false)
+  /** Destinos posibles de un fraccionamiento: productos simples activos. */
+  readonly splitTargets = computed(() =>
+    this.products()
+      .filter((p) => p.isActive && !p.deletedAt && p.tipo === 'simple')
+      .map((p) => ({ id: p.id, nombre: p.nombre }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')),
+  )
   readonly transferOpen = signal(false)
   readonly kardexOpen = signal(false)
   readonly costCorrection = signal<EntryCostCorrectionRequest | null>(null)
@@ -593,6 +612,11 @@ export class ProductosPage {
   openEntry(product: Product): void {
     this.stockProduct.set(product)
     this.entryOpen.set(true)
+  }
+
+  openSplit(product: Product): void {
+    this.stockProduct.set(product)
+    this.splitOpen.set(true)
   }
 
   openAdjust(product: Product): void {

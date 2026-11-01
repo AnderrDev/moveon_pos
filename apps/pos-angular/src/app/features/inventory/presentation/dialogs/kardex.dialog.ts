@@ -109,7 +109,7 @@ const LOCATION_LABELS: Record<string, string> = {
                   </td>
                   <td moTd>
                     <mo-badge [variant]="badgeVariant(mov.tipo)">{{
-                      tipoLabel(mov.tipo)
+                      tipoLabel(mov.tipo, mov.referenciaTipo)
                     }}</mo-badge>
                   </td>
                   <td moTd class="text-muted-foreground text-xs">
@@ -179,7 +179,8 @@ export class KardexDialog {
     return formatTime(d)
   }
 
-  tipoLabel(tipo: string): string {
+  tipoLabel(tipo: string, referenciaTipo: string | null = null): string {
+    if (referenciaTipo === 'product_split') return 'Fraccionado'
     return TIPO_LABELS[tipo] ?? tipo
   }
 

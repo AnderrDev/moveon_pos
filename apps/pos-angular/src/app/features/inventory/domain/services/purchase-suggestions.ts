@@ -133,6 +133,18 @@ export interface StockMovementRecord {
   tipo: string
   cantidad: number
   at: Date
+  /** `product_split` marca los fraccionamientos (PLAN-113). */
+  referenciaTipo?: string | null
+}
+
+/**
+ * Lo que cuenta como demanda del producto: ventas (menos anulaciones) y las
+ * unidades que se abrieron para fraccionar (un tarro abierto para sachets
+ * también hay que reponerlo).
+ */
+export function isDemandMovement(m: Pick<StockMovementRecord, 'tipo' | 'cantidad' | 'referenciaTipo'>): boolean {
+  if (m.tipo === 'sale_exit' || m.tipo === 'void_return') return true
+  return m.tipo === 'adjustment' && m.referenciaTipo === 'product_split' && m.cantidad < 0
 }
 
 /**
@@ -167,7 +179,7 @@ export function buildDemandHistories(
     if (i < 0 || i > options.days) continue
     ensure(m.productId)
     net.get(m.productId)![i] += m.cantidad
-    if (i < options.days && (m.tipo === 'sale_exit' || m.tipo === 'void_return')) {
+    if (i < options.days && isDemandMovement(m)) {
       consumption.get(m.productId)![i] += -m.cantidad
     }
   }

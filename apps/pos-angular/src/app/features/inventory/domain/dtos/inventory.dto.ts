@@ -51,6 +51,27 @@ export const adjustStockSchema = z.object({
   motivo: z.string().min(3, 'Describe el motivo del ajuste').max(200),
 })
 
+/** Fraccionar (PLAN-113): abrir N unidades de un producto para sacar M porciones de otro. */
+export const splitProductSchema = z.object({
+  origenId: z.string().uuid('ID de producto inválido'),
+  cantidadOrigen: z.number().positive('Indica cuántas unidades abres'),
+  destinoId: z.string().uuid('Selecciona el producto que sale'),
+  cantidadDestino: z.number().int('Las porciones deben ser un número entero').positive('Indica cuántas porciones salen'),
+  ubicacion: inventoryLocationSchema,
+  nota: z.string().trim().max(200, 'La nota no puede pasar de 200 caracteres').optional(),
+}).refine((v) => v.origenId !== v.destinoId, {
+  message: 'El producto que abres y el que sale deben ser distintos',
+  path: ['destinoId'],
+})
+
+export type SplitProductDto = z.infer<typeof splitProductSchema>
+
+/** Costo unitario de cada porción: costo del origen × unidades abiertas ÷ porciones. */
+export function splitUnitCost(costoOrigen: number, cantidadOrigen: number, cantidadDestino: number): number {
+  if (cantidadDestino <= 0) return 0
+  return Math.round(((costoOrigen * cantidadOrigen) / cantidadDestino) * 100) / 100
+}
+
 export const transferStockFieldsSchema = z.object({
   productId: z.string().uuid('ID de producto inválido'),
   fromUbicacion: inventoryLocationSchema,

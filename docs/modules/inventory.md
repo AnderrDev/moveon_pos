@@ -134,3 +134,15 @@ Para cargar stock inicial desde Siigo, se usa el importador CSV. Cada fila gener
 - El kardex descarga todos los movimientos cargados del producto, con fecha, ubicación, cantidad, costo y motivo.
 - El Kardex visible muestra costo unitario y costo total; las filas `entry` ofrecen **Corregir costo** (vuelto a cablear el 2026-10-24: el botón existía pero ninguna pantalla abría el diálogo).
 - La funcionalidad permanece restringida a `admin` porque `/productos` usa `roleGuard('admin')`.
+
+## Fraccionar: abrir un tarro para sachets (PLAN-113, 2026-11-01, `20261101000500`)
+
+La tienda abre un tarro (PASE 30 SERV) para armar sachets (PASE SACHET). No es compra (no sale plata) ni ajuste a secas (dejaría el sachet sin costo). `split_product_atomic(tienda, origen, N, destino, M, ubicación, nota, autor)`, solo admin:
+
+- Salida del origen: `adjustment`, cantidad −N, `referencia_tipo = 'product_split'`, motivo "Fraccionado en M × DESTINO".
+- Entrada del destino: `adjustment`, cantidad +M, `costo_unitario = costo origen × N ÷ M`, mismo `referencia_tipo`, `referencia_id` cruzados entre ambos.
+- `productos.costo` del destino pasa a ese costo unitario (misma regla que una entrada: el último costo manda), así la venta del sachet descuenta su costo real en la ganancia y en el sobre de mercancía.
+- Exige costo en el origen (`ORIGEN_SIN_COSTO`) y stock suficiente en la ubicación (`STOCK_INSUFICIENTE`); rechaza preparados/combos y origen = destino. El trigger `tg_audit_inventory_adjustment` audita ambos movimientos.
+- Ninguno es `entry`: el fondo/sobres no lo cuentan como compra. Para el asesor de compras, las unidades abiertas cuentan como demanda del origen (`isDemandMovement` en `purchase-suggestions.ts`): un tarro abierto para sachets también hay que reponerlo.
+- UI: menú del producto → "Fraccionar (abrir para sachets)" (`inventory/presentation/dialogs/split-product.dialog.ts`, patrón 3 archivos): cuántos abres, de dónde, producto que sale (simples activos), cuántas porciones y nota; muestra el costo por porción en vivo (`splitUnitCost`). Kardex: etiqueta "Fraccionado".
+- Tests: `supabase/tests/split-product.test.sql` (12), `tests/unit/features/inventory/split-product.test.ts`.
