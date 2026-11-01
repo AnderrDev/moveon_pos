@@ -51,11 +51,36 @@ export interface Expense {
 
 export interface ReinvestmentFundSettings {
   tiendaId: TiendaId
-  /** Dinero destinado a mercancía al momento de arrancar el fondo. */
+  /** Dinero destinado a mercancía al momento de arrancar el fondo (sobre de mercancía). */
   saldoInicial: number
-  /** Fecha local `YYYY-MM-DD` desde la que cuentan ventas y compras. */
+  /** Fecha local `YYYY-MM-DD` desde la que cuentan ventas, compras, gastos y retiros. */
   fechaInicio: string
+  /** Utilidad ya apartada al arrancar los sobres (ADR 0025). */
+  saldoInicialUtilidad: number
+  /** Dinero ya guardado para arriendo/nómina al arrancar los sobres (ADR 0025). */
+  saldoInicialFijos: number
+  /** Meta de días de venta cubiertos por el inventario (semáforo). */
+  diasInventarioMeta: number
   updatedAt: Date
+}
+
+export type OwnerWithdrawalOrigen = 'caja' | 'banco'
+
+/** Retiro del dueño (ADR 0025 §3): plata que sale del sobre de utilidad. No es un gasto. */
+export interface OwnerWithdrawal {
+  id: string
+  tiendaId: TiendaId
+  monto: number
+  /** Fecha local `YYYY-MM-DD`. */
+  fecha: string
+  origen: OwnerWithdrawalOrigen
+  nota: string | null
+  cashMovementId: string | null
+  status: ExpenseStatus
+  voidedReason: string | null
+  voidedAt: Date | null
+  createdBy: string
+  createdAt: Date
 }
 
 export interface ExpenseTemplate {

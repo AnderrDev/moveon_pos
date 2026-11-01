@@ -10,10 +10,17 @@ import type {
   ExpenseStatus,
   ExpenseTemplate,
   ExpenseTemplateFrecuencia,
+  OwnerWithdrawal,
+  OwnerWithdrawalOrigen,
   ReinvestmentFundSettings,
 } from '@angular-app/features/expenses/domain/entities/expense.entity'
 import { ExpenseRepository } from '@angular-app/features/expenses/domain/repositories/expense.repository'
 import type { ReinvestmentFundTotals } from '@angular-app/features/expenses/domain/services/reinvestment-fund'
+import type { MoneyEnvelopeTotals } from '@angular-app/features/expenses/domain/services/money-envelopes'
+import type {
+  RegisterOwnerWithdrawalDto,
+  VoidOwnerWithdrawalDto,
+} from '@angular-app/features/expenses/domain/dtos/owner-withdrawal.dto'
 import type { CreateExpenseDto, VoidExpenseDto } from '@angular-app/features/expenses/domain/dtos/expense.dto'
 import type { SaveEmpleadoDto } from '@angular-app/features/expenses/domain/dtos/empleado.dto'
 import type { SaveFundSettingsDto } from '@angular-app/features/expenses/domain/dtos/fund-settings.dto'
@@ -84,6 +91,66 @@ function rowToEmpleado(row: EmpleadoRow): Empleado {
     salarioMensual: Number(row.salario_mensual),
     isActive: row.is_active,
     createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
+  }
+}
+
+interface WithdrawalRow {
+  id: string
+  tienda_id: string
+  monto: number
+  fecha: string
+  origen: string
+  nota: string | null
+  cash_movement_id: string | null
+  status: string
+  voided_reason: string | null
+  voided_at: string | null
+  created_by: string
+  created_at: string
+}
+
+const WITHDRAWAL_COLS =
+  'id, tienda_id, monto, fecha, origen, nota, cash_movement_id, status, voided_reason, voided_at, created_by, created_at'
+
+function rowToWithdrawal(row: WithdrawalRow): OwnerWithdrawal {
+  return {
+    id: row.id,
+    tiendaId: row.tienda_id,
+    monto: Number(row.monto),
+    fecha: row.fecha,
+    origen: row.origen as OwnerWithdrawalOrigen,
+    nota: row.nota,
+    cashMovementId: row.cash_movement_id,
+    status: row.status as ExpenseStatus,
+    voidedReason: row.voided_reason,
+    voidedAt: row.voided_at ? new Date(row.voided_at) : null,
+    createdBy: row.created_by,
+    createdAt: new Date(row.created_at),
+  }
+}
+
+const FUND_SETTINGS_COLS =
+  'tienda_id, saldo_inicial, fecha_inicio, saldo_inicial_utilidad, saldo_inicial_fijos, dias_inventario_meta, updated_at'
+
+interface FundSettingsRow {
+  tienda_id: string
+  saldo_inicial: number
+  fecha_inicio: string
+  saldo_inicial_utilidad: number
+  saldo_inicial_fijos: number
+  dias_inventario_meta: number
+  updated_at: string
+}
+
+function rowToFundSettings(row: FundSettingsRow): ReinvestmentFundSettings {
+  return {
+    tiendaId: row.tienda_id,
+    saldoInicial: Number(row.saldo_inicial),
+    fechaInicio: row.fecha_inicio,
+    saldoInicialUtilidad: Number(row.saldo_inicial_utilidad),
+    saldoInicialFijos: Number(row.saldo_inicial_fijos),
+    diasInventarioMeta: Number(row.dias_inventario_meta),
     updatedAt: new Date(row.updated_at),
   }
 }
@@ -283,17 +350,12 @@ export class ExpensesRepository extends ExpenseRepository {
   async getFundSettings(tiendaId: string): Promise<ReinvestmentFundSettings | null> {
     const { data, error } = await this.supabaseClient.supabase
       .from('reinvestment_fund_settings')
-      .select('tienda_id, saldo_inicial, fecha_inicio, updated_at')
+      .select(FUND_SETTINGS_COLS)
       .eq('tienda_id', tiendaId)
       .maybeSingle()
     if (error) throw new Error(error.message)
     if (!data) return null
-    return {
-      tiendaId: data.tienda_id,
-      saldoInicial: Number(data.saldo_inicial),
-      fechaInicio: data.fecha_inicio,
-      updatedAt: new Date(data.updated_at),
-    }
+    return rowToFundSettings(data)
   }
 
   async saveFundSettings(dto: SaveFundSettingsDto): Promise<ReinvestmentFundSettings> {
@@ -304,19 +366,97 @@ export class ExpensesRepository extends ExpenseRepository {
           tienda_id: dto.tiendaId,
           saldo_inicial: dto.saldoInicial,
           fecha_inicio: dto.fechaInicio,
+          saldo_inicial_utilidad: dto.saldoInicialUtilidad,
+          saldo_inicial_fijos: dto.saldoInicialFijos,
+          dias_inventario_meta: dto.diasInventarioMeta,
         },
         { onConflict: 'tienda_id' },
       )
-      .select('tienda_id, saldo_inicial, fecha_inicio, updated_at')
+      .select(FUND_SETTINGS_COLS)
       .single()
     if (error) throw new Error(error.message)
     if (!data) throw new Error('Configuración del fondo guardada sin respuesta')
+    return rowToFundSettings(data)
+  }
+
+  async getMoneyEnvelopeTotals(
+    tiendaId: string,
+    desdeIso: string,
+    mesDesdeIso: string,
+    mesHastaIso: string,
+    hoyIso: string,
+  ): Promise<MoneyEnvelopeTotals> {
+    const { data, error } = await this.supabaseClient.supabase.rpc('get_money_envelope_totals', {
+      p_tienda_id: tiendaId,
+      p_desde: desdeIso,
+      p_mes_desde: mesDesdeIso,
+      p_mes_hasta: mesHastaIso,
+      p_hoy: hoyIso,
+    })
+    if (error) throw new Error(error.message)
+    const row = data?.[0]
+    if (!row) throw new Error('Los sobres no devolvieron totales')
     return {
-      tiendaId: data.tienda_id,
-      saldoInicial: Number(data.saldo_inicial),
-      fechaInicio: data.fecha_inicio,
-      updatedAt: new Date(data.updated_at),
+      entradasAcumuladas: Number(row.entradas_acumuladas),
+      entradasMes: Number(row.entradas_mes),
+      cogsAcumulado: Number(row.cogs_acumulado),
+      cogsMes: Number(row.cogs_mes),
+      comprasAcumuladas: Number(row.compras_acumuladas),
+      comprasMes: Number(row.compras_mes),
+      fijosPagadosAcumulados: Number(row.fijos_pagados_acum),
+      fijosPagadosMes: Number(row.fijos_pagados_mes),
+      variablesAcumulados: Number(row.variables_acum),
+      variablesMes: Number(row.variables_mes),
+      retirosAcumulados: Number(row.retiros_acum),
+      retirosMes: Number(row.retiros_mes),
+      cogsUltimos28Dias: Number(row.cogs_ultimos_28_dias),
+      ventasSinCosto: Number(row.ventas_sin_costo),
+      entradasSinCosto: Number(row.entradas_sin_costo),
     }
+  }
+
+  async listOwnerWithdrawals(tiendaId: string, fromDate: string, toDate: string): Promise<OwnerWithdrawal[]> {
+    const { data, error } = await this.supabaseClient.supabase
+      .from('owner_withdrawals')
+      .select(WITHDRAWAL_COLS)
+      .eq('tienda_id', tiendaId)
+      .gte('fecha', fromDate)
+      .lte('fecha', toDate)
+      .order('fecha', { ascending: false })
+      .order('created_at', { ascending: false })
+    if (error) throw new Error(error.message)
+    return ((data ?? []) as WithdrawalRow[]).map(rowToWithdrawal)
+  }
+
+  /** Registra vía RPC atómica: `origen = caja` crea la salida de caja (requiere caja abierta). */
+  async createOwnerWithdrawal(dto: RegisterOwnerWithdrawalDto): Promise<OwnerWithdrawal> {
+    const { data, error } = await this.supabaseClient.supabase.rpc('register_owner_withdrawal_atomic', {
+      p_tienda_id: dto.tiendaId,
+      p_monto: dto.monto,
+      p_fecha: dto.fecha,
+      p_origen: dto.origen,
+      p_nota: dto.nota ?? undefined,
+      p_idempotency_key: dto.idempotencyKey ?? undefined,
+    })
+    if (error) {
+      if (error.message.includes('NO_OPEN_CASH_SESSION')) {
+        throw new Error('No hay una caja abierta: abre la caja o registra el retiro desde el banco')
+      }
+      throw new Error(error.message)
+    }
+    if (!data) throw new Error('Retiro creado sin respuesta')
+    return rowToWithdrawal(data)
+  }
+
+  async voidOwnerWithdrawal(dto: VoidOwnerWithdrawalDto): Promise<OwnerWithdrawal> {
+    const { data, error } = await this.supabaseClient.supabase.rpc('void_owner_withdrawal_atomic', {
+      p_withdrawal_id: dto.withdrawalId,
+      p_tienda_id: dto.tiendaId,
+      p_reason: dto.motivo,
+    })
+    if (error) throw new Error(error.message)
+    if (!data) throw new Error('El retiro ya estaba anulado')
+    return rowToWithdrawal(data)
   }
 
   async getFundTotals(

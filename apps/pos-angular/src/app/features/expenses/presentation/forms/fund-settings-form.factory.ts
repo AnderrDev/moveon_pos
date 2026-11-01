@@ -12,5 +12,8 @@ export function createFundSettingsFormDefaults(
   return {
     saldoInicial: initial.saldoInicial ?? 0,
     fechaInicio: initial.fechaInicio ?? todayLocalDate(),
+    saldoInicialUtilidad: initial.saldoInicialUtilidad ?? 0,
+    saldoInicialFijos: initial.saldoInicialFijos ?? 0,
+    diasInventarioMeta: initial.diasInventarioMeta ?? 45,
   }
 }

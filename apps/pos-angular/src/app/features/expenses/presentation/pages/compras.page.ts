@@ -42,6 +42,12 @@ function monthStartIso(month: string): string {
   return new Date(`${month}-01T00:00:00`).toISOString()
 }
 
+/** Último día del mes (`YYYY-MM-DD`): noviembre termina el 30, no el 31. */
+function monthEndDate(month: string): string {
+  const [y, m] = month.split('-').map(Number)
+  return `${month}-${String(new Date(y, m, 0).getDate()).padStart(2, '0')}`
+}
+
 function nextMonthStartIso(month: string): string {
   const [y, m] = month.split('-').map(Number)
   return new Date(y, m, 1).toISOString()
@@ -293,7 +299,7 @@ export class ComprasPage {
         this.expenseRepo.getFundSettings(auth.tiendaId),
         this.expenseRepo.listTemplates(auth.tiendaId),
         this.expenseRepo.listEmpleados(auth.tiendaId),
-        this.expenseRepo.listExpenses(auth.tiendaId, `${month}-01`, `${month}-31`),
+        this.expenseRepo.listExpenses(auth.tiendaId, `${month}-01`, monthEndDate(month)),
       ])
 
       const active = catalog.filter((p) => p.isActive && !p.deletedAt)

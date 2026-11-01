@@ -11,6 +11,9 @@ export const fundSettingsFormMapper = {
       tiendaId: ctx.tiendaId,
       saldoInicial: value.saldoInicial,
       fechaInicio: value.fechaInicio,
+      saldoInicialUtilidad: value.saldoInicialUtilidad,
+      saldoInicialFijos: value.saldoInicialFijos,
+      diasInventarioMeta: value.diasInventarioMeta,
     }
   },
 }

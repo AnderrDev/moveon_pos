@@ -17,8 +17,21 @@ import { NominaSectionComponent } from '@angular-app/features/expenses/presentat
 import { MonthlyComparisonComponent } from '@angular-app/features/expenses/presentation/components/monthly-comparison.component'
 import { RecurrentesDialog } from '@angular-app/features/expenses/presentation/dialogs/recurrentes.dialog'
 import { TemplateFormDialog } from '@angular-app/features/expenses/presentation/dialogs/template-form.dialog'
-import { ReinvestmentFundComponent } from '@angular-app/features/expenses/presentation/components/reinvestment-fund.component'
+import { FinanceAssistantComponent } from '@angular-app/features/expenses/presentation/components/finance-assistant.component'
 import { FundSettingsDialog } from '@angular-app/features/expenses/presentation/dialogs/fund-settings.dialog'
+import { OwnerWithdrawalDialog } from '@angular-app/features/expenses/presentation/dialogs/owner-withdrawal.dialog'
+import { voidOwnerWithdrawal } from '@angular-app/features/expenses/domain/usecases/void-owner-withdrawal.use-case'
+import {
+  accrueFixedSince,
+  buildMoneyEnvelopes,
+  type MoneyEnvelopes,
+  type MoneyEnvelopeTotals,
+} from '@angular-app/features/expenses/domain/services/money-envelopes'
+import {
+  buildFinanceAdvice,
+  type FinanceAdviceResult,
+} from '@angular-app/features/expenses/domain/services/finance-advice'
+import { todayLocalDate } from '@angular-app/features/expenses/presentation/forms/expense-form.factory'
 import { ExcelExportService } from '@angular-app/shared/services/export/excel-export.service'
 import { buildFinanzasWorkbook } from '@angular-app/features/expenses/presentation/services/expense-export'
 import type { ExpenseFormValue } from '@angular-app/features/expenses/presentation/forms/expense-form.factory'
@@ -33,7 +46,6 @@ import {
 import {
   buildReinvestmentFund,
   type ReinvestmentFund,
-  type ReinvestmentFundTotals,
 } from '@angular-app/features/expenses/domain/services/reinvestment-fund'
 import { pagadoPorEmpleado } from '@angular-app/features/expenses/domain/services/nomina'
 import {
@@ -46,6 +58,7 @@ import type {
   Expense,
   ExpenseCategory,
   ExpenseTemplate,
+  OwnerWithdrawal,
   ReinvestmentFundSettings,
 } from '@angular-app/features/expenses/domain/entities/expense.entity'
 import { Router } from '@angular/router'
@@ -105,8 +118,9 @@ function monthRange(month: string): { from: string; to: string } {
     MonthlyComparisonComponent,
     RecurrentesDialog,
     TemplateFormDialog,
-    ReinvestmentFundComponent,
+    FinanceAssistantComponent,
     FundSettingsDialog,
+    OwnerWithdrawalDialog,
   ],
   template: `
     <section class="flex h-full min-h-0 flex-col gap-4">
@@ -136,10 +150,10 @@ function monthRange(month: string): { from: string; to: string } {
             <lucide-angular [img]="icons.next" class="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
-        <mo-button variant="outline" (click)="openPurchaseList()">Lista de compras</mo-button>
-        <mo-button variant="outline" (click)="recurrentesOpen.set(true)">Gastos del mes</mo-button>
         <mo-button (click)="openNewExpense()">Registrar gasto</mo-button>
         <mo-menu [busy]="exporting()">
+          <button type="button" moMenuItem (click)="openPurchaseList()">Lista de compras</button>
+          <button type="button" moMenuItem (click)="recurrentesOpen.set(true)">Gastos del mes (recurrentes)</button>
           <button type="button" moMenuItem [disabled]="loading() || exporting()" (click)="exportFinanzas()">
             {{ exporting() ? 'Generando Excel…' : 'Descargar Excel del mes' }}
           </button>
@@ -154,17 +168,23 @@ function monthRange(month: string): { from: string; to: string } {
         </mo-empty-state>
       } @else {
         <div class="min-h-0 flex-1 space-y-4 overflow-auto pb-4">
+          <mo-finance-assistant
+            [envelopes]="envelopes()"
+            [advice]="advice()"
+            [withdrawals]="withdrawals()"
+            [monthLabel]="monthLabel()"
+            [fechaInicio]="fundSettings()?.fechaInicio ?? null"
+            (configureRequested)="fundDialogOpen.set(true)"
+            (withdrawRequested)="withdrawalDialogOpen.set(true)"
+            (voidWithdrawalRequested)="voidingWithdrawal.set($event)"
+            (purchaseListRequested)="openPurchaseList()"
+          />
+
           <mo-financial-summary [s]="summary()" [monthLabel]="monthLabel()" />
 
           @if (isCurrentMonth()) {
             <mo-fixed-commitments [c]="fixedCommitments()" (manageRequested)="recurrentesOpen.set(true)" />
           }
-
-          <mo-reinvestment-fund
-            [fund]="fund()"
-            [inventory]="inventoryValue()"
-            (configureRequested)="fundDialogOpen.set(true)"
-          />
 
           <mo-nomina-section
             [empleados]="empleados()"
@@ -234,6 +254,21 @@ function monthRange(month: string): { from: string; to: string } {
       (saved)="onFundSettingsSaved($event)"
     />
 
+    <mo-owner-withdrawal-dialog
+      [open]="withdrawalDialogOpen()"
+      (closed)="withdrawalDialogOpen.set(false)"
+      (saved)="onWithdrawalSaved($event)"
+    />
+
+    <mo-void-reason-dialog
+      [open]="voidingWithdrawal() !== null"
+      title="Anular retiro"
+      [targetLabel]="voidWithdrawalLabel()"
+      placeholder="Ej: se registró dos veces, monto equivocado"
+      (closed)="voidingWithdrawal.set(null)"
+      (confirmed)="confirmVoidWithdrawal($event)"
+    />
+
     <mo-empleado-form-dialog
       [open]="empleadoDialogOpen()"
       [empleado]="editingEmpleado()"
@@ -298,8 +333,11 @@ export class FinanzasPage {
   readonly expensePeriodo = signal<string | null>(null)
   readonly exporting = signal(false)
   readonly fundSettings = signal<ReinvestmentFundSettings | null>(null)
-  readonly fundTotals = signal<ReinvestmentFundTotals | null>(null)
+  readonly envelopeTotals = signal<MoneyEnvelopeTotals | null>(null)
   readonly fundDialogOpen = signal(false)
+  readonly withdrawals = signal<OwnerWithdrawal[]>([])
+  readonly withdrawalDialogOpen = signal(false)
+  readonly voidingWithdrawal = signal<OwnerWithdrawal | null>(null)
 
   readonly pagadoEmpleados = computed(() => pagadoPorEmpleado(this.expenses()))
 
@@ -338,11 +376,55 @@ export class FinanzasPage {
     }),
   )
 
+  /** Sobres acumulados desde la fecha de inicio + el mes visible (ADR 0025). */
+  readonly envelopes = computed<MoneyEnvelopes | null>(() => {
+    const settings = this.fundSettings()
+    const totals = this.envelopeTotals()
+    if (!settings || !totals) return null
+    const fijos = accrueFixedSince({
+      fijosMensual: this.fixedCommitments().total,
+      desde: settings.fechaInicio,
+      hasta: todayLocalDate(),
+      mesVisible: this.month(),
+    })
+    return buildMoneyEnvelopes({
+      ...totals,
+      saldosIniciales: {
+        mercancia: settings.saldoInicial,
+        fijos: settings.saldoInicialFijos,
+        utilidad: settings.saldoInicialUtilidad,
+      },
+      fijosApartadosAcumulados: fijos.acumulado,
+      fijosApartadosMes: fijos.mes,
+    })
+  })
+
+  readonly advice = computed<FinanceAdviceResult | null>(() => {
+    const envelopes = this.envelopes()
+    const totals = this.envelopeTotals()
+    const settings = this.fundSettings()
+    if (!envelopes || !totals || !settings) return null
+    return buildFinanceAdvice({
+      envelopes,
+      inventarioAlCosto: this.inventoryValue()?.valorAlCosto ?? null,
+      cogsUltimos28Dias: totals.cogsUltimos28Dias,
+      metaDias: settings.diasInventarioMeta,
+      fijosConfigurados: this.fixedCommitments().items.length > 0,
+      hayRetiros: totals.retirosAcumulados > 0,
+    })
+  })
+
+  /** El fondo de reinversión es el sobre de mercancía; se conserva para el Excel. */
   readonly fund = computed<ReinvestmentFund | null>(() => {
     const settings = this.fundSettings()
-    const totals = this.fundTotals()
+    const totals = this.envelopeTotals()
     if (!settings || !totals) return null
     return buildReinvestmentFund({ saldoInicial: settings.saldoInicial, ...totals })
+  })
+
+  readonly voidWithdrawalLabel = computed(() => {
+    const w = this.voidingWithdrawal()
+    return w ? `el retiro de ${w.monto.toLocaleString('es-CO')} del ${w.fecha}` : null
   })
 
   readonly voidTargetLabel = computed(() => {
@@ -372,7 +454,7 @@ export class FinanzasPage {
       const auth = await this.session.getAuthContext()
       if (!auth) throw new Error('No autenticado')
       const { from, to } = monthRange(this.month())
-      const [categorias, expenses, empleados, templates, report, fundSettings] =
+      const [categorias, expenses, empleados, templates, report, fundSettings, withdrawals] =
         await Promise.all([
           this.repo.listCategories(auth.tiendaId),
           this.repo.listExpenses(auth.tiendaId, from, to),
@@ -380,6 +462,7 @@ export class FinanzasPage {
           this.repo.listTemplates(auth.tiendaId),
           this.reportsService.getDailyReport(auth.tiendaId, from, to),
           this.repo.getFundSettings(auth.tiendaId),
+          this.repo.listOwnerWithdrawals(auth.tiendaId, from, to),
         ])
       this.categorias.set(categorias)
       this.expenses.set(expenses)
@@ -388,7 +471,8 @@ export class FinanzasPage {
       this.entradasTotales.set(report.totalVentas)
       this.entradasPorMetodo.set(report.paymentBreakdown.map((p) => ({ metodo: p.metodo, total: p.total })))
       this.fundSettings.set(fundSettings)
-      await this.loadFundTotals(auth.tiendaId)
+      this.withdrawals.set(withdrawals)
+      await this.loadEnvelopeTotals(auth.tiendaId)
       void this.loadInventoryValue(auth.tiendaId)
 
       const costos = report.productSales
@@ -427,26 +511,60 @@ export class FinanzasPage {
     }
   }
 
-  /** Totales del fondo desde su fecha de inicio + desglose del mes visible. */
-  private async loadFundTotals(tiendaId: string): Promise<void> {
+  /** Totales de los sobres desde la fecha de inicio + desglose del mes visible + 28 días. */
+  private async loadEnvelopeTotals(tiendaId: string): Promise<void> {
     const settings = this.fundSettings()
     if (!settings) {
-      this.fundTotals.set(null)
+      this.envelopeTotals.set(null)
       return
     }
-    const month = this.month()
     const desdeIso = new Date(`${settings.fechaInicio}T00:00:00`).toISOString()
-    const { fromIso: mesDesdeIso, toIso: mesHastaIso } = monthIsoBounds(month)
-    this.fundTotals.set(await this.repo.getFundTotals(tiendaId, desdeIso, mesDesdeIso, mesHastaIso))
+    const { fromIso: mesDesdeIso, toIso: mesHastaIso } = monthIsoBounds(this.month())
+    this.envelopeTotals.set(
+      await this.repo.getMoneyEnvelopeTotals(tiendaId, desdeIso, mesDesdeIso, mesHastaIso, new Date().toISOString()),
+    )
   }
 
   async onFundSettingsSaved(settings: ReinvestmentFundSettings): Promise<void> {
     this.fundSettings.set(settings)
     try {
       const auth = await this.session.getAuthContext()
-      if (auth) await this.loadFundTotals(auth.tiendaId)
+      if (auth) await this.loadEnvelopeTotals(auth.tiendaId)
     } catch (error) {
-      this.toast.error(getErrorMessage(error, 'No se pudo actualizar el fondo'))
+      this.toast.error(getErrorMessage(error, 'No se pudo actualizar los sobres'))
+    }
+  }
+
+  onWithdrawalSaved(withdrawal: OwnerWithdrawal): void {
+    const { from, to } = monthRange(this.month())
+    if (withdrawal.fecha >= from && withdrawal.fecha <= to) {
+      this.withdrawals.set([withdrawal, ...this.withdrawals()])
+    } else {
+      this.toast.success('El retiro quedó registrado en otro mes')
+    }
+    void this.refreshFundAndComparison()
+  }
+
+  async confirmVoidWithdrawal(motivo: string): Promise<void> {
+    const withdrawal = this.voidingWithdrawal()
+    if (!withdrawal) return
+    this.voidingWithdrawal.set(null)
+    try {
+      const auth = await this.session.getAuthContext()
+      if (!auth) throw new Error('No autenticado')
+      const result = await voidOwnerWithdrawal(
+        { repo: this.repo },
+        { withdrawalId: withdrawal.id, tiendaId: auth.tiendaId, motivo },
+      )
+      if (!result.ok) {
+        this.toast.error(result.error.message)
+        return
+      }
+      this.withdrawals.set(this.withdrawals().map((w) => (w.id === result.value.id ? result.value : w)))
+      this.toast.success('Retiro anulado')
+      void this.refreshFundAndComparison()
+    } catch (error) {
+      this.toast.error(getErrorMessage(error, 'No se pudo anular el retiro'))
     }
   }
 
@@ -483,7 +601,7 @@ export class FinanzasPage {
     try {
       const auth = await this.session.getAuthContext()
       if (!auth) return
-      await Promise.all([this.loadFundTotals(auth.tiendaId), this.loadComparison(auth.tiendaId)])
+      await Promise.all([this.loadEnvelopeTotals(auth.tiendaId), this.loadComparison(auth.tiendaId)])
     } catch (error) {
       this.toast.error(getErrorMessage(error, 'No se pudo actualizar el resumen'))
     }

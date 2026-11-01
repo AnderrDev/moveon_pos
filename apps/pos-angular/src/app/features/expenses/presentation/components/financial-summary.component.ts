@@ -84,7 +84,7 @@ import type { ChartPoint } from '@angular-app/shared/molecules/charts/chart-pale
       }
       <p class="text-muted-foreground mt-3 text-xs">
         Las compras de mercancía no restan aquí: esa mercancía sigue siendo tuya y su costo se descuenta
-        cuando la vendes. Lo que llevas invertido en mercancía está en el fondo de reinversión.
+        cuando la vendes. Lo que llevas invertido en mercancía lo ves arriba, en el sobre de mercancía.
       </p>
     </div>
 
