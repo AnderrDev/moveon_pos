@@ -108,7 +108,7 @@ en noviembre (los meses anteriores están desordenados).
 - Migración `20261101000200_producto_familia_sabor.sql` (solo local); tipos regenerados.
 - `products/domain/entities/product.entity.ts`, `dtos/product.dto.ts`, `data/models/product.mapper.ts`, `data/repositories/products.repository.ts` (select + update tras crear), `presentation/forms/product-form.{factory,mapper}.ts`, `dialogs/product-form.dialog.ts` (campos con datalist), `pages/productos.page.ts` (familias existentes), `services/product-export.ts`.
 - `inventory/domain/services/purchase-suggestions.ts`: `familia`/`sabor` en entrada y línea, `groupPurchaseLines` (+ tests); `expenses/presentation/pages/compras.page.ts` (fila por familia) y `purchase-list-export.ts` (columnas Familia/Sabor).
-- Propuesta de familias desde los nombres de producción (59 productos, 43 familias): tabla mostrada al dueño; SQL de UPDATE por id en el scratchpad de la sesión, **no aplicado**.
+- Propuesta de familias desde los nombres de producción (59 productos, 43 familias, 13 con más de un sabor): revisada por el dueño y **aplicada en producción** junto con la migración `20261101000200` (registrada). SQL en `outputs/2026-11-01-propuesta-familias.sql`. El dueño pidió además que el sabor sea un selector: datalist con los sabores ya usados (commit `29131a4`).
 - Verificado en navegador local: lista de compras con fila "SIM · Whey 2lb · 2 sabores" y sus sabores debajo; formulario de producto con Familia/Sabor. Tests 209 OK en products+inventory; lint OK.
 
 ## 8. Notas adicionales
