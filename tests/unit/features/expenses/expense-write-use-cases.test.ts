@@ -39,7 +39,6 @@ const fundSettings: ReinvestmentFundSettings = {
   saldoInicial: 500_000,
   fechaInicio: '2026-01-01',
   saldoInicialUtilidad: 0,
-  saldoInicialFijos: 0,
   diasInventarioMeta: 45,
   updatedAt: now,
 }

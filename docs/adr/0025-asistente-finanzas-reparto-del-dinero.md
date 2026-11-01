@@ -1,6 +1,6 @@
 # ADR 0025 — Asistente de finanzas: reparto del dinero en sobres (desde noviembre 2026)
 
-**Estado:** Aceptado (aprobado por el dueño el 2026-11-01)
+**Estado:** Aceptado (aprobado por el dueño el 2026-11-01). **Enmienda del mismo día:** el dueño pidió quitar el sobre de fijos apartado por día ("la idea es solo separar la plata del inventario de la utilidad"). Quedan tres sobres: mercancía, gastos (lo registrado, sin apartar por adelantado) y utilidad. Las secciones §1–§2 describen el diseño original; `docs/modules/expenses.md` tiene el vigente.
 
 ## Contexto
 

@@ -131,14 +131,13 @@ function rowToWithdrawal(row: WithdrawalRow): OwnerWithdrawal {
 }
 
 const FUND_SETTINGS_COLS =
-  'tienda_id, saldo_inicial, fecha_inicio, saldo_inicial_utilidad, saldo_inicial_fijos, dias_inventario_meta, updated_at'
+  'tienda_id, saldo_inicial, fecha_inicio, saldo_inicial_utilidad, dias_inventario_meta, updated_at'
 
 interface FundSettingsRow {
   tienda_id: string
   saldo_inicial: number
   fecha_inicio: string
   saldo_inicial_utilidad: number
-  saldo_inicial_fijos: number
   dias_inventario_meta: number
   updated_at: string
 }
@@ -149,7 +148,6 @@ function rowToFundSettings(row: FundSettingsRow): ReinvestmentFundSettings {
     saldoInicial: Number(row.saldo_inicial),
     fechaInicio: row.fecha_inicio,
     saldoInicialUtilidad: Number(row.saldo_inicial_utilidad),
-    saldoInicialFijos: Number(row.saldo_inicial_fijos),
     diasInventarioMeta: Number(row.dias_inventario_meta),
     updatedAt: new Date(row.updated_at),
   }
@@ -367,7 +365,6 @@ export class ExpensesRepository extends ExpenseRepository {
           saldo_inicial: dto.saldoInicial,
           fecha_inicio: dto.fechaInicio,
           saldo_inicial_utilidad: dto.saldoInicialUtilidad,
-          saldo_inicial_fijos: dto.saldoInicialFijos,
           dias_inventario_meta: dto.diasInventarioMeta,
         },
         { onConflict: 'tienda_id' },

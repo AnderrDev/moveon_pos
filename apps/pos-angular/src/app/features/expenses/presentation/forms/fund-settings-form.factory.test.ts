@@ -16,7 +16,7 @@ describe('fundSettingsFormSchema', () => {
 describe('fundSettingsFormMapper.toSaveDto', () => {
   it('agrega tiendaId desde el contexto', () => {
     const dto = fundSettingsFormMapper.toSaveDto(
-      { saldoInicial: 250_000, fechaInicio: '2026-07-08', saldoInicialUtilidad: 0, saldoInicialFijos: 100_000, diasInventarioMeta: 45 },
+      { saldoInicial: 250_000, fechaInicio: '2026-07-08', saldoInicialUtilidad: 0, diasInventarioMeta: 45 },
       { tiendaId: '11111111-1111-4111-8111-111111111111' },
     )
 
@@ -25,7 +25,6 @@ describe('fundSettingsFormMapper.toSaveDto', () => {
       saldoInicial: 250_000,
       fechaInicio: '2026-07-08',
       saldoInicialUtilidad: 0,
-      saldoInicialFijos: 100_000,
       diasInventarioMeta: 45,
     })
   })
