@@ -13,7 +13,7 @@
 | Sprint | Post-MVP (mejoras) |
 | Agente | Claude Code |
 | HUs trabajadas | Pedido del dueño: "se vendió una Vitanas, para reponer se debería comprar una" (PLAN-114) |
-| Estado | En progreso |
+| Estado | Completada en local; commit en dev (pendiente publicar) |
 
 ---
 
@@ -61,9 +61,10 @@ _Decisiones que no quedaron en ADR pero son relevantes para el contexto._
 
 ## 5. Tests
 
-- [ ] `pnpm typecheck` — pasó / falló
-- [ ] `pnpm lint` — pasó / falló
-- [ ] `pnpm test` — X tests pasaron, Y fallaron
+- [x] `ng build --configuration development` — pasó
+- [x] `pnpm lint` — pasó
+- [x] `pnpm test` — 968 pasaron (3 nuevas del modo)
+- [x] Navegador contra Supabase local: pestaña "Reponer lo vendido" por defecto; Pre-entreno Psycho muestra vendido 6 desde el 15 de oct (5 ventas + 1 tarro fraccionado), comprado 0, por reponer 6; con "últimos 7 días" queda 1; pestaña Pronóstico conserva sus columnas. Sin errores de consola.
 
 Detalle de fallos (si los hay):
 
