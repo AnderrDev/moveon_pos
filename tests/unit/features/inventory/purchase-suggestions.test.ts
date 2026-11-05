@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildDemandHistories,
   buildPurchasePlan,
+  buildReplenishmentPlan,
   DEFAULT_FORECAST,
   forecastDemand,
   unitsNeeded,
@@ -136,5 +137,56 @@ describe('lista de compras', () => {
     const exact = buildPurchasePlan([product('r')], new Map([['r', 0]]), noisy, opts(null)).lines[0].necesario
     const safe = buildPurchasePlan([product('r')], new Map([['r', 0]]), noisy, { coverDays: 14, budget: null }).lines[0].necesario
     expect(safe).toBeGreaterThan(exact)
+  })
+})
+
+describe('reponer lo vendido (PLAN-114)', () => {
+  const now = new Date('2026-11-05T15:00:00Z')
+  const at = (daysAgo: number) => new Date(now.getTime() - daysAgo * 86_400_000)
+  const prods = [
+    product('vitanas', { nombre: 'CREATINA VITANAS', costo: 80_000 }),
+    product('whey', { nombre: 'WHEY', costo: 100_000 }),
+    product('pase', { nombre: 'PASE 30 SERV', costo: 90_000 }),
+  ]
+  const movements = [
+    // Vitanas: compra hace 10 días, 3 ventas después (1 anulada) → 2 por reponer
+    { productId: 'vitanas', tipo: 'entry', cantidad: 5, at: at(10) },
+    { productId: 'vitanas', tipo: 'sale_exit', cantidad: -1, at: at(8) },
+    { productId: 'vitanas', tipo: 'sale_exit', cantidad: -1, at: at(5) },
+    { productId: 'vitanas', tipo: 'sale_exit', cantidad: -1, at: at(2) },
+    { productId: 'vitanas', tipo: 'void_return', cantidad: 1, at: at(2) },
+    // Whey: vendió 2 hace 20 días, compró 2 hace 3 días → nada pendiente desde la última compra
+    { productId: 'whey', tipo: 'sale_exit', cantidad: -2, at: at(20) },
+    { productId: 'whey', tipo: 'entry', cantidad: 2, at: at(3) },
+    // Pase: sin compras en la historia; 1 tarro abierto para sachets cuenta como vendido
+    { productId: 'pase', tipo: 'adjustment', cantidad: -1, at: at(1), referenciaTipo: 'product_split' },
+    { productId: 'pase', tipo: 'adjustment', cantidad: -1, at: at(1), referenciaTipo: null },
+  ]
+  const stock = new Map([['vitanas', 3], ['whey', 4], ['pase', 2]])
+
+  it('desde la última compra: vendido − comprado por producto', () => {
+    const plan = buildReplenishmentPlan(prods, stock, movements, { window: 'last_entry', budget: null, now })
+    expect(plan.lines.map((l) => [l.productId, l.vendido, l.comprado, l.necesario])).toEqual([
+      ['pase', 1, 0, 1],
+      ['vitanas', 2, 0, 2],
+    ])
+    expect(plan.lines[1].desde).toEqual(at(10))
+    expect(plan.lines[0].desde).toBeNull()
+    expect(plan.total).toBe(90_000 + 160_000)
+  })
+
+  it('con ventana de días, lo comprado en la ventana descuenta', () => {
+    const plan = buildReplenishmentPlan(prods, stock, movements, { window: 30, budget: null, now })
+    // Whey vendió 2 y compró 2; Vitanas vendió 2 y compró 5: ninguno queda pendiente.
+    expect(plan.lines.map((l) => l.productId)).toEqual(['pase'])
+  })
+
+  it('respeta el presupuesto en orden de menor stock', () => {
+    const plan = buildReplenishmentPlan(prods, stock, movements, { window: 'last_entry', budget: 100_000, now })
+    expect(plan.lines.map((l) => [l.productId, l.sugerido, l.status])).toEqual([
+      ['pase', 1, 'full'],
+      ['vitanas', 0, 'over_budget'],
+    ])
+    expect(plan.restante).toBe(10_000)
   })
 })

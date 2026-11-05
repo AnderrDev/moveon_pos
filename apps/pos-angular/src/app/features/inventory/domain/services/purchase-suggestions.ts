@@ -239,6 +239,12 @@ export interface PurchaseLine {
   costoUnitario: number | null
   subtotal: number
   status: PurchaseLineStatus
+  /** Solo en modo "reponer lo vendido": unidades vendidas (o abiertas) en la ventana. */
+  vendido?: number
+  /** Solo en modo "reponer lo vendido": unidades compradas en la ventana. */
+  comprado?: number
+  /** Solo en modo "reponer lo vendido": inicio de la ventana (`null` = toda la historia cargada). */
+  desde?: Date | null
 }
 
 export interface PurchasePlan {
@@ -324,6 +330,100 @@ export function buildPurchasePlan(
     if (restante !== null) restante -= subtotal
     const status: PurchaseLineStatus =
       sugerido === c.necesario ? 'full' : sugerido > 0 ? 'partial' : 'over_budget'
+    return { ...base, sugerido, subtotal, status }
+  })
+
+  return { lines, total, totalNecesario, budget: options.budget, restante }
+}
+
+// ---------------- Reponer lo vendido (PLAN-114) ----------------
+
+/** Ventana de la reposición: desde la última compra del producto o los últimos N días. */
+export type ReplenishWindow = 'last_entry' | 7 | 14 | 30
+
+export interface ReplenishOptions {
+  window: ReplenishWindow
+  /** Dinero disponible para la compra; `null` = sin tope. */
+  budget: number | null
+  now: Date
+}
+
+/**
+ * Lo que se vendió se repone 1 a 1 ("se vendió una Vitanas, se compra una").
+ * Por producto: vendido (ventas − anulaciones + tarros abiertos para
+ * fraccionar) menos comprado (entradas) dentro de la ventana = por reponer.
+ * Con `window = 'last_entry'` la ventana arranca justo después de la última
+ * entrada del producto (lo comprado ahí ya está repuesto); sin entradas se
+ * usa toda la historia cargada. El presupuesto se reparte igual que en el
+ * pronóstico: primero lo que menos stock tiene.
+ */
+export function buildReplenishmentPlan(
+  products: readonly PurchaseProductInput[],
+  stockByProduct: ReadonlyMap<string, number>,
+  movements: readonly StockMovementRecord[],
+  options: ReplenishOptions,
+): PurchasePlan {
+  const byProduct = new Map<string, StockMovementRecord[]>()
+  for (const m of movements) {
+    const list = byProduct.get(m.productId)
+    if (list) list.push(m)
+    else byProduct.set(m.productId, [m])
+  }
+  const sinceDays =
+    options.window === 'last_entry' ? null : new Date(options.now.getTime() - options.window * 86_400_000)
+
+  const candidates = products
+    .filter((p) => tracksOwnStock(p.tipo))
+    .map((p) => {
+      const moves = byProduct.get(p.id) ?? []
+      let desde: Date | null = sinceDays
+      if (options.window === 'last_entry') {
+        const lastEntry = moves
+          .filter((m) => m.tipo === 'entry' && m.cantidad > 0)
+          .reduce<Date | null>((latest, m) => (!latest || m.at > latest ? m.at : latest), null)
+        desde = lastEntry
+      }
+      let vendido = 0
+      let comprado = 0
+      for (const m of moves) {
+        if (desde && m.at <= desde) continue
+        if (isDemandMovement(m)) vendido += -m.cantidad
+        else if (m.tipo === 'entry' && m.cantidad > 0) comprado += m.cantidad
+      }
+      const necesario = Math.max(0, Math.ceil(vendido - comprado - 1e-9))
+      const stockActual = Math.max(stockByProduct.get(p.id) ?? 0, 0)
+      return { p, stockActual, vendido, comprado, desde, necesario }
+    })
+    .filter((c) => c.necesario > 0)
+    .sort((a, b) => a.stockActual - b.stockActual || b.necesario - a.necesario)
+
+  let restante = options.budget
+  let total = 0
+  let totalNecesario = 0
+  const lines: PurchaseLine[] = candidates.map((c) => {
+    const base = {
+      productId: c.p.id,
+      nombre: c.p.nombre,
+      proveedorNombre: c.p.proveedorNombre,
+      stockActual: c.stockActual,
+      consumoDiario: 0,
+      diasQueAlcanza: null,
+      necesario: c.necesario,
+      costoUnitario: c.p.costo,
+      vendido: round1(c.vendido),
+      comprado: round1(c.comprado),
+      desde: c.desde,
+    }
+    if (c.p.costo === null || c.p.costo <= 0) {
+      return { ...base, sugerido: 0, subtotal: 0, status: 'no_cost' as const }
+    }
+    totalNecesario += c.necesario * c.p.costo
+    let sugerido = c.necesario
+    if (restante !== null) sugerido = Math.min(c.necesario, Math.floor(restante / c.p.costo))
+    const subtotal = sugerido * c.p.costo
+    total += subtotal
+    if (restante !== null) restante -= subtotal
+    const status: PurchaseLineStatus = sugerido === c.necesario ? 'full' : sugerido > 0 ? 'partial' : 'over_budget'
     return { ...base, sugerido, subtotal, status }
   })
 
