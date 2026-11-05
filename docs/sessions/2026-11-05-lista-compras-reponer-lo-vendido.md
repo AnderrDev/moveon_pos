@@ -13,7 +13,7 @@
 | Sprint | Post-MVP (mejoras) |
 | Agente | Claude Code |
 | HUs trabajadas | Pedido del dueño: "se vendió una Vitanas, para reponer se debería comprar una" (PLAN-114) |
-| Estado | Completada en local; commit en dev (pendiente publicar) |
+| Estado | Completada y publicada (merge a main, Netlify) |
 
 ---
 
