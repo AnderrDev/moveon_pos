@@ -515,6 +515,14 @@ Pedido del dueño (2026-11-01): "destapamos un tarro de PASE para armar sachets 
 |---|---|---|---|---|
 | PLAN-113 | ✅ Hecho y en producción (2026-11-01; migración `20261101000500` aplicada y registrada con OK del dueño, md5 idéntico a local, prueba funcional revertida) — Fraccionar | P1 | M | RPC `split_product_atomic` (admin; sale N del origen y entran M del destino como `adjustment` con `referencia_tipo = product_split`, enlazados; costo del destino = costo origen × N ÷ M; exige costo en el origen y stock suficiente; pgTAP 12); DTO `splitProductSchema` + `splitUnitCost`, use-case `splitProduct`, repo; diálogo "Fraccionar (abrir para sachets)" en el menú del producto con el costo por porción calculado en vivo; kardex etiqueta "Fraccionado"; el asesor de compras cuenta los tarros abiertos como demanda del tarro (`isDemandMovement`). Verificado en navegador local: 1 tarro → 30 sachets a $3.051 |
 
+### Bloque — Lista de compras: modo "Reponer lo vendido" (PLAN-114)
+
+Pedido del dueño (2026-11-05): "sería bueno detectar qué se ha vendido para reponer: se vendió una Vitanas, se debería comprar una". El pronóstico por consumo sigue, pero la cuenta que el dueño hace de cabeza es 1 a 1.
+
+| ID | Título | Prioridad | Esfuerzo | Criterio de cierre |
+|---|---|---|---|---|
+| PLAN-114 | ✅ Hecho (2026-11-05) — Reponer lo vendido | P1 | S | `buildReplenishmentPlan` (TS puro, tests): por producto, vendido (ventas − anulaciones + tarros abiertos para fraccionar) − comprado (entradas) en la ventana = por reponer; ventana "desde la última compra de cada producto" (por defecto) o 7/14/30 días; orden por menor stock; mismo presupuesto y estados que el pronóstico. `/finanzas/compras` con pestañas "Reponer lo vendido" (por defecto) / "Pronóstico", columnas Vendido / Comprado / Por reponer, y Excel con esas columnas. Sin cambios en la base |
+
 **Pendiente:** evaluar pronóstico por familia (reemplazo entre sabores) cuando haya historia con familias.
 
 ### PLAN-13 — `sale_exit` con motivo descriptivo

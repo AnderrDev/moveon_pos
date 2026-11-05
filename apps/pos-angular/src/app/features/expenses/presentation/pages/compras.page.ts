@@ -22,6 +22,9 @@ import {
   HISTORY_DAYS,
   type DemandHistory,
   type PurchaseLineStatus,
+  type ReplenishWindow,
+  type StockMovementRecord,
+  buildReplenishmentPlan,
   type PurchaseProductInput,
 } from '@angular-app/features/inventory/domain/services/purchase-suggestions'
 import { ExpenseRepository } from '@angular-app/features/expenses/domain/repositories/expense.repository'
@@ -30,6 +33,15 @@ import { buildFixedCommitments } from '@angular-app/features/expenses/domain/ser
 import { buildPurchaseListWorkbook } from '@angular-app/features/expenses/presentation/services/purchase-list-export'
 
 const COVER_OPTIONS = [7, 14, 21, 30] as const
+
+export type PurchaseMode = 'pronostico' | 'reponer'
+
+const WINDOW_OPTIONS: { value: ReplenishWindow; label: string }[] = [
+  { value: 'last_entry', label: 'Desde la última compra de cada producto' },
+  { value: 7, label: 'Últimos 7 días' },
+  { value: 14, label: 'Últimos 14 días' },
+  { value: 30, label: 'Últimos 30 días' },
+]
 
 const STATUS_BADGE: Record<PurchaseLineStatus, { label: string; variant: 'success' | 'warning' | 'destructive' | 'default' }> = {
   full: { label: 'Comprar', variant: 'success' },
@@ -76,7 +88,31 @@ function nextMonthStartIso(month: string): string {
   ],
   template: `
     <section class="flex h-full min-h-0 flex-col gap-4">
-      <mo-page-header title="Lista de compras" subtitle="Qué surtir sin gastar más de lo que tienes">
+      <mo-page-header title="Lista de compras" [subtitle]="mode() === 'reponer' ? 'Lo que se vendió, se repone' : 'Qué surtir sin gastar más de lo que tienes'">
+        <div class="bg-card flex items-center rounded-lg border p-0.5" role="tablist" aria-label="Cómo armar la lista">
+          <button
+            type="button"
+            role="tab"
+            class="h-9 rounded-md px-3 text-sm font-semibold"
+            [class.bg-primary]="mode() === 'reponer'"
+            [class.text-primary-foreground]="mode() === 'reponer'"
+            [attr.aria-selected]="mode() === 'reponer'"
+            (click)="mode.set('reponer')"
+          >
+            Reponer lo vendido
+          </button>
+          <button
+            type="button"
+            role="tab"
+            class="h-9 rounded-md px-3 text-sm font-semibold"
+            [class.bg-primary]="mode() === 'pronostico'"
+            [class.text-primary-foreground]="mode() === 'pronostico'"
+            [attr.aria-selected]="mode() === 'pronostico'"
+            (click)="mode.set('pronostico')"
+          >
+            Pronóstico
+          </button>
+        </div>
         <a
           routerLink="/finanzas"
           class="border-input bg-card hover:bg-accent inline-flex h-10 items-center rounded-lg border px-4 text-sm font-semibold"
@@ -116,19 +152,34 @@ function nextMonthStartIso(month: string): string {
               Fondo disponible: {{ (fondoDisponible() | money) }}
             </span>
           </label>
-          <label class="bg-card block rounded-xl border p-4">
-            <span class="text-muted-foreground text-sm font-medium">Que alcance para</span>
-            <select
-              (change)="onCover($event)"
-              class="border-input bg-background focus:ring-ring mt-1.5 h-10 w-full rounded-lg border px-3 text-sm font-semibold focus:ring-2 focus:outline-none"
-            >
-              @for (days of coverOptions; track days) {
-                <!-- [selected] por opción: las opciones del @for se crean después del select. -->
-                <option [value]="days" [selected]="days === coverDays()">{{ days }} días</option>
-              }
-            </select>
-            <span class="text-muted-foreground mt-1 block text-xs">Según lo vendido en las últimas 8 semanas</span>
-          </label>
+          @if (mode() === 'reponer') {
+            <label class="bg-card block rounded-xl border p-4">
+              <span class="text-muted-foreground text-sm font-medium">Reponer lo vendido</span>
+              <select
+                (change)="onWindow($event)"
+                class="border-input bg-background focus:ring-ring mt-1.5 h-10 w-full rounded-lg border px-3 text-sm font-semibold focus:ring-2 focus:outline-none"
+              >
+                @for (w of windowOptions; track w.value) {
+                  <option [value]="w.value" [selected]="w.value === window()">{{ w.label }}</option>
+                }
+              </select>
+              <span class="text-muted-foreground mt-1 block text-xs">Vendido − comprado en ese tiempo = por reponer. Los tarros abiertos para sachets cuentan como vendidos.</span>
+            </label>
+          } @else {
+            <label class="bg-card block rounded-xl border p-4">
+              <span class="text-muted-foreground text-sm font-medium">Que alcance para</span>
+              <select
+                (change)="onCover($event)"
+                class="border-input bg-background focus:ring-ring mt-1.5 h-10 w-full rounded-lg border px-3 text-sm font-semibold focus:ring-2 focus:outline-none"
+              >
+                @for (days of coverOptions; track days) {
+                  <!-- [selected] por opción: las opciones del @for se crean después del select. -->
+                  <option [value]="days" [selected]="days === coverDays()">{{ days }} días</option>
+                }
+              </select>
+              <span class="text-muted-foreground mt-1 block text-xs">Según lo vendido en las últimas 8 semanas</span>
+            </label>
+          }
           <div class="bg-card rounded-xl border p-4">
             <p class="text-muted-foreground text-sm font-medium">Total sugerido</p>
             <p class="font-display mt-1.5 text-[1.6rem] leading-tight font-extrabold tabular-nums">{{ (plan().total | money) }}</p>
@@ -167,7 +218,7 @@ function nextMonthStartIso(month: string): string {
         @if (visibleLines().length === 0) {
           <mo-empty-state
             title="Nada que comprar"
-            description="Con lo vendido en las últimas semanas, el stock actual alcanza para los días elegidos."
+            [description]="mode() === 'reponer' ? 'Todo lo vendido en ese tiempo ya está repuesto.' : 'Con lo vendido en las últimas semanas, el stock actual alcanza para los días elegidos.'"
           />
         } @else {
           <mo-table-shell class="flex-1">
@@ -176,9 +227,15 @@ function nextMonthStartIso(month: string): string {
                 <tr>
                   <th moTh>Producto</th>
                   <th moTh class="text-right">Stock</th>
-                  <th moTh class="text-right">Venta/día</th>
-                  <th moTh class="text-right">Alcanza</th>
-                  <th moTh class="text-right">Necesario</th>
+                  @if (mode() === 'reponer') {
+                    <th moTh class="text-right">Vendido</th>
+                    <th moTh class="text-right">Comprado</th>
+                    <th moTh class="text-right">Por reponer</th>
+                  } @else {
+                    <th moTh class="text-right">Venta/día</th>
+                    <th moTh class="text-right">Alcanza</th>
+                    <th moTh class="text-right">Necesario</th>
+                  }
                   <th moTh class="text-right">Comprar</th>
                   <th moTh class="text-right">Costo u.</th>
                   <th moTh class="text-right">Subtotal</th>
@@ -193,16 +250,27 @@ function nextMonthStartIso(month: string): string {
                       <div class="text-muted-foreground text-xs">{{ line.proveedorNombre ?? 'Sin proveedor' }}</div>
                     </td>
                     <td moTd class="text-right tabular-nums">{{ line.stockActual }}</td>
-                    <td moTd class="text-right tabular-nums">{{ line.consumoDiario }}</td>
-                    <td
-                      moTd
-                      class="text-right tabular-nums"
-                      [class.text-destructive]="line.diasQueAlcanza !== null && line.diasQueAlcanza < 3"
-                      [class.font-bold]="line.diasQueAlcanza !== null && line.diasQueAlcanza < 3"
-                    >
-                      {{ line.diasQueAlcanza === null ? '—' : line.diasQueAlcanza + ' d' }}
-                    </td>
-                    <td moTd class="text-muted-foreground text-right tabular-nums">{{ line.necesario }}</td>
+                    @if (mode() === 'reponer') {
+                      <td moTd class="text-right tabular-nums">
+                        {{ line.vendido }}
+                        @if (line.desde) {
+                          <span class="text-muted-foreground block text-xs">desde {{ sinceLabel(line.desde) }}</span>
+                        }
+                      </td>
+                      <td moTd class="text-muted-foreground text-right tabular-nums">{{ line.comprado }}</td>
+                      <td moTd class="text-right tabular-nums">{{ line.necesario }}</td>
+                    } @else {
+                      <td moTd class="text-right tabular-nums">{{ line.consumoDiario }}</td>
+                      <td
+                        moTd
+                        class="text-right tabular-nums"
+                        [class.text-destructive]="line.diasQueAlcanza !== null && line.diasQueAlcanza < 3"
+                        [class.font-bold]="line.diasQueAlcanza !== null && line.diasQueAlcanza < 3"
+                      >
+                        {{ line.diasQueAlcanza === null ? '—' : line.diasQueAlcanza + ' d' }}
+                      </td>
+                      <td moTd class="text-muted-foreground text-right tabular-nums">{{ line.necesario }}</td>
+                    }
                     <td moTd class="text-right text-base font-bold tabular-nums">{{ line.sugerido }}</td>
                     <td moTd class="text-muted-foreground text-right tabular-nums">
                       {{ line.costoUnitario === null ? '—' : (line.costoUnitario | money) }}
@@ -216,9 +284,15 @@ function nextMonthStartIso(month: string): string {
               </tbody>
             </table>
             <p class="text-muted-foreground px-4 py-3 text-xs">
-              Orden: primero lo que antes se agota; a igual urgencia, lo que más margen deja. La venta
-              diaria pesa más las últimas 2 semanas e incluye lo que consumen batidos y combos.
-              "Sin presupuesto": no alcanza ni para una unidad; sube el presupuesto o baja los días.
+              @if (mode() === 'reponer') {
+                Por reponer = vendido − comprado desde la fecha elegida (sin fecha: toda la historia de 8
+                semanas). Orden: primero lo que menos stock tiene. "Sin presupuesto": no alcanza ni para una
+                unidad; sube el presupuesto.
+              } @else {
+                Orden: primero lo que antes se agota; a igual urgencia, lo que más margen deja. La venta
+                diaria pesa más las últimas 2 semanas e incluye lo que consumen batidos y combos.
+                "Sin presupuesto": no alcanza ni para una unidad; sube el presupuesto o baja los días.
+              }
             </p>
           </mo-table-shell>
         }
@@ -236,6 +310,7 @@ export class ComprasPage {
   private readonly toast = inject(ToastService)
 
   readonly coverOptions = COVER_OPTIONS
+  readonly windowOptions = WINDOW_OPTIONS
 
   readonly loading = signal(true)
   readonly loadError = signal<string | null>(null)
@@ -244,19 +319,29 @@ export class ComprasPage {
   readonly products = signal<PurchaseProductInput[]>([])
   readonly stock = signal<ReadonlyMap<string, number>>(new Map())
   readonly histories = signal<ReadonlyMap<string, DemandHistory>>(new Map())
+  readonly movements = signal<StockMovementRecord[]>([])
   readonly fondoDisponible = signal(0)
   readonly fijosPendientes = signal(0)
 
   readonly budget = signal(0)
   readonly coverDays = signal<number>(14)
+  /** "Reponer lo vendido" es el modo por defecto: es la cuenta que el dueño hace de cabeza. */
+  readonly mode = signal<PurchaseMode>('reponer')
+  readonly window = signal<ReplenishWindow>('last_entry')
   readonly proveedor = signal('')
   readonly soloComprar = signal(false)
 
   readonly plan = computed(() =>
-    buildPurchasePlan(this.filteredProducts(), this.stock(), this.histories(), {
-      coverDays: this.coverDays(),
-      budget: this.budget(),
-    }),
+    this.mode() === 'reponer'
+      ? buildReplenishmentPlan(this.filteredProducts(), this.stock(), this.movements(), {
+          window: this.window(),
+          budget: this.budget(),
+          now: new Date(),
+        })
+      : buildPurchasePlan(this.filteredProducts(), this.stock(), this.histories(), {
+          coverDays: this.coverDays(),
+          budget: this.budget(),
+        }),
   )
 
   readonly proveedores = computed(() =>
@@ -316,6 +401,7 @@ export class ComprasPage {
       )
       const stock = new Map(levels.map((l) => [l.productId, l.totalStock]))
       this.stock.set(stock)
+      this.movements.set(movements)
       this.histories.set(
         buildDemandHistories(movements, stock, {
           now: new Date(),
@@ -346,6 +432,15 @@ export class ComprasPage {
     this.budget.set(Number.isFinite(value) && value > 0 ? value : 0)
   }
 
+  onWindow(event: Event): void {
+    const raw = (event.target as HTMLSelectElement).value
+    this.window.set(raw === 'last_entry' ? 'last_entry' : (Number(raw) as ReplenishWindow))
+  }
+
+  sinceLabel(d: Date): string {
+    return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })
+  }
+
   onCover(event: Event): void {
     this.coverDays.set(Number((event.target as HTMLSelectElement).value))
   }
@@ -361,7 +456,14 @@ export class ComprasPage {
   async exportList(): Promise<void> {
     this.exporting.set(true)
     try {
-      await this.excel.download(buildPurchaseListWorkbook(this.plan(), this.coverDays()))
+      await this.excel.download(
+        buildPurchaseListWorkbook(
+          this.plan(),
+          this.mode() === 'reponer'
+            ? { kind: 'reponer', windowLabel: this.windowOptions.find((w) => w.value === this.window())?.label ?? '' }
+            : { kind: 'pronostico', coverDays: this.coverDays() },
+        ),
+      )
       this.toast.success('Lista de compras descargada')
     } catch (error) {
       this.toast.error(getErrorMessage(error, 'No se pudo generar el archivo'))
